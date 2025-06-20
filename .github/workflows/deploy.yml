@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - prod
+      - main
 
 jobs:
   deploy:
@@ -26,7 +26,7 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
             DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/dev/docker"
             COMPOSE_FILE="docker-compose.dev.yml"
-          elif [ "${{ github.ref }}" = "refs/heads/prod" ]; then
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
             DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/prod/docker"
             COMPOSE_FILE="docker-compose.prod.yml"
           else
