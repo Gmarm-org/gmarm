@@ -1,4 +1,4 @@
-name: Deploy to server
+name: CI/CD Deploy
 
 on:
   push:
@@ -11,27 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Setup SSH key
+      - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Deploy via SSH
+      - name: Deploy to Server
         run: |
+          echo "Branch: ${{ github.ref }}"
+
           if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
-            DEPLOY_DIR="/home/gmarmin/deploy/dev/docker"
+            DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/dev/docker"
+            COMPOSE_FILE="docker-compose.dev.yml"
           elif [ "${{ github.ref }}" = "refs/heads/prod" ]; then
-            DEPLOY_DIR="/home/gmarmin/deploy/prod/docker"
+            DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/prod/docker"
+            COMPOSE_FILE="docker-compose.prod.yml"
           else
-            echo "Branch not supported for deploy."
+            echo "Unsupported branch"
             exit 1
           fi
 
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
-            cd $DEPLOY_DIR
-            docker-compose pull
-            docker-compose up -d
+            cd \$DEPLOY_DIR
+            docker-compose -f \$COMPOSE_FILE pull
+            docker-compose -f \$COMPOSE_FILE up -d --remove-orphans
           EOF
