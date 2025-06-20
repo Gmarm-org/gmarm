@@ -1,0 +1,37 @@
+name: Deploy to server
+
+on:
+  push:
+    branches:
+      - dev
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Deploy via SSH
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            DEPLOY_DIR="/home/gmarmin/deploy/dev/docker"
+          elif [ "${{ github.ref }}" = "refs/heads/prod" ]; then
+            DEPLOY_DIR="/home/gmarmin/deploy/prod/docker"
+          else
+            echo "Branch not supported for deploy."
+            exit 1
+          fi
+
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
+            cd $DEPLOY_DIR
+            docker-compose pull
+            docker-compose up -d
+          EOF
