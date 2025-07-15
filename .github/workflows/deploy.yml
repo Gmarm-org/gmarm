@@ -24,10 +24,10 @@ jobs:
           echo "Branch detected: ${{ github.ref }}"
 
           if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
-            DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/dev/docker"
+            DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/dev"
             COMPOSE_FILE="docker-compose.dev.yml"
           elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/prod/docker"
+            DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/deploy/prod"
             COMPOSE_FILE="docker-compose.prod.yml"
           else
             echo "Unsupported branch"
