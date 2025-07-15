@@ -9,10 +9,12 @@ services:
       - postgres_dev
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     image: myapp-frontend-dev
     ports:
-      - "3000:80"
+      - "3000:5173"
 
   postgres_dev:
     image: postgres:14
