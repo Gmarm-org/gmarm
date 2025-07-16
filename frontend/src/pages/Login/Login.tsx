@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../styles/App.css'
 
 function Login() {
@@ -6,6 +7,7 @@ function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const isValidEmail = (correo: string) => {
     // Simple email regex
@@ -21,6 +23,10 @@ function Login() {
     // Simple email and password check for demonstration
     if (email === 'admin@example.com' && password === 'password') {
       setMessage('¡Ingreso exitoso!');
+      // Simulate role-based navigation - redirect to Vendedor page
+      setTimeout(() => {
+        navigate('/vendedor');
+      }, 1000);
     } else {
       setMessage('Correo o contraseña incorrectos.');
     }
