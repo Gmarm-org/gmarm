@@ -8,6 +8,6 @@ RUN mvn clean package -DskipTests
 # Run stage
 FROM openjdk:17-jdk-slim
 WORKDIR /app
-COPY --from=build /app/target/armas-importacion-*.jar app.jar
+COPY --from=build /app/target/backend-armas-importacion-*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

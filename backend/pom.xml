@@ -14,7 +14,7 @@
 	</parent>
 
 	<groupId>com.armasimportacion</groupId>
-	<artifactId>backend</artifactId>
+	<artifactId>backend-armas-importacion</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>armas-importacion</name>
 	<description>Backend para gestión de importación de armas</description>
