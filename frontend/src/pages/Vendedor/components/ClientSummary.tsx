@@ -7,13 +7,15 @@ interface ClientSummaryProps {
   armaSeleccionada: Weapon | null;
   onBack: () => void;
   onSaveClient: () => void;
+  cantidadesArmas?: Record<string, number>; // NUEVO
 }
 
 const ClientSummary: React.FC<ClientSummaryProps> = ({
   clienteParaResumen,
   armaSeleccionada,
   onBack,
-  onSaveClient
+  onSaveClient,
+  cantidadesArmas
 }) => {
   const [editandoResumen, setEditandoResumen] = useState(false);
   const [datosEditables, setDatosEditables] = useState<Partial<Client>>({});
@@ -64,6 +66,12 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
   if (!clienteParaResumen || !armaSeleccionada) {
     return null;
   }
+
+  const cantidad = (clienteParaResumen?.tipoCliente === 'Compañía de Seguridad' && cantidadesArmas && armaSeleccionada) ? (cantidadesArmas[armaSeleccionada.id] || 1) : 1;
+  const iva = 0.15;
+  const precioBase = armaSeleccionada.precio * cantidad;
+  const ivaTotal = armaSeleccionada.precio * cantidad * iva;
+  const precioFinal = precioBase + ivaTotal;
 
   return (
     <div className="summary-section">
@@ -267,15 +275,30 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
         
         <div className="summary-card">
           <h3>Arma Seleccionada</h3>
-          <div className="weapon-summary">
-            <img src={armaSeleccionada.imagen} alt={armaSeleccionada.modelo} />
-            <div className="weapon-details">
-              <p><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
-              <p><strong>Calibre:</strong> {armaSeleccionada.calibre}</p>
-              <p><strong>Capacidad:</strong> {armaSeleccionada.capacidad}</p>
-              <p><strong>Precio:</strong> ${armaSeleccionada.precio}</p>
+          {armaSeleccionada && (
+            <div className="weapon-summary">
+              <img src={armaSeleccionada.imagen} alt={armaSeleccionada.modelo} />
+              <div className="weapon-details">
+                <p><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
+                <p><strong>Calibre:</strong> {armaSeleccionada.calibre}</p>
+                <p><strong>Capacidad:</strong> {armaSeleccionada.capacidad}</p>
+                {clienteParaResumen?.tipoCliente === 'Compañía de Seguridad' && (
+                  <p><strong>Cantidad:</strong> {cantidad}</p>
+                )}
+                <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '4px' }}>
+                  <p style={{ margin: '0.2rem 0', fontSize: '0.9rem' }}>
+                    <strong>Precio Base:</strong> ${precioBase.toFixed(2)}
+                  </p>
+                  <p style={{ margin: '0.2rem 0', fontSize: '0.85rem', color: '#6b7280' }}>
+                    <strong>IVA (15%):</strong> ${ivaTotal.toFixed(2)}
+                  </p>
+                  <p style={{ margin: '0.2rem 0', fontSize: '1rem', fontWeight: '600', color: '#1f2937' }}>
+                    <strong>Precio Final:</strong> ${precioFinal.toFixed(2)}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         
         <div className="summary-actions">

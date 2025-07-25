@@ -26,6 +26,8 @@ const ClientTable: React.FC<ClientTableProps> = ({
   return (
     <div className="client-table-container">
       <h3>Lista de Clientes</h3>
+      
+      {/* Tabla para Desktop */}
       <table className="client-table">
         <thead>
           <tr>
@@ -126,6 +128,121 @@ const ClientTable: React.FC<ClientTableProps> = ({
           )}
         </tbody>
       </table>
+
+      {/* Tarjetas para Móvil */}
+      <div className="client-cards">
+        {clients.length === 0 ? (
+          <div className="empty-table" style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontStyle: 'italic' }}>
+            No hay clientes registrados
+          </div>
+        ) : (
+          clients.map(client => {
+            const arma = armasPorCliente[client.id] || null;
+            return (
+              <div key={`card-${client.id}`} className="client-card">
+                <div className="client-card-header">
+                  <div className="client-card-name">
+                    {client.nombres} {client.tipoCliente === 'Compañía de Seguridad' ? '' : client.apellidos}
+                  </div>
+                  <span className={`client-card-badge badge-${client.tipoCliente.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {client.tipoCliente}
+                  </span>
+                </div>
+                
+                <div className="client-card-details">
+                  <div className="client-card-row">
+                    <span className="client-card-label">Cédula:</span>
+                    <span className="client-card-value">{client.cedula}</span>
+                  </div>
+                  <div className="client-card-row">
+                    <span className="client-card-label">Email:</span>
+                    <span className="client-card-value">{client.email}</span>
+                  </div>
+                  <div className="client-card-row">
+                    <span className="client-card-label">Teléfono:</span>
+                    <span className="client-card-value">{client.telefonoPrincipal}</span>
+                  </div>
+                  <div className="client-card-row">
+                    <span className="client-card-label">Arma:</span>
+                    <div className="client-card-value">
+                      {arma ? (
+                        <div className="client-card-weapon">
+                          <img src={arma.imagen} alt={arma.modelo} />
+                          <span>{arma.modelo}</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#9ca3af' }}>—</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="client-card-actions">
+                  <button
+                    className="action-menu-btn"
+                    aria-label="Acciones"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setActionMenuOpen(actionMenuOpen === client.id ? null : client.id);
+                    }}
+                  >
+                    <span className="action-menu-icon">⋯</span>
+                  </button>
+                  {actionMenuOpen === client.id && (
+                    <div
+                      ref={actionMenuRef}
+                      className="action-menu-dropdown"
+                      style={{
+                        position: 'absolute',
+                        right: '0',
+                        top: '2.5rem',
+                        zIndex: 10000,
+                        minWidth: '140px',
+                        background: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        padding: '0.3rem 0'
+                      }}
+                    >
+                      <button
+                        className="action-menu-item"
+                        onClick={() => {
+                          setActionMenuOpen(null);
+                          onOpenClientForm('view', client);
+                        }}
+                      >
+                        Ver Detalle
+                      </button>
+                      <button
+                        className="action-menu-item"
+                        onClick={() => {
+                          setActionMenuOpen(null);
+                          onOpenClientForm('edit', client);
+                        }}
+                      >
+                        Editar
+                      </button>
+                      {/* Inhabilitar: siempre para clientes reales, solo si tiene arma para cupo civil */}
+                      {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
+                        <button
+                          className="action-menu-item danger"
+                          onClick={() => {
+                            setActionMenuOpen(null);
+                            alert('Inhabilitar cliente (simulado)');
+                          }}
+                        >
+                          Inhabilitar
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };

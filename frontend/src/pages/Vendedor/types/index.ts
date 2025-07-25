@@ -1,3 +1,8 @@
+export interface LocationData {
+  provincia: string;
+  cantones: { canton: string; ciudades: string[] }[];
+}
+
 export interface Client {
   id: string;
   cedula: string;
@@ -13,6 +18,10 @@ export interface Client {
   telefonoReferencia?: string;
   direccionFiscal?: string;
   correoElectronico?: string;
+  provincia?: string;
+  canton?: string;
+  provinciaCompania?: string;
+  cantonCompania?: string;
 }
 
 export interface Weapon {

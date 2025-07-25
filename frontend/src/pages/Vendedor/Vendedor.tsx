@@ -7,36 +7,63 @@ import Dashboard from './components/Dashboard';
 import ClientForm from './components/ClientForm';
 import WeaponReserve from './components/WeaponReserve';
 import ClientSummary from './components/ClientSummary';
-
-interface Client {
-  id: string;
-  cedula: string;
-  nombres: string;
-  apellidos: string;
-  email: string;
-  direccion: string;
-  telefonoPrincipal: string;
-  telefonoSecundario?: string;
-  tipoCliente: string;
-  tipoIdentificacion: string;
-  ruc?: string;
-  telefonoReferencia?: string;
-  direccionFiscal?: string;
-  correoElectronico?: string;
-}
-
-interface Weapon {
-  id: string;
-  modelo: string;
-  calibre: string;
-  capacidad: number;
-  precio: number;
-  imagen: string;
-  disponible: boolean;
-}
+import {
+  clientes as initialClients,
+  weapons as initialWeapons,
+  clientTypeLabels,
+  clientTypeOrder,
+  tiposDeIdentificacion,
+  docsByTipo,
+  preguntasByTipo,
+  armasPorCliente as initialArmasPorCliente
+} from './HardcodedData';
+import type { Client, Weapon } from './types';
 
 type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword';
 type ClientFormMode = 'create' | 'view' | 'edit';
+
+export interface ContratoCliente {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  tipoCliente: string;
+  tipoIdentificacion: string;
+  cedula: string;
+  email: string;
+  provincia: string;
+  canton: string;
+  ciudad: string;
+  direccion: string;
+  telefonoPrincipal: string;
+  telefonoSecundario?: string;
+}
+
+export interface ContratoCompania {
+  ruc: string;
+  nombre: string;
+  provincia: string;
+  canton: string;
+  ciudad: string;
+  direccionFiscal: string;
+  telefonoReferencia: string;
+  correoElectronico: string;
+}
+
+export interface ContratoArma {
+  id: string;
+  modelo: string;
+  precioBase: number;
+  cantidad: number;
+  iva: number;
+  precioFinal: number;
+}
+
+export interface ContratoRegistroCliente {
+  cliente: ContratoCliente;
+  compania?: ContratoCompania; // Solo si es Compañía de Seguridad
+  armas: ContratoArma[]; // Puede ser más de una para empresas
+  total: number;
+}
 
 function Vendedor() {
   const [page, setPage] = useState<Page>('dashboard');
@@ -44,79 +71,26 @@ function Vendedor() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: '1',
-      cedula: '1234567890',
-      nombres: 'Juan',
-      apellidos: 'Pérez',
-      email: 'juan.perez@email.com',
-      direccion: 'Calle Principal 123',
-      telefonoPrincipal: '0987654321',
-      tipoCliente: 'Civil',
-      tipoIdentificacion: 'Cedula'
-    },
-    {
-      id: '2',
-      cedula: '0999999999',
-      nombres: 'Seguridad S.A.',
-      apellidos: '',
-      email: 'contacto@seguridad.com',
-      direccion: 'Av. Empresa 456',
-      telefonoPrincipal: '022345678',
-      tipoCliente: 'Compañía de Seguridad',
-      tipoIdentificacion: 'RUC'
-    },
-    {
-      id: '3',
-      cedula: '1100110011',
-      nombres: 'Carlos',
-      apellidos: 'Ramírez',
-      email: 'c.ramirez@militar.com',
-      direccion: 'Base Militar',
-      telefonoPrincipal: '099888777',
-      tipoCliente: 'Uniformado',
-      tipoIdentificacion: 'Cedula'
-    },
-    {
-      id: '4',
-      cedula: '0808080808',
-      nombres: 'Ana',
-      apellidos: 'Gómez',
-      email: 'ana.gomez@deporte.com',
-      direccion: 'Club Deportivo',
-      telefonoPrincipal: '098123456',
-      tipoCliente: 'Deportista',
-      tipoIdentificacion: 'Cedula'
-    }
-  ]);
+  const [clients, setClients] = useState<Client[]>(initialClients);
+  const [weapons, setWeapons] = useState<Weapon[]>(initialWeapons);
+  const [armasPorCliente, setArmasPorCliente] = useState<Record<string, Weapon | null>>(initialArmasPorCliente);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [tipoCliente, setTipoCliente] = useState('Civil');
   const [estadoUniformado, setEstadoUniformado] = useState<'Activo' | 'Pasivo'>('Activo');
   const [formData, setFormData] = useState<Partial<Client>>({});
-  const [weapons, setWeapons] = useState<Weapon[]>([
-    {
-      id: '1',
-      modelo: 'Modelo A',
-      calibre: '55',
-      capacidad: 12,
-      precio: 1000,
-      imagen: '/weapon1.png',
-      disponible: true
-    },
-    {
-      id: '2',
-      modelo: 'Modelo B',
-      calibre: '45',
-      capacidad: 15,
-      precio: 1200,
-      imagen: '/weapon2.png',
-      disponible: true
-    }
-  ]);
+  const [reservaParaCliente, setReservaParaCliente] = useState<Client | null>(null);
+  const [clienteParaResumen, setClienteParaResumen] = useState<Client | null>(null);
+  const [armaSeleccionada, setArmaSeleccionada] = useState<Weapon | null>(null);
+  const [armaSeleccionadaEnReserva, setArmaSeleccionadaEnReserva] = useState<Weapon | null>(null);
+  const [editandoResumen, setEditandoResumen] = useState(false);
+  const [datosEditables, setDatosEditables] = useState<Partial<Client>>({});
+  // Estado para cantidades de armas por id
+  const [cantidadesArmas, setCantidadesArmas] = useState<Record<string, number>>({});
+
+  // Estado para menú contextual (actionMenu)
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
-  
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -162,28 +136,7 @@ function Vendedor() {
     };
   }, [actionMenuOpen]);
 
-  // Hardcoded documents/questions by tipoCliente
-  const docsByTipo: Record<string, string[]> = {
-    Civil: ['Cédula', 'Certificado de antecedentes'],
-    'Compañía de Seguridad': ['RUC', 'Permiso de funcionamiento', 'Representante legal'],
-    Uniformado: ['Cédula', 'Credencial policial'],
-    Deportista: ['Cédula', 'Credencial club', 'Permiso deportivo']
-  };
-  const preguntasByTipo: Record<string, string[]> = {
-    Civil: ['¿Ha tenido antecedentes?', '¿Motivo de compra?'],
-    'Compañía de Seguridad': ['¿Tipo de empresa?', '¿Cantidad de armas requeridas?'],
-    Uniformado: ['¿Rango?', '¿Unidad?'],
-    Deportista: ['¿Disciplina?', '¿Participa en competencias?']
-  };
-
-  // Remove static clientTypes and compute counts dynamically
-  const clientTypeLabels: Record<string, string> = {
-    Civil: 'Civiles',
-    'Compañía de Seguridad': 'Compañías de seguridad',
-    Uniformado: 'Uniformados',
-    Deportista: 'Deportistas'
-  };
-  const clientTypeOrder = ['Civil', 'Compañía de Seguridad', 'Uniformado', 'Deportista'];
+  // Usa clientTypeLabels, clientTypeOrder, tiposDeIdentificacion, docsByTipo, preguntasByTipo donde sea necesario
   const clientTypeCounts = clientTypeOrder.map(type => ({
     type,
     label: clientTypeLabels[type],
@@ -191,12 +144,12 @@ function Vendedor() {
   }));
 
   // Simulación: asignar un arma a algunos clientes
-  const armaPorCliente: Record<string, Weapon | null> = {
-    '1': weapons[0], // Juan tiene arma 1
-    '2': null,       // Seguridad S.A. sin arma
-    '3': weapons[1], // Carlos tiene arma 2
-    '4': null        // Ana sin arma
-  };
+  // const armaPorCliente: Record<string, Weapon | null> = {
+  //   '1': weapons[0], // Juan tiene arma 1
+  //   '2': null,       // Seguridad S.A. sin arma
+  //   '3': weapons[1], // Carlos tiene arma 2
+  //   '4': null        // Ana sin arma
+  // };
 
   // Identificar si un cliente es 'Cupo Civil'
   const isCupoCivil = (client: Client) => client.nombres.startsWith('Cupo Civil');
@@ -275,6 +228,13 @@ function Vendedor() {
     } else {
       setArmaSeleccionadaEnReserva(null);
     }
+  };
+
+  // Función para actualizar el precio de un arma
+  const handleUpdateWeaponPrice = (weaponId: string, newPrice: number) => {
+    setWeapons(prev => prev.map(weapon => 
+      weapon.id === weaponId ? { ...weapon, precio: newPrice } : weapon
+    ));
   };
 
 
@@ -375,14 +335,14 @@ function Vendedor() {
     return tipoCliente;
   };
 
-  // Estado para armas por cliente
-  const [armasPorCliente, setArmasPorCliente] = useState<Record<string, Weapon | null>>({});
-  const [reservaParaCliente, setReservaParaCliente] = useState<Client | null>(null);
-  const [clienteParaResumen, setClienteParaResumen] = useState<Client | null>(null);
-  const [armaSeleccionada, setArmaSeleccionada] = useState<Weapon | null>(null);
-  const [armaSeleccionadaEnReserva, setArmaSeleccionadaEnReserva] = useState<Weapon | null>(null);
-  const [editandoResumen, setEditandoResumen] = useState(false);
-  const [datosEditables, setDatosEditables] = useState<Partial<Client>>({});
+  // Función para actualizar la cantidad de un arma
+  const handleUpdateWeaponQuantity = (weaponId: string, newQuantity: number) => {
+    setCantidadesArmas(prev => ({ ...prev, [weaponId]: newQuantity }));
+  };
+
+  const [provincia, setProvincia] = useState('');
+  const [canton, setCanton] = useState('');
+  const [ciudad, setCiudad] = useState('');
 
   return (
     <div className="vendedor-container">
@@ -431,6 +391,8 @@ function Vendedor() {
             onBack={() => setPage('dashboard')}
             onSubmit={handleClientSubmit}
             onWeaponSelection={handleWeaponSelectionInReserve}
+            onUpdateWeaponPrice={handleUpdateWeaponPrice}
+            onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
           />
         )}
 
@@ -447,228 +409,19 @@ function Vendedor() {
             onAssignWeaponToClient={handleAssignWeaponToClient}
             onAssignWeaponToCupoCivil={handleAssignWeaponToCupoCivil}
             onConfirmData={handleConfirmData}
+            onUpdateWeaponPrice={handleUpdateWeaponPrice}
+            onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
           />
         )}
 
         {page === 'summary' && (
-          <div className="summary-section">
-            <button className="action-btn secondary" style={{ marginBottom: 16 }} onClick={() => setPage('reserve')}>
-              ← Volver
-            </button>
-            <h2>Resumen de Cliente</h2>
-            <div className="summary-content">
-              <div className="summary-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3>Datos del Cliente</h3>
-                  <button 
-                    className="action-btn secondary" 
-                    onClick={() => setEditandoResumen(!editandoResumen)}
-                    style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
-                  >
-                    {editandoResumen ? 'Cancelar' : 'Editar'}
-                  </button>
-                </div>
-                {clienteParaResumen && (
-                  <div className="client-summary">
-                    <div className="summary-row">
-                      <span className="summary-label">Tipo de Cliente:</span>
-                      {editandoResumen ? (
-                        <select 
-                          value={datosEditables.tipoCliente || clienteParaResumen.tipoCliente} 
-                          onChange={e => setDatosEditables(prev => ({...prev, tipoCliente: e.target.value}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        >
-                          <option value="Civil">Civil</option>
-                          <option value="Uniformado">Uniformado</option>
-                          <option value="Compañía de Seguridad">Compañía de Seguridad</option>
-                          <option value="Deportista">Deportista</option>
-                        </select>
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.tipoCliente}</span>
-                      )}
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-label">Identificación:</span>
-                      {editandoResumen ? (
-                        <input 
-                          type="text" 
-                          value={datosEditables.cedula || clienteParaResumen.cedula} 
-                          onChange={e => setDatosEditables(prev => ({...prev, cedula: validateNumbersOnly(e.target.value)}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.cedula}</span>
-                      )}
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-label">Nombres:</span>
-                      {editandoResumen ? (
-                        <input 
-                          type="text" 
-                          value={datosEditables.nombres || clienteParaResumen.nombres} 
-                          onChange={e => setDatosEditables(prev => ({...prev, nombres: toUpperCase(e.target.value)}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.nombres}</span>
-                      )}
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-label">Apellidos:</span>
-                      {editandoResumen ? (
-                        <input 
-                          type="text" 
-                          value={datosEditables.apellidos || clienteParaResumen.apellidos} 
-                          onChange={e => setDatosEditables(prev => ({...prev, apellidos: toUpperCase(e.target.value)}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.apellidos}</span>
-                      )}
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-label">Email:</span>
-                      {editandoResumen ? (
-                        <input 
-                          type="email" 
-                          value={datosEditables.email || clienteParaResumen.email} 
-                          onChange={e => setDatosEditables(prev => ({...prev, email: e.target.value.toLowerCase()}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.email}</span>
-                      )}
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-label">Dirección:</span>
-                      {editandoResumen ? (
-                        <input 
-                          type="text" 
-                          value={datosEditables.direccion || clienteParaResumen.direccion} 
-                          onChange={e => setDatosEditables(prev => ({...prev, direccion: toUpperCase(e.target.value)}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.direccion}</span>
-                      )}
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-label">Teléfono Principal:</span>
-                      {editandoResumen ? (
-                        <input 
-                          type="tel" 
-                          value={datosEditables.telefonoPrincipal || clienteParaResumen.telefonoPrincipal} 
-                          onChange={e => setDatosEditables(prev => ({...prev, telefonoPrincipal: validateNumbersOnly(e.target.value)}))}
-                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                      ) : (
-                        <span className="summary-value">{clienteParaResumen.telefonoPrincipal}</span>
-                      )}
-                    </div>
-                    {(clienteParaResumen.telefonoSecundario || editandoResumen) && (
-                      <div className="summary-row">
-                        <span className="summary-label">Teléfono Secundario:</span>
-                        {editandoResumen ? (
-                          <input 
-                            type="tel" 
-                            value={datosEditables.telefonoSecundario || clienteParaResumen.telefonoSecundario || ''} 
-                            onChange={e => setDatosEditables(prev => ({...prev, telefonoSecundario: validateNumbersOnly(e.target.value)}))}
-                            style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                          />
-                        ) : (
-                          <span className="summary-value">{clienteParaResumen.telefonoSecundario}</span>
-                        )}
-                      </div>
-                    )}
-                    {(clienteParaResumen.tipoCliente === 'Compañía de Seguridad' || datosEditables.tipoCliente === 'Compañía de Seguridad') && (
-                      <>
-                        <div className="summary-row">
-                          <span className="summary-label">RUC:</span>
-                          {editandoResumen ? (
-                            <input 
-                              type="text" 
-                              value={datosEditables.ruc || clienteParaResumen.ruc || ''} 
-                              onChange={e => setDatosEditables(prev => ({...prev, ruc: validateNumbersOnly(e.target.value)}))}
-                              style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                            />
-                          ) : (
-                            <span className="summary-value">{clienteParaResumen.ruc}</span>
-                          )}
-                        </div>
-                        <div className="summary-row">
-                          <span className="summary-label">Teléfono de Referencia:</span>
-                          {editandoResumen ? (
-                            <input 
-                              type="tel" 
-                              value={datosEditables.telefonoReferencia || clienteParaResumen.telefonoReferencia || ''} 
-                              onChange={e => setDatosEditables(prev => ({...prev, telefonoReferencia: validateNumbersOnly(e.target.value)}))}
-                              style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                            />
-                          ) : (
-                            <span className="summary-value">{clienteParaResumen.telefonoReferencia}</span>
-                          )}
-                        </div>
-                        <div className="summary-row">
-                          <span className="summary-label">Dirección Fiscal:</span>
-                          {editandoResumen ? (
-                            <input 
-                              type="text" 
-                              value={datosEditables.direccionFiscal || clienteParaResumen.direccionFiscal || ''} 
-                              onChange={e => setDatosEditables(prev => ({...prev, direccionFiscal: toUpperCase(e.target.value)}))}
-                              style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                            />
-                          ) : (
-                            <span className="summary-value">{clienteParaResumen.direccionFiscal}</span>
-                          )}
-                        </div>
-                        <div className="summary-row">
-                          <span className="summary-label">Correo Electrónico:</span>
-                          {editandoResumen ? (
-                            <input 
-                              type="email" 
-                              value={datosEditables.correoElectronico || clienteParaResumen.correoElectronico || ''} 
-                              onChange={e => setDatosEditables(prev => ({...prev, correoElectronico: e.target.value.toLowerCase()}))}
-                              style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                            />
-                          ) : (
-                            <span className="summary-value">{clienteParaResumen.correoElectronico}</span>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-                {editandoResumen && (
-                  <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                    <button className="action-btn primary" onClick={handleSaveChanges}>
-                      Guardar Cambios
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              <div className="summary-card">
-                <h3>Arma Seleccionada</h3>
-                {armaSeleccionada && (
-                  <div className="weapon-summary">
-                    <img src={armaSeleccionada.imagen} alt={armaSeleccionada.modelo} />
-                    <div className="weapon-details">
-                      <p><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
-                      <p><strong>Calibre:</strong> {armaSeleccionada.calibre}</p>
-                      <p><strong>Capacidad:</strong> {armaSeleccionada.capacidad}</p>
-                      <p><strong>Precio:</strong> ${armaSeleccionada.precio}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="summary-actions">
-                <button className="submit-btn" onClick={handleSaveClient}>
-                  Terminar Proceso
-                </button>
-              </div>
-            </div>
-          </div>
+          <ClientSummary
+            clienteParaResumen={clienteParaResumen}
+            armaSeleccionada={armaSeleccionada}
+            onBack={() => setPage('reserve')}
+            onSaveClient={handleSaveClient}
+            cantidadesArmas={cantidadesArmas}
+          />
         )}
 
         {page === 'userUpdate' && (
