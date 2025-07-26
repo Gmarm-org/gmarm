@@ -49,8 +49,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
   // Handler para precio
   const handlePrecioChange = (weaponId: string, value: string) => {
-    // Permitir solo números y un punto decimal
-    let cleanValue = value.replace(/[^0-9.]/g, '');
+    // Permitir números, punto y coma decimal
+    let cleanValue = value.replace(/[^0-9.,]/g, '');
+    
+    // Convertir coma a punto para procesamiento interno
+    cleanValue = cleanValue.replace(',', '.');
     
     // Asegurar que solo haya un punto decimal
     const parts = cleanValue.split('.');
@@ -76,8 +79,8 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   // Función para formatear el precio para mostrar
   const formatPrecioForDisplay = (precio: number) => {
     if (precio === 0) return '';
-    // Mostrar el precio tal como está, sin forzar formato
-    return precio.toString();
+    // Mostrar el precio con formato uniforme usando punto como separador decimal
+    return precio.toFixed(2);
   };
 
   // Determinar si es empresa
