@@ -994,19 +994,20 @@
   background: #0369a1;
   color: #fff;
 }
-  .action-menu-dropdown {
-    min-width: 150px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 9999;
-    position: absolute;
-    right: 0;
-    top: 2.2rem;
-    padding: 0.3rem 0;
-    animation: fadeIn 0.15s;
-  }
+
+.action-menu-dropdown {
+  min-width: 150px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 9999;
+  position: absolute;
+  right: 0;
+  top: 2.2rem;
+  padding: 0.3rem 0;
+  animation: fadeIn 0.15s;
+}
   
   /* Ajustes para el dropdown en tarjetas móviles */
   .client-card-actions .action-menu-dropdown {

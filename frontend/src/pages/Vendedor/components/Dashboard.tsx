@@ -11,6 +11,9 @@ interface DashboardProps {
   onReserveWithoutClient: () => void;
   onAssignWeaponToClient: (client: Client, weapon: Weapon) => void;
   onAssignWeaponToCupoCivil: (weapon: Weapon) => void;
+  actionMenuOpen: string | null;
+  setActionMenuOpen: (id: string | null) => void;
+  actionMenuRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -20,25 +23,11 @@ const Dashboard: React.FC<DashboardProps> = ({
   onOpenClientForm,
   onReserveWithoutClient,
   onAssignWeaponToClient,
-  onAssignWeaponToCupoCivil
+  onAssignWeaponToCupoCivil,
+  actionMenuOpen,
+  setActionMenuOpen,
+  actionMenuRef
 }) => {
-  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-  const actionMenuRef = useRef<HTMLDivElement | null>(null);
-
-  // Cerrar el menú contextual al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
-        setActionMenuOpen(null);
-      }
-    };
-    if (actionMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [actionMenuOpen]);
 
   return (
     <div className="dashboard-section">

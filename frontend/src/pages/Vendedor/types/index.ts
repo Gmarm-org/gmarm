@@ -14,6 +14,7 @@ export interface Client {
   telefonoSecundario?: string;
   tipoCliente: string;
   tipoIdentificacion: string;
+  estadoUniformado?: 'Activo' | 'Pasivo';
   ruc?: string;
   telefonoReferencia?: string;
   direccionFiscal?: string;

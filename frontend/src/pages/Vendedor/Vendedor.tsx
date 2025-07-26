@@ -163,6 +163,8 @@ function Vendedor() {
         nombres: client.nombres || '',
         apellidos: client.apellidos || '',
         email: client.email || '',
+        provincia: client.provincia || '',
+        canton: client.canton || '',
         direccion: client.direccion || '',
         telefonoPrincipal: client.telefonoPrincipal || '',
         telefonoSecundario: client.telefonoSecundario || '',
@@ -171,7 +173,10 @@ function Vendedor() {
         ruc: client.ruc,
         telefonoReferencia: client.telefonoReferencia,
         direccionFiscal: client.direccionFiscal,
-        correoElectronico: client.correoElectronico
+        correoElectronico: client.correoElectronico,
+        provinciaCompania: client.provinciaCompania,
+        cantonCompania: client.cantonCompania,
+        estadoUniformado: client.estadoUniformado
       };
       
       // Actualizar cliente en la lista
@@ -187,7 +192,7 @@ function Vendedor() {
         }));
       }
       
-      // Limpiar estados
+      // Limpiar estados y volver al dashboard
       setArmaSeleccionadaEnReserva(null);
       setFormData({});
       setPage('dashboard');
@@ -223,6 +228,15 @@ function Vendedor() {
 
   // Función para manejar selección/deselección de arma en reserva
   const handleWeaponSelectionInReserve = (weapon: Weapon | null) => {
+    if (weapon) {
+      setArmaSeleccionadaEnReserva(weapon);
+    } else {
+      setArmaSeleccionadaEnReserva(null);
+    }
+  };
+
+  // Función para manejar selección de arma en modo edición
+  const handleWeaponSelectionInEdit = (weapon: Weapon | null) => {
     if (weapon) {
       setArmaSeleccionadaEnReserva(weapon);
     } else {
@@ -303,6 +317,7 @@ function Vendedor() {
   // When opening the form, set formData accordingly
   const openClientForm = (mode: ClientFormMode, client?: Client) => {
     setClientFormMode(mode);
+    setSelectedClient(client || null); // Actualizar selectedClient
     if (client) {
       setFormData({ ...client });
       setTipoCliente(client.tipoCliente);
@@ -379,6 +394,9 @@ function Vendedor() {
             onReserveWithoutClient={handleReserveWithoutClient}
             onAssignWeaponToClient={handleAssignWeaponToClient}
             onAssignWeaponToCupoCivil={handleAssignWeaponToCupoCivil}
+            actionMenuOpen={actionMenuOpen}
+            setActionMenuOpen={setActionMenuOpen}
+            actionMenuRef={actionMenuRef}
           />
         )}
 
@@ -390,7 +408,7 @@ function Vendedor() {
             armaSeleccionadaEnReserva={armaSeleccionadaEnReserva}
             onBack={() => setPage('dashboard')}
             onSubmit={handleClientSubmit}
-            onWeaponSelection={handleWeaponSelectionInReserve}
+            onWeaponSelection={clientFormMode === 'edit' ? handleWeaponSelectionInEdit : handleWeaponSelectionInReserve}
             onUpdateWeaponPrice={handleUpdateWeaponPrice}
             onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
           />

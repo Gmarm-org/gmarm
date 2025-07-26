@@ -279,21 +279,49 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
             <div className="weapon-summary">
               <img src={armaSeleccionada.imagen} alt={armaSeleccionada.modelo} />
               <div className="weapon-details">
-                <p><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
+                <p style={{ 
+                  margin: '0.2rem 0', 
+                  fontSize: '1rem',
+                  color: '#1f2937',
+                  fontWeight: '600'
+                }}><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
                 <p><strong>Calibre:</strong> {armaSeleccionada.calibre}</p>
                 <p><strong>Capacidad:</strong> {armaSeleccionada.capacidad}</p>
                 {clienteParaResumen?.tipoCliente === 'Compañía de Seguridad' && (
                   <p><strong>Cantidad:</strong> {cantidad}</p>
                 )}
                 <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '4px' }}>
-                  <p style={{ margin: '0.2rem 0', fontSize: '0.9rem' }}>
-                    <strong>Precio Base:</strong> ${precioBase.toFixed(2)}
+                  <p style={{ 
+                    margin: '0.2rem 0', 
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ 
+                      fontSize: '0.85rem', 
+                      fontWeight: '600',
+                      color: '#6b7280'
+                    }}>Precio Base:</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1f2937' }}>${precioBase.toFixed(2)}</span>
                   </p>
                   <p style={{ margin: '0.2rem 0', fontSize: '0.85rem', color: '#6b7280' }}>
                     <strong>IVA (15%):</strong> ${ivaTotal.toFixed(2)}
                   </p>
-                  <p style={{ margin: '0.2rem 0', fontSize: '1rem', fontWeight: '600', color: '#1f2937' }}>
-                    <strong>Precio Final:</strong> ${precioFinal.toFixed(2)}
+                  <p style={{ 
+                    margin: '0.2rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: '700', 
+                    color: '#059669',
+                    padding: '0.3rem 0.5rem',
+                    backgroundColor: '#d1fae5',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span>Precio Final:</span>
+                    <span>${precioFinal.toFixed(2)}</span>
                   </p>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Client, Weapon, ClientFormMode } from '../types';
 import { isCupoCivil } from '../utils/clientUtils';
 
@@ -23,9 +23,12 @@ const ClientTable: React.FC<ClientTableProps> = ({
   onAssignWeaponToClient,
   onAssignWeaponToCupoCivil
 }) => {
+
+
   return (
     <div className="client-table-container">
       <h3>Lista de Clientes</h3>
+
       
       {/* Tabla para Desktop */}
       <table className="client-table">
@@ -74,53 +77,52 @@ const ClientTable: React.FC<ClientTableProps> = ({
                     )}
                   </td>
                   <td className="client-actions" style={{ position: 'relative' }}>
-                    <button
-                      className="action-menu-btn"
-                      aria-label="Acciones"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setActionMenuOpen(actionMenuOpen === client.id ? null : client.id);
-                      }}
-                    >
-                      <span className="action-menu-icon">⋯</span>
-                    </button>
-                    {actionMenuOpen === client.id && (
-                      <div
-                        ref={actionMenuRef}
-                        className="action-menu-dropdown"
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => onOpenClientForm('view', client)}
+                        style={{
+                          padding: '0.3rem 0.6rem',
+                          fontSize: '0.8rem',
+                          background: '#0ea5e9',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
                       >
+                        Ver
+                      </button>
+                      <button
+                        onClick={() => onOpenClientForm('edit', client)}
+                        style={{
+                          padding: '0.3rem 0.6rem',
+                          fontSize: '0.8rem',
+                          background: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Editar
+                      </button>
+                      {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
                         <button
-                          className="action-menu-item"
-                          onClick={() => {
-                            setActionMenuOpen(null);
-                            onOpenClientForm('view', client);
+                          onClick={() => alert('Inhabilitar cliente (simulado)')}
+                          style={{
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.8rem',
+                            background: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
                           }}
                         >
-                          Ver Detalle
+                          Inhabilitar
                         </button>
-                        <button
-                          className="action-menu-item"
-                          onClick={() => {
-                            setActionMenuOpen(null);
-                            onOpenClientForm('edit', client);
-                          }}
-                        >
-                          Editar
-                        </button>
-                        {/* Inhabilitar: siempre para clientes reales, solo si tiene arma para cupo civil */}
-                        {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
-                          <button
-                            className="action-menu-item danger"
-                            onClick={() => {
-                              setActionMenuOpen(null);
-                              alert('Inhabilitar cliente (simulado)');
-                            }}
-                          >
-                            Inhabilitar
-                          </button>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -178,65 +180,52 @@ const ClientTable: React.FC<ClientTableProps> = ({
                 </div>
                 
                 <div className="client-card-actions">
-                  <button
-                    className="action-menu-btn"
-                    aria-label="Acciones"
-                    onClick={e => {
-                      e.stopPropagation();
-                      setActionMenuOpen(actionMenuOpen === client.id ? null : client.id);
-                    }}
-                  >
-                    <span className="action-menu-icon">⋯</span>
-                  </button>
-                  {actionMenuOpen === client.id && (
-                    <div
-                      ref={actionMenuRef}
-                      className="action-menu-dropdown"
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => onOpenClientForm('view', client)}
                       style={{
-                        position: 'absolute',
-                        right: '0',
-                        top: '2.5rem',
-                        zIndex: 10000,
-                        minWidth: '140px',
-                        background: '#fff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        padding: '0.3rem 0'
+                        padding: '0.3rem 0.6rem',
+                        fontSize: '0.8rem',
+                        background: '#0ea5e9',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
                       }}
                     >
+                      Ver
+                    </button>
+                    <button
+                      onClick={() => onOpenClientForm('edit', client)}
+                      style={{
+                        padding: '0.3rem 0.6rem',
+                        fontSize: '0.8rem',
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Editar
+                    </button>
+                    {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
                       <button
-                        className="action-menu-item"
-                        onClick={() => {
-                          setActionMenuOpen(null);
-                          onOpenClientForm('view', client);
+                        onClick={() => alert('Inhabilitar cliente (simulado)')}
+                        style={{
+                          padding: '0.3rem 0.6rem',
+                          fontSize: '0.8rem',
+                          background: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
                         }}
                       >
-                        Ver Detalle
+                        Inhabilitar
                       </button>
-                      <button
-                        className="action-menu-item"
-                        onClick={() => {
-                          setActionMenuOpen(null);
-                          onOpenClientForm('edit', client);
-                        }}
-                      >
-                        Editar
-                      </button>
-                      {/* Inhabilitar: siempre para clientes reales, solo si tiene arma para cupo civil */}
-                      {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
-                        <button
-                          className="action-menu-item danger"
-                          onClick={() => {
-                            setActionMenuOpen(null);
-                            alert('Inhabilitar cliente (simulado)');
-                          }}
-                        >
-                          Inhabilitar
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             );

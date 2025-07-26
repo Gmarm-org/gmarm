@@ -34,6 +34,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 }) => {
   // Estado local para cantidades por arma
   const [cantidades, setCantidades] = React.useState<Record<string, number>>({});
+  const [preciosEnEdicion, setPreciosEnEdicion] = React.useState<Record<string, string>>({});
 
   // Handler para cantidad
   const handleCantidadChange = (weaponId: string, value: string) => {
@@ -44,13 +45,35 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
   // Handler para precio
   const handlePrecioChange = (weaponId: string, value: string) => {
-    // Solo números y máximo 2 decimales
-    const valid = value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
-    const match = valid.match(/^\d*(\.\d{0,2})?$/);
-    if (match) {
-      const newPrice = parseFloat(valid) || 0;
+    // Permitir solo números y un punto decimal
+    let cleanValue = value.replace(/[^0-9.]/g, '');
+    
+    // Asegurar que solo haya un punto decimal
+    const parts = cleanValue.split('.');
+    if (parts.length > 2) {
+      cleanValue = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limitar a máximo 2 decimales
+    if (parts.length === 2 && parts[1].length > 2) {
+      cleanValue = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    // Guardar el valor en el estado local
+    setPreciosEnEdicion(prev => ({ ...prev, [weaponId]: cleanValue }));
+    
+    // Actualizar el precio solo si es un número válido
+    const newPrice = parseFloat(cleanValue);
+    if (!isNaN(newPrice)) {
       onUpdateWeaponPrice(weaponId, newPrice);
     }
+  };
+
+  // Función para formatear el precio para mostrar
+  const formatPrecioForDisplay = (precio: number) => {
+    if (precio === 0) return '';
+    // Mostrar el precio tal como está, sin forzar formato
+    return precio.toString();
   };
 
   // Determinar si es empresa
@@ -134,18 +157,38 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
             return (
               <div key={weapon.id} className="weapon-card">
                 <img src={weapon.imagen} alt={weapon.modelo} />
-                <h3>{weapon.modelo}</h3>
+                <h3 style={{ 
+                  margin: '0.5rem 0', 
+                  fontSize: '1rem',
+                  color: '#1f2937',
+                  fontWeight: '600'
+                }}>{weapon.modelo}</h3>
                 <p>Calibre: {weapon.calibre}</p>
                 <p>Capacidad: {weapon.capacidad}</p>
                 
                 {/* Sección de Precio Editable */}
                 <div style={{ margin: '0.5rem 0', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Precio Base:</label>
+                    <label style={{ 
+                      fontSize: '0.85rem', 
+                      fontWeight: '600',
+                      color: '#6b7280'
+                    }}>Precio Base:</label>
                     <input
                       type="text"
-                      value={weapon.precio.toFixed(2)}
+                      value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(weapon.precio)}
                       onChange={e => handlePrecioChange(weapon.id, e.target.value)}
+                      onBlur={e => {
+                        const value = parseFloat(e.target.value) || 0;
+                        onUpdateWeaponPrice(weapon.id, value);
+                        // Limpiar el estado local después de actualizar
+                        setPreciosEnEdicion(prev => {
+                          const newState = { ...prev };
+                          delete newState[weapon.id];
+                          return newState;
+                        });
+                      }}
+                      placeholder="0.00"
                       style={{
                         width: '80px',
                         padding: '0.25rem',
@@ -156,7 +199,6 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                         appearance: 'textfield'
                       }}
                       inputMode="decimal"
-                      pattern="^\\d*(\\.\\d{0,2})?$"
                     />
                     {/* Cantidad solo para empresas */}
                     {esEmpresa && (
@@ -187,7 +229,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                     <span>${(weapon.precio * cantidad * iva).toFixed(2)}</span>
                   </div>
                   
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: '600', color: '#1f2937', marginTop: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '700', color: '#059669', marginTop: '0.25rem', padding: '0.3rem 0.5rem', backgroundColor: '#d1fae5', borderRadius: '4px' }}>
                     <span>Precio Final:</span>
                     <span>${precioFinal.toFixed(2)}</span>
                   </div>
