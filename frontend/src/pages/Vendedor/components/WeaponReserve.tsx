@@ -15,6 +15,8 @@ interface WeaponReserveProps {
   onConfirmData: () => void;
   onUpdateWeaponPrice: (weaponId: string, newPrice: number) => void;
   onUpdateWeaponQuantity: (weaponId: string, newQuantity: number) => void;
+  getWeaponPriceForClient: (weaponId: string, clientId?: string) => number;
+  currentClientId?: string;
 }
 
 const WeaponReserve: React.FC<WeaponReserveProps> = ({
@@ -30,7 +32,9 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   onAssignWeaponToCupoCivil,
   onConfirmData,
   onUpdateWeaponPrice,
-  onUpdateWeaponQuantity
+  onUpdateWeaponQuantity,
+  getWeaponPriceForClient,
+  currentClientId
 }) => {
   // Estado local para cantidades por arma
   const [cantidades, setCantidades] = React.useState<Record<string, number>>({});
@@ -176,7 +180,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                     }}>Precio Base:</label>
                     <input
                       type="text"
-                      value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(weapon.precio)}
+                      value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(getWeaponPriceForClient(weapon.id, currentClientId))}
                       onChange={e => handlePrecioChange(weapon.id, e.target.value)}
                       onBlur={e => {
                         const value = parseFloat(e.target.value) || 0;
@@ -198,7 +202,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                         MozAppearance: 'textfield',
                         appearance: 'textfield'
                       }}
-                      inputMode="decimal"
+                      inputMode="numeric"
                     />
                     {/* Cantidad solo para empresas */}
                     {esEmpresa && (
@@ -226,12 +230,12 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#6b7280' }}>
                     <span>IVA (15%):</span>
-                    <span>${(weapon.precio * cantidad * iva).toFixed(2)}</span>
+                    <span>${(getWeaponPriceForClient(weapon.id, currentClientId) * cantidad * iva).toFixed(2)}</span>
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '700', color: '#059669', marginTop: '0.25rem', padding: '0.3rem 0.5rem', backgroundColor: '#d1fae5', borderRadius: '4px' }}>
                     <span>Precio Final:</span>
-                    <span>${precioFinal.toFixed(2)}</span>
+                    <span>${(getWeaponPriceForClient(weapon.id, currentClientId) * cantidad * (1 + iva)).toFixed(2)}</span>
                   </div>
                 </div>
                 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './Vendedor.css';
 import UsuarioForm from '../Usuario/UsuarioForm';
 import UserMenu from '../../components/UserMenu';
@@ -66,12 +67,27 @@ export interface ContratoRegistroCliente {
 }
 
 function Vendedor() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirigir si no hay usuario autenticado
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+      return;
+    }
+  }, [user, navigate]);
+
   const [page, setPage] = useState<Page>('dashboard');
   const [clientFormMode, setClientFormMode] = useState<ClientFormMode>('create');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  
+  // Filtrar clientes por vendedor
+  const [allClients, setAllClients] = useState<Client[]>(initialClients);
+  const clients = allClients.filter(client => client.vendedorId === user?.id);
+  
   const [weapons, setWeapons] = useState<Weapon[]>(initialWeapons);
   const [armasPorCliente, setArmasPorCliente] = useState<Record<string, Weapon | null>>(initialArmasPorCliente);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -86,15 +102,16 @@ function Vendedor() {
   const [datosEditables, setDatosEditables] = useState<Partial<Client>>({});
   // Estado para cantidades de armas por id
   const [cantidadesArmas, setCantidadesArmas] = useState<Record<string, number>>({});
+  
+  // Estado para precios específicos por cliente y arma
+  const [preciosPorCliente, setPreciosPorCliente] = useState<Record<string, Record<string, number>>>({});
 
   // Estado para menú contextual (actionMenu)
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const navigate = useNavigate();
-
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    logout();
     navigate('/');
   };
 
@@ -176,11 +193,12 @@ function Vendedor() {
         correoElectronico: client.correoElectronico,
         provinciaCompania: client.provinciaCompania,
         cantonCompania: client.cantonCompania,
-        estadoUniformado: client.estadoUniformado
+        estadoUniformado: client.estadoUniformado,
+        vendedorId: user?.id
       };
       
       // Actualizar cliente en la lista
-      setClients(prev => prev.map(c => 
+      setAllClients(prev => prev.map(c => 
         c.id === client.id ? updatedClient : c
       ));
       
@@ -244,11 +262,23 @@ function Vendedor() {
     }
   };
 
-  // Función para actualizar el precio de un arma
-  const handleUpdateWeaponPrice = (weaponId: string, newPrice: number) => {
-    setWeapons(prev => prev.map(weapon => 
-      weapon.id === weaponId ? { ...weapon, precio: newPrice } : weapon
-    ));
+  // Función para actualizar el precio de un arma específico por cliente
+  const handleUpdateWeaponPrice = (weaponId: string, newPrice: number, clientId?: string) => {
+    if (clientId) {
+      // Precio específico para un cliente
+      setPreciosPorCliente(prev => ({
+        ...prev,
+        [clientId]: {
+          ...prev[clientId],
+          [weaponId]: newPrice
+        }
+      }));
+    } else {
+      // Precio global (fallback)
+      setWeapons(prev => prev.map(weapon => 
+        weapon.id === weaponId ? { ...weapon, precio: newPrice } : weapon
+      ));
+    }
   };
 
 
@@ -290,8 +320,9 @@ function Vendedor() {
       telefonoPrincipal: '',
       tipoCliente: 'Civil',
       tipoIdentificacion: 'Cedula',
+      vendedorId: user?.id,
     };
-    setClients(prev => [...prev, newCupoCivil]);
+    setAllClients(prev => [...prev, newCupoCivil]);
     setArmasPorCliente(prev => ({ ...prev, [newCupoCivil.id]: weapon }));
     setPage('dashboard');
   };
@@ -302,7 +333,7 @@ function Vendedor() {
       // Asignar el arma al cliente
       setArmasPorCliente(prev => ({ ...prev, [clienteParaResumen.id]: armaSeleccionada }));
       // Agregar el cliente a la lista
-      setClients(prev => [...prev, clienteParaResumen]);
+      setAllClients(prev => [...prev, clienteParaResumen]);
       // Limpiar estados temporales
       setClienteParaResumen(null);
       setArmaSeleccionada(null);
@@ -353,6 +384,33 @@ function Vendedor() {
   // Función para actualizar la cantidad de un arma
   const handleUpdateWeaponQuantity = (weaponId: string, newQuantity: number) => {
     setCantidadesArmas(prev => ({ ...prev, [weaponId]: newQuantity }));
+  };
+
+  // Función para obtener el precio específico de un arma para un cliente
+  const getWeaponPriceForClient = (weaponId: string, clientId?: string): number => {
+    if (clientId && preciosPorCliente[clientId] && preciosPorCliente[clientId][weaponId] !== undefined) {
+      return preciosPorCliente[clientId][weaponId];
+    }
+    // Fallback al precio global del arma
+    const weapon = weapons.find(w => w.id === weaponId);
+    return weapon ? weapon.precio : 0;
+  };
+
+  // Función para validar si una cédula ya existe
+  const validateCedulaExists = (cedula: string, excludeClientId?: string): { exists: boolean; client?: Client; vendedor?: string } => {
+    const existingClient = allClients.find(client => 
+      client.cedula === cedula && client.id !== excludeClientId
+    );
+    
+    if (existingClient) {
+      return {
+        exists: true,
+        client: existingClient,
+        vendedor: existingClient.vendedorId || 'Sin vendedor'
+      };
+    }
+    
+    return { exists: false };
   };
 
   const [provincia, setProvincia] = useState('');
@@ -409,8 +467,11 @@ function Vendedor() {
             onBack={() => setPage('dashboard')}
             onSubmit={handleClientSubmit}
             onWeaponSelection={clientFormMode === 'edit' ? handleWeaponSelectionInEdit : handleWeaponSelectionInReserve}
-            onUpdateWeaponPrice={handleUpdateWeaponPrice}
+            onUpdateWeaponPrice={(weaponId, newPrice) => handleUpdateWeaponPrice(weaponId, newPrice, selectedClient?.id)}
             onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
+            getWeaponPriceForClient={getWeaponPriceForClient}
+            currentClientId={selectedClient?.id}
+            validateCedulaExists={validateCedulaExists}
           />
         )}
 
@@ -427,8 +488,10 @@ function Vendedor() {
             onAssignWeaponToClient={handleAssignWeaponToClient}
             onAssignWeaponToCupoCivil={handleAssignWeaponToCupoCivil}
             onConfirmData={handleConfirmData}
-            onUpdateWeaponPrice={handleUpdateWeaponPrice}
+            onUpdateWeaponPrice={(weaponId, newPrice) => handleUpdateWeaponPrice(weaponId, newPrice, clienteParaResumen?.id)}
             onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
+            getWeaponPriceForClient={getWeaponPriceForClient}
+            currentClientId={clienteParaResumen?.id}
           />
         )}
 

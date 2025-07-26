@@ -23,6 +23,7 @@ export interface Client {
   canton?: string;
   provinciaCompania?: string;
   cantonCompania?: string;
+  vendedorId?: string; // ID del vendedor que creó el cliente
 }
 
 export interface Weapon {

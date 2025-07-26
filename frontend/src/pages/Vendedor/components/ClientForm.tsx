@@ -26,7 +26,10 @@ interface ClientFormProps {
   onSubmit: (client: Client) => void;
   onWeaponSelection: (weapon: Weapon) => void;
   onUpdateWeaponPrice: (weaponId: string, newPrice: number) => void;
-  onUpdateWeaponQuantity: (weaponId: string, newQuantity: number) => void; // NUEVA PROP
+  onUpdateWeaponQuantity: (weaponId: string, newQuantity: number) => void;
+  getWeaponPriceForClient: (weaponId: string, clientId?: string) => number;
+  currentClientId?: string;
+  validateCedulaExists: (cedula: string, excludeClientId?: string) => { exists: boolean; client?: Client; vendedor?: string };
 }
 
 const ClientForm: React.FC<ClientFormProps> = ({
@@ -38,7 +41,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
   onSubmit,
   onWeaponSelection,
   onUpdateWeaponPrice,
-  onUpdateWeaponQuantity
+  onUpdateWeaponQuantity,
+  getWeaponPriceForClient,
+  currentClientId,
+  validateCedulaExists
 }) => {
   const [tipoCliente, setTipoCliente] = useState(client?.tipoCliente || 'Civil');
   const [estadoUniformado, setEstadoUniformado] = useState<'Activo' | 'Pasivo'>(client?.estadoUniformado || 'Activo');
@@ -144,6 +150,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar cédula duplicada
+    if (formData.cedula && formData.tipoIdentificacion !== 'RUC') {
+      const cedulaValidation = validateCedulaExists(formData.cedula, client?.id);
+      if (cedulaValidation.exists) {
+        alert(`La cédula ${formData.cedula} ya está registrada por el vendedor: ${cedulaValidation.vendedor}`);
+        return;
+      }
+    }
     
     const newClient: Client = {
       id: formData.id || Date.now().toString(),
@@ -626,7 +641,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                             }}>Precio Base:</label>
                             <input
                               type="text"
-                              value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(weapon.precio)}
+                              value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(getWeaponPriceForClient(weapon.id, currentClientId))}
                               onChange={e => handlePrecioChange(weapon.id, e.target.value)}
                               onBlur={e => {
                                 const value = parseFloat(e.target.value) || 0;
@@ -648,7 +663,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                                 MozAppearance: 'textfield',
                                 appearance: 'textfield'
                               }}
-                              inputMode="decimal"
+                              inputMode="numeric"
                             />
                             {esEmpresa && (
                               <>
@@ -678,11 +693,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#6b7280' }}>
                             <span>IVA (15%):</span>
-                            <span>${(weapon.precio * cantidad * iva).toFixed(2)}</span>
+                            <span>${(getWeaponPriceForClient(weapon.id, currentClientId) * cantidad * iva).toFixed(2)}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '700', color: '#059669', marginTop: '0.25rem', padding: '0.3rem 0.5rem', backgroundColor: '#d1fae5', borderRadius: '4px' }}>
                             <span>Precio Final:</span>
-                            <span>${precioFinal.toFixed(2)}</span>
+                            <span>${(getWeaponPriceForClient(weapon.id, currentClientId) * cantidad * (1 + iva)).toFixed(2)}</span>
                           </div>
                         </>
                       ) : (
@@ -694,15 +709,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
                               fontWeight: '600',
                               color: '#6b7280'
                             }}>Precio Base:</span>
-                            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1f2937' }}>${weapon.precio.toFixed(2)}</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1f2937' }}>${getWeaponPriceForClient(weapon.id, currentClientId).toFixed(2)}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>
                             <span>IVA (15%):</span>
-                            <span>${(weapon.precio * iva).toFixed(2)}</span>
+                            <span>${(getWeaponPriceForClient(weapon.id, currentClientId) * iva).toFixed(2)}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '700', color: '#059669', marginTop: '0.25rem', padding: '0.3rem 0.5rem', backgroundColor: '#d1fae5', borderRadius: '4px' }}>
                             <span>Precio Final:</span>
-                            <span>${(weapon.precio * (1 + iva)).toFixed(2)}</span>
+                            <span>${(getWeaponPriceForClient(weapon.id, currentClientId) * (1 + iva)).toFixed(2)}</span>
                           </div>
                         </>
                       )}

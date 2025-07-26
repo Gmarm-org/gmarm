@@ -13,7 +13,8 @@ export const clientes: Client[] = [
     telefonoPrincipal: '0987654321',
     telefonoSecundario: '022345678',
     tipoCliente: 'Civil',
-    tipoIdentificacion: 'Cedula'
+    tipoIdentificacion: 'Cedula',
+    vendedorId: 'vendedor-1'
   },
   {
     id: '2',
@@ -32,7 +33,8 @@ export const clientes: Client[] = [
     provinciaCompania: 'Guayas',
     cantonCompania: 'Guayaquil',
     direccionFiscal: 'AV. EMPRESA 456, OFICINA 101',
-    telefonoReferencia: '022345679'
+    telefonoReferencia: '022345679',
+    vendedorId: 'vendedor-1'
   },
   {
     id: '3',
@@ -47,7 +49,8 @@ export const clientes: Client[] = [
     telefonoSecundario: '072345678',
     tipoCliente: 'Uniformado',
     tipoIdentificacion: 'Cedula',
-    estadoUniformado: 'Activo'
+    estadoUniformado: 'Activo',
+    vendedorId: 'vendedor-2'
   },
   {
     id: '4',
@@ -61,7 +64,8 @@ export const clientes: Client[] = [
     telefonoPrincipal: '098123456',
     telefonoSecundario: '052345678',
     tipoCliente: 'Deportista',
-    tipoIdentificacion: 'Cedula'
+    tipoIdentificacion: 'Cedula',
+    vendedorId: 'vendedor-2'
   }
 ];
 

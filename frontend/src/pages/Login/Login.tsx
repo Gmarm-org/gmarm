@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import '../../styles/App.css'
 
 function Login() {
@@ -8,6 +9,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const isValidEmail = (correo: string) => {
     // Simple email regex
@@ -20,10 +22,33 @@ function Login() {
       setMessage('El correo no tiene un formato válido.');
       return;
     }
-    // Simple email and password check for demonstration
-    if (email === 'admin@example.com' && password === 'password') {
+    
+    // Simulación de autenticación - esto se reemplazará con llamadas al backend
+    if (email === 'vendedor1@example.com' && password === 'password') {
+      const userData = {
+        id: 'vendedor-1',
+        email: 'vendedor1@example.com',
+        nombre: 'Juan',
+        apellido: 'Pérez',
+        rol: 'vendedor' as const,
+        activo: true
+      };
+      login(userData);
       setMessage('¡Ingreso exitoso!');
-      // Simulate role-based navigation - redirect to Vendedor page
+      setTimeout(() => {
+        navigate('/vendedor');
+      }, 1000);
+    } else if (email === 'vendedor2@example.com' && password === 'password') {
+      const userData = {
+        id: 'vendedor-2',
+        email: 'vendedor2@example.com',
+        nombre: 'María',
+        apellido: 'González',
+        rol: 'vendedor' as const,
+        activo: true
+      };
+      login(userData);
+      setMessage('¡Ingreso exitoso!');
       setTimeout(() => {
         navigate('/vendedor');
       }, 1000);
