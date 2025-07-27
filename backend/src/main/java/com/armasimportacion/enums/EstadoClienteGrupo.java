@@ -5,5 +5,6 @@ public enum EstadoClienteGrupo {
     APROBADO,
     RECHAZADO,
     EN_PROCESO,
-    COMPLETO
+    COMPLETADO,
+    CANCELADO
 } 

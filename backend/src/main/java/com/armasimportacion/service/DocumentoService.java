@@ -130,12 +130,16 @@ public class DocumentoService {
         return documentoGeneradoRepository.save(documento);
     }
     
-    public List<DocumentoGenerado> obtenerDocumentosPorCliente(Long clienteId) {
+    public List<DocumentoGenerado> obtenerDocumentosGeneradosPorGrupo(Long grupoId) {
+        return documentoGeneradoRepository.findByGrupoImportacionId(grupoId);
+    }
+
+    public List<DocumentoGenerado> obtenerDocumentosGeneradosPorCliente(Long clienteId) {
         return documentoGeneradoRepository.findByClienteId(clienteId);
     }
-    
-    public List<DocumentoGenerado> obtenerDocumentosPorGrupo(Long grupoId) {
-        return documentoGeneradoRepository.findByGrupoImportacionId(grupoId);
+
+    public List<DocumentoCliente> obtenerDocumentosClientePorCliente(Long clienteId) {
+        return documentoClienteRepository.findByClienteId(clienteId);
     }
     
     // Documentos de Cliente

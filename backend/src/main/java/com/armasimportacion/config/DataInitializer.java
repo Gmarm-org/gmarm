@@ -3,6 +3,7 @@ package com.armasimportacion.config;
 import com.armasimportacion.model.*;
 import com.armasimportacion.repository.*;
 import com.armasimportacion.enums.EstadoUsuario;
+import com.armasimportacion.enums.TipoRolVendedor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -28,7 +29,7 @@ public class DataInitializer {
     private final PasswordEncoder passwordEncoder;
 
     @Bean
-    @Profile("dev")
+    @Profile({"dev", "docker"})
     public CommandLineRunner initializeData() {
         return args -> {
             log.info("Inicializando datos de desarrollo...");
@@ -114,10 +115,11 @@ public class DataInitializer {
     }
 
     private void createTestUsers() {
-        createTestUser("vendedor", "vendedor@test.com", "Juan", "Vendedor", "VENDEDOR");
+        createTestUser("vendedor1", "vendedor@test.com", "Juan", "Vendedor", "VENDEDOR");
         createTestUser("jefe", "jefe@test.com", "María", "Jefe Ventas", "JEFE_VENTAS");
         createTestUser("finanzas", "finanzas@test.com", "Carlos", "Finanzas", "FINANZAS");
         createTestUser("operaciones", "operaciones@test.com", "Ana", "Operaciones", "OPERACIONES");
+        createTestUser("test", "test@test.com", "Test", "Usuario", "VENDEDOR");
     }
 
     private void createTestUser(String username, String email, String nombres, String apellidos, String rolNombre) {
@@ -127,7 +129,7 @@ public class DataInitializer {
             Usuario user = new Usuario();
             user.setUsername(username);
             user.setEmail(email);
-            user.setPasswordHash(passwordEncoder.encode("admin123"));
+            user.setPasswordHash(passwordEncoder.encode("test123"));
             user.setNombres(nombres);
             user.setApellidos(apellidos);
             user.setTelefonoPrincipal("0987654321");

@@ -2,7 +2,9 @@ package com.armasimportacion.enums;
 
 public enum EstadoPago {
     PENDIENTE,
-    CONFIRMADO,
+    PROCESANDO,
+    COMPLETADO,
     RECHAZADO,
-    CANCELADO
+    CANCELADO,
+    DEVUELTO
 } 

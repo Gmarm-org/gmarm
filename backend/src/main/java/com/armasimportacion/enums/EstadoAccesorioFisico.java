@@ -3,8 +3,8 @@ package com.armasimportacion.enums;
 public enum EstadoAccesorioFisico {
     DISPONIBLE,
     ASIGNADO,
-    ENTREGADO,
-    EN_BODEGA,
-    EN_TRANSITO,
-    RESERVADO
+    EN_MANTENIMIENTO,
+    FUERA_DE_SERVICIO,
+    PERDIDO,
+    DESTRUIDO
 } 

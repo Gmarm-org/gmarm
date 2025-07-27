@@ -1,7 +1,12 @@
 package com.armasimportacion.enums;
 
 public enum TipoNotificacion {
-    EMAIL,
     SISTEMA,
-    WHATSAPP
+    CLIENTE,
+    PAGO,
+    DOCUMENTO,
+    APROBACION,
+    RECHAZO,
+    RECORDATORIO,
+    ALERTA
 } 

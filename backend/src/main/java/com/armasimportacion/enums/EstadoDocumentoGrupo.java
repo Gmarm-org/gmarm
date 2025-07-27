@@ -2,8 +2,8 @@ package com.armasimportacion.enums;
 
 public enum EstadoDocumentoGrupo {
     PENDIENTE,
-    CARGADO,
-    COMPLETO,
+    APROBADO,
+    RECHAZADO,
     OBSERVADO,
-    RECHAZADO
+    EN_REVISION
 } 
