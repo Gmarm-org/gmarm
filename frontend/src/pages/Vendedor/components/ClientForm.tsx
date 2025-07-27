@@ -101,10 +101,16 @@ const ClientForm: React.FC<ClientFormProps> = ({ mode, client, onSave, onCancel 
   }, [formData.provinciaEmpresa]);
 
   const handleInputChange = (field: keyof Client, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Si se selecciona "Compañía de Seguridad", automáticamente configurar cédula para representante legal
+      if (field === 'tipoCliente' && value === 'Compañía de Seguridad') {
+        newData.tipoIdentificacion = 'Cedula';
+      }
+      
+      return newData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,8 +133,8 @@ const ClientForm: React.FC<ClientFormProps> = ({ mode, client, onSave, onCancel 
     }
   };
 
-  const isEmpresa = formData.tipoCliente === 'Empresa Seguridad';
-  const isUniformado = formData.tipoCliente === 'Militar';
+  const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
+  const isUniformado = formData.tipoCliente === 'Uniformado';
 
   const getMaxLength = () => {
     if (formData.tipoIdentificacion === 'Cédula') return 10;
@@ -217,6 +223,11 @@ const ClientForm: React.FC<ClientFormProps> = ({ mode, client, onSave, onCancel 
                   </option>
                 ))}
               </select>
+              {isEmpresa && (
+                <small style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+                  ⓘ Para empresas, el representante legal debe identificarse con cédula
+                </small>
+              )}
             </div>
 
             {isUniformado && (
@@ -246,6 +257,11 @@ const ClientForm: React.FC<ClientFormProps> = ({ mode, client, onSave, onCancel 
                 required
                 placeholder={`Ingrese ${formData.tipoIdentificacion || 'identificación'}`}
               />
+              {isEmpresa && (
+                <small style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+                  ⓘ Cédula del representante legal (el RUC de la empresa se ingresa en la sección de datos de empresa)
+                </small>
+              )}
             </div>
 
             <div className="form-group">

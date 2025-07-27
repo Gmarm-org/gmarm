@@ -114,13 +114,13 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
               {editandoResumen ? (
                 <input 
                   type="text" 
-                  value={datosEditables.cedula || clienteParaResumen.cedula} 
+                  value={datosEditables.numeroIdentificacion || clienteParaResumen.numeroIdentificacion} 
                   onChange={e => handleIdentificacionChange(e.target.value)} 
                   style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                   maxLength={clienteParaResumen.tipoIdentificacion === 'RUC' ? 13 : 10}
                 />
               ) : (
-                <span className="summary-value">{clienteParaResumen.cedula}</span>
+                <span className="summary-value">{clienteParaResumen.numeroIdentificacion}</span>
               )}
             </div>
             <div className="summary-row">
@@ -253,12 +253,12 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
                   {editandoResumen ? (
                     <input 
                       type="email" 
-                      value={datosEditables.correoElectronico || clienteParaResumen.correoElectronico || ''} 
-                      onChange={e => setDatosEditables(prev => ({...prev, correoElectronico: e.target.value.toLowerCase()}))} 
+                      value={datosEditables.correoEmpresa || clienteParaResumen.correoEmpresa || ''} 
+                      onChange={e => setDatosEditables(prev => ({...prev, correoEmpresa: e.target.value.toLowerCase()}))} 
                       style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                     />
                   ) : (
-                    <span className="summary-value">{clienteParaResumen.correoElectronico}</span>
+                    <span className="summary-value">{clienteParaResumen.correoEmpresa}</span>
                   )}
                 </div>
               </>

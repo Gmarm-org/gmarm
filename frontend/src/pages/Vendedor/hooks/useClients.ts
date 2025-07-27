@@ -6,7 +6,7 @@ export const useClients = () => {
   const [clients, setClients] = useState<Client[]>([
     {
       id: '1',
-      cedula: '1234567890',
+      numeroIdentificacion: '1234567890',
       nombres: 'Juan',
       apellidos: 'Pérez',
       email: 'juan.perez@email.com',
@@ -18,19 +18,27 @@ export const useClients = () => {
     },
     {
       id: '2',
-      cedula: '0999999999',
-      nombres: 'Seguridad S.A.',
-      apellidos: '',
-      email: 'contacto@seguridad.com',
-      fechaNacimiento: '1985-03-20',
-      direccion: 'Av. Empresa 456',
-      telefonoPrincipal: '022345678',
+      numeroIdentificacion: '1712345678',
+      nombres: 'María Elena',
+      apellidos: 'González Rodríguez',
+      email: 'maria.gonzalez@email.com',
+      fechaNacimiento: '1982-11-15',
+      direccion: 'Av. 9 de Octubre N123-456',
+      telefonoPrincipal: '0987654324',
       tipoCliente: 'Compañía de Seguridad',
-      tipoIdentificacion: 'RUC'
+      tipoIdentificacion: 'Cedula',
+      representanteLegal: 'MARÍA ELENA GONZÁLEZ RODRÍGUEZ',
+      ruc: '0991234567001',
+      nombreEmpresa: 'SEGURIDAD INTEGRAL S.A.',
+      direccionFiscal: 'AV. 9 DE OCTUBRE N123-456, OFICINA 45',
+      telefonoReferencia: '0987654325',
+      correoEmpresa: 'info@seguridadintegral.com',
+      provinciaEmpresa: 'Guayas',
+      cantonEmpresa: 'Guayaquil'
     },
     {
       id: '3',
-      cedula: '1100110011',
+      numeroIdentificacion: '1100110011',
       nombres: 'Carlos',
       apellidos: 'Ramírez',
       email: 'c.ramirez@militar.com',
@@ -38,11 +46,12 @@ export const useClients = () => {
       direccion: 'Base Militar',
       telefonoPrincipal: '099888777',
       tipoCliente: 'Uniformado',
-      tipoIdentificacion: 'Cedula'
+      tipoIdentificacion: 'Cedula',
+      estadoMilitar: 'ACTIVO'
     },
     {
       id: '4',
-      cedula: '0808080808',
+      numeroIdentificacion: '0808080808',
       nombres: 'Ana',
       apellidos: 'Gómez',
       email: 'ana.gomez@deporte.com',
@@ -85,7 +94,7 @@ export const useClients = () => {
     const cupoCivilCount = clients.filter(c => isCupoCivil(c)).length;
     const newCupoCivil: Client = {
       id: `cupo-civil-${Date.now()}`,
-      cedula: '',
+      numeroIdentificacion: '',
       nombres: `Cupo Civil #${cupoCivilCount + 1}`,
       apellidos: '',
       email: '',
