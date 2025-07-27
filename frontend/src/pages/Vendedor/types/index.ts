@@ -5,7 +5,7 @@ export interface LocationData {
 
 export interface Client {
   id: string;
-  cedula: string;
+  numeroIdentificacion: string; // Cédula, RUC, etc.
   nombres: string;
   apellidos: string;
   email: string;
@@ -15,15 +15,21 @@ export interface Client {
   telefonoSecundario?: string;
   tipoCliente: string;
   tipoIdentificacion: string;
-  estadoUniformado?: 'Activo' | 'Pasivo';
+  estadoMilitar?: 'ACTIVO' | 'PASIVO';
+  
+  // Campos para empresa
+  representanteLegal?: string;
   ruc?: string;
-  telefonoReferencia?: string;
+  nombreEmpresa?: string;
   direccionFiscal?: string;
-  correoElectronico?: string;
+  telefonoReferencia?: string;
+  correoEmpresa?: string;
+  provinciaEmpresa?: string;
+  cantonEmpresa?: string;
+  
+  // Campos generales
   provincia?: string;
   canton?: string;
-  provinciaCompania?: string;
-  cantonCompania?: string;
   vendedorId?: string; // ID del vendedor que creó el cliente
 }
 

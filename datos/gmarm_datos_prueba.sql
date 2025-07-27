@@ -279,24 +279,26 @@ INSERT INTO cliente (
     2
 );
 
--- Cliente Empresa
+-- Cliente Empresa (Representante Legal + Datos de Empresa)
 INSERT INTO cliente (
     tipo_identificacion_id, tipo_cliente_id, numero_identificacion,
-    nombres, apellidos, direccion, provincia, canton,
-    email, telefono_principal, representante_legal,
+    nombres, apellidos, fecha_nacimiento, direccion, provincia, canton,
+    email, telefono_principal, telefono_secundario, representante_legal,
     ruc, nombre_empresa, direccion_fiscal, provincia_empresa, canton_empresa,
     telefono_referencia, correo_empresa, usuario_creador_id
 ) VALUES (
-    (SELECT id FROM tipo_identificacion WHERE codigo = 'RUC'),
+    (SELECT id FROM tipo_identificacion WHERE codigo = 'CED'),
     (SELECT id FROM tipo_cliente WHERE codigo = 'EMP'),
-    '0991234567001',
+    '1712345678',
     'MARÍA ELENA',
     'GONZÁLEZ RODRÍGUEZ',
+    '1982-11-15',
     'AV. 9 DE OCTUBRE N123-456',
     'GUAYAS',
     'GUAYAQUIL',
     'maria.gonzalez@email.com',
     '0987654324',
+    '0987654326',
     'MARÍA ELENA GONZÁLEZ RODRÍGUEZ',
     '0991234567001',
     'SEGURIDAD INTEGRAL S.A.',
@@ -306,6 +308,37 @@ INSERT INTO cliente (
     '0987654325',
     'info@seguridadintegral.com',
     3
+);
+
+-- Cliente Empresa 2 (Representante Legal + Datos de Empresa)
+INSERT INTO cliente (
+    tipo_identificacion_id, tipo_cliente_id, numero_identificacion,
+    nombres, apellidos, fecha_nacimiento, direccion, provincia, canton,
+    email, telefono_principal, telefono_secundario, representante_legal,
+    ruc, nombre_empresa, direccion_fiscal, provincia_empresa, canton_empresa,
+    telefono_referencia, correo_empresa, usuario_creador_id
+) VALUES (
+    (SELECT id FROM tipo_identificacion WHERE codigo = 'CED'),
+    (SELECT id FROM tipo_cliente WHERE codigo = 'EMP'),
+    '1723456789',
+    'ROBERTO ANTONIO',
+    'HERRERA CASTILLO',
+    '1978-05-20',
+    'AV. PRINCIPAL N789-012',
+    'PICHINCHA',
+    'QUITO',
+    'roberto.herrera@email.com',
+    '0987654327',
+    '0987654328',
+    'ROBERTO ANTONIO HERRERA CASTILLO',
+    '0999876543001',
+    'PROTECCIÓN TOTAL S.A.',
+    'AV. PRINCIPAL N789-012, EDIFICIO CORPORATIVO',
+    'PICHINCHA',
+    'QUITO',
+    '0987654329',
+    'contacto@protecciontotal.com',
+    2
 );
 
 -- =====================================================

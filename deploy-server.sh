@@ -82,13 +82,18 @@ docker-compose -f $COMPOSE_FILE up -d
 
 # Esperar a que PostgreSQL esté listo
 echo "⏳ Esperando a que PostgreSQL esté listo..."
-sleep 15
+for i in {1..30}; do
+    if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
+        echo "✅ PostgreSQL está funcionando"
+        break
+    fi
+    echo "⏳ Intento $i/30: PostgreSQL aún no está listo..."
+    sleep 5
+done
 
-# Verificar que PostgreSQL esté funcionando
-if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
-    echo "✅ PostgreSQL está funcionando"
-else
-    echo "❌ Error: PostgreSQL no está funcionando"
+# Verificar que PostgreSQL esté funcionando después de los intentos
+if ! docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
+    echo "❌ Error: PostgreSQL no está funcionando después de 30 intentos"
     echo "📋 Logs de PostgreSQL:"
     docker-compose -f $COMPOSE_FILE logs postgres_dev
     exit 1
@@ -96,12 +101,17 @@ fi
 
 # Esperar a que el backend esté listo
 echo "⏳ Esperando a que el backend esté listo..."
-sleep 20
+for i in {1..20}; do
+    if curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
+        echo "✅ Backend está funcionando"
+        break
+    fi
+    echo "⏳ Intento $i/20: Backend aún no está listo..."
+    sleep 10
+done
 
-# Verificar que el backend esté funcionando
-if curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
-    echo "✅ Backend está funcionando"
-else
+# Verificar que el backend esté funcionando después de los intentos
+if ! curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
     echo "⚠️  Backend puede estar aún iniciando..."
     echo "📋 Logs del backend:"
     docker-compose -f $COMPOSE_FILE logs backend
@@ -109,11 +119,16 @@ fi
 
 # Verificar que el frontend esté funcionando
 echo "⏳ Esperando a que el frontend esté listo..."
-sleep 10
+for i in {1..15}; do
+    if curl -f http://localhost:5173 > /dev/null 2>&1; then
+        echo "✅ Frontend está funcionando"
+        break
+    fi
+    echo "⏳ Intento $i/15: Frontend aún no está listo..."
+    sleep 5
+done
 
-if curl -f http://localhost:5173 > /dev/null 2>&1; then
-    echo "✅ Frontend está funcionando"
-else
+if ! curl -f http://localhost:5173 > /dev/null 2>&1; then
     echo "⚠️  Frontend puede estar aún iniciando..."
     echo "📋 Logs del frontend:"
     docker-compose -f $COMPOSE_FILE logs frontend

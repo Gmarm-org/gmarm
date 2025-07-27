@@ -273,6 +273,26 @@ public class ClienteService {
             if (cliente.getRepresentanteLegal() == null || cliente.getRepresentanteLegal().trim().isEmpty()) {
                 throw new BadRequestException("El representante legal es obligatorio");
             }
+            if (cliente.getDireccionFiscal() == null || cliente.getDireccionFiscal().trim().isEmpty()) {
+                throw new BadRequestException("La dirección fiscal es obligatoria para empresas");
+            }
+            if (cliente.getTelefonoReferencia() == null || cliente.getTelefonoReferencia().trim().isEmpty()) {
+                throw new BadRequestException("El teléfono de referencia es obligatorio para empresas");
+            }
+            if (cliente.getCorreoEmpresa() == null || cliente.getCorreoEmpresa().trim().isEmpty()) {
+                throw new BadRequestException("El correo electrónico de la empresa es obligatorio");
+            }
+            if (cliente.getProvinciaEmpresa() == null || cliente.getProvinciaEmpresa().trim().isEmpty()) {
+                throw new BadRequestException("La provincia de la empresa es obligatoria");
+            }
+            if (cliente.getCantonEmpresa() == null || cliente.getCantonEmpresa().trim().isEmpty()) {
+                throw new BadRequestException("El cantón de la empresa es obligatorio");
+            }
+            
+            // Validar formato de RUC
+            if (!validateRuc(cliente.getRuc())) {
+                throw new BadRequestException("Formato de RUC inválido");
+            }
         }
 
         if (tipoCliente.esUniformado()) {

@@ -24,10 +24,9 @@ const ClientTable: React.FC<ClientTableProps> = ({
       <table className="client-table">
         <thead>
           <tr>
-            <th>Cédula</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Email</th>
+            <th>Identificación</th>
+            <th>Cliente / Empresa</th>
+            <th>Contacto</th>
             <th>Teléfono</th>
             <th>Tipo Cliente</th>
             <th>Arma seleccionada</th>
@@ -46,11 +45,25 @@ const ClientTable: React.FC<ClientTableProps> = ({
               const arma = armasPorCliente[client.id] || null;
               return (
                 <tr key={client.id}>
-                  <td>{client.cedula}</td>
-                  <td>{client.nombres}</td>
-                  <td>{client.tipoCliente === 'Compañía de Seguridad' ? '' : client.apellidos}</td>
-                  <td>{client.email}</td>
-                  <td>{client.telefonoPrincipal}</td>
+                  <td>{client.numeroIdentificacion}</td>
+                  <td>
+                    {client.tipoCliente === 'Compañía de Seguridad' ? (
+                      <div>
+                        <div><strong>{client.nombreEmpresa}</strong></div>
+                        <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                          Rep: {client.nombres} {client.apellidos}
+                        </div>
+                      </div>
+                    ) : (
+                      `${client.nombres} ${client.apellidos}`
+                    )}
+                  </td>
+                  <td>
+                    {client.tipoCliente === 'Compañía de Seguridad' ? client.correoEmpresa : client.email}
+                  </td>
+                  <td>
+                    {client.tipoCliente === 'Compañía de Seguridad' ? client.telefonoReferencia : client.telefonoPrincipal}
+                  </td>
                   <td>
                     <span className={`badge badge-${client.tipoCliente.toLowerCase().replace(/\s+/g, '-')}`}>
                       {client.tipoCliente}
@@ -144,7 +157,7 @@ const ClientTable: React.FC<ClientTableProps> = ({
                 <div className="client-card-details">
                   <div className="client-card-row">
                     <span className="client-card-label">Cédula:</span>
-                    <span className="client-card-value">{client.cedula}</span>
+                    <span className="client-card-value">{client.numeroIdentificacion}</span>
                   </div>
                   <div className="client-card-row">
                     <span className="client-card-label">Email:</span>
