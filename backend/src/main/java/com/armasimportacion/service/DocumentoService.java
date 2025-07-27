@@ -107,7 +107,7 @@ public class DocumentoService {
         
         DocumentoGenerado documento = new DocumentoGenerado();
         documento.setNombre(nombre);
-        documento.setTipo(tipo);
+        documento.setTipoDocumento(tipo);
         documento.setUrlArchivo(urlArchivo);
         documento.setEstado(EstadoDocumentoGenerado.GENERADO);
         documento.setGrupoImportacion(grupo);

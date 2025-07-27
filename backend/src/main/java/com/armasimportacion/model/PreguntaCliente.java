@@ -1,7 +1,21 @@
 package com.armasimportacion.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -24,21 +38,27 @@ public class PreguntaCliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_proceso_id", nullable = false)
-    private TipoProceso tipoProceso;
-
     @Column(name = "pregunta", nullable = false, columnDefinition = "TEXT")
     private String pregunta;
 
+    @Column(name = "tipo_respuesta", nullable = false, length = 20)
+    private String tipoRespuesta;
+
     @Column(name = "obligatoria", nullable = false)
-    private Boolean obligatoria = true;
+    @Builder.Default
+    private Boolean obligatoria = false;
 
     @Column(name = "orden", nullable = false)
-    private Integer orden;
+    @Builder.Default
+    private Integer orden = 1;
 
     @Column(name = "estado", nullable = false)
+    @Builder.Default
     private Boolean estado = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_proceso_id", nullable = false)
+    private TipoProceso tipoProceso;
 
     @CreatedDate
     @Column(name = "fecha_creacion")
@@ -50,14 +70,6 @@ public class PreguntaCliente {
 
     // Relaciones
     @OneToMany(mappedBy = "pregunta", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<RespuestaCliente> respuestas = new ArrayList<>();
-
-    // Métodos de utilidad
-    public boolean esActiva() {
-        return estado != null && estado;
-    }
-
-    public boolean esObligatoria() {
-        return obligatoria != null && obligatoria;
-    }
 } 

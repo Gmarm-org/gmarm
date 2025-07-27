@@ -1,7 +1,26 @@
 package com.armasimportacion.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import com.armasimportacion.enums.EstadoCliente;
+import com.armasimportacion.enums.EstadoMilitar;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -94,6 +113,7 @@ public class Cliente {
     // Información militar (solo para uniformados)
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_militar", length = 20)
+    @Builder.Default
     private EstadoMilitar estadoMilitar = EstadoMilitar.ACTIVO;
 
     // Auditoría
@@ -115,71 +135,74 @@ public class Cliente {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
+    @Builder.Default
     private EstadoCliente estado = EstadoCliente.ACTIVO;
 
     // Relaciones
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<RespuestaCliente> respuestas = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<DocumentoCliente> documentos = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<AsignacionArma> asignacionesArma = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<AsignacionAccesorio> asignacionesAccesorio = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<ArmaFisica> armasFisicas = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<Pago> pagos = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<DocumentoGenerado> documentosGenerados = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<ClienteGrupoImportacion> gruposImportacion = new ArrayList<>();
 
     // Métodos de utilidad
     public String getNombreCompleto() {
-        if (apellidos != null && !apellidos.trim().isEmpty()) {
-            return nombres + " " + apellidos;
-        }
-        return nombres;
+        return nombres + " " + apellidos;
     }
 
     public boolean esEmpresa() {
-        return tipoCliente != null && "Empresa Seguridad".equals(tipoCliente.getNombre());
+        return tipoCliente != null && "EMPRESA".equals(tipoCliente.getCodigo());
     }
 
     public boolean esUniformado() {
-        return tipoCliente != null && (
-            tipoCliente.getNombre().contains("Militar") || 
-            tipoCliente.getNombre().contains("Uniformado")
-        );
+        return tipoCliente != null && "MILITAR".equals(tipoCliente.getCodigo());
     }
 
     public boolean esCivil() {
-        return tipoCliente != null && "Civil".equals(tipoCliente.getNombre());
+        return tipoCliente != null && "CIVIL".equals(tipoCliente.getCodigo());
     }
 
     public boolean esDeportista() {
-        return tipoCliente != null && "Deportista".equals(tipoCliente.getNombre());
+        return tipoCliente != null && "DEPORTISTA".equals(tipoCliente.getCodigo());
     }
 
     public boolean tieneEdadMinima() {
         if (fechaNacimiento == null) return false;
-        return fechaNacimiento.plusYears(25).isBefore(LocalDate.now()) || 
-               fechaNacimiento.plusYears(25).isEqual(LocalDate.now());
+        LocalDate fechaMinima = LocalDate.now().minusYears(18);
+        return fechaNacimiento.isBefore(fechaMinima);
     }
 
     public String getIdentificacionCompleta() {
-        return tipoIdentificacion.getCodigo() + ": " + numeroIdentificacion;
+        return tipoIdentificacion.getNombre() + ": " + numeroIdentificacion;
     }
 
     public boolean esActivo() {
-        return EstadoCliente.ACTIVO.equals(estado);
+        return estado == EstadoCliente.ACTIVO;
     }
 } 

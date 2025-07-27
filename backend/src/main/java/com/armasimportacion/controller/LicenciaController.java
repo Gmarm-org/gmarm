@@ -115,7 +115,7 @@ public class LicenciaController {
         try {
             boolean tieneCupo = licenciaService.tieneCupoDisponible(id, tipoCliente);
             Licencia licencia = licenciaService.obtenerLicencia(id);
-            String cupoDisponible = licencia.getCupoDisponible(tipoCliente);
+            Integer cupoDisponible = licencia.getCupoDisponible(tipoCliente);
             
             Map<String, Object> response = Map.of(
                 "tieneCupo", tieneCupo,

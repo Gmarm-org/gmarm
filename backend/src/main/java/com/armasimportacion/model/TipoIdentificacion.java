@@ -1,7 +1,19 @@
 package com.armasimportacion.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -27,13 +39,14 @@ public class TipoIdentificacion {
     @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;
 
-    @Column(name = "codigo", unique = true, nullable = false, length = 10)
+    @Column(name = "codigo", unique = true, nullable = false, length = 20)
     private String codigo;
 
-    @Column(name = "descripcion", length = 255)
+    @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
     @Column(name = "estado", nullable = false)
+    @Builder.Default
     private Boolean estado = true;
 
     @CreatedDate
@@ -46,18 +59,19 @@ public class TipoIdentificacion {
 
     // Relaciones
     @OneToMany(mappedBy = "tipoIdentificacion", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<Cliente> clientes = new ArrayList<>();
 
     // Métodos de utilidad
-    public boolean esActivo() {
-        return estado != null && estado;
-    }
-
     public boolean esCedula() {
-        return "Cédula de Identidad".equals(nombre);
+        return "Cédula".equals(nombre) || "CEDULA".equals(codigo);
     }
 
     public boolean esRUC() {
-        return "Registro Único de Contribuyentes".equals(nombre);
+        return "RUC".equals(nombre) || "RUC".equals(codigo);
+    }
+
+    public boolean esActivo() {
+        return estado != null && estado;
     }
 }

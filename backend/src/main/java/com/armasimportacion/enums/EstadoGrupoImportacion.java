@@ -1,6 +1,7 @@
 package com.armasimportacion.enums;
 
 public enum EstadoGrupoImportacion {
+    BORRADOR,
     EN_PREPARACION,
     PENDIENTE_APROBACION,
     APROBADO,

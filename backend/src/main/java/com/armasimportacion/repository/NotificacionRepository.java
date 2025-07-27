@@ -18,53 +18,46 @@ import java.util.List;
 public interface NotificacionRepository extends JpaRepository<Notificacion, Long> {
     
     // Búsquedas básicas
-    List<Notificacion> findByUsuarioDestino(Usuario usuarioDestino);
+    List<Notificacion> findByUsuarioDestinatario(Usuario usuarioDestinatario);
     List<Notificacion> findByEstado(EstadoNotificacion estado);
     List<Notificacion> findByTipo(TipoNotificacion tipo);
     
     // Notificaciones por usuario
-    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestino.id = :usuarioId")
-    List<Notificacion> findByUsuarioDestinoId(@Param("usuarioId") Long usuarioId);
+    List<Notificacion> findByUsuarioDestinatarioId(Long usuarioId);
     
     // Notificaciones por usuario y estado
-    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestino.id = :usuarioId AND n.estado = :estado")
-    List<Notificacion> findByUsuarioDestinoIdAndEstado(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoNotificacion estado);
+    List<Notificacion> findByUsuarioDestinatarioIdAndEstado(Long usuarioId, EstadoNotificacion estado);
     
     // Notificaciones por usuario y tipo
-    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestino.id = :usuarioId AND n.tipo = :tipo")
-    List<Notificacion> findByUsuarioDestinoIdAndTipo(@Param("usuarioId") Long usuarioId, @Param("tipo") TipoNotificacion tipo);
+    List<Notificacion> findByUsuarioDestinatarioIdAndTipo(Long usuarioId, TipoNotificacion tipo);
     
     // Notificaciones no leídas
-    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestino.id = :usuarioId AND n.estado = 'NO_LEIDA'")
+    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestinatario.id = :usuarioId AND n.estado = 'NO_LEIDA'")
     List<Notificacion> findNoLeidasByUsuarioId(@Param("usuarioId") Long usuarioId);
     
     // Notificaciones por fecha
     List<Notificacion> findByFechaCreacionBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
-    List<Notificacion> findByFechaEnvioBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
     // Contar notificaciones no leídas
-    @Query("SELECT COUNT(n) FROM Notificacion n WHERE n.usuarioDestino.id = :usuarioId AND n.estado = 'NO_LEIDA'")
-    int countByUsuarioDestinoIdAndEstado(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoNotificacion estado);
+    int countByUsuarioDestinatarioIdAndEstado(Long usuarioId, EstadoNotificacion estado);
     
     // Búsquedas con filtros
     @Query("SELECT n FROM Notificacion n WHERE " +
-           "(:usuarioId IS NULL OR n.usuarioDestino.id = :usuarioId) AND " +
+           "(:usuarioId IS NULL OR n.usuarioDestinatario.id = :usuarioId) AND " +
            "(:estado IS NULL OR n.estado = :estado) AND " +
            "(:tipo IS NULL OR n.tipo = :tipo) AND " +
-           "(:entidadTipo IS NULL OR n.entidadTipo = :entidadTipo) AND " +
            "(:fechaInicio IS NULL OR n.fechaCreacion >= :fechaInicio) AND " +
            "(:fechaFin IS NULL OR n.fechaCreacion <= :fechaFin)")
     Page<Notificacion> findWithFilters(
             @Param("usuarioId") Long usuarioId,
             @Param("estado") EstadoNotificacion estado,
             @Param("tipo") TipoNotificacion tipo,
-            @Param("entidadTipo") String entidadTipo,
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,
             Pageable pageable);
     
     // Notificaciones recientes
-    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestino.id = :usuarioId ORDER BY n.fechaCreacion DESC")
+    @Query("SELECT n FROM Notificacion n WHERE n.usuarioDestinatario.id = :usuarioId ORDER BY n.fechaCreacion DESC")
     List<Notificacion> findRecientesByUsuarioId(@Param("usuarioId") Long usuarioId, Pageable pageable);
     
     // Estadísticas

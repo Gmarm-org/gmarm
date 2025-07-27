@@ -1,5 +1,7 @@
 package com.armasimportacion.model;
 
+import com.armasimportacion.enums.EstadoPago;
+import com.armasimportacion.enums.TipoPago;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,8 +13,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "pago")
@@ -22,68 +22,44 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 @EntityListeners(AuditingEntityListener.class)
 public class Pago {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name = "numero_comprobante", nullable = false, unique = true)
-    private String numeroComprobante;
-    
-    @Column(name = "valor_pago", nullable = false, precision = 10, scale = 2)
-    private BigDecimal valorPago;
-    
-    @Column(name = "fecha_pago", nullable = false)
-    private LocalDateTime fechaPago;
-    
-    @Column(name = "saldo_fecha", precision = 10, scale = 2)
-    private BigDecimal saldoFecha;
-    
-    @Column(name = "tipo_pago", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private TipoPago tipoPago;
-    
-    @Column(name = "estado", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private EstadoPago estado;
-    
-    @Column(name = "observaciones")
-    private String observaciones;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cliente_id", nullable = false)
-    private Cliente cliente;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "plan_pago_id")
+    @JoinColumn(name = "plan_pago_id", nullable = false)
     private PlanPago planPago;
-    
+
+    @Column(name = "monto", nullable = false, precision = 10, scale = 2)
+    private BigDecimal monto;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_pago", nullable = false, length = 30)
+    private TipoPago tipoPago;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 20)
+    private EstadoPago estado = EstadoPago.PENDIENTE;
+
+    @Column(name = "fecha_pago")
+    private LocalDateTime fechaPago;
+
+    @Column(name = "referencia_pago", length = 100)
+    private String referenciaPago;
+
+    @Column(name = "observaciones", columnDefinition = "TEXT")
+    private String observaciones;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_registro_id")
-    private Usuario usuarioRegistro;
-    
+    @JoinColumn(name = "usuario_registrador_id", nullable = false)
+    private Usuario usuarioRegistrador;
+
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
-    
+
     @LastModifiedDate
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
-    
-    // Relaciones
-    @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<CuotaPago> cuotas = new ArrayList<>();
-    
-    // Métodos de utilidad
-    public boolean esAnticipo() {
-        return tipoPago == TipoPago.ANTICIPO;
-    }
-    
-    public boolean esPagoCompleto() {
-        return tipoPago == TipoPago.COMPLETO;
-    }
-    
-    public boolean estaConfirmado() {
-        return estado == EstadoPago.CONFIRMADO;
-    }
 } 

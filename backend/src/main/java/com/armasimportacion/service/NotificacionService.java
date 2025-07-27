@@ -29,7 +29,7 @@ public class NotificacionService {
     public Notificacion crearNotificacion(Notificacion notificacion) {
         log.info("Creando notificación: {}", notificacion.getTitulo());
         
-        notificacion.setEstado(EstadoNotificacion.PENDIENTE);
+        notificacion.setEstado(EstadoNotificacion.NO_LEIDA);
         notificacion.setFechaCreacion(LocalDateTime.now());
         
         return notificacionRepository.save(notificacion);
@@ -41,11 +41,11 @@ public class NotificacionService {
     }
     
     public List<Notificacion> obtenerNotificacionesPorUsuario(Long usuarioId) {
-        return notificacionRepository.findByUsuarioDestinoId(usuarioId);
+        return notificacionRepository.findByUsuarioDestinatarioId(usuarioId);
     }
     
     public List<Notificacion> obtenerNotificacionesNoLeidas(Long usuarioId) {
-        return notificacionRepository.findByUsuarioDestinoIdAndEstado(usuarioId, EstadoNotificacion.NO_LEIDA);
+        return notificacionRepository.findByUsuarioDestinatarioIdAndEstado(usuarioId, EstadoNotificacion.NO_LEIDA);
     }
     
     public void marcarComoLeida(Long notificacionId) {
@@ -58,8 +58,7 @@ public class NotificacionService {
     
     public void marcarComoEnviada(Long notificacionId) {
         Notificacion notificacion = obtenerNotificacion(notificacionId);
-        notificacion.setEstado(EstadoNotificacion.ENVIADA);
-        notificacion.setFechaEnvio(LocalDateTime.now());
+        notificacion.setEstado(EstadoNotificacion.NO_LEIDA);
         notificacion.setFechaActualizacion(LocalDateTime.now());
         notificacionRepository.save(notificacion);
     }
@@ -85,9 +84,7 @@ public class NotificacionService {
             notificacion.setTitulo("Nuevo Cliente Registrado");
             notificacion.setMensaje("El vendedor ha registrado un nuevo cliente: " + cliente.getNombreCompleto());
             notificacion.setTipo(TipoNotificacion.SISTEMA);
-            notificacion.setUsuarioDestino(jefe);
-            notificacion.setEntidadTipo("CLIENTE");
-            notificacion.setEntidadId(clienteId);
+            notificacion.setUsuarioDestinatario(jefe);
             
             crearNotificacion(notificacion);
         }
@@ -106,11 +103,9 @@ public class NotificacionService {
         for (Usuario jefe : jefesVentas) {
             Notificacion notificacion = new Notificacion();
             notificacion.setTitulo("Solicitud de Aprobación");
-            notificacion.setMensaje("Cliente " + cliente.getNombreCompleto() + " solicita aprobación para grupo " + grupo.getCodigo());
+            notificacion.setMensaje("Cliente " + cliente.getNombreCompleto() + " solicita aprobación para grupo " + grupo.getNombre());
             notificacion.setTipo(TipoNotificacion.SISTEMA);
-            notificacion.setUsuarioDestino(jefe);
-            notificacion.setEntidadTipo("GRUPO_IMPORTACION");
-            notificacion.setEntidadId(grupoImportacionId);
+            notificacion.setUsuarioDestinatario(jefe);
             
             crearNotificacion(notificacion);
         }
@@ -128,9 +123,7 @@ public class NotificacionService {
             notificacion.setTitulo("Contrato Firmado");
             notificacion.setMensaje("El cliente " + cliente.getNombreCompleto() + " ha firmado el contrato");
             notificacion.setTipo(TipoNotificacion.SISTEMA);
-            notificacion.setUsuarioDestino(usuario);
-            notificacion.setEntidadTipo("DOCUMENTO");
-            notificacion.setEntidadId(documentoId);
+            notificacion.setUsuarioDestinatario(usuario);
             
             crearNotificacion(notificacion);
         }
@@ -148,9 +141,7 @@ public class NotificacionService {
             notificacion.setTitulo("Pago Registrado");
             notificacion.setMensaje("Se ha registrado un pago para el cliente " + cliente.getNombreCompleto());
             notificacion.setTipo(TipoNotificacion.SISTEMA);
-            notificacion.setUsuarioDestino(usuario);
-            notificacion.setEntidadTipo("PAGO");
-            notificacion.setEntidadId(pagoId);
+            notificacion.setUsuarioDestinatario(usuario);
             
             crearNotificacion(notificacion);
         }
@@ -166,11 +157,9 @@ public class NotificacionService {
         for (Usuario usuario : operaciones) {
             Notificacion notificacion = new Notificacion();
             notificacion.setTitulo("Documento Cargado");
-            notificacion.setMensaje("Se ha cargado el documento " + tipoDocumento + " para el grupo " + grupo.getCodigo());
+            notificacion.setMensaje("Se ha cargado el documento " + tipoDocumento + " para el grupo " + grupo.getNombre());
             notificacion.setTipo(TipoNotificacion.SISTEMA);
-            notificacion.setUsuarioDestino(usuario);
-            notificacion.setEntidadTipo("GRUPO_IMPORTACION");
-            notificacion.setEntidadId(grupoImportacionId);
+            notificacion.setUsuarioDestinatario(usuario);
             
             crearNotificacion(notificacion);
         }
@@ -186,11 +175,9 @@ public class NotificacionService {
         for (Usuario usuario : usuarios) {
             Notificacion notificacion = new Notificacion();
             notificacion.setTitulo("Importación Llegada");
-            notificacion.setMensaje("La importación " + grupo.getCodigo() + " ha llegado y está lista para procesar");
+            notificacion.setMensaje("La importación " + grupo.getNombre() + " ha llegado y está lista para procesar");
             notificacion.setTipo(TipoNotificacion.SISTEMA);
-            notificacion.setUsuarioDestino(usuario);
-            notificacion.setEntidadTipo("GRUPO_IMPORTACION");
-            notificacion.setEntidadId(grupoImportacionId);
+            notificacion.setUsuarioDestinatario(usuario);
             
             crearNotificacion(notificacion);
         }
@@ -205,17 +192,15 @@ public class NotificacionService {
         Notificacion notificacion = new Notificacion();
         notificacion.setTitulo("Serie Asignada");
         notificacion.setMensaje("Se ha asignado la serie " + numeroSerie + " a su arma");
-        notificacion.setTipo(TipoNotificacion.EMAIL);
-        notificacion.setUsuarioDestino(cliente.getUsuarioCreador());
-        notificacion.setEntidadTipo("ARMA_FISICA");
-        notificacion.setEntidadId(clienteId);
+        notificacion.setTipo(TipoNotificacion.SISTEMA);
+        notificacion.setUsuarioDestinatario(cliente.getUsuarioCreador());
         
         crearNotificacion(notificacion);
     }
     
     // Utilidades
     public int contarNotificacionesNoLeidas(Long usuarioId) {
-        return notificacionRepository.countByUsuarioDestinoIdAndEstado(usuarioId, EstadoNotificacion.NO_LEIDA);
+        return notificacionRepository.countByUsuarioDestinatarioIdAndEstado(usuarioId, EstadoNotificacion.NO_LEIDA);
     }
     
     public void marcarTodasComoLeidas(Long usuarioId) {
@@ -226,6 +211,6 @@ public class NotificacionService {
     }
     
     public List<Notificacion> obtenerNotificacionesPorTipo(Long usuarioId, TipoNotificacion tipo) {
-        return notificacionRepository.findByUsuarioDestinoIdAndTipo(usuarioId, tipo);
+        return notificacionRepository.findByUsuarioDestinatarioIdAndTipo(usuarioId, tipo);
     }
 } 

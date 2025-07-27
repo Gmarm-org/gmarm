@@ -1,5 +1,6 @@
 package com.armasimportacion.model;
 
+import com.armasimportacion.enums.EstadoCuotaPago;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,45 +22,39 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = false)
 @EntityListeners(AuditingEntityListener.class)
 public class CuotaPago {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plan_pago_id", nullable = false)
+    private PlanPago planPago;
+
     @Column(name = "numero_cuota", nullable = false)
     private Integer numeroCuota;
-    
-    @Column(name = "valor_cuota", nullable = false, precision = 10, scale = 2)
-    private BigDecimal valorCuota;
-    
+
+    @Column(name = "monto", nullable = false, precision = 10, scale = 2)
+    private BigDecimal monto;
+
     @Column(name = "fecha_vencimiento", nullable = false)
-    private LocalDateTime fechaVencimiento;
-    
+    private LocalDate fechaVencimiento;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 20)
+    private EstadoCuotaPago estado = EstadoCuotaPago.PENDIENTE;
+
     @Column(name = "fecha_pago")
     private LocalDateTime fechaPago;
-    
-    @Column(name = "estado", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private EstadoCuotaPago estado;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pago_id", nullable = false)
-    private Pago pago;
-    
+
+    @Column(name = "monto_pagado", precision = 10, scale = 2)
+    private BigDecimal montoPagado;
+
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
-    
+
     @LastModifiedDate
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
-    
-    // Métodos de utilidad
-    public boolean estaVencida() {
-        return fechaVencimiento.isBefore(LocalDateTime.now()) && estado != EstadoCuotaPago.PAGADA;
-    }
-    
-    public boolean estaPagada() {
-        return estado == EstadoCuotaPago.PAGADA;
-    }
 } 

@@ -3,6 +3,7 @@ package com.armasimportacion.service;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.enums.EstadoUsuario;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,7 @@ class UsuarioServiceTest {
         testUsuario.setId(1L);
         testUsuario.setUsername("testuser");
         testUsuario.setEmail("test@example.com");
+        testUsuario.setPasswordHash("password123");
         testUsuario.setNombres("Test");
         testUsuario.setApellidos("User");
         testUsuario.setTelefonoPrincipal("0987654321");
@@ -84,18 +86,20 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> usuarioService.findById(999L));
+        assertThrows(ResourceNotFoundException.class, () -> usuarioService.findById(999L));
         verify(usuarioRepository, times(1)).findById(999L);
     }
 
     @Test
-    void testSave() {
+    void testCreate() {
         // Arrange
         when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(testUsuario);
+        when(usuarioRepository.existsByUsername(any())).thenReturn(false);
+        when(usuarioRepository.existsByEmail(any())).thenReturn(false);
 
         // Act
-        Usuario result = usuarioService.save(testUsuario);
+        Usuario result = usuarioService.create(testUsuario);
 
         // Assert
         assertNotNull(result);
@@ -109,6 +113,7 @@ class UsuarioServiceTest {
         // Arrange
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(testUsuario));
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(testUsuario);
+        when(usuarioRepository.existsByEmailAndIdNot(any(), any())).thenReturn(false);
 
         // Act
         Usuario result = usuarioService.update(1L, testUsuario);
@@ -123,25 +128,25 @@ class UsuarioServiceTest {
     @Test
     void testDelete() {
         // Arrange
-        when(usuarioRepository.existsById(1L)).thenReturn(true);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(testUsuario));
 
         // Act
         usuarioService.delete(1L);
 
         // Assert
-        verify(usuarioRepository, times(1)).existsById(1L);
-        verify(usuarioRepository, times(1)).deleteById(1L);
+        verify(usuarioRepository, times(1)).findById(1L);
+        verify(usuarioRepository, times(1)).delete(any(Usuario.class));
     }
 
     @Test
     void testDeleteNotFound() {
         // Arrange
-        when(usuarioRepository.existsById(999L)).thenReturn(false);
+        when(usuarioRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> usuarioService.delete(999L));
-        verify(usuarioRepository, times(1)).existsById(999L);
-        verify(usuarioRepository, never()).deleteById(any());
+        assertThrows(ResourceNotFoundException.class, () -> usuarioService.delete(999L));
+        verify(usuarioRepository, times(1)).findById(999L);
+        verify(usuarioRepository, never()).delete(any());
     }
 
     @Test
@@ -150,11 +155,11 @@ class UsuarioServiceTest {
         when(usuarioRepository.findByUsername("testuser")).thenReturn(Optional.of(testUsuario));
 
         // Act
-        Optional<Usuario> result = usuarioService.findByUsername("testuser");
+        Usuario result = usuarioService.findByUsername("testuser");
 
         // Assert
-        assertTrue(result.isPresent());
-        assertEquals(testUsuario.getUsername(), result.get().getUsername());
+        assertNotNull(result);
+        assertEquals(testUsuario.getUsername(), result.getUsername());
         verify(usuarioRepository, times(1)).findByUsername("testuser");
     }
 
@@ -164,37 +169,27 @@ class UsuarioServiceTest {
         when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUsuario));
 
         // Act
-        Optional<Usuario> result = usuarioService.findByEmail("test@example.com");
+        Usuario result = usuarioService.findByEmail("test@example.com");
 
         // Assert
-        assertTrue(result.isPresent());
-        assertEquals(testUsuario.getEmail(), result.get().getEmail());
+        assertNotNull(result);
+        assertEquals(testUsuario.getEmail(), result.getEmail());
         verify(usuarioRepository, times(1)).findByEmail("test@example.com");
     }
 
     @Test
-    void testExistsByUsername() {
+    void testChangeStatus() {
         // Arrange
-        when(usuarioRepository.existsByUsername("testuser")).thenReturn(true);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(testUsuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(testUsuario);
 
         // Act
-        boolean result = usuarioService.existsByUsername("testuser");
+        Usuario result = usuarioService.changeStatus(1L, EstadoUsuario.BLOQUEADO);
 
         // Assert
-        assertTrue(result);
-        verify(usuarioRepository, times(1)).existsByUsername("testuser");
-    }
-
-    @Test
-    void testExistsByEmail() {
-        // Arrange
-        when(usuarioRepository.existsByEmail("test@example.com")).thenReturn(true);
-
-        // Act
-        boolean result = usuarioService.existsByEmail("test@example.com");
-
-        // Assert
-        assertTrue(result);
-        verify(usuarioRepository, times(1)).existsByEmail("test@example.com");
+        assertNotNull(result);
+        assertEquals(EstadoUsuario.BLOQUEADO, result.getEstado());
+        verify(usuarioRepository, times(1)).findById(1L);
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
 } 

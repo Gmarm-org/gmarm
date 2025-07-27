@@ -1,4 +1,4 @@
-import type { Client, Weapon } from '../types';
+import type { Client } from '../types';
 
 // Función para convertir texto a mayúsculas
 export const toUpperCase = (text: string) => text.toUpperCase();

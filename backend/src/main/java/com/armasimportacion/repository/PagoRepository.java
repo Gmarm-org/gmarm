@@ -1,7 +1,7 @@
 package com.armasimportacion.repository;
 
 import com.armasimportacion.model.Pago;
-import com.armasimportacion.model.Cliente;
+import com.armasimportacion.model.PlanPago;
 import com.armasimportacion.enums.EstadoPago;
 import com.armasimportacion.enums.TipoPago;
 import org.springframework.data.domain.Page;
@@ -20,8 +20,8 @@ import java.util.Optional;
 public interface PagoRepository extends JpaRepository<Pago, Long> {
     
     // Búsquedas básicas
-    Optional<Pago> findByNumeroComprobante(String numeroComprobante);
-    List<Pago> findByCliente(Cliente cliente);
+    Optional<Pago> findByReferenciaPago(String referenciaPago);
+    List<Pago> findByPlanPago(PlanPago planPago);
     List<Pago> findByEstado(EstadoPago estado);
     List<Pago> findByTipoPago(TipoPago tipoPago);
     
@@ -29,35 +29,35 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     List<Pago> findByFechaPagoBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
     List<Pago> findByFechaCreacionBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
-    // Pagos por cliente y estado
-    List<Pago> findByClienteAndEstado(Cliente cliente, EstadoPago estado);
+    // Pagos por plan y estado
+    List<Pago> findByPlanPagoAndEstado(PlanPago planPago, EstadoPago estado);
     
-    // Pagos confirmados
+    // Pagos completados
     List<Pago> findByEstadoAndFechaPagoBetween(EstadoPago estado, LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
     // Verificar existencia
-    boolean existsByNumeroComprobante(String numeroComprobante);
+    boolean existsByReferenciaPago(String referenciaPago);
     
     // Búsquedas con filtros
     @Query("SELECT p FROM Pago p WHERE " +
-           "(:numeroComprobante IS NULL OR p.numeroComprobante LIKE %:numeroComprobante%) AND " +
+           "(:referenciaPago IS NULL OR p.referenciaPago LIKE %:referenciaPago%) AND " +
            "(:estado IS NULL OR p.estado = :estado) AND " +
            "(:tipoPago IS NULL OR p.tipoPago = :tipoPago) AND " +
-           "(:clienteId IS NULL OR p.cliente.id = :clienteId) AND " +
+           "(:planPagoId IS NULL OR p.planPago.id = :planPagoId) AND " +
            "(:fechaInicio IS NULL OR p.fechaPago >= :fechaInicio) AND " +
            "(:fechaFin IS NULL OR p.fechaPago <= :fechaFin)")
     Page<Pago> findWithFilters(
-            @Param("numeroComprobante") String numeroComprobante,
+            @Param("referenciaPago") String referenciaPago,
             @Param("estado") EstadoPago estado,
             @Param("tipoPago") TipoPago tipoPago,
-            @Param("clienteId") Long clienteId,
+            @Param("planPagoId") Long planPagoId,
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,
             Pageable pageable);
     
-    // Suma de pagos por cliente
-    @Query("SELECT SUM(p.valorPago) FROM Pago p WHERE p.cliente.id = :clienteId AND p.estado = 'CONFIRMADO'")
-    BigDecimal sumPagosConfirmadosByCliente(@Param("clienteId") Long clienteId);
+    // Suma de pagos por plan
+    @Query("SELECT SUM(p.monto) FROM Pago p WHERE p.planPago.id = :planPagoId AND p.estado = 'COMPLETADO'")
+    BigDecimal sumPagosCompletadosByPlanPago(@Param("planPagoId") Long planPagoId);
     
     // Contar pagos por estado
     @Query("SELECT p.estado, COUNT(p) FROM Pago p GROUP BY p.estado")
@@ -67,7 +67,15 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     @Query("SELECT p FROM Pago p WHERE p.estado = 'PENDIENTE'")
     List<Pago> findPagosPendientes();
     
-    // Último pago del cliente
-    @Query("SELECT p FROM Pago p WHERE p.cliente.id = :clienteId ORDER BY p.fechaPago DESC")
-    List<Pago> findUltimosPagosByCliente(@Param("clienteId") Long clienteId, Pageable pageable);
+    // Último pago del plan
+    @Query("SELECT p FROM Pago p WHERE p.planPago.id = :planPagoId ORDER BY p.fechaPago DESC")
+    List<Pago> findUltimosPagosByPlanPago(@Param("planPagoId") Long planPagoId, Pageable pageable);
+    
+    // Pagos por cliente (a través del plan de pago)
+    @Query("SELECT p FROM Pago p WHERE p.planPago.cliente.id = :clienteId")
+    List<Pago> findByCliente(@Param("clienteId") Long clienteId);
+    
+    // Suma de pagos completados por cliente
+    @Query("SELECT SUM(p.monto) FROM Pago p WHERE p.planPago.cliente.id = :clienteId AND p.estado = 'COMPLETADO'")
+    BigDecimal sumPagosCompletadosByCliente(@Param("clienteId") Long clienteId);
 } 

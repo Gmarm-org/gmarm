@@ -1,5 +1,6 @@
 package com.armasimportacion.model;
 
+import com.armasimportacion.enums.EstadoDocumentoGrupo;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,52 +20,55 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = false)
 @EntityListeners(AuditingEntityListener.class)
 public class DocumentoGrupoImportacion {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name = "nombre", nullable = false)
-    private String nombre;
-    
-    @Column(name = "url_archivo", nullable = false)
-    private String urlArchivo;
-    
-    @Column(name = "tipo_documento", nullable = false)
-    private String tipoDocumento; // PROFORMA, RESOLUCION, PACKING_LIST, etc.
-    
-    @Column(name = "estado", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private EstadoDocumentoGrupo estado;
-    
-    @Column(name = "observaciones")
-    private String observaciones;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "grupo_importacion_id", nullable = false)
     private GrupoImportacion grupoImportacion;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_carga_id")
-    private Usuario usuarioCarga;
-    
-    @Column(name = "fecha_carga", nullable = false)
+
+    @Column(name = "nombre_archivo", nullable = false, length = 255)
+    private String nombreArchivo;
+
+    @Column(name = "ruta_archivo", nullable = false, length = 500)
+    private String rutaArchivo;
+
+    @Column(name = "tamanio_bytes")
+    private Long tamanioBytes;
+
+    @Column(name = "descripcion", columnDefinition = "TEXT")
+    private String descripcion;
+
+    @Column(name = "nombre", length = 255)
+    private String nombre;
+
+    @Column(name = "url_archivo", length = 500)
+    private String urlArchivo;
+
+    @Column(name = "tipo_documento", length = 50)
+    private String tipoDocumento;
+
+    @Column(name = "fecha_carga")
     private LocalDateTime fechaCarga;
-    
+
+    @Column(name = "observaciones", columnDefinition = "TEXT")
+    private String observaciones;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 20)
+    private EstadoDocumentoGrupo estado = EstadoDocumentoGrupo.PENDIENTE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_carga_id", nullable = false)
+    private Usuario usuarioCarga;
+
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
-    
+
     @LastModifiedDate
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
-    
-    // Métodos de utilidad
-    public boolean estaCompleto() {
-        return estado == EstadoDocumentoGrupo.COMPLETO;
-    }
-    
-    public boolean estaPendiente() {
-        return estado == EstadoDocumentoGrupo.PENDIENTE;
-    }
 } 

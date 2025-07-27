@@ -46,10 +46,10 @@ public class AuthController {
             String jwt = tokenProvider.generateToken(authentication);
             
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-            Usuario usuario = usuarioService.obtenerUsuario(userPrincipal.getId());
+            Usuario usuario = usuarioService.findById(userPrincipal.getId());
             
             // Actualizar último login
-            usuarioService.actualizarUltimoLogin(usuario.getId());
+            usuarioService.updateLastLogin(usuario.getId());
             
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwt);
@@ -82,7 +82,7 @@ public class AuthController {
             }
             
             String username = tokenProvider.getUsernameFromToken(jwt);
-            Usuario usuario = usuarioService.obtenerUsuarioPorUsername(username);
+            Usuario usuario = usuarioService.findByUsername(username);
             
             // Crear nueva autenticación
             UserPrincipal userPrincipal = UserPrincipal.create(usuario);
@@ -118,7 +118,7 @@ public class AuthController {
             UserPrincipal userPrincipal = (UserPrincipal) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
             
-            Usuario usuario = usuarioService.obtenerUsuario(userPrincipal.getId());
+            Usuario usuario = usuarioService.findById(userPrincipal.getId());
             
             Map<String, Object> response = new HashMap<>();
             response.put("id", usuario.getId());

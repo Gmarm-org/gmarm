@@ -47,6 +47,6 @@ public class CategoriaArma {
     private LocalDateTime fechaActualizacion;
     
     // Relaciones
-    @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "categoriaArma", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ModeloArma> modelosArma = new ArrayList<>();
 } 

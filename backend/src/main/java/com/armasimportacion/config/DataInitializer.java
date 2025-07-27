@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Configuration
@@ -102,47 +103,48 @@ public class DataInitializer {
             admin.setDireccion("Quito, Ecuador");
             admin.setEstado(EstadoUsuario.ACTIVO);
             admin.setFechaCreacion(LocalDateTime.now());
-            
-            usuarioRepository.save(admin);
+            admin.setBloqueado(false);
+            admin.setIntentosLogin(0);
             
             // Asignar rol de administrador
             Rol adminRol = rolRepository.findByNombre("ADMIN").orElseThrow();
             admin.getRoles().add(adminRol);
-            usuarioRepository.save(admin);
             
-            log.info("Usuario administrador creado: admin@armasimportacion.com / admin123");
+            usuarioRepository.save(admin);
+            log.info("Usuario administrador creado: admin/admin123");
         }
     }
 
     private void createTestUsers() {
-        createTestUser("vendedor1", "vendedor@test.com", "Juan", "Vendedor", "VENDEDOR");
-        createTestUser("jefe", "jefe@test.com", "María", "Jefe Ventas", "JEFE_VENTAS");
-        createTestUser("finanzas", "finanzas@test.com", "Carlos", "Finanzas", "FINANZAS");
-        createTestUser("operaciones", "operaciones@test.com", "Ana", "Operaciones", "OPERACIONES");
-        createTestUser("test", "test@test.com", "Test", "Usuario", "VENDEDOR");
+        createTestUser("vendedor1", "vendedor1@armasimportacion.com", "Juan", "Pérez", "VENDEDOR");
+        createTestUser("jefe_ventas", "jefe@armasimportacion.com", "María", "González", "JEFE_VENTAS");
+        createTestUser("finanzas", "finanzas@armasimportacion.com", "Carlos", "López", "FINANZAS");
+        createTestUser("operaciones", "operaciones@armasimportacion.com", "Ana", "Martínez", "OPERACIONES");
     }
 
     private void createTestUser(String username, String email, String nombres, String apellidos, String rolNombre) {
         if (!usuarioRepository.existsByUsername(username)) {
             log.info("Creando usuario de prueba: {}", username);
             
-            Usuario user = new Usuario();
-            user.setUsername(username);
-            user.setEmail(email);
-            user.setPasswordHash(passwordEncoder.encode("test123"));
-            user.setNombres(nombres);
-            user.setApellidos(apellidos);
-            user.setTelefonoPrincipal("0987654321");
-            user.setDireccion("Ecuador");
-            user.setEstado(EstadoUsuario.ACTIVO);
-            user.setFechaCreacion(LocalDateTime.now());
-            
-            usuarioRepository.save(user);
+            Usuario usuario = new Usuario();
+            usuario.setUsername(username);
+            usuario.setEmail(email);
+            usuario.setPasswordHash(passwordEncoder.encode("123456"));
+            usuario.setNombres(nombres);
+            usuario.setApellidos(apellidos);
+            usuario.setTelefonoPrincipal("0999999999");
+            usuario.setDireccion("Quito, Ecuador");
+            usuario.setEstado(EstadoUsuario.ACTIVO);
+            usuario.setFechaCreacion(LocalDateTime.now());
+            usuario.setBloqueado(false);
+            usuario.setIntentosLogin(0);
             
             // Asignar rol
             Rol rol = rolRepository.findByNombre(rolNombre).orElseThrow();
-            user.getRoles().add(rol);
-            usuarioRepository.save(user);
+            usuario.getRoles().add(rol);
+            
+            usuarioRepository.save(usuario);
+            log.info("Usuario de prueba creado: {}/123456", username);
         }
     }
 
@@ -262,8 +264,8 @@ public class DataInitializer {
             glock.setNombre("Glock 17");
             glock.setCalibre("9mm");
             glock.setCapacidad(17);
-            glock.setPrecioReferencia(1200.00);
-            glock.setCategoria(pistolas);
+            glock.setPrecioReferencia(new BigDecimal("1200.00"));
+            glock.setCategoriaArma(pistolas);
             glock.setEstado(true);
             modeloArmaRepository.save(glock);
 
@@ -274,8 +276,8 @@ public class DataInitializer {
             ar15.setNombre("AR-15 Sport");
             ar15.setCalibre("5.56mm");
             ar15.setCapacidad(30);
-            ar15.setPrecioReferencia(2500.00);
-            ar15.setCategoria(rifles);
+            ar15.setPrecioReferencia(new BigDecimal("2500.00"));
+            ar15.setCategoriaArma(rifles);
             ar15.setEstado(true);
             modeloArmaRepository.save(ar15);
         }
