@@ -1,105 +1,354 @@
-export interface LocationData {
-  provincia: string;
-  cantones: string[];
+export interface Canton {
+  nombre: string;
 }
 
-export const ecuadorLocations: LocationData[] = [
-  {
-    provincia: "Azuay",
-    cantones: ["Cuenca", "Gualaceo", "Paute", "Chordeleg", "Sevilla de Oro", "El Pan", "San Fernando", "Santa Isabel", "Pucará", "Nabón", "Oña", "Guachapala", "Camilo Ponce Enríquez", "Girón", "San Felipe de Oña"]
-  },
-  {
-    provincia: "Bolívar",
-    cantones: ["Guaranda", "Chillanes", "Chimbo", "Echeandía", "San Miguel", "Caluma", "Las Naves"]
-  },
-  {
-    provincia: "Cañar",
-    cantones: ["Azogues", "Biblián", "Cañar", "La Troncal", "El Tambo", "Déleg", "Suscal"]
-  },
-  {
-    provincia: "Carchi",
-    cantones: ["Tulcán", "Montúfar", "Espejo", "Mira", "San Pedro de Huaca", "Bolívar"]
-  },
-  {
-    provincia: "Chimborazo",
-    cantones: ["Riobamba", "Alausí", "Colta", "Cumandá", "Chambo", "Chunchi", "Guamote", "Guano", "Pallatanga", "Penipe", "San Juan"]
-  },
-  {
-    provincia: "Cotopaxi",
-    cantones: ["Latacunga", "La Maná", "Pangua", "Pujilí", "Salcedo", "Saquisilí", "Sigchos"]
-  },
-  {
-    provincia: "El Oro",
-    cantones: ["Machala", "Arenillas", "Atahualpa", "Balsas", "Chilla", "El Guabo", "Huaquillas", "Las Lajas", "Marcabelí", "Pasaje", "Piñas", "Portovelo", "Santa Rosa", "Zaruma"]
-  },
-  {
-    provincia: "Esmeraldas",
-    cantones: ["Esmeraldas", "Eloy Alfaro", "Muisne", "Quinindé", "San Lorenzo", "Atacames", "Río Verde"]
-  },
-  {
-    provincia: "Galápagos",
-    cantones: ["San Cristóbal", "Isabela", "Santa Cruz"]
-  },
-  {
-    provincia: "Guayas",
-    cantones: ["Guayaquil", "Alfredo Baquerizo Moreno", "Balao", "Balzar", "Colimes", "Daule", "Durán", "El Empalme", "El Triunfo", "Milagro", "Naranjal", "Naranjito", "Nobol", "Palestina", "Pedro Carbo", "Samborondón", "Santa Lucía", "Salitre", "San Jacinto de Yaguachi", "Playas", "Simón Bolívar", "Coronel Marcelino Maridueña", "Lomas de Sargentillo", "Nobol", "Isidro Ayora"]
-  },
-  {
-    provincia: "Imbabura",
-    cantones: ["Ibarra", "Antonio Ante", "Cotacachi", "Otavalo", "Pimampiro", "San Miguel de Urcuquí"]
-  },
-  {
-    provincia: "Loja",
-    cantones: ["Loja", "Calvas", "Catamayo", "Celica", "Chaguarpamba", "Espíndola", "Gonzanamá", "Macará", "Olmedo", "Paltas", "Puyango", "Saraguro", "Sozoranga", "Zapotillo", "Pindal", "Quilanga", "Alamor"]
-  },
-  {
-    provincia: "Los Ríos",
-    cantones: ["Babahoyo", "Baba", "Montalvo", "Puebloviejo", "Quevedo", "Urdaneta", "Ventanas", "Vínces", "Palenque", "Buena Fe", "Valencia", "Mocache", "Quinsaloma"]
-  },
-  {
-    provincia: "Manabí",
-    cantones: ["Portoviejo", "Bolívar", "Chone", "El Carmen", "Flavio Alfaro", "Jama", "Jaramijó", "Jipijapa", "Junín", "Manta", "Montecristi", "Olmedo", "Paján", "Pedernales", "Pichincha", "Rocafuerte", "San Vicente", "Santa Ana", "Sucre", "Tosagua", "24 de Mayo", "Pedernales", "Puerto López", "Jama"]
-  },
-  {
-    provincia: "Morona Santiago",
-    cantones: ["Morona", "Gualaquiza", "Limón Indanza", "Palora", "Santiago", "Sucúa", "Huamboya", "San Juan Bosco", "Taisha", "Logroño", "Pablo Sexto", "Tiwinza"]
-  },
-  {
-    provincia: "Napo",
-    cantones: ["Tena", "Archidona", "El Chaco", "Quijos", "Carlos Julio Arosemena Tola"]
-  },
-  {
-    provincia: "Orellana",
-    cantones: ["Francisco de Orellana", "Aguarico", "La Joya de los Sachas", "Loreto"]
-  },
-  {
-    provincia: "Pastaza",
-    cantones: ["Pastaza", "Mera", "Santa Clara", "Arajuno"]
-  },
-  {
-    provincia: "Pichincha",
-    cantones: ["Quito", "Cayambe", "Mejía", "Pedro Moncayo", "Rumiñahui", "San Miguel de Los Bancos", "Pedro Vicente Maldonado", "Puerto Quito"]
-  },
-  {
-    provincia: "Santa Elena",
-    cantones: ["Santa Elena", "La Libertad", "Salinas"]
-  },
-  {
-    provincia: "Santo Domingo de los Tsáchilas",
-    cantones: ["Santo Domingo", "La Concordia"]
-  },
-  {
-    provincia: "Sucumbíos",
-    cantones: ["Lago Agrio", "Gonzalo Pizarro", "Putumayo", "Shushufindi", "Sucumbíos", "Cascales", "Cuyabeno"]
-  },
-  {
-    provincia: "Tungurahua",
-    cantones: ["Ambato", "Baños de Agua Santa", "Cevallos", "Mocha", "Patate", "Quero", "San Pedro de Pelileo", "Santiago de Píllaro", "Tisaleo"]
-  },
-  {
-    provincia: "Zamora Chinchipe",
-    cantones: ["Zamora", "Chinchipe", "Nangaritza", "Yacuambi", "Yantzaza", "El Pangui", "Centinela del Cóndor", "Palanda", "Paquisha"]
-  }
-];
+export interface Provincia {
+  nombre: string;
+  cantones: Canton[];
+}
 
-export default ecuadorLocations; 
+export const ecuadorProvinces: Provincia[] = [
+  {
+    nombre: "Azuay",
+    cantones: [
+      { nombre: "Cuenca" },
+      { nombre: "Girón" },
+      { nombre: "Gualaceo" },
+      { nombre: "Nabón" },
+      { nombre: "Paute" },
+      { nombre: "Pucará" },
+      { nombre: "San Fernando" },
+      { nombre: "Santa Isabel" },
+      { nombre: "Sigsig" },
+      { nombre: "Oña" },
+      { nombre: "Chordeleg" },
+      { nombre: "El Pan" },
+      { nombre: "Sevilla de Oro" },
+      { nombre: "Guachapala" },
+      { nombre: "Camilo Ponce Enríquez" }
+    ]
+  },
+  {
+    nombre: "Bolívar",
+    cantones: [
+      { nombre: "Guaranda" },
+      { nombre: "Chillanes" },
+      { nombre: "Chimbo" },
+      { nombre: "Echeandía" },
+      { nombre: "San Miguel" },
+      { nombre: "Caluma" },
+      { nombre: "Las Naves" }
+    ]
+  },
+  {
+    nombre: "Cañar",
+    cantones: [
+      { nombre: "Azogues" },
+      { nombre: "Biblián" },
+      { nombre: "Cañar" },
+      { nombre: "La Troncal" },
+      { nombre: "El Tambo" },
+      { nombre: "Déleg" },
+      { nombre: "Suscal" }
+    ]
+  },
+  {
+    nombre: "Carchi",
+    cantones: [
+      { nombre: "Tulcán" },
+      { nombre: "Bolívar" },
+      { nombre: "Espejo" },
+      { nombre: "Mira" },
+      { nombre: "Montúfar" },
+      { nombre: "San Pedro de Huaca" }
+    ]
+  },
+  {
+    nombre: "Chimborazo",
+    cantones: [
+      { nombre: "Riobamba" },
+      { nombre: "Alausí" },
+      { nombre: "Colta" },
+      { nombre: "Cumandá" },
+      { nombre: "Guamote" },
+      { nombre: "Guano" },
+      { nombre: "Pallatanga" },
+      { nombre: "Penipe" },
+      { nombre: "Chunchi" },
+      { nombre: "Chambo" }
+    ]
+  },
+  {
+    nombre: "Cotopaxi",
+    cantones: [
+      { nombre: "Latacunga" },
+      { nombre: "La Maná" },
+      { nombre: "Pangua" },
+      { nombre: "Pujilí" },
+      { nombre: "Salcedo" },
+      { nombre: "Saquisilí" },
+      { nombre: "Sigchos" }
+    ]
+  },
+  {
+    nombre: "El Oro",
+    cantones: [
+      { nombre: "Machala" },
+      { nombre: "Arenillas" },
+      { nombre: "Atahualpa" },
+      { nombre: "Balsas" },
+      { nombre: "Chilla" },
+      { nombre: "El Guabo" },
+      { nombre: "Huaquillas" },
+      { nombre: "Marcabelí" },
+      { nombre: "Pasaje" },
+      { nombre: "Piñas" },
+      { nombre: "Portovelo" },
+      { nombre: "Santa Rosa" },
+      { nombre: "Zaruma" },
+      { nombre: "Las Lajas" }
+    ]
+  },
+  {
+    nombre: "Esmeraldas",
+    cantones: [
+      { nombre: "Esmeraldas" },
+      { nombre: "Eloy Alfaro" },
+      { nombre: "Muisne" },
+      { nombre: "Quinindé" },
+      { nombre: "San Lorenzo" },
+      { nombre: "Atacames" },
+      { nombre: "Rioverde" }
+    ]
+  },
+  {
+    nombre: "Galápagos",
+    cantones: [
+      { nombre: "San Cristóbal" },
+      { nombre: "Isabela" },
+      { nombre: "Santa Cruz" }
+    ]
+  },
+  {
+    nombre: "Guayas",
+    cantones: [
+      { nombre: "Guayaquil" },
+      { nombre: "Alfredo Baquerizo Moreno" },
+      { nombre: "Balao" },
+      { nombre: "Balzar" },
+      { nombre: "Colimes" },
+      { nombre: "Daule" },
+      { nombre: "Durán" },
+      { nombre: "El Empalme" },
+      { nombre: "El Triunfo" },
+      { nombre: "Milagro" },
+      { nombre: "Naranjal" },
+      { nombre: "Naranjito" },
+      { nombre: "Palestina" },
+      { nombre: "Pedro Carbo" },
+      { nombre: "Samborondón" },
+      { nombre: "Santa Lucía" },
+      { nombre: "Salitre" },
+      { nombre: "San Jacinto de Yaguachi" },
+      { nombre: "Playas" },
+      { nombre: "Simón Bolívar" },
+      { nombre: "Coronel Marcelino Maridueña" },
+      { nombre: "Lomas de Sargentillo" },
+      { nombre: "Nobol" },
+      { nombre: "General Antonio Elizalde" },
+      { nombre: "Isidro Ayora" }
+    ]
+  },
+  {
+    nombre: "Imbabura",
+    cantones: [
+      { nombre: "Ibarra" },
+      { nombre: "Antonio Ante" },
+      { nombre: "Cotacachi" },
+      { nombre: "Otavalo" },
+      { nombre: "Pimampiro" },
+      { nombre: "San Miguel de Urcuquí" }
+    ]
+  },
+  {
+    nombre: "Loja",
+    cantones: [
+      { nombre: "Loja" },
+      { nombre: "Calvas" },
+      { nombre: "Catamayo" },
+      { nombre: "Celica" },
+      { nombre: "Chaguarpamba" },
+      { nombre: "Espíndola" },
+      { nombre: "Gonzanamá" },
+      { nombre: "Macará" },
+      { nombre: "Paltas" },
+      { nombre: "Puyango" },
+      { nombre: "Saraguro" },
+      { nombre: "Sozoranga" },
+      { nombre: "Zapotillo" },
+      { nombre: "Pindal" },
+      { nombre: "Quilanga" },
+      { nombre: "Olmedo" }
+    ]
+  },
+  {
+    nombre: "Los Ríos",
+    cantones: [
+      { nombre: "Babahoyo" },
+      { nombre: "Baba" },
+      { nombre: "Montalvo" },
+      { nombre: "Puebloviejo" },
+      { nombre: "Quevedo" },
+      { nombre: "Urdaneta" },
+      { nombre: "Ventanas" },
+      { nombre: "Vínces" },
+      { nombre: "Palenque" },
+      { nombre: "Buena Fe" },
+      { nombre: "Valencia" },
+      { nombre: "Mocache" },
+      { nombre: "Quinsaloma" }
+    ]
+  },
+  {
+    nombre: "Manabí",
+    cantones: [
+      { nombre: "Portoviejo" },
+      { nombre: "Bolívar" },
+      { nombre: "Chone" },
+      { nombre: "El Carmen" },
+      { nombre: "Flavio Alfaro" },
+      { nombre: "Jipijapa" },
+      { nombre: "Junín" },
+      { nombre: "Manta" },
+      { nombre: "Montecristi" },
+      { nombre: "Paján" },
+      { nombre: "Pichincha" },
+      { nombre: "Rocafuerte" },
+      { nombre: "Santa Ana" },
+      { nombre: "Sucre" },
+      { nombre: "Tosagua" },
+      { nombre: "24 de Mayo" },
+      { nombre: "Pedernales" },
+      { nombre: "Olmedo" },
+      { nombre: "Puerto López" },
+      { nombre: "Jama" },
+      { nombre: "Jaramijó" },
+      { nombre: "San Vicente" }
+    ]
+  },
+  {
+    nombre: "Morona Santiago",
+    cantones: [
+      { nombre: "Macas" },
+      { nombre: "Gualaquiza" },
+      { nombre: "Limon-Indanza" },
+      { nombre: "Palora" },
+      { nombre: "Santiago" },
+      { nombre: "Sucúa" },
+      { nombre: "Huamboya" },
+      { nombre: "San Juan Bosco" },
+      { nombre: "Taisha" },
+      { nombre: "Logroño" },
+      { nombre: "Pablo Sexto" },
+      { nombre: "Tiwinza" },
+      { nombre: "Santiago de Méndez" }
+    ]
+  },
+  {
+    nombre: "Napo",
+    cantones: [
+      { nombre: "Tena" },
+      { nombre: "Archidona" },
+      { nombre: "El Chaco" },
+      { nombre: "Quijos" },
+      { nombre: "Carlos Julio Arosemena Tola" }
+    ]
+  },
+  {
+    nombre: "Orellana",
+    cantones: [
+      { nombre: "Francisco de Orellana" },
+      { nombre: "Aguarico" },
+      { nombre: "La Joya de los Sachas" },
+      { nombre: "Loreto" }
+    ]
+  },
+  {
+    nombre: "Pastaza",
+    cantones: [
+      { nombre: "Pastaza" },
+      { nombre: "Mera" },
+      { nombre: "Santa Clara" },
+      { nombre: "Arajuno" }
+    ]
+  },
+  {
+    nombre: "Pichincha",
+    cantones: [
+      { nombre: "Quito" },
+      { nombre: "Cayambe" },
+      { nombre: "Mejía" },
+      { nombre: "Pedro Moncayo" },
+      { nombre: "Rumiñahui" },
+      { nombre: "San Miguel de los Bancos" },
+      { nombre: "Pedro Vicente Maldonado" },
+      { nombre: "Puerto Quito" }
+    ]
+  },
+  {
+    nombre: "Santa Elena",
+    cantones: [
+      { nombre: "Santa Elena" },
+      { nombre: "La Libertad" },
+      { nombre: "Salinas" }
+    ]
+  },
+  {
+    nombre: "Santo Domingo de los Tsáchilas",
+    cantones: [
+      { nombre: "Santo Domingo" },
+      { nombre: "La Concordia" }
+    ]
+  },
+  {
+    nombre: "Sucumbíos",
+    cantones: [
+      { nombre: "Nueva Loja" },
+      { nombre: "Cascales" },
+      { nombre: "Cuyabeno" },
+      { nombre: "Gonzalo Pizarro" },
+      { nombre: "Lago Agrio" },
+      { nombre: "Putumayo" },
+      { nombre: "Shushufindi" },
+      { nombre: "Sucumbíos" }
+    ]
+  },
+  {
+    nombre: "Tungurahua",
+    cantones: [
+      { nombre: "Ambato" },
+      { nombre: "Baños de Agua Santa" },
+      { nombre: "Cevallos" },
+      { nombre: "Mocha" },
+      { nombre: "Patate" },
+      { nombre: "Quero" },
+      { nombre: "San Pedro de Pelileo" },
+      { nombre: "Santiago de Píllaro" },
+      { nombre: "Tisaleo" }
+    ]
+  },
+  {
+    nombre: "Zamora Chinchipe",
+    cantones: [
+      { nombre: "Zamora" },
+      { nombre: "Chinchipe" },
+      { nombre: "Nangaritza" },
+      { nombre: "Yacuambi" },
+      { nombre: "Yantzaza" },
+      { nombre: "El Pangui" },
+      { nombre: "Centinela del Cóndor" },
+      { nombre: "Palanda" },
+      { nombre: "Paquisha" }
+    ]
+  }
+]; 

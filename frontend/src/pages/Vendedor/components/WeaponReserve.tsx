@@ -205,7 +205,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                         MozAppearance: 'textfield',
                         appearance: 'textfield'
                       }}
-                      inputMode="numeric"
+                      inputMode="decimal"
                     />
                     {/* Cantidad solo para empresas */}
                     {esEmpresa && (

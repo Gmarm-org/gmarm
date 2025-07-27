@@ -2,31 +2,62 @@ version: "3.8"
 services:
   backend:
     build: ./backend
-    image: myapp-backend-dev
+    image: gmarm-backend-dev
+    container_name: gmarm-backend-dev
     ports:
       - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_dev:5432/gmarm_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - APP_JWT_SECRET=devSecretKeyForJWT2024ArmasImportacionDevelopmentEnvironment
+      - APP_JWT_EXPIRATION=86400000
     depends_on:
       - postgres_dev
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - gmarm-network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    image: myapp-frontend-dev
+    image: gmarm-frontend-dev
+    container_name: gmarm-frontend-dev
     ports:
-      - "3000:5173"
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080/api
+      - VITE_APP_NAME=Sistema de Importación de Armas
+      - VITE_DEV_MODE=true
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - gmarm-network
 
   postgres_dev:
     image: postgres:14
-    container_name: postgres_dev
+    container_name: gmarm-postgres-dev
     environment:
-      POSTGRES_DB: devdb
-      POSTGRES_USER: devuser
-      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: gmarm_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
+      - ./datos:/docker-entrypoint-initdb.d
+    networks:
+      - gmarm-network
 
 volumes:
   postgres_data_dev:
+
+networks:
+  gmarm-network:
+    driver: bridge

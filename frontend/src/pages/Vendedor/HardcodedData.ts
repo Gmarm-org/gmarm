@@ -1,4 +1,4 @@
-import type { Client, Weapon } from './types';
+import type { Client, Weapon, User, Role } from '../../types';
 
 export const clientes: Client[] = [
   {
@@ -14,7 +14,9 @@ export const clientes: Client[] = [
     telefonoSecundario: '022345678',
     tipoCliente: 'Civil',
     tipoIdentificacion: 'Cedula',
-    vendedorId: 'vendedor-1'
+    vendedorId: 'vendedor-1',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
   },
   {
     id: '2',
@@ -120,4 +122,213 @@ export const armasPorCliente: Record<string, Weapon | null> = {
   '2': null,       // Seguridad S.A. sin arma
   '3': weapons[1], // Carlos tiene arma 2
   '4': null        // Ana sin arma
-}; 
+};
+
+// ===== ROLES DEL SISTEMA =====
+export const roles: Role[] = [
+  {
+    id: 1,
+    nombre: 'Vendedor',
+    descripcion: 'Registro de clientes y selección de armas catálogo',
+    tipoRolVendedor: 'LIBRE',
+    estado: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: 2,
+    nombre: 'Dirección de Ventas',
+    descripcion: 'Aprobación de solicitudes y creación de grupos de importación',
+    tipoRolVendedor: undefined,
+    estado: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: 3,
+    nombre: 'Operaciones',
+    descripcion: 'Gestión de importación y documentación',
+    tipoRolVendedor: undefined,
+    estado: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: 4,
+    nombre: 'Finanzas',
+    descripcion: 'Gestión de pagos y facturación',
+    tipoRolVendedor: undefined,
+    estado: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: 5,
+    nombre: 'Administrador',
+    descripcion: 'Acceso completo al sistema',
+    tipoRolVendedor: undefined,
+    estado: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
+  }
+];
+
+// ===== USUARIOS DEL SISTEMA =====
+export const usuarios: User[] = [
+  {
+    id: 1,
+    username: 'admin',
+    email: 'admin@gmarm.com',
+    nombres: 'ADMINISTRADOR',
+    apellidos: 'SISTEMA',
+    foto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+    telefonoPrincipal: '0987654321',
+    telefonoSecundario: undefined,
+    direccion: 'QUITO, ECUADOR',
+    fechaCreacion: '2024-01-01T00:00:00Z',
+    ultimoLogin: '2024-12-01T10:30:00Z',
+    estado: 'ACTIVO',
+    intentosLogin: 0,
+    ultimoIntento: undefined,
+    bloqueado: false,
+    roles: [
+      {
+        usuarioId: 1,
+        rolId: 5,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: roles[4]
+      }
+    ]
+  },
+  {
+    id: 2,
+    username: 'vendedor1',
+    email: 'vendedor1@gmarm.com',
+    nombres: 'JUAN CARLOS',
+    apellidos: 'PÉREZ LÓPEZ',
+    foto: undefined,
+    telefonoPrincipal: '0987654322',
+    telefonoSecundario: '0987654323',
+    direccion: 'GUAYAQUIL, ECUADOR',
+    fechaCreacion: '2024-01-15T00:00:00Z',
+    ultimoLogin: '2024-12-01T09:15:00Z',
+    estado: 'ACTIVO',
+    intentosLogin: 0,
+    ultimoIntento: undefined,
+    bloqueado: false,
+    roles: [
+      {
+        usuarioId: 2,
+        rolId: 1,
+        fechaAsignacion: '2024-01-15T00:00:00Z',
+        activo: true,
+        rol: roles[0]
+      }
+    ]
+  },
+  {
+    id: 3,
+    username: 'vendedor2',
+    email: 'vendedor2@gmarm.com',
+    nombres: 'MARÍA ELENA',
+    apellidos: 'GONZÁLEZ RODRÍGUEZ',
+    foto: undefined,
+    telefonoPrincipal: '0987654324',
+    telefonoSecundario: undefined,
+    direccion: 'CUENCA, ECUADOR',
+    fechaCreacion: '2024-02-01T00:00:00Z',
+    ultimoLogin: '2024-12-01T08:45:00Z',
+    estado: 'ACTIVO',
+    intentosLogin: 0,
+    ultimoIntento: undefined,
+    bloqueado: false,
+    roles: [
+      {
+        usuarioId: 3,
+        rolId: 1,
+        fechaAsignacion: '2024-02-01T00:00:00Z',
+        activo: true,
+        rol: roles[0]
+      }
+    ]
+  },
+  {
+    id: 4,
+    username: 'direccion_ventas',
+    email: 'direccion.ventas@gmarm.com',
+    nombres: 'CARLOS ALBERTO',
+    apellidos: 'MARTÍNEZ VARGAS',
+    foto: undefined,
+    telefonoPrincipal: '0987654325',
+    telefonoSecundario: '0987654326',
+    direccion: 'QUITO, ECUADOR',
+    fechaCreacion: '2024-01-10T00:00:00Z',
+    ultimoLogin: '2024-12-01T11:20:00Z',
+    estado: 'ACTIVO',
+    intentosLogin: 0,
+    ultimoIntento: undefined,
+    bloqueado: false,
+    roles: [
+      {
+        usuarioId: 4,
+        rolId: 2,
+        fechaAsignacion: '2024-01-10T00:00:00Z',
+        activo: true,
+        rol: roles[1]
+      }
+    ]
+  },
+  {
+    id: 5,
+    username: 'operaciones',
+    email: 'operaciones@gmarm.com',
+    nombres: 'ANA LUCÍA',
+    apellidos: 'SALAZAR MENDIETA',
+    foto: undefined,
+    telefonoPrincipal: '0987654327',
+    telefonoSecundario: undefined,
+    direccion: 'QUITO, ECUADOR',
+    fechaCreacion: '2024-01-05T00:00:00Z',
+    ultimoLogin: '2024-12-01T07:30:00Z',
+    estado: 'ACTIVO',
+    intentosLogin: 0,
+    ultimoIntento: undefined,
+    bloqueado: false,
+    roles: [
+      {
+        usuarioId: 5,
+        rolId: 3,
+        fechaAsignacion: '2024-01-05T00:00:00Z',
+        activo: true,
+        rol: roles[2]
+      }
+    ]
+  },
+  {
+    id: 6,
+    username: 'finanzas',
+    email: 'finanzas@gmarm.com',
+    nombres: 'ROBERTO ANTONIO',
+    apellidos: 'HERRERA CASTILLO',
+    foto: undefined,
+    telefonoPrincipal: '0987654328',
+    telefonoSecundario: '0987654329',
+    direccion: 'QUITO, ECUADOR',
+    fechaCreacion: '2024-01-08T00:00:00Z',
+    ultimoLogin: '2024-12-01T06:15:00Z',
+    estado: 'ACTIVO',
+    intentosLogin: 0,
+    ultimoIntento: undefined,
+    bloqueado: false,
+    roles: [
+      {
+        usuarioId: 6,
+        rolId: 4,
+        fechaAsignacion: '2024-01-08T00:00:00Z',
+        activo: true,
+        rol: roles[3]
+      }
+    ]
+  }
+]; 

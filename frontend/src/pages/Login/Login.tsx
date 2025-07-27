@@ -1,139 +1,99 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
-import '../../styles/App.css'
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import './Login.css';
 
-function Login() {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState('');
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  
   const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const isValidEmail = (correo: string) => {
-    // Simple email regex
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValidEmail(email)) {
-      setMessage('El correo no tiene un formato válido.');
-      return;
-    }
-    
-    // Simulación de autenticación - esto se reemplazará con llamadas al backend
-    if (email === 'vendedor1@example.com' && password === 'password') {
-      const userData = {
-        id: 'vendedor-1',
-        email: 'vendedor1@example.com',
-        nombre: 'Juan',
-        apellido: 'Pérez',
-        rol: 'vendedor' as const,
-        activo: true
-      };
-      login(userData);
-      setMessage('¡Ingreso exitoso!');
-      setTimeout(() => {
-        navigate('/vendedor');
-      }, 1000);
-    } else if (email === 'vendedor2@example.com' && password === 'password') {
-      const userData = {
-        id: 'vendedor-2',
-        email: 'vendedor2@example.com',
-        nombre: 'María',
-        apellido: 'González',
-        rol: 'vendedor' as const,
-        activo: true
-      };
-      login(userData);
-      setMessage('¡Ingreso exitoso!');
-      setTimeout(() => {
-        navigate('/vendedor');
-      }, 1000);
-    } else {
-      setMessage('Correo o contraseña incorrectos.');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await login({ email, password });
+      navigate('/dashboard');
+    } catch (error: any) {
+      setError(error.message || 'Error al iniciar sesión');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const isFormValid = email && password && isValidEmail(email);
 
   return (
     <div className="login-container">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '0.6rem' }}>
-          {/* Gear image */}
-          <img 
-            src="/gear-icon.png" 
-            alt="GMARM Gear Icon" 
-            width="32" 
-            height="32"
-            style={{ objectFit: 'contain' }}
-          />
-        </span>
-        <h2 style={{ margin: 0, color: '#222', fontWeight: 700, fontSize: '2rem', letterSpacing: '0.04em' }}>GMARM</h2>
-      </div>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Correo:</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
+      <div className="login-card">
+        <div className="login-header">
+          <h1>Sistema de Importación de Armas</h1>
+          <p>Iniciar Sesión</p>
         </div>
-        <div style={{ position: 'relative' }}>
-          <label htmlFor="password">Contraseña:</label>
-          <input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            style={{ paddingRight: '2.5rem' }}
-          />
-          <span
-            onClick={() => setShowPassword((v) => !v)}
-            style={{
-              position: 'absolute',
-              right: '0.8rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              cursor: 'pointer',
-              width: '1.5rem',
-              height: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#888'
-            }}
-            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            tabIndex={0}
-            role="button"
+
+        <form onSubmit={handleSubmit} className="login-form">
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="email">Correo Electrónico</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={isLoading}
+              placeholder="Ingrese su correo electrónico"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={isLoading}
+              placeholder="Ingrese su contraseña"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="login-button"
+            disabled={isLoading}
           >
-            {showPassword ? (
-              // Eye-off SVG
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.657.403-3.22 1.125-4.575m2.1-2.1A9.956 9.956 0 0112 3c5.523 0 10 4.477 10 10 0 2.21-.72 4.25-1.925 5.925M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" /></svg>
-            ) : (
-              // Eye SVG
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-            )}
-          </span>
+            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <p>Credenciales de prueba:</p>
+          <div className="test-credentials">
+            <div>
+              <strong>Vendedor:</strong> vendedor@test.com / password123
+            </div>
+            <div>
+              <strong>Admin:</strong> admin@test.com / password123
+            </div>
+            <div>
+              <strong>Jefe Ventas:</strong> jefe@test.com / password123
+            </div>
+          </div>
         </div>
-        <button
-          type="submit"
-          disabled={!isFormValid}
-          aria-disabled={!isFormValid}
-        >
-          Entrar
-        </button>
-      </form>
-      {message && <p>{message}</p>}
+      </div>
     </div>
   );
-}
+};
 
 export default Login; 

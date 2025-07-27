@@ -1,531 +1,325 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import './Vendedor.css';
-import UsuarioForm from '../Usuario/UsuarioForm';
-import UserMenu from '../../components/UserMenu';
-import Dashboard from './components/Dashboard';
+import apiService from '../../services/api';
 import ClientForm from './components/ClientForm';
-import WeaponReserve from './components/WeaponReserve';
-import ClientSummary from './components/ClientSummary';
-import {
-  clientes as initialClients,
-  weapons as initialWeapons,
-  clientTypeLabels,
-  clientTypeOrder,
-  tiposDeIdentificacion,
-  docsByTipo,
-  preguntasByTipo,
-  armasPorCliente as initialArmasPorCliente
-} from './HardcodedData';
-import type { Client, Weapon } from './types';
+import './Vendedor.css';
 
-type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword';
-type ClientFormMode = 'create' | 'view' | 'edit';
-
-export interface ContratoCliente {
-  id: string;
+interface Client {
+  id: number;
   nombres: string;
   apellidos: string;
+  email: string;
+  numeroIdentificacion: string;
   tipoCliente: string;
   tipoIdentificacion: string;
-  cedula: string;
-  email: string;
-  provincia: string;
-  canton: string;
-  ciudad: string;
-  direccion: string;
   telefonoPrincipal: string;
   telefonoSecundario?: string;
+  direccion: string;
+  provincia?: string;
+  canton?: string;
+  estado: string;
+  fechaCreacion: string;
+  usuarioCreador: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+  };
 }
 
-export interface ContratoCompania {
-  ruc: string;
-  nombre: string;
-  provincia: string;
-  canton: string;
-  ciudad: string;
-  direccionFiscal: string;
-  telefonoReferencia: string;
-  correoElectronico: string;
+interface DashboardStats {
+  totalClientes: number;
+  clientesActivos: number;
+  clientesPendientes: number;
+  clientesPorTipo: {
+    [key: string]: number;
+  };
 }
 
-export interface ContratoArma {
-  id: string;
-  modelo: string;
-  precioBase: number;
-  cantidad: number;
-  iva: number;
-  precioFinal: number;
-}
-
-export interface ContratoRegistroCliente {
-  cliente: ContratoCliente;
-  compania?: ContratoCompania; // Solo si es Compañía de Seguridad
-  armas: ContratoArma[]; // Puede ser más de una para empresas
-  total: number;
-}
-
-function Vendedor() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  // Redirigir si no hay usuario autenticado
-  useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
-  }, [user, navigate]);
-
-  const [page, setPage] = useState<Page>('dashboard');
-  const [clientFormMode, setClientFormMode] = useState<ClientFormMode>('create');
+const Vendedor: React.FC = () => {
+  const { user } = useAuth();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showClientForm, setShowClientForm] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [currentClient, setCurrentClient] = useState<Client | null>(null);
-  const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
-  
-  // Filtrar clientes por vendedor
-  const [allClients, setAllClients] = useState<Client[]>(initialClients);
-  const clients = allClients.filter(client => client.vendedorId === user?.id);
-  
-  const [weapons, setWeapons] = useState<Weapon[]>(initialWeapons);
-  const [armasPorCliente, setArmasPorCliente] = useState<Record<string, Weapon | null>>(initialArmasPorCliente);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [tipoCliente, setTipoCliente] = useState('Civil');
-  const [estadoUniformado, setEstadoUniformado] = useState<'Activo' | 'Pasivo'>('Activo');
-  const [formData, setFormData] = useState<Partial<Client>>({});
-  const [reservaParaCliente, setReservaParaCliente] = useState<Client | null>(null);
-  const [clienteParaResumen, setClienteParaResumen] = useState<Client | null>(null);
-  const [armaSeleccionada, setArmaSeleccionada] = useState<Weapon | null>(null);
-  const [armaSeleccionadaEnReserva, setArmaSeleccionadaEnReserva] = useState<Weapon | null>(null);
-  const [editandoResumen, setEditandoResumen] = useState(false);
-  const [datosEditables, setDatosEditables] = useState<Partial<Client>>({});
-  // Estado para cantidades de armas por id
-  const [cantidadesArmas, setCantidadesArmas] = useState<Record<string, number>>({});
-  
-  // Estado para precios específicos por cliente y arma
-  const [preciosPorCliente, setPreciosPorCliente] = useState<Record<string, Record<string, number>>>({});
+  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [error, setError] = useState<string>('');
 
-  // Estado para menú contextual (actionMenu)
-  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-  const actionMenuRef = useRef<HTMLDivElement | null>(null);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
-  };
-
-  const closeUserMenu = () => {
-    setShowUserMenu(false);
-  };
-
-  // Close user menu when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('.user-menu')) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+  useEffect(() => {
+    loadClients();
+    loadStats();
   }, []);
 
-  // Cerrar el menú contextual al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
-        setActionMenuOpen(null);
-      }
-    };
-    if (actionMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [actionMenuOpen]);
-
-  // Usa clientTypeLabels, clientTypeOrder, tiposDeIdentificacion, docsByTipo, preguntasByTipo donde sea necesario
-  const clientTypeCounts = clientTypeOrder.map(type => ({
-    type,
-    label: clientTypeLabels[type],
-    count: clients.filter(c => c.tipoCliente === type).length
-  }));
-
-  // Simulación: asignar un arma a algunos clientes
-  // const armaPorCliente: Record<string, Weapon | null> = {
-  //   '1': weapons[0], // Juan tiene arma 1
-  //   '2': null,       // Seguridad S.A. sin arma
-  //   '3': weapons[1], // Carlos tiene arma 2
-  //   '4': null        // Ana sin arma
-  // };
-
-  // Identificar si un cliente es 'Cupo Civil'
-  const isCupoCivil = (client: Client) => client.nombres.startsWith('Cupo Civil');
-
-  const handleClientSubmit = (client: Client) => {
-    if (clientFormMode === 'edit' && client.id) {
-      // Modo edición: actualizar cliente existente
-      const updatedClient: Client = {
-        ...client,
-        cedula: client.cedula || '',
-        nombres: client.nombres || '',
-        apellidos: client.apellidos || '',
-        email: client.email || '',
-        provincia: client.provincia || '',
-        canton: client.canton || '',
-        direccion: client.direccion || '',
-        telefonoPrincipal: client.telefonoPrincipal || '',
-        telefonoSecundario: client.telefonoSecundario || '',
-        tipoCliente: client.tipoCliente,
-        tipoIdentificacion: client.tipoIdentificacion || 'Cedula',
-        ruc: client.ruc,
-        telefonoReferencia: client.telefonoReferencia,
-        direccionFiscal: client.direccionFiscal,
-        correoElectronico: client.correoElectronico,
-        provinciaCompania: client.provinciaCompania,
-        cantonCompania: client.cantonCompania,
-        estadoUniformado: client.estadoUniformado,
-        vendedorId: user?.id
-      };
+  const loadClients = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
       
-      // Actualizar cliente en la lista
-      setAllClients(prev => prev.map(c => 
-        c.id === client.id ? updatedClient : c
-      ));
+      // Cargar clientes del vendedor actual
+      const response = await apiService.getClientesPorVendedor(user!.id);
+      setClients(response);
+    } catch (error: any) {
+      console.error('Error loading clients:', error);
+      setError('Error al cargar los clientes: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      // Calcular estadísticas desde los clientes cargados
+      const totalClientes = clients.length;
+      const clientesActivos = clients.filter(c => c.estado === 'ACTIVO').length;
+      const clientesPendientes = clients.filter(c => c.estado === 'PENDIENTE').length;
       
-      // Actualizar arma asignada si se cambió
-      if (armaSeleccionadaEnReserva && client.id) {
-        setArmasPorCliente(prev => ({ 
-          ...prev, 
-          [client.id]: armaSeleccionadaEnReserva 
-        }));
-      }
-      
-      // Limpiar estados y volver al dashboard
-      setArmaSeleccionadaEnReserva(null);
-      setFormData({});
-      setPage('dashboard');
-    } else {
-      // Modo creación: crear cliente temporal para el resumen
-      setClienteParaResumen(client);
-      setPage('reserve');
+      const clientesPorTipo = clients.reduce((acc, client) => {
+        const tipo = client.tipoCliente;
+        acc[tipo] = (acc[tipo] || 0) + 1;
+        return acc;
+      }, {} as { [key: string]: number });
+
+      setStats({
+        totalClientes,
+        clientesActivos,
+        clientesPendientes,
+        clientesPorTipo
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
     }
   };
 
-  const handleReserveWithoutClient = () => {
-    setCurrentClient(null);
-    setArmaSeleccionadaEnReserva(null); // Limpiar arma seleccionada
-    setPage('reserve');
+  const handleCreateClient = () => {
+    setSelectedClient(null);
+    setFormMode('create');
+    setShowClientForm(true);
   };
 
-  // Nueva función para asignar arma a cliente real
-  const handleAssignWeaponToClient = (client: Client, weapon: Weapon) => {
-    setArmasPorCliente(prev => ({ ...prev, [client.id]: weapon }));
-    setPage('dashboard');
+  const handleViewClient = (client: Client) => {
+    setSelectedClient(client);
+    setFormMode('view');
+    setShowClientForm(true);
   };
 
-  // Función para manejar selección de arma en el flujo de creación
-  const handleWeaponSelection = (weapon: Weapon | null) => {
-    if (weapon) {
-      setArmaSeleccionada(weapon);
-      setPage('summary');
-    } else {
-      // Si se pasa null, significa que se deseleccionó el arma
-      setArmaSeleccionadaEnReserva(null);
+  const handleEditClient = (client: Client) => {
+    setSelectedClient(client);
+    setFormMode('edit');
+    setShowClientForm(true);
+  };
+
+  const handleDeleteClient = async (clientId: number) => {
+    if (!window.confirm('¿Está seguro de que desea eliminar este cliente?')) {
+      return;
+    }
+
+    try {
+      await apiService.deleteCliente(clientId);
+      await loadClients();
+      await loadStats();
+    } catch (error: any) {
+      console.error('Error deleting client:', error);
+      setError('Error al eliminar el cliente: ' + error.message);
     }
   };
 
-  // Función para manejar selección/deselección de arma en reserva
-  const handleWeaponSelectionInReserve = (weapon: Weapon | null) => {
-    if (weapon) {
-      setArmaSeleccionadaEnReserva(weapon);
-    } else {
-      setArmaSeleccionadaEnReserva(null);
+  const handleClientSaved = async () => {
+    setShowClientForm(false);
+    await loadClients();
+    await loadStats();
+  };
+
+  const handleCloseForm = () => {
+    setShowClientForm(false);
+    setSelectedClient(null);
+    setError('');
+  };
+
+  const getClientTypeColor = (tipo: string) => {
+    switch (tipo) {
+      case 'Civil':
+        return 'blue';
+      case 'Militar':
+        return 'green';
+      case 'Empresa Seguridad':
+        return 'purple';
+      case 'Deportista':
+        return 'orange';
+      default:
+        return 'gray';
     }
   };
 
-  // Función para manejar selección de arma en modo edición
-  const handleWeaponSelectionInEdit = (weapon: Weapon | null) => {
-    if (weapon) {
-      setArmaSeleccionadaEnReserva(weapon);
-    } else {
-      setArmaSeleccionadaEnReserva(null);
+  const getStatusColor = (estado: string) => {
+    switch (estado) {
+      case 'ACTIVO':
+        return 'success';
+      case 'PENDIENTE':
+        return 'warning';
+      case 'BLOQUEADO':
+        return 'danger';
+      default:
+        return 'info';
     }
   };
 
-  // Función para actualizar el precio de un arma específico por cliente
-  const handleUpdateWeaponPrice = (weaponId: string, newPrice: number, clientId?: string) => {
-    if (clientId) {
-      // Precio específico para un cliente
-      setPreciosPorCliente(prev => ({
-        ...prev,
-        [clientId]: {
-          ...prev[clientId],
-          [weaponId]: newPrice
-        }
-      }));
-    } else {
-      // Precio global (fallback)
-      setWeapons(prev => prev.map(weapon => 
-        weapon.id === weaponId ? { ...weapon, precio: newPrice } : weapon
-      ));
-    }
-  };
-
-
-
-  // Función para confirmar datos y ir al resumen
-  const handleConfirmData = () => {
-    if (armaSeleccionadaEnReserva) {
-      if (clienteParaResumen) {
-        // Para cliente en proceso de creación
-        setArmaSeleccionada(armaSeleccionadaEnReserva);
-        setDatosEditables({ ...clienteParaResumen });
-        setPage('summary');
-      } else {
-        // Para reserva sin cliente - crear cupo civil
-        handleAssignWeaponToCupoCivil(armaSeleccionadaEnReserva);
-      }
-    }
-  };
-
-  // Función para guardar cambios en el resumen
-  const handleSaveChanges = () => {
-    if (clienteParaResumen) {
-      setClienteParaResumen({ ...clienteParaResumen, ...datosEditables });
-      setEditandoResumen(false);
-    }
-  };
-
-  // Nueva función para asignar arma a cupo civil
-  const handleAssignWeaponToCupoCivil = (weapon: Weapon) => {
-    // Contar cuántos cupos civiles existen
-    const cupoCivilCount = clients.filter(c => isCupoCivil(c)).length;
-    const newCupoCivil: Client = {
-      id: `cupo-civil-${Date.now()}`,
-      cedula: '',
-      nombres: `Cupo Civil #${cupoCivilCount + 1}`,
-      apellidos: '',
-      email: '',
-      direccion: '',
-      telefonoPrincipal: '',
-      tipoCliente: 'Civil',
-      tipoIdentificacion: 'Cedula',
-      vendedorId: user?.id,
-    };
-    setAllClients(prev => [...prev, newCupoCivil]);
-    setArmasPorCliente(prev => ({ ...prev, [newCupoCivil.id]: weapon }));
-    setPage('dashboard');
-  };
-
-  // Función para guardar cliente final
-  const handleSaveClient = () => {
-    if (clienteParaResumen && armaSeleccionada) {
-      // Asignar el arma al cliente
-      setArmasPorCliente(prev => ({ ...prev, [clienteParaResumen.id]: armaSeleccionada }));
-      // Agregar el cliente a la lista
-      setAllClients(prev => [...prev, clienteParaResumen]);
-      // Limpiar estados temporales
-      setClienteParaResumen(null);
-      setArmaSeleccionada(null);
-      setArmaSeleccionadaEnReserva(null);
-      setFormData({});
-      setEditandoResumen(false);
-      setDatosEditables({});
-      setPage('dashboard');
-    }
-  };
-
-  // When opening the form, set formData accordingly
-  const openClientForm = (mode: ClientFormMode, client?: Client) => {
-    setClientFormMode(mode);
-    setSelectedClient(client || null); // Actualizar selectedClient
-    if (client) {
-      setFormData({ ...client });
-      setTipoCliente(client.tipoCliente);
-      // Si es modo edición, cargar el arma asignada
-      if (mode === 'edit') {
-        const armaAsignada = armasPorCliente[client.id];
-        if (armaAsignada) {
-          setArmaSeleccionadaEnReserva(armaAsignada);
-        }
-      }
-    } else {
-      setFormData({});
-      setTipoCliente('Civil');
-      setEstadoUniformado('Activo');
-    }
-    setPage('clientForm');
-  };
-
-  // Función para convertir texto a mayúsculas
-  const toUpperCase = (text: string) => text.toUpperCase();
-  
-  // Función para validar que solo sean números
-  const validateNumbersOnly = (text: string) => text.replace(/[^0-9]/g, '');
-  
-  // Función para obtener el tipo de cliente efectivo (considerando estado de uniformado)
-  const getEffectiveClientType = () => {
-    if (tipoCliente === 'Uniformado' && estadoUniformado === 'Pasivo') {
-      return 'Civil';
-    }
-    return tipoCliente;
-  };
-
-  // Función para actualizar la cantidad de un arma
-  const handleUpdateWeaponQuantity = (weaponId: string, newQuantity: number) => {
-    setCantidadesArmas(prev => ({ ...prev, [weaponId]: newQuantity }));
-  };
-
-  // Función para obtener el precio específico de un arma para un cliente
-  const getWeaponPriceForClient = (weaponId: string, clientId?: string): number => {
-    if (clientId && preciosPorCliente[clientId] && preciosPorCliente[clientId][weaponId] !== undefined) {
-      return preciosPorCliente[clientId][weaponId];
-    }
-    // Fallback al precio global del arma
-    const weapon = weapons.find(w => w.id === weaponId);
-    return weapon ? weapon.precio : 0;
-  };
-
-  // Función para validar si una cédula ya existe
-  const validateCedulaExists = (cedula: string, excludeClientId?: string): { exists: boolean; client?: Client; vendedor?: string } => {
-    const existingClient = allClients.find(client => 
-      client.cedula === cedula && client.id !== excludeClientId
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Cargando clientes...</p>
+      </div>
     );
-    
-    if (existingClient) {
-      return {
-        exists: true,
-        client: existingClient,
-        vendedor: existingClient.vendedorId || 'Sin vendedor'
-      };
-    }
-    
-    return { exists: false };
-  };
-
-  const [provincia, setProvincia] = useState('');
-  const [canton, setCanton] = useState('');
-  const [ciudad, setCiudad] = useState('');
+  }
 
   return (
     <div className="vendedor-container">
       {/* Header */}
-      <header className="vendedor-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <span className="gear-icon">
-              <img 
-                src="/gear-icon.png" 
-                alt="GMARM Gear Icon" 
-                width="24" 
-                height="24"
-                style={{ objectFit: 'contain' }}
-              />
-            </span>
-            <h1>GMARM - Vendedor</h1>
-          </div>
-          <UserMenu
-            onUpdate={() => setPage('userUpdate')}
-            onLogout={handleLogout}
-          />
+      <div className="vendedor-header">
+        <h1>Dashboard de Vendedor</h1>
+        <button onClick={handleCreateClient} className="btn btn-primary">
+          ➕ Crear Cliente
+        </button>
+      </div>
+
+      {error && (
+        <div className="error-message">
+          {error}
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <main className="vendedor-main">
-        {page === 'dashboard' && (
-          <Dashboard
-            clients={clients}
-            armasPorCliente={armasPorCliente}
-            clientTypeCounts={clientTypeCounts}
-            onOpenClientForm={openClientForm}
-            onReserveWithoutClient={handleReserveWithoutClient}
-            onAssignWeaponToClient={handleAssignWeaponToClient}
-            onAssignWeaponToCupoCivil={handleAssignWeaponToCupoCivil}
-            actionMenuOpen={actionMenuOpen}
-            setActionMenuOpen={setActionMenuOpen}
-            actionMenuRef={actionMenuRef}
-          />
-        )}
-
-        {page === 'clientForm' && (
-          <ClientForm
-            mode={clientFormMode}
-            client={selectedClient || undefined}
-            weapons={weapons}
-            armaSeleccionadaEnReserva={armaSeleccionadaEnReserva}
-            onBack={() => setPage('dashboard')}
-            onSubmit={handleClientSubmit}
-            onWeaponSelection={clientFormMode === 'edit' ? handleWeaponSelectionInEdit : handleWeaponSelectionInReserve}
-            onUpdateWeaponPrice={(weaponId, newPrice) => handleUpdateWeaponPrice(weaponId, newPrice, selectedClient?.id)}
-            onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
-            getWeaponPriceForClient={getWeaponPriceForClient}
-            currentClientId={selectedClient?.id}
-            validateCedulaExists={validateCedulaExists}
-          />
-        )}
-
-        {page === 'reserve' && (
-          <WeaponReserve
-            weapons={weapons}
-            currentClient={currentClient}
-            reservaParaCliente={reservaParaCliente}
-            clienteParaResumen={clienteParaResumen}
-            armaSeleccionadaEnReserva={armaSeleccionadaEnReserva}
-            onBack={() => setPage('dashboard')}
-            onWeaponSelection={handleWeaponSelectionInReserve}
-            onWeaponSelectionInReserve={handleWeaponSelectionInReserve}
-            onAssignWeaponToClient={handleAssignWeaponToClient}
-            onAssignWeaponToCupoCivil={handleAssignWeaponToCupoCivil}
-            onConfirmData={handleConfirmData}
-            onUpdateWeaponPrice={(weaponId, newPrice) => handleUpdateWeaponPrice(weaponId, newPrice, clienteParaResumen?.id)}
-            onUpdateWeaponQuantity={handleUpdateWeaponQuantity}
-            getWeaponPriceForClient={getWeaponPriceForClient}
-            currentClientId={clienteParaResumen?.id}
-          />
-        )}
-
-        {page === 'summary' && (
-          <ClientSummary
-            clienteParaResumen={clienteParaResumen}
-            armaSeleccionada={armaSeleccionada}
-            onBack={() => setPage('reserve')}
-            onSaveClient={handleSaveClient}
-            cantidadesArmas={cantidadesArmas}
-          />
-        )}
-
-        {page === 'userUpdate' && (
-          <UsuarioForm onBack={() => setPage('dashboard')} />
-        )}
-
-        {/* Weapon Detail Modal */}
-        {selectedWeapon && (
-          <div className="weapon-detail-modal">
-            <div className="modal-content">
-              <h3>Detalle del Arma</h3>
-              <img src={selectedWeapon.imagen} alt={selectedWeapon.modelo} />
-              <p><strong>Modelo:</strong> {selectedWeapon.modelo}</p>
-              <p><strong>Calibre:</strong> {selectedWeapon.calibre}</p>
-              <p><strong>Capacidad:</strong> {selectedWeapon.capacidad}</p>
-              <p><strong>Precio:</strong> ${selectedWeapon.precio}</p>
-              <button onClick={() => setSelectedWeapon(null)}>Cerrar</button>
+      {/* Stats Cards */}
+      {stats && (
+        <div className="stats-section">
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-icon">👥</div>
+              <div className="stat-content">
+                <h3>{stats.totalClientes}</h3>
+                <p>Total Clientes</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">✅</div>
+              <div className="stat-content">
+                <h3>{stats.clientesActivos}</h3>
+                <p>Clientes Activos</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">⏳</div>
+              <div className="stat-content">
+                <h3>{stats.clientesPendientes}</h3>
+                <p>Clientes Pendientes</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">🏢</div>
+              <div className="stat-content">
+                <h3>{stats.clientesPorTipo['Empresa Seguridad'] || 0}</h3>
+                <p>Compañías de Seguridad</p>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Clients Table */}
+      <div className="clients-section">
+        <h2>Lista de Clientes</h2>
+        
+        {clients.length === 0 ? (
+          <div className="empty-state">
+            <p>No hay clientes registrados</p>
+            <button onClick={handleCreateClient} className="btn btn-primary">
+              Crear Primer Cliente
+            </button>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Identificación</th>
+                  <th>Tipo</th>
+                  <th>Email</th>
+                  <th>Teléfono</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map((client) => (
+                  <tr key={client.id}>
+                    <td>
+                      <div className="client-name">
+                        <strong>{client.nombres} {client.apellidos}</strong>
+                      </div>
+                    </td>
+                    <td>{client.numeroIdentificacion}</td>
+                    <td>
+                      <span className={`badge badge-${getClientTypeColor(client.tipoCliente)}`}>
+                        {client.tipoCliente}
+                      </span>
+                    </td>
+                    <td>{client.email}</td>
+                    <td>{client.telefonoPrincipal}</td>
+                    <td>
+                      <span className={`badge badge-${getStatusColor(client.estado)}`}>
+                        {client.estado}
+                      </span>
+                    </td>
+                    <td>{new Date(client.fechaCreacion).toLocaleDateString()}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          onClick={() => handleViewClient(client)}
+                          className="btn btn-secondary"
+                          title="Ver Detalle"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          onClick={() => handleEditClient(client)}
+                          className="btn btn-primary"
+                          title="Editar"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClient(client.id)}
+                          className="btn btn-danger"
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </main>
+      </div>
+
+      {/* Client Form Modal */}
+      {showClientForm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <ClientForm
+              mode={formMode}
+              client={selectedClient}
+              onSave={handleClientSaved}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default Vendedor; 

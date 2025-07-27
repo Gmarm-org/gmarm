@@ -1,0 +1,243 @@
+// ===== USUARIO Y AUTENTICACIÓN =====
+export interface Role {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  tipoRolVendedor?: 'FIJO' | 'LIBRE';
+  estado: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UserRole {
+  usuarioId: number;
+  rolId: number;
+  fechaAsignacion: string;
+  activo: boolean;
+  rol?: Role;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  nombres: string;
+  apellidos: string;
+  foto?: string;
+  telefonoPrincipal: string;
+  telefonoSecundario?: string;
+  direccion: string;
+  fechaCreacion: string;
+  ultimoLogin?: string;
+  estado: 'ACTIVO' | 'INACTIVO' | 'BLOQUEADO';
+  intentosLogin: number;
+  ultimoIntento?: string;
+  bloqueado: boolean;
+  roles?: UserRole[];
+}
+
+// ===== CLIENTE =====
+export interface Client {
+  id: string;
+  cedula: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  direccion: string;
+  telefonoPrincipal: string;
+  telefonoSecundario?: string;
+  tipoCliente: string;
+  tipoIdentificacion: string;
+  estadoUniformado?: 'Activo' | 'Pasivo';
+  ruc?: string;
+  telefonoReferencia?: string;
+  direccionFiscal?: string;
+  correoElectronico?: string;
+  provincia?: string;
+  canton?: string;
+  provinciaCompania?: string;
+  cantonCompania?: string;
+  vendedorId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ===== ARMA =====
+export interface Weapon {
+  id: string;
+  modelo: string;
+  calibre: string;
+  capacidad: number;
+  precio: number;
+  imagen: string;
+  disponible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ===== ARMA ASIGNADA A CLIENTE =====
+export interface ClientWeapon {
+  id: string;
+  clientId: string;
+  weaponId: string;
+  weapon: Weapon;
+  price: number;
+  quantity: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ===== DOCUMENTO =====
+export interface Document {
+  id: string;
+  clientId: string;
+  documentTypeId: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ===== PREGUNTA Y RESPUESTA =====
+export interface Question {
+  id: string;
+  clientTypeId: string;
+  question: string;
+  required: boolean;
+  order: number;
+}
+
+export interface ClientAnswer {
+  id: string;
+  clientId: string;
+  questionId: string;
+  question: Question;
+  answer: string;
+  createdAt: string;
+}
+
+// ===== CATÁLOGOS =====
+export interface ClientType {
+  id: string;
+  name: string;
+  label: string;
+  order: number;
+}
+
+export interface IdentificationType {
+  id: string;
+  name: string;
+  label: string;
+  maxLength: number;
+  pattern?: string;
+}
+
+export interface Province {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface Canton {
+  id: string;
+  name: string;
+  provinceId: string;
+  code: string;
+}
+
+// ===== REPORTES =====
+export interface VendorStats {
+  totalClients: number;
+  clientsByType: Record<string, number>;
+  totalSales: number;
+  monthlySales: number;
+  activeClients: number;
+  pendingDocuments: number;
+}
+
+export interface SalesReport {
+  clientId: string;
+  clientName: string;
+  weaponModel: string;
+  price: number;
+  quantity: number;
+  total: number;
+  date: string;
+}
+
+// ===== PÁGINAS Y MODOS =====
+export type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword';
+export type ClientFormMode = 'create' | 'view' | 'edit';
+
+// ===== CONTRATOS DE DATOS =====
+export interface ContratoCliente {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  tipoCliente: string;
+  tipoIdentificacion: string;
+  cedula: string;
+  email: string;
+  provincia: string;
+  canton: string;
+  direccion: string;
+  telefonoPrincipal: string;
+  telefonoSecundario?: string;
+}
+
+export interface ContratoCompania {
+  ruc: string;
+  nombre: string;
+  provincia: string;
+  canton: string;
+  direccionFiscal: string;
+  telefonoReferencia: string;
+  correoElectronico: string;
+}
+
+export interface ContratoArma {
+  id: string;
+  modelo: string;
+  precioBase: number;
+  cantidad: number;
+  iva: number;
+  precioFinal: number;
+}
+
+export interface ContratoRegistroCliente {
+  cliente: ContratoCliente;
+  compania?: ContratoCompania;
+  armas: ContratoArma[];
+  total: number;
+}
+
+// ===== UBICACIÓN =====
+export interface LocationData {
+  provincia: string;
+  cantones: string[];
+}
+
+// ===== CONTADORES =====
+export interface ClientTypeCount {
+  type: string;
+  label: string;
+  count: number;
+}
+
+// ===== API RESPONSES =====
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  errors?: string[];
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+} 

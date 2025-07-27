@@ -1,0 +1,200 @@
+package com.armasimportacion.controller;
+
+import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
+import com.armasimportacion.model.Cliente;
+import com.armasimportacion.service.ClienteService;
+import com.armasimportacion.enums.EstadoCliente;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/clientes")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Clientes", description = "API para gestión de clientes")
+public class ClienteController {
+    
+    private final ClienteService clienteService;
+    
+    @PostMapping
+    @Operation(summary = "Crear nuevo cliente", description = "Crea un nuevo cliente en el sistema")
+    @PreAuthorize("hasRole('VENDEDOR') or hasRole('ADMIN')")
+    public ResponseEntity<Cliente> crearCliente(
+            @Valid @RequestBody Cliente cliente,
+            @RequestParam Long usuarioId) {
+        try {
+            Cliente nuevoCliente = clienteService.crearCliente(cliente, usuarioId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(nuevoCliente);
+        } catch (BadRequestException e) {
+            log.error("Error al crear cliente: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar cliente", description = "Actualiza un cliente existente")
+    @PreAuthorize("hasRole('VENDEDOR') or hasRole('ADMIN')")
+    public ResponseEntity<Cliente> actualizarCliente(
+            @PathVariable Long id,
+            @Valid @RequestBody Cliente cliente,
+            @RequestParam Long usuarioId) {
+        try {
+            Cliente clienteActualizado = clienteService.actualizarCliente(id, cliente, usuarioId);
+            return ResponseEntity.ok(clienteActualizado);
+        } catch (ResourceNotFoundException e) {
+            log.error("Cliente no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener cliente por ID", description = "Obtiene un cliente específico por su ID")
+    public ResponseEntity<Cliente> obtenerCliente(@PathVariable Long id) {
+        try {
+            Cliente cliente = clienteService.obtenerCliente(id);
+            return ResponseEntity.ok(cliente);
+        } catch (ResourceNotFoundException e) {
+            log.error("Cliente no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @GetMapping
+    @Operation(summary = "Listar clientes", description = "Obtiene una lista paginada de clientes")
+    public ResponseEntity<Page<Cliente>> obtenerClientes(Pageable pageable) {
+        Page<Cliente> clientes = clienteService.obtenerClientes(pageable);
+        return ResponseEntity.ok(clientes);
+    }
+    
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar cliente", description = "Elimina un cliente por su ID")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> eliminarCliente(@PathVariable Long id) {
+        try {
+            clienteService.eliminarCliente(id);
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException e) {
+            log.error("Cliente no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @GetMapping("/por-vendedor/{vendedorId}")
+    @Operation(summary = "Obtener clientes por vendedor", description = "Obtiene todos los clientes de un vendedor específico")
+    public ResponseEntity<List<Cliente>> obtenerClientesPorVendedor(@PathVariable Long vendedorId) {
+        try {
+            List<Cliente> clientes = clienteService.obtenerClientesPorVendedor(vendedorId);
+            return ResponseEntity.ok(clientes);
+        } catch (ResourceNotFoundException e) {
+            log.error("Vendedor no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @GetMapping("/por-identificacion/{numero}")
+    @Operation(summary = "Buscar cliente por identificación", description = "Busca un cliente por su número de identificación")
+    public ResponseEntity<Cliente> buscarPorIdentificacion(@PathVariable String numero) {
+        try {
+            Cliente cliente = clienteService.obtenerClientePorIdentificacion(numero);
+            return ResponseEntity.ok(cliente);
+        } catch (ResourceNotFoundException e) {
+            log.error("Cliente no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @GetMapping("/por-estado/{estado}")
+    @Operation(summary = "Obtener clientes por estado", description = "Obtiene clientes filtrados por estado")
+    public ResponseEntity<List<Cliente>> obtenerClientesPorEstado(@PathVariable EstadoCliente estado) {
+        List<Cliente> clientes = clienteService.obtenerClientesPorEstado(estado);
+        return ResponseEntity.ok(clientes);
+    }
+    
+    @GetMapping("/buscar")
+    @Operation(summary = "Buscar clientes", description = "Busca clientes con filtros específicos")
+    public ResponseEntity<Page<Cliente>> buscarClientes(
+            @RequestParam(required = false) String nombres,
+            @RequestParam(required = false) String apellidos,
+            @RequestParam(required = false) String numeroIdentificacion,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) EstadoCliente estado,
+            @RequestParam(required = false) Long vendedorId,
+            Pageable pageable) {
+        Page<Cliente> clientes = clienteService.buscarClientes(nombres, apellidos, numeroIdentificacion, email, estado, vendedorId, pageable);
+        return ResponseEntity.ok(clientes);
+    }
+    
+    @PutMapping("/{id}/estado")
+    @Operation(summary = "Cambiar estado de cliente", description = "Cambia el estado de un cliente")
+    @PreAuthorize("hasRole('VENDEDOR') or hasRole('ADMIN')")
+    public ResponseEntity<Void> cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam EstadoCliente nuevoEstado) {
+        try {
+            clienteService.cambiarEstado(id, nuevoEstado);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            log.error("Cliente no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
+    
+    @GetMapping("/validar-identificacion/{numero}")
+    @Operation(summary = "Validar identificación", description = "Verifica si un número de identificación ya existe")
+    public ResponseEntity<Map<String, Object>> validarIdentificacion(@PathVariable String numero) {
+        boolean existe = clienteService.existePorIdentificacion(numero);
+        Map<String, Object> response = Map.of(
+            "numeroIdentificacion", numero,
+            "existe", existe,
+            "mensaje", existe ? "La identificación ya existe" : "La identificación está disponible"
+        );
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/estadisticas")
+    @Operation(summary = "Obtener estadísticas", description = "Obtiene estadísticas de clientes por estado")
+    public ResponseEntity<List<Object[]>> obtenerEstadisticas() {
+        List<Object[]> estadisticas = clienteService.obtenerEstadisticasPorEstado();
+        return ResponseEntity.ok(estadisticas);
+    }
+    
+    @GetMapping("/tipos")
+    @Operation(summary = "Obtener tipos de cliente", description = "Obtiene todos los tipos de cliente disponibles")
+    public ResponseEntity<List<Object[]>> obtenerTiposCliente() {
+        List<Object[]> tipos = clienteService.obtenerEstadisticasPorTipo();
+        return ResponseEntity.ok(tipos);
+    }
+    
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleResourceNotFoundException(ResourceNotFoundException e) {
+        Map<String, String> error = Map.of("error", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+    
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Map<String, String>> handleBadRequestException(BadRequestException e) {
+        Map<String, String> error = Map.of("error", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGenericException(Exception e) {
+        log.error("Error inesperado: ", e);
+        Map<String, String> error = Map.of("error", "Error interno del servidor");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+} 
