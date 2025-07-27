@@ -107,8 +107,12 @@ jobs:
             
             echo "Pulling latest changes..."
             if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+              git reset --hard HEAD  # Discard any local changes
+              git clean -fd  # Remove untracked files
               git pull origin dev
             elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              git reset --hard HEAD  # Discard any local changes
+              git clean -fd  # Remove untracked files
               git pull origin main
             fi
             
