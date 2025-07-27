@@ -99,14 +99,18 @@ jobs:
           echo "Deploying to $DEPLOY_DIR using $COMPOSE_FILE..."
 
           # Deploy to server
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
             set -e
             
             echo "Navigating to deployment directory: $DEPLOY_DIR"
-            cd $DEPLOY_DIR
+            cd "$DEPLOY_DIR"
             
             echo "Pulling latest changes..."
-            git pull origin $(basename $DEPLOY_DIR)
+            if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+              git pull origin dev
+            elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              git pull origin main
+            fi
             
             echo "Giving execute permissions to deploy script..."
             chmod +x deploy-server.sh
