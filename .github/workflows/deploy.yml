@@ -41,6 +41,7 @@ jobs:
       - name: Run Backend Tests
         run: |
           cd backend
+          chmod +x ./mvnw
           ./mvnw test
 
       - name: Install Frontend Dependencies
@@ -56,6 +57,7 @@ jobs:
       - name: Build Backend
         run: |
           cd backend
+          chmod +x ./mvnw
           ./mvnw clean package -DskipTests
 
       - name: Build Frontend
@@ -106,20 +108,11 @@ jobs:
             echo "Pulling latest changes..."
             git pull origin $(basename $DEPLOY_DIR)
             
-            echo "Building Docker images..."
-            docker compose -f $COMPOSE_FILE build --no-cache
+            echo "Giving execute permissions to deploy script..."
+            chmod +x deploy-server.sh
             
-            echo "Stopping existing containers..."
-            docker compose -f $COMPOSE_FILE down
-            
-            echo "Starting new containers..."
-            docker compose -f $COMPOSE_FILE up -d --remove-orphans
-            
-            echo "Waiting for services to be ready..."
-            sleep 30
-            
-            echo "Checking service health..."
-            docker compose -f $COMPOSE_FILE ps
+            echo "Running deployment script..."
+            ./deploy-server.sh
             
             echo "Deployment completed successfully!"
           EOF
@@ -127,9 +120,9 @@ jobs:
       - name: Health Check
         run: |
           if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
-            HEALTH_URL="http://${{ secrets.SERVER_HOST }}:8080/actuator/health"
+            HEALTH_URL="http://${{ secrets.SERVER_HOST }}:8080/api/health"
           elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            HEALTH_URL="http://${{ secrets.SERVER_HOST }}:8080/actuator/health"
+            HEALTH_URL="http://${{ secrets.SERVER_HOST }}:8080/api/health"
           fi
           
           echo "Performing health check on: $HEALTH_URL"
