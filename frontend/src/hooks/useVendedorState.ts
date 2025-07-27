@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { clientService, weaponService, catalogService } from '../services/api';
+import apiService from '../services/api';
 import type { Client, Weapon, ClientType, IdentificationType, Province, Canton } from '../types';
 
 export const useVendedorState = () => {
@@ -35,8 +35,8 @@ export const useVendedorState = () => {
     setErrors(prev => ({ ...prev, clients: '' }));
     
     try {
-      const data = await clientService.getClients();
-      setClients(data);
+      const response = await apiService.getClientes();
+      setClients(response.data || []);
     } catch (error) {
       setErrors(prev => ({ ...prev, clients: error instanceof Error ? error.message : 'Error al cargar clientes' }));
     } finally {
@@ -44,14 +44,14 @@ export const useVendedorState = () => {
     }
   }, [user]);
 
-  // Cargar catálogo de armas
+  // Cargar catálogo de armas (usando datos hardcodeados por ahora)
   const loadWeapons = useCallback(async () => {
     setLoading(prev => ({ ...prev, weapons: true }));
     setErrors(prev => ({ ...prev, weapons: '' }));
     
     try {
-      const data = await weaponService.getWeapons();
-      setWeapons(data);
+      // Por ahora usamos datos hardcodeados
+      setWeapons([]);
     } catch (error) {
       setErrors(prev => ({ ...prev, weapons: error instanceof Error ? error.message : 'Error al cargar armas' }));
     } finally {
@@ -59,21 +59,16 @@ export const useVendedorState = () => {
     }
   }, []);
 
-  // Cargar catálogos
+  // Cargar catálogos (usando datos hardcodeados por ahora)
   const loadCatalogs = useCallback(async () => {
     setLoading(prev => ({ ...prev, catalogs: true }));
     setErrors(prev => ({ ...prev, catalogs: '' }));
     
     try {
-      const [clientTypesData, identificationTypesData, provincesData] = await Promise.all([
-        catalogService.getClientTypes(),
-        catalogService.getIdentificationTypes(),
-        catalogService.getProvinces()
-      ]);
-      
-      setClientTypes(clientTypesData);
-      setIdentificationTypes(identificationTypesData);
-      setProvinces(provincesData);
+      // Por ahora usamos datos hardcodeados
+      setClientTypes([]);
+      setIdentificationTypes([]);
+      setProvinces([]);
     } catch (error) {
       setErrors(prev => ({ ...prev, catalogs: error instanceof Error ? error.message : 'Error al cargar catálogos' }));
     } finally {
@@ -81,32 +76,33 @@ export const useVendedorState = () => {
     }
   }, []);
 
-  // Cargar cantones por provincia
+  // Cargar cantones por provincia (placeholder)
   const loadCantons = useCallback(async (provinceId: string) => {
     if (cantonsByProvince[provinceId]) return; // Ya cargados
     
     try {
-      const cantons = await catalogService.getCantons(provinceId);
-      setCantonsByProvince(prev => ({ ...prev, [provinceId]: cantons }));
+      // Placeholder - implementar cuando esté disponible
+      setCantonsByProvince(prev => ({ ...prev, [provinceId]: [] }));
     } catch (error) {
       console.error('Error al cargar cantones:', error);
     }
   }, [cantonsByProvince]);
 
-  // Cargar armas de un cliente
+  // Cargar armas de un cliente (placeholder)
   const loadClientWeapons = useCallback(async (clientId: string) => {
     try {
-      const weapons = await weaponService.getClientWeapons(clientId);
-      setClientWeapons(prev => ({ ...prev, [clientId]: weapons }));
+      // Placeholder - implementar cuando esté disponible
+      setClientWeapons(prev => ({ ...prev, [clientId]: [] }));
     } catch (error) {
       console.error('Error al cargar armas del cliente:', error);
     }
   }, []);
 
-  // Crear cliente
+  // Crear cliente (placeholder)
   const createClient = useCallback(async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const newClient = await clientService.createClient(clientData as Omit<Client, 'id'>);
+      // Placeholder - implementar cuando esté disponible
+      const newClient = { ...clientData, id: Date.now().toString() } as Client;
       setClients(prev => [...prev, newClient]);
       return newClient;
     } catch (error) {
@@ -114,10 +110,11 @@ export const useVendedorState = () => {
     }
   }, []);
 
-  // Actualizar cliente
+  // Actualizar cliente (placeholder)
   const updateClient = useCallback(async (id: string, clientData: Partial<Client>) => {
     try {
-      const updatedClient = await clientService.updateClient(id, clientData);
+      // Placeholder - implementar cuando esté disponible
+      const updatedClient = { ...clientData, id } as Client;
       setClients(prev => prev.map(client => client.id === id ? updatedClient : client));
       return updatedClient;
     } catch (error) {
@@ -125,42 +122,41 @@ export const useVendedorState = () => {
     }
   }, []);
 
-  // Eliminar cliente
+  // Eliminar cliente (placeholder)
   const deleteClient = useCallback(async (id: string) => {
     try {
-      await clientService.deleteClient(id);
+      // Placeholder - implementar cuando esté disponible
       setClients(prev => prev.filter(client => client.id !== id));
     } catch (error) {
       throw error;
     }
   }, []);
 
-  // Asignar arma a cliente
-  const assignWeaponToClient = useCallback(async (clientId: string, weaponId: string, price: number, quantity: number = 1) => {
+  // Asignar arma a cliente (placeholder)
+  const assignWeaponToClient = useCallback(async (clientId: string, _weaponId: string, _price: number, _quantity: number = 1) => {
     try {
-      await weaponService.assignWeaponToClient(clientId, weaponId, price, quantity);
-      // Recargar armas del cliente
+      // Placeholder - implementar cuando esté disponible
       await loadClientWeapons(clientId);
     } catch (error) {
       throw error;
     }
   }, [loadClientWeapons]);
 
-  // Actualizar precio de arma
-  const updateWeaponPrice = useCallback(async (clientId: string, weaponId: string, price: number) => {
+  // Actualizar precio de arma (placeholder)
+  const updateWeaponPrice = useCallback(async (clientId: string, _weaponId: string, _price: number) => {
     try {
-      await weaponService.updateWeaponPrice(clientId, weaponId, price);
-      // Recargar armas del cliente
+      // Placeholder - implementar cuando esté disponible
       await loadClientWeapons(clientId);
     } catch (error) {
       throw error;
     }
   }, [loadClientWeapons]);
 
-  // Verificar cédula duplicada
-  const checkCedulaExists = useCallback(async (cedula: string, excludeId?: string) => {
+  // Verificar cédula duplicada (placeholder)
+  const checkCedulaExists = useCallback(async (_cedula: string, _excludeId?: string) => {
     try {
-      return await clientService.checkCedulaExists(cedula, excludeId);
+      // Placeholder - implementar cuando esté disponible
+      return false;
     } catch (error) {
       throw error;
     }

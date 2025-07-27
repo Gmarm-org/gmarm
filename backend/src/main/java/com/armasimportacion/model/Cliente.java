@@ -194,8 +194,34 @@ public class Cliente {
 
     public boolean tieneEdadMinima() {
         if (fechaNacimiento == null) return false;
-        LocalDate fechaMinima = LocalDate.now().minusYears(18);
+        LocalDate fechaMinima = LocalDate.now().minusYears(25);
         return fechaNacimiento.isBefore(fechaMinima);
+    }
+
+    public int getEdad() {
+        if (fechaNacimiento == null) return 0;
+        LocalDate fechaActual = LocalDate.now();
+        int edad = fechaActual.getYear() - fechaNacimiento.getYear();
+        if (fechaActual.getMonthValue() < fechaNacimiento.getMonthValue() || 
+            (fechaActual.getMonthValue() == fechaNacimiento.getMonthValue() && 
+             fechaActual.getDayOfMonth() < fechaNacimiento.getDayOfMonth())) {
+            edad--;
+        }
+        return edad;
+    }
+
+    public String getMensajeErrorEdad() {
+        if (fechaNacimiento == null) return "Fecha de nacimiento no especificada";
+        
+        int edad = getEdad();
+        if (edad >= 25) return null;
+        
+        int añosFaltantes = 25 - edad;
+        if (añosFaltantes == 1) {
+            return "El cliente debe tener al menos 25 años para comprar armas. Le falta 1 año.";
+        } else {
+            return "El cliente debe tener al menos 25 años para comprar armas. Le faltan " + añosFaltantes + " años.";
+        }
     }
 
     public String getIdentificacionCompleta() {

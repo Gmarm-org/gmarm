@@ -1,27 +1,17 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { Client, Weapon, ClientFormMode } from '../types';
 import { isCupoCivil } from '../utils/clientUtils';
 
 interface ClientTableProps {
   clients: Client[];
   armasPorCliente: Record<string, Weapon | null>;
-  actionMenuOpen: string | null;
-  setActionMenuOpen: (id: string | null) => void;
-  actionMenuRef: React.RefObject<HTMLDivElement>;
   onOpenClientForm: (mode: ClientFormMode, client?: Client) => void;
-  onAssignWeaponToClient: (client: Client, weapon: Weapon) => void;
-  onAssignWeaponToCupoCivil: (weapon: Weapon) => void;
 }
 
 const ClientTable: React.FC<ClientTableProps> = ({
   clients,
   armasPorCliente,
-  actionMenuOpen,
-  setActionMenuOpen,
-  actionMenuRef,
-  onOpenClientForm,
-  onAssignWeaponToClient,
-  onAssignWeaponToCupoCivil
+  onOpenClientForm
 }) => {
 
 

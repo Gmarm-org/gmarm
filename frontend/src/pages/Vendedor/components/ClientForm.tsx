@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../../services/api';
 import { ecuadorProvinces } from '../../../data/ecuadorLocations';
+import { calcularEdad, validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
 import './ClientForm.css';
 
 interface Client {
@@ -281,6 +282,40 @@ const ClientForm: React.FC<ClientFormProps> = ({ mode, client, onSave, onCancel 
                 required
                 placeholder="Ingrese email"
               />
+            </div>
+
+            <div className="form-group">
+              <label>Fecha de Nacimiento *</label>
+              <input
+                type="date"
+                value={formData.fechaNacimiento}
+                onChange={(e) => handleInputChange('fechaNacimiento', e.target.value)}
+                disabled={mode === 'view'}
+                required
+                max={new Date().toISOString().split('T')[0]}
+                placeholder="Seleccione fecha de nacimiento"
+              />
+              {formData.fechaNacimiento && (
+                <div className="age-validation">
+                  {(() => {
+                    const edad = calcularEdad(formData.fechaNacimiento);
+                    const puedeComprar = validarEdadMinima(formData.fechaNacimiento);
+                    const mensajeError = obtenerMensajeErrorEdad(formData.fechaNacimiento);
+                    
+                    return (
+                      <div className={`age-info ${puedeComprar ? 'valid' : 'invalid'}`}>
+                        <span>Edad: {edad} años</span>
+                        {mensajeError && (
+                          <span className="error-message">⚠️ {mensajeError}</span>
+                        )}
+                        {puedeComprar && (
+                          <span className="success-message">✅ Puede comprar armas</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
 
             <div className="form-group">

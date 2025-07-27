@@ -43,6 +43,7 @@ export interface Client {
   nombres: string;
   apellidos: string;
   email: string;
+  fechaNacimiento: string; // Fecha de nacimiento para validación de edad
   direccion: string;
   telefonoPrincipal: string;
   telefonoSecundario?: string;

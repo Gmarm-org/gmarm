@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Weapon, Client } from '../types';
+import { validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
 
 interface WeaponReserveProps {
   weapons: Weapon[];
@@ -26,10 +27,10 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   clienteParaResumen,
   armaSeleccionadaEnReserva,
   onBack,
-  onWeaponSelection,
+
   onWeaponSelectionInReserve,
   onAssignWeaponToClient,
-  onAssignWeaponToCupoCivil,
+
   onConfirmData,
   onUpdateWeaponPrice,
   onUpdateWeaponQuantity,
@@ -87,6 +88,17 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   const esEmpresa = (currentClient?.tipoCliente === 'Compañía de Seguridad' || reservaParaCliente?.tipoCliente === 'Compañía de Seguridad' || clienteParaResumen?.tipoCliente === 'Compañía de Seguridad');
 
   const handleWeaponClick = (weapon: Weapon) => {
+    // Verificar edad del cliente antes de permitir asignación
+    const cliente = currentClient || reservaParaCliente;
+    if (cliente && cliente.fechaNacimiento) {
+      const puedeComprar = validarEdadMinima(cliente.fechaNacimiento);
+      if (!puedeComprar) {
+        const mensajeError = obtenerMensajeErrorEdad(cliente.fechaNacimiento);
+        alert(`❌ No se puede asignar arma: ${mensajeError}`);
+        return;
+      }
+    }
+
     if (!currentClient && !reservaParaCliente && !clienteParaResumen) {
       // Para "Reserva armas sin cliente" - permitir selección/deselección
       if (armaSeleccionadaEnReserva?.id === weapon.id) {
@@ -135,6 +147,51 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
             <small style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
               Cliente seleccionado automáticamente desde la creación
             </small>
+            
+            {/* Validación de edad */}
+            {(currentClient || reservaParaCliente)?.fechaNacimiento && (
+              (() => {
+                const cliente = currentClient || reservaParaCliente;
+                const puedeComprar = validarEdadMinima(cliente!.fechaNacimiento);
+                const mensajeError = obtenerMensajeErrorEdad(cliente!.fechaNacimiento);
+                
+                if (!puedeComprar) {
+                  return (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      padding: '0.75rem',
+                      backgroundColor: '#fee',
+                      border: '1px solid #feb2b2',
+                      borderRadius: '6px',
+                      color: '#c53030',
+                      fontSize: '0.9rem',
+                      fontWeight: '500'
+                    }}>
+                      ⚠️ <strong>ADVERTENCIA:</strong> {mensajeError}
+                      <br />
+                      <small style={{ color: '#c53030', opacity: 0.8 }}>
+                        No se puede proceder con la compra de armas.
+                      </small>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.75rem',
+                    backgroundColor: '#f0fff4',
+                    border: '1px solid #9ae6b4',
+                    borderRadius: '6px',
+                    color: '#22543d',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    ✅ Cliente cumple con la edad mínima para comprar armas
+                  </div>
+                );
+              })()
+            )}
           </div>
         )}
 
@@ -159,7 +216,6 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
           {weapons.map(weapon => {
             const iva = 0.15;
             const cantidad = cantidades[weapon.id] || 1;
-            const precioFinal = (weapon.precio * cantidad) * (1 + iva);
             
             return (
               <div key={weapon.id} className="weapon-card">

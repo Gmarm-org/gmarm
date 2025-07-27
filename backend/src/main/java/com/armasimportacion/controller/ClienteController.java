@@ -162,6 +162,29 @@ public class ClienteController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{id}/validar-edad")
+    @Operation(summary = "Validar edad del cliente", description = "Verifica si el cliente cumple con la edad mínima para comprar armas")
+    public ResponseEntity<Map<String, Object>> validarEdadCliente(@PathVariable Long id) {
+        try {
+            Cliente cliente = clienteService.findById(id);
+            int edad = cliente.getEdad();
+            boolean puedeComprar = cliente.tieneEdadMinima();
+            String mensajeError = cliente.getMensajeErrorEdad();
+            
+            Map<String, Object> response = Map.of(
+                "clienteId", id,
+                "edad", edad,
+                "puedeComprar", puedeComprar,
+                "edadMinima", 25,
+                "mensajeError", mensajeError
+            );
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            log.error("Cliente no encontrado: {}", e.getMessage());
+            throw e;
+        }
+    }
     
     @GetMapping("/estadisticas")
     @Operation(summary = "Obtener estadísticas", description = "Obtiene estadísticas de clientes por estado")

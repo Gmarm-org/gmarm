@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
-import FileUpload from '../../components/FileUpload';
+
 import './Usuario.css';
 
 interface User {
@@ -69,7 +69,12 @@ const Usuario: React.FC = () => {
       setIsLoading(true);
       setError('');
       const response = await apiService.getUsers();
-      setUsers(response.data || []);
+      // Mapear los datos de la API al formato local
+      const mappedUsers = (response.data || []).map((apiUser: any) => ({
+        ...apiUser,
+        fechaCreacion: apiUser.fechaCreacion || new Date().toISOString()
+      }));
+      setUsers(mappedUsers);
     } catch (error: any) {
       console.error('Error loading users:', error);
       setError('Error al cargar usuarios: ' + error.message);
@@ -159,10 +164,20 @@ const Usuario: React.FC = () => {
 
     try {
       if (formMode === 'create') {
-        await apiService.createUser(userForm);
+        // Convertir roles de números a strings
+        const userDataWithStringRoles = {
+          ...userForm,
+          roles: userForm.roles.map(roleId => roleId.toString())
+        };
+        await apiService.createUser(userDataWithStringRoles);
         setSuccess('Usuario creado exitosamente');
-      } else if (formMode === 'edit' && selectedUser) {
-        await apiService.updateUser(selectedUser.id, userForm);
+              } else if (formMode === 'edit' && selectedUser) {
+          // Convertir roles de números a strings
+          const userDataWithStringRoles = {
+            ...userForm,
+            roles: userForm.roles.map(roleId => roleId.toString())
+          };
+          await apiService.updateUser(selectedUser.id, userDataWithStringRoles);
         setSuccess('Usuario actualizado exitosamente');
       }
       
@@ -184,15 +199,7 @@ const Usuario: React.FC = () => {
     setShowRoleForm(true);
   };
 
-  const handleEditRole = (role: Role) => {
-    setSelectedRole(role);
-    setRoleForm({
-      nombre: role.nombre,
-      descripcion: role.descripcion,
-      estado: role.estado
-    });
-    setShowRoleForm(true);
-  };
+
 
   const handleRoleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -467,10 +474,14 @@ const Usuario: React.FC = () => {
 
                 <div className="form-group full-width">
                   <label>Foto de Perfil</label>
-                  <FileUpload
-                    onFileSelect={(file) => console.log('File selected:', file)}
+                  <input
+                    type="file"
                     accept="image/*"
                     disabled={formMode === 'view'}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) console.log('File selected:', file);
+                    }}
                   />
                 </div>
 

@@ -7,6 +7,7 @@ export const clientes: Client[] = [
     nombres: 'JUAN',
     apellidos: 'PÉREZ',
     email: 'juan.perez@email.com',
+    fechaNacimiento: '1990-05-15', // 34 años - PUEDE COMPRAR
     provincia: 'Pichincha',
     canton: 'Quito',
     direccion: 'CALLE PRINCIPAL 123',
@@ -24,6 +25,7 @@ export const clientes: Client[] = [
     nombres: 'SEGURIDAD S.A.',
     apellidos: '',
     email: 'contacto@seguridad.com',
+    fechaNacimiento: '1985-03-20', // 39 años - PUEDE COMPRAR (representante legal)
     provincia: 'Guayas',
     canton: 'Guayaquil',
     direccion: 'AV. EMPRESA 456',
@@ -36,7 +38,9 @@ export const clientes: Client[] = [
     cantonCompania: 'Guayaquil',
     direccionFiscal: 'AV. EMPRESA 456, OFICINA 101',
     telefonoReferencia: '022345679',
-    vendedorId: 'vendedor-1'
+    vendedorId: 'vendedor-1',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
   },
   {
     id: '3',
@@ -44,6 +48,7 @@ export const clientes: Client[] = [
     nombres: 'CARLOS',
     apellidos: 'RAMÍREZ',
     email: 'c.ramirez@militar.com',
+    fechaNacimiento: '1992-08-10', // 32 años - PUEDE COMPRAR
     provincia: 'Azuay',
     canton: 'Cuenca',
     direccion: 'BASE MILITAR',
@@ -52,7 +57,9 @@ export const clientes: Client[] = [
     tipoCliente: 'Uniformado',
     tipoIdentificacion: 'Cedula',
     estadoUniformado: 'Activo',
-    vendedorId: 'vendedor-2'
+    vendedorId: 'vendedor-2',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
   },
   {
     id: '4',
@@ -60,6 +67,7 @@ export const clientes: Client[] = [
     nombres: 'ANA',
     apellidos: 'GÓMEZ',
     email: 'ana.gomez@deporte.com',
+    fechaNacimiento: '2002-12-03', // 22 años - NO PUEDE COMPRAR (menor de 25)
     provincia: 'Manabí',
     canton: 'Manta',
     direccion: 'CLUB DEPORTIVO',
@@ -67,7 +75,27 @@ export const clientes: Client[] = [
     telefonoSecundario: '052345678',
     tipoCliente: 'Deportista',
     tipoIdentificacion: 'Cedula',
-    vendedorId: 'vendedor-2'
+    vendedorId: 'vendedor-2',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: '5',
+    cedula: '0505050505',
+    nombres: 'LUIS',
+    apellidos: 'MARTÍNEZ',
+    email: 'luis.martinez@email.com',
+    fechaNacimiento: '2005-06-15', // 19 años - NO PUEDE COMPRAR (menor de 25)
+    provincia: 'Pichincha',
+    canton: 'Quito',
+    direccion: 'AV. JUVENTUD 789',
+    telefonoPrincipal: '099555444',
+    telefonoSecundario: '022123456',
+    tipoCliente: 'Civil',
+    tipoIdentificacion: 'Cedula',
+    vendedorId: 'vendedor-1',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
   }
 ];
 
@@ -79,7 +107,9 @@ export const weapons: Weapon[] = [
     capacidad: 12,
     precio: 1000,
     imagen: '/weapon1.png',
-    disponible: true
+    disponible: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
   },
   {
     id: '2',
@@ -88,7 +118,9 @@ export const weapons: Weapon[] = [
     capacidad: 15,
     precio: 1200,
     imagen: '/weapon2.png',
-    disponible: true
+    disponible: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z'
   }
 ];
 

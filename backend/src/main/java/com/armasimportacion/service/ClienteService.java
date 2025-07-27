@@ -134,8 +134,8 @@ public class ClienteService {
 
     public boolean validateEdadMinima(LocalDate fechaNacimiento) {
         if (fechaNacimiento == null) return false;
-        return fechaNacimiento.plusYears(25).isBefore(LocalDate.now()) || 
-               fechaNacimiento.plusYears(25).isEqual(LocalDate.now());
+        LocalDate fechaMinima = LocalDate.now().minusYears(25);
+        return fechaNacimiento.isBefore(fechaMinima) || fechaNacimiento.isEqual(fechaMinima);
     }
 
     public boolean validateCedula(String cedula) {
@@ -203,7 +203,8 @@ public class ClienteService {
 
         // Validar edad mínima
         if (cliente.getFechaNacimiento() != null && !validateEdadMinima(cliente.getFechaNacimiento())) {
-            throw new BadRequestException("El cliente debe tener al menos 25 años");
+            String mensajeError = cliente.getMensajeErrorEdad();
+            throw new BadRequestException(mensajeError != null ? mensajeError : "El cliente debe tener al menos 25 años");
         }
 
         // Validar formato de identificación
@@ -246,6 +247,12 @@ public class ClienteService {
             if (clientesConRuc.size() > 0 && !clientesConRuc.get(0).getId().equals(id)) {
                 throw new BadRequestException("Ya existe una empresa con este RUC: " + clienteUpdate.getRuc());
             }
+        }
+
+        // Validar edad mínima
+        if (clienteUpdate.getFechaNacimiento() != null && !validateEdadMinima(clienteUpdate.getFechaNacimiento())) {
+            String mensajeError = clienteUpdate.getMensajeErrorEdad();
+            throw new BadRequestException(mensajeError != null ? mensajeError : "El cliente debe tener al menos 25 años");
         }
 
         // Validar campos específicos por tipo de cliente

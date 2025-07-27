@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import apiService, { User, LoginRequest } from '../services/api';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import apiService from '../services/api';
+import type { User, LoginRequest } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -55,7 +57,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const response = await apiService.login(credentials);
       apiService.setToken(response.token);
-      setUser(response.user);
+      // Obtener el usuario completo después del login
+      const fullUser = await apiService.getCurrentUser();
+      setUser(fullUser);
     } catch (error) {
       console.error('Login error:', error);
       throw error;

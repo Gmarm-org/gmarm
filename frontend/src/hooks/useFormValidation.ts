@@ -24,7 +24,7 @@ interface UseFormValidationReturn {
 }
 
 export const useFormValidation = (options: UseFormValidationOptions): UseFormValidationReturn => {
-  const { schemaName, initialData = {}, validateOnChange = false, validateOnBlur = true } = options;
+  const { schemaName, initialData = {}, validateOnChange = false } = options;
   
   const [data, setData] = useState(initialData);
   const [errors, setErrors] = useState<ValidationError[]>([]);
@@ -53,7 +53,7 @@ export const useFormValidation = (options: UseFormValidationOptions): UseFormVal
 
   // Función para establecer el valor de un campo
   const setFieldValue = useCallback((field: string, value: any) => {
-    setData(prev => {
+    setData((prev: any) => {
       const newData = { ...prev, [field]: value };
       
       // Validar en tiempo real si está habilitado
@@ -96,12 +96,7 @@ export const useFormValidation = (options: UseFormValidationOptions): UseFormVal
     setIsValid(true);
   }, [initialData]);
 
-  // Función para manejar el blur de un campo
-  const handleFieldBlur = useCallback((field: string) => {
-    if (validateOnBlur) {
-      validateField(field);
-    }
-  }, [validateOnBlur, validateField]);
+
 
   return {
     data,
@@ -283,7 +278,7 @@ export const useMultiStepValidation = (
   }, [schemas, validateStep]);
 
   const getAllData = useCallback((): any => {
-    return stepData.reduce((acc, data, index) => {
+    return stepData.reduce((acc, data) => {
       return { ...acc, ...data };
     }, {});
   }, [stepData]);
