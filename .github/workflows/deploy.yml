@@ -66,7 +66,7 @@ jobs:
           npm run build
 
   deploy:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
 
