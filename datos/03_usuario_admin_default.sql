@@ -102,17 +102,16 @@ ON CONFLICT (codigo) DO NOTHING;
 -- Insertar datos de prueba para tipos de proceso
 INSERT INTO tipo_proceso (nombre, codigo, descripcion, estado, fecha_creacion)
 VALUES 
-    ('Importación Estándar', 'IMP_STD', 'Proceso de importación estándar', true, CURRENT_TIMESTAMP),
-    ('Importación Especial', 'IMP_ESP', 'Proceso de importación especial', true, CURRENT_TIMESTAMP)
+    ('Cupo Civil', 'CUPO_CIV', 'Proceso de importación para cupo civil', true, CURRENT_TIMESTAMP),
+    ('Excepción Militar', 'EXC_MIL', 'Proceso de importación para excepción militar', true, CURRENT_TIMESTAMP)
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar datos de prueba para categorías de armas
-INSERT INTO categoria_arma (nombre, codigo, descripcion, estado, fecha_creacion)
+INSERT INTO categoria_arma (nombre, descripcion, estado, fecha_creacion)
 VALUES 
-    ('Pistolas', 'PIST', 'Pistolas semiautomáticas', true, CURRENT_TIMESTAMP),
-    ('Rifles', 'RIFL', 'Rifles de caza y deporte', true, CURRENT_TIMESTAMP),
-    ('Escopetas', 'ESCO', 'Escopetas de caza', true, CURRENT_TIMESTAMP)
-ON CONFLICT (codigo) DO NOTHING;
+    ('Pistolas', 'Pistolas semiautomáticas', true, CURRENT_TIMESTAMP),
+    ('Rifles', 'Rifles de caza y deporte', true, CURRENT_TIMESTAMP),
+    ('Escopetas', 'Escopetas de caza', true, CURRENT_TIMESTAMP);
 
 -- Insertar datos de prueba para modelos de armas
 INSERT INTO modelo_arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, estado, fecha_creacion)
