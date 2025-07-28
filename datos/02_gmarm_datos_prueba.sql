@@ -245,7 +245,7 @@ INSERT INTO cliente (
 ) VALUES (
     (SELECT id FROM tipo_identificacion WHERE codigo = 'CED'),
     (SELECT id FROM tipo_cliente WHERE codigo = 'CIV'),
-    '1723456789',
+    '1200120012',
     'JUAN CARLOS',
     'MARTÍNEZ LÓPEZ',
     '1985-03-15',
@@ -373,7 +373,7 @@ INSERT INTO grupo_importacion (
 INSERT INTO asignacion_arma (
     cliente_id, grupo_importacion_id, modelo_arma_id, cantidad, precio_unitario, estado
 ) VALUES (
-    (SELECT id FROM cliente WHERE numero_identificacion = '1723456789'),
+    (SELECT id FROM cliente WHERE numero_identificacion = '1200120012'),
     (SELECT id FROM grupo_importacion WHERE codigo = 'GI-2024-001'),
     (SELECT id FROM modelo_arma WHERE codigo = 'CZ-P10-C'),
     1,
@@ -399,10 +399,10 @@ INSERT INTO asignacion_arma (
 
 -- Respuestas del cliente civil
 INSERT INTO respuesta_cliente (cliente_id, pregunta_id, respuesta) VALUES
-((SELECT id FROM cliente WHERE numero_identificacion = '1723456789'), 1, 'Sí'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1723456789'), 2, 'Sí'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1723456789'), 3, 'No'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1723456789'), 4, 'No');
+((SELECT id FROM cliente WHERE numero_identificacion = '1200120012'), 1, 'Sí'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1200120012'), 2, 'Sí'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1200120012'), 3, 'No'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1200120012'), 4, 'No');
 
 -- Respuestas del cliente militar
 INSERT INTO respuesta_cliente (cliente_id, pregunta_id, respuesta) VALUES
@@ -426,5 +426,5 @@ INSERT INTO notificacion (usuario_id, titulo, mensaje, accion_url) VALUES
 -- =====================================================
 
 INSERT INTO documento_generado (tipo, cliente_id, numero_documento, url_archivo, usuario_generador_id) VALUES
-('SOLICITUD_IMPORTACION', (SELECT id FROM cliente WHERE numero_identificacion = '1723456789'), 'SOL-2024-001', '/documentos/solicitud_2024_001.pdf', 4),
-('CERTIFICADO_ANTECEDENTES', (SELECT id FROM cliente WHERE numero_identificacion = '1723456789'), 'ANT-2024-001', '/documentos/antecedentes_2024_001.pdf', 4); 
+('SOLICITUD_IMPORTACION', (SELECT id FROM cliente WHERE numero_identificacion = '1200120012'), 'SOL-2024-001', '/documentos/solicitud_2024_001.pdf', 4),
+('CERTIFICADO_ANTECEDENTES', (SELECT id FROM cliente WHERE numero_identificacion = '1200120012'), 'ANT-2024-001', '/documentos/antecedentes_2024_001.pdf', 4); 
