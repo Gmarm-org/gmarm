@@ -266,7 +266,7 @@ INSERT INTO cliente (
 ) VALUES (
     (SELECT id FROM tipo_identificacion WHERE codigo = 'CED'),
     (SELECT id FROM tipo_cliente WHERE codigo = 'MIL'),
-    '1712345678',
+    '1100110011',
     'CARLOS ALBERTO',
     'RODRÍGUEZ VARGAS',
     '1980-07-22',
@@ -385,7 +385,7 @@ INSERT INTO asignacion_arma (
 INSERT INTO asignacion_arma (
     cliente_id, grupo_importacion_id, modelo_arma_id, cantidad, precio_unitario, estado
 ) VALUES (
-    (SELECT id FROM cliente WHERE numero_identificacion = '1712345678'),
+    (SELECT id FROM cliente WHERE numero_identificacion = '1100110011'),
     (SELECT id FROM grupo_importacion WHERE codigo = 'GI-2024-002'),
     (SELECT id FROM modelo_arma WHERE codigo = 'CZ-SHADOW-2'),
     1,
@@ -406,13 +406,12 @@ INSERT INTO respuesta_cliente (cliente_id, pregunta_id, respuesta) VALUES
 
 -- Respuestas del cliente militar
 INSERT INTO respuesta_cliente (cliente_id, pregunta_id, respuesta) VALUES
-((SELECT id FROM cliente WHERE numero_identificacion = '1712345678'), 5, 'Sí'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1712345678'), 6, 'Sí'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1712345678'), 7, 'Sí'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1712345678'), 8, 'Sí'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1712345678'), 9, 'No'),
-((SELECT id FROM cliente WHERE numero_identificacion = '1712345678'), 10, 'No');
-
+((SELECT id FROM cliente WHERE numero_identificacion = '1100110011'), 5, 'Sí'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1100110011'), 6, 'Sí'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1100110011'), 7, 'Sí'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1100110011'), 8, 'Sí'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1100110011'), 9, 'No'),
+((SELECT id FROM cliente WHERE numero_identificacion = '1100110011'), 10, 'No');
 -- =====================================================
 -- NOTIFICACIONES DE PRUEBA
 -- =====================================================
