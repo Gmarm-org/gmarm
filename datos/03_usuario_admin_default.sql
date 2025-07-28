@@ -85,34 +85,34 @@ ON CONFLICT (usuario_id, rol_id) DO NOTHING;
 -- Insertar datos de prueba para tipos de cliente
 INSERT INTO tipo_cliente (nombre, codigo, descripcion, estado, fecha_creacion)
 VALUES 
-    ('Civil', 'CIVIL', 'Cliente civil con cédula', true, CURRENT_TIMESTAMP),
-    ('Militar', 'MILITAR', 'Personal militar activo', true, CURRENT_TIMESTAMP),
-    ('Empresa Seguridad', 'EMPRESA', 'Empresa de seguridad privada', true, CURRENT_TIMESTAMP),
-    ('Deportista', 'DEPORTISTA', 'Deportista federado', true, CURRENT_TIMESTAMP)
-ON CONFLICT (nombre) DO NOTHING;
+    ('Civil', 'CIV', 'Cliente civil con cédula', true, CURRENT_TIMESTAMP),
+    ('Militar', 'MIL', 'Personal militar activo', true, CURRENT_TIMESTAMP),
+    ('Empresa Seguridad', 'EMP', 'Empresa de seguridad privada', true, CURRENT_TIMESTAMP),
+    ('Deportista', 'DEP', 'Deportista federado', true, CURRENT_TIMESTAMP)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar datos de prueba para tipos de identificación
 INSERT INTO tipo_identificacion (nombre, codigo, descripcion, estado, fecha_creacion)
 VALUES 
-    ('Cédula', 'CEDULA', 'Cédula de identidad ecuatoriana', true, CURRENT_TIMESTAMP),
+    ('Cédula', 'CED', 'Cédula de identidad ecuatoriana', true, CURRENT_TIMESTAMP),
     ('RUC', 'RUC', 'Registro Único de Contribuyentes', true, CURRENT_TIMESTAMP),
-    ('Pasaporte', 'PASAPORTE', 'Pasaporte ecuatoriano', true, CURRENT_TIMESTAMP)
-ON CONFLICT (nombre) DO NOTHING;
+    ('Pasaporte', 'PAS', 'Pasaporte ecuatoriano', true, CURRENT_TIMESTAMP)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar datos de prueba para tipos de proceso
 INSERT INTO tipo_proceso (nombre, codigo, descripcion, estado, fecha_creacion)
 VALUES 
-    ('Importación Estándar', 'IMPORT_STD', 'Proceso de importación estándar', true, CURRENT_TIMESTAMP),
-    ('Importación Especial', 'IMPORT_ESP', 'Proceso de importación especial', true, CURRENT_TIMESTAMP)
-ON CONFLICT (nombre) DO NOTHING;
+    ('Importación Estándar', 'IMP_STD', 'Proceso de importación estándar', true, CURRENT_TIMESTAMP),
+    ('Importación Especial', 'IMP_ESP', 'Proceso de importación especial', true, CURRENT_TIMESTAMP)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar datos de prueba para categorías de armas
 INSERT INTO categoria_arma (nombre, codigo, descripcion, estado, fecha_creacion)
 VALUES 
-    ('Pistolas', 'PISTOLA', 'Pistolas semiautomáticas', true, CURRENT_TIMESTAMP),
-    ('Rifles', 'RIFLE', 'Rifles de caza y deporte', true, CURRENT_TIMESTAMP),
-    ('Escopetas', 'ESCOPETA', 'Escopetas de caza', true, CURRENT_TIMESTAMP)
-ON CONFLICT (nombre) DO NOTHING;
+    ('Pistolas', 'PIST', 'Pistolas semiautomáticas', true, CURRENT_TIMESTAMP),
+    ('Rifles', 'RIFL', 'Rifles de caza y deporte', true, CURRENT_TIMESTAMP),
+    ('Escopetas', 'ESCO', 'Escopetas de caza', true, CURRENT_TIMESTAMP)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar datos de prueba para modelos de armas
 INSERT INTO modelo_arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, estado, fecha_creacion)
