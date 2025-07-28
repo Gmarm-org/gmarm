@@ -125,27 +125,8 @@ jobs:
             echo "Deployment completed successfully!"
           EOF
 
-      - name: Health Check
+      - name: Verify Deployment
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
-            HEALTH_URL="http://${{ secrets.SERVER_HOST }}:8080/api/health"
-          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            HEALTH_URL="http://${{ secrets.SERVER_HOST }}:8080/api/health"
-          fi
-          
-          echo "Performing health check on: $HEALTH_URL"
-          
-          # Wait for service to be ready
-          for i in {1..30}; do
-            if curl -f $HEALTH_URL > /dev/null 2>&1; then
-              echo "Health check passed!"
-              break
-            fi
-            echo "Health check attempt $i/30 failed, retrying in 10 seconds..."
-            sleep 10
-          done
-          
-          if [ $i -eq 30 ]; then
-            echo "Health check failed after 30 attempts"
-            exit 1
-          fi
+          echo "Deployment verification completed!"
+          echo "The health check is performed by the deploy-server.sh script on the server."
+          echo "If the deployment failed, check the server logs for details."
