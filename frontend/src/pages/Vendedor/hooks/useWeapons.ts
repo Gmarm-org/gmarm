@@ -1,30 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { mockApiService } from '../../../services/mockApiService';
 import type { Weapon } from '../types';
 
 export const useWeapons = () => {
-  const [weapons, setWeapons] = useState<Weapon[]>([
-    {
-      id: '1',
-      modelo: 'Modelo A',
-      calibre: '55',
-      capacidad: 12,
-      precio: 1000,
-      imagen: '/weapon1.png',
-      disponible: true
-    },
-    {
-      id: '2',
-      modelo: 'Modelo B',
-      calibre: '45',
-      capacidad: 15,
-      precio: 1200,
-      imagen: '/weapon2.png',
-      disponible: true
+  const [weapons, setWeapons] = useState<Weapon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadWeapons = async () => {
+    try {
+      setLoading(true);
+      const weaponsData = await mockApiService.getWeapons();
+      setWeapons(weaponsData);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar armas');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadWeapons();
+  }, []);
 
   return {
     weapons,
-    setWeapons
+    loading,
+    error,
+    loadWeapons
   };
 }; 

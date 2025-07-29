@@ -264,6 +264,27 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
+// ===== LOGIN =====
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  tokenType: string;
+  expiresIn: number;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    nombres: string;
+    apellidos: string;
+    roles: string[];
+  };
+}
+
+// ===== PAGINATED RESPONSE =====
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

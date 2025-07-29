@@ -1,50 +1,65 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { mockApiService } from '../services/mockApiService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: string[];
+  requiredRole?: string;
   anyRole?: string[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requiredRoles = [], 
-  anyRole = [] 
+  requiredRole, 
+  anyRole 
 }) => {
-  const { isAuthenticated, isLoading, hasRole, hasAnyRole } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
-  // Mostrar loading mientras se verifica la autenticación
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!isAuthenticated) {
+        setHasAccess(false);
+        return;
+      }
+
+      try {
+        // Usar mockApiService para verificar roles
+        if (requiredRole) {
+          const hasRole = await mockApiService.hasRole(requiredRole);
+          setHasAccess(hasRole);
+        } else if (anyRole && anyRole.length > 0) {
+          const hasAnyRole = await mockApiService.hasAnyRole(anyRole);
+          setHasAccess(hasAnyRole);
+        } else {
+          setHasAccess(true);
+        }
+      } catch (error) {
+        console.error('Error verificando roles:', error);
+        setHasAccess(false);
+      }
+    };
+
+    if (!isLoading) {
+      checkAccess();
+    }
+  }, [isAuthenticated, isLoading, requiredRole, anyRole]);
+
   if (isLoading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Cargando...</p>
-      </div>
-    );
+    return <div>Cargando...</div>;
   }
 
-  // Redirigir a login si no está autenticado
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Verificar roles requeridos (todos deben estar presentes)
-  if (requiredRoles.length > 0) {
-    const hasAllRoles = requiredRoles.every(role => hasRole(role));
-    if (!hasAllRoles) {
-      return <Navigate to="/unauthorized" replace />;
-    }
+  if (hasAccess === null) {
+    return <div>Verificando permisos...</div>;
   }
 
-  // Verificar roles alternativos (al menos uno debe estar presente)
-  if (anyRole.length > 0) {
-    const hasAnyRequiredRole = hasAnyRole(anyRole);
-    if (!hasAnyRequiredRole) {
-      return <Navigate to="/unauthorized" replace />;
-    }
+  if (!hasAccess) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

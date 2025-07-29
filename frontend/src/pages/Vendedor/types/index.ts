@@ -31,6 +31,26 @@ export interface Client {
   provincia?: string;
   canton?: string;
   vendedorId?: string; // ID del vendedor que creó el cliente
+  
+  // Documentos y preguntas
+  documentos?: Documento[];
+  respuestas?: Respuesta[];
+}
+
+export interface Documento {
+  id: string;
+  nombre: string;
+  tipo: string;
+  requerido: boolean;
+  subido: boolean;
+  archivo?: File;
+}
+
+export interface Respuesta {
+  id: string;
+  pregunta: string;
+  respuesta: string;
+  tipo: string;
 }
 
 export interface Weapon {
@@ -41,13 +61,37 @@ export interface Weapon {
   precio: number;
   imagen: string;
   disponible: boolean;
+  precioModificado?: number; // Para el precio modificable
 }
 
-export type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword';
+export interface WeaponReservation {
+  id: string;
+  weaponId: string;
+  clientId?: string; // Opcional para armas sin cliente
+  cantidad: number;
+  precioUnitario: number;
+  iva: number;
+  total: number;
+  fechaReserva: string;
+}
+
+export type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword' | 'weaponSelection' | 'documents' | 'questions';
 export type ClientFormMode = 'create' | 'view' | 'edit';
 
 export interface ClientTypeCount {
   type: string;
   label: string;
   count: number;
+}
+
+export interface ClientType {
+  id: number;
+  nombre: string;
+  codigo: string;
+}
+
+export interface IdentificationType {
+  id: number;
+  nombre: string;
+  codigo: string;
 } 

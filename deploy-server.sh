@@ -83,8 +83,8 @@ docker-compose -f $COMPOSE_FILE up -d
 # Esperar a que PostgreSQL esté listo
 echo "⏳ Esperando a que PostgreSQL esté listo..."
 for i in {1..30}; do
-    if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
-        echo "✅ PostgreSQL está funcionando"
+if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
+    echo "✅ PostgreSQL está funcionando"
         break
     fi
     echo "⏳ Intento $i/30: PostgreSQL aún no está listo..."
@@ -102,8 +102,8 @@ fi
 # Esperar a que el backend esté listo
 echo "⏳ Esperando a que el backend esté listo..."
 for i in {1..20}; do
-    if curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
-        echo "✅ Backend está funcionando"
+if curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
+    echo "✅ Backend está funcionando"
         break
     fi
     echo "⏳ Intento $i/20: Backend aún no está listo..."
@@ -120,8 +120,8 @@ fi
 # Verificar que el frontend esté funcionando
 echo "⏳ Esperando a que el frontend esté listo..."
 for i in {1..15}; do
-    if curl -f http://localhost:5173 > /dev/null 2>&1; then
-        echo "✅ Frontend está funcionando"
+if curl -f http://localhost:5173 > /dev/null 2>&1; then
+    echo "✅ Frontend está funcionando"
         break
     fi
     echo "⏳ Intento $i/15: Frontend aún no está listo..."

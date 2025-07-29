@@ -162,7 +162,7 @@ public class ClienteController {
         );
         return ResponseEntity.ok(response);
     }
-
+    
     @GetMapping("/{id}/validar-edad")
     @Operation(summary = "Validar edad del cliente", description = "Verifica si el cliente cumple con la edad mínima para comprar armas")
     public ResponseEntity<Map<String, Object>> validarEdadCliente(@PathVariable Long id) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-
+import { mockApiService } from '../../services/mockApiService';
 import './Dashboard.css';
 
 interface DashboardStats {
@@ -15,20 +15,41 @@ interface DashboardStats {
 }
 
 const Dashboard: React.FC = () => {
-  const { user, logout, hasRole, hasAnyRole } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasRole, setHasRole] = useState<Record<string, boolean>>({});
+  const [hasAnyRole, setHasAnyRole] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    loadDashboardStats();
+    loadDashboardData();
   }, []);
 
-  const loadDashboardStats = async () => {
+  const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      // Aquí cargarías las estadísticas reales del backend
-      // Por ahora usamos datos mock
+      
+      // Cargar roles del usuario
+      await mockApiService.getUserRoles();
+      
+      // Verificar roles específicos
+      const roleChecks: Record<string, boolean> = {};
+      const anyRoleChecks: Record<string, boolean> = {};
+      
+      roleChecks['ADMIN'] = await mockApiService.hasRole('ADMIN');
+      roleChecks['VENDEDOR'] = await mockApiService.hasRole('VENDEDOR');
+      roleChecks['FINANZAS'] = await mockApiService.hasRole('FINANZAS');
+      roleChecks['JEFE_VENTAS'] = await mockApiService.hasRole('JEFE_VENTAS');
+      
+      anyRoleChecks['FINANZAS_ADMIN'] = await mockApiService.hasAnyRole(['FINANZAS', 'ADMIN']);
+      anyRoleChecks['VENDEDOR_ADMIN'] = await mockApiService.hasAnyRole(['VENDEDOR', 'ADMIN']);
+      anyRoleChecks['JEFE_ADMIN'] = await mockApiService.hasAnyRole(['JEFE_VENTAS', 'ADMIN']);
+      
+      setHasRole(roleChecks);
+      setHasAnyRole(anyRoleChecks);
+
+      // Cargar estadísticas mock
       setStats({
         totalClientes: 150,
         clientesActivos: 120,
@@ -39,7 +60,7 @@ const Dashboard: React.FC = () => {
         gruposActivos: 8
       });
     } catch (error) {
-      console.error('Error loading dashboard stats:', error);
+      console.error('Error cargando datos del dashboard:', error);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +74,7 @@ const Dashboard: React.FC = () => {
   const getMenuItems = () => {
     const items = [];
 
-    if (hasAnyRole(['VENDEDOR', 'ADMIN'])) {
+    if (hasAnyRole['VENDEDOR_ADMIN']) {
       items.push({
         title: 'Gestión de Clientes',
         description: 'Registrar y gestionar clientes',
@@ -63,7 +84,7 @@ const Dashboard: React.FC = () => {
       });
     }
 
-    if (hasAnyRole(['JEFE_VENTAS', 'ADMIN'])) {
+    if (hasAnyRole['JEFE_ADMIN']) {
       items.push({
         title: 'Licencias',
         description: 'Gestionar licencias de importación',
@@ -73,7 +94,7 @@ const Dashboard: React.FC = () => {
       });
     }
 
-    if (hasAnyRole(['FINANZAS', 'ADMIN'])) {
+    if (hasAnyRole['FINANZAS_ADMIN']) {
       items.push({
         title: 'Pagos',
         description: 'Gestionar pagos y facturación',
@@ -83,7 +104,7 @@ const Dashboard: React.FC = () => {
       });
     }
 
-    if (hasAnyRole(['OPERACIONES', 'ADMIN'])) {
+    if (hasRole['ADMIN']) {
       items.push({
         title: 'Importaciones',
         description: 'Gestionar grupos de importación',
@@ -93,12 +114,12 @@ const Dashboard: React.FC = () => {
       });
     }
 
-    if (hasRole('ADMIN')) {
+    if (hasRole['ADMIN']) {
       items.push({
         title: 'Usuarios',
         description: 'Gestionar usuarios del sistema',
         icon: '👤',
-        path: '/usuario',
+        path: '/usuarios',
         color: 'red'
       });
     }
@@ -198,7 +219,7 @@ const Dashboard: React.FC = () => {
       <section className="quick-actions">
         <h2>Acciones Rápidas</h2>
         <div className="actions-grid">
-          {hasAnyRole(['VENDEDOR', 'ADMIN']) && (
+          {hasAnyRole['VENDEDOR_ADMIN'] && (
             <button 
               className="action-button"
               onClick={() => navigate('/vendedor')}
@@ -206,7 +227,7 @@ const Dashboard: React.FC = () => {
               ➕ Crear Nuevo Cliente
             </button>
           )}
-          {hasAnyRole(['JEFE_VENTAS', 'ADMIN']) && (
+          {hasAnyRole['JEFE_ADMIN'] && (
             <button 
               className="action-button"
               onClick={() => navigate('/licencias')}
@@ -214,7 +235,7 @@ const Dashboard: React.FC = () => {
               📋 Ver Licencias
             </button>
           )}
-          {hasAnyRole(['FINANZAS', 'ADMIN']) && (
+          {hasAnyRole['FINANZAS_ADMIN'] && (
             <button 
               className="action-button"
               onClick={() => navigate('/pagos')}

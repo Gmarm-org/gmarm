@@ -1,17 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import apiService from '../services/api';
-import type { User, LoginRequest } from '../services/api';
+import { apiService } from '../services/api';
+import { mockApiService } from '../services/mockApiService';
+import type { User, LoginRequest, LoginResponse } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  hasRole: (role: string) => boolean;
-  hasAnyRole: (roles: string[]) => boolean;
+  isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,86 +30,89 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Verificar autenticación al cargar
+  // Función para detectar si el backend está disponible
+  const isBackendAvailable = async (): Promise<boolean> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const response = await fetch('http://localhost:8080/api/health', {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      console.log('Backend no disponible, usando datos mock');
+      return false;
+    }
+  };
+
+  // Función para obtener el servicio API apropiado
+  const getApiService = async () => {
+    const backendAvailable = await isBackendAvailable();
+    return backendAvailable ? apiService : mockApiService;
+  };
+
+  const login = async (credentials: LoginRequest) => {
+    try {
+      const service = await getApiService();
+      const response: LoginResponse = await service.login(credentials);
+      
+      // Guardar token
+      localStorage.setItem('token', response.token);
+      service.setToken(response.token);
+      
+      // Obtener usuario completo
+      const fullUser = await service.getCurrentUser();
+      setUser(fullUser as User);
+      
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const service = await getApiService();
+      await service.logout();
+    } catch (error) {
+      console.error('Error en logout:', error);
+    } finally {
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
+
   useEffect(() => {
-    const checkAuth = async () => {
+    const initializeAuth = async () => {
       try {
-        if (apiService.isAuthenticated()) {
-          const currentUser = await apiService.getCurrentUser();
-          setUser(currentUser);
+        const token = localStorage.getItem('token');
+        if (token) {
+          const service = await getApiService();
+          service.setToken(token);
+          const currentUser = await service.getCurrentUser();
+          setUser(currentUser as User);
         }
       } catch (error) {
-        console.error('Error checking authentication:', error);
-        apiService.clearToken();
+        console.error('Error inicializando auth:', error);
+        localStorage.removeItem('token');
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkAuth();
+    initializeAuth();
   }, []);
-
-  // Login
-  const login = async (credentials: LoginRequest) => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.login(credentials);
-      apiService.setToken(response.token);
-      // Obtener el usuario completo después del login
-      const fullUser = await apiService.getCurrentUser();
-      setUser(fullUser);
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Logout
-  const logout = async () => {
-    try {
-      await apiService.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      apiService.clearToken();
-    }
-  };
-
-  // Refresh user data
-  const refreshUser = async () => {
-    try {
-      if (apiService.isAuthenticated()) {
-        const currentUser = await apiService.getCurrentUser();
-        setUser(currentUser);
-      }
-    } catch (error) {
-      console.error('Error refreshing user:', error);
-      await logout();
-    }
-  };
-
-  // Check if user has specific role
-  const hasRole = (role: string): boolean => {
-    return user?.roles.includes(role) || false;
-  };
-
-  // Check if user has any of the specified roles
-  const hasAnyRole = (roles: string[]): boolean => {
-    return user?.roles.some(role => roles.includes(role)) || false;
-  };
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
-    isLoading,
     login,
     logout,
-    refreshUser,
-    hasRole,
-    hasAnyRole,
+    isLoading,
+    isAuthenticated: !!user
   };
 
   return (

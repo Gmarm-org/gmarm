@@ -29,9 +29,9 @@ const Unauthorized: React.FC = () => {
             <p>
               <strong>Usuario:</strong> {user.nombres} {user.apellidos}
             </p>
-            <p>
-              <strong>Roles:</strong> {user.roles.join(', ')}
-            </p>
+            <div>
+              <strong>Roles:</strong> {user.roles?.join(', ') || 'Sin roles asignados'}
+            </div>
           </div>
         )}
         

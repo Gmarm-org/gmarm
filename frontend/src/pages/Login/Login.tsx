@@ -9,8 +9,23 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Función para redirigir según el rol
+  const redirectBasedOnRole = (userRoles: any[]) => {
+    const roleNames = userRoles.map(role => role.rol?.nombre || '').filter(nombre => nombre !== '');
+    
+    if (roleNames.includes('VENDEDOR')) {
+      navigate('/vendedor');
+    } else if (roleNames.includes('FINANZAS')) {
+      navigate('/pagos');
+    } else if (roleNames.includes('ADMIN')) {
+      navigate('/usuarios');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,13 +34,20 @@ const Login: React.FC = () => {
 
     try {
       await login({ email, password });
-      navigate('/dashboard');
+      // La redirección se manejará en el useEffect cuando el usuario se actualice
     } catch (error: any) {
       setError(error.message || 'Error al iniciar sesión');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Efecto para redirigir cuando el usuario se actualice
+  React.useEffect(() => {
+    if (user && user.roles) {
+      redirectBasedOnRole(user.roles);
+    }
+  }, [user, navigate]);
 
   return (
     <div className="login-container">

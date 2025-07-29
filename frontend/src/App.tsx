@@ -7,7 +7,29 @@ import Usuario from './pages/Usuario/Usuario';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Pagos from './pages/Pagos/Pagos';
 import Unauthorized from './pages/Unauthorized/Unauthorized';
+import { useAuth } from './contexts/AuthContext';
 import './styles/App.css';
+
+// Componente para redirección inteligente basada en rol
+const SmartRedirect: React.FC = () => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const roleNames = user.roles?.map(role => role.rol?.nombre || '').filter(nombre => nombre !== '') || [];
+
+  if (roleNames.includes('VENDEDOR')) {
+    return <Navigate to="/vendedor" replace />;
+  } else if (roleNames.includes('FINANZAS')) {
+    return <Navigate to="/pagos" replace />;
+  } else if (roleNames.includes('ADMIN')) {
+    return <Navigate to="/usuarios" replace />;
+  } else {
+    return <Navigate to="/dashboard" replace />;
+  }
+};
 
 function App() {
   return (
@@ -48,17 +70,17 @@ function App() {
             />
             
             <Route 
-              path="/usuario" 
+              path="/usuarios" 
               element={
-                <ProtectedRoute requiredRoles={['ADMIN']}>
+                <ProtectedRoute requiredRole="ADMIN">
                   <Usuario />
                 </ProtectedRoute>
               } 
             />
             
-            {/* Redirección por defecto */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Redirección inteligente por defecto */}
+            <Route path="/" element={<SmartRedirect />} />
+            <Route path="*" element={<SmartRedirect />} />
           </Routes>
         </div>
       </BrowserRouter>
