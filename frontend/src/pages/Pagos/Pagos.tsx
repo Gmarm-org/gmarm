@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import type { Pago, SaldoCliente } from '../../types';
 import './Pagos.css';
 
 const Pagos: React.FC = () => {
-  const { user } = useAuth();
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
   const [saldoCliente, setSaldoCliente] = useState<SaldoCliente | null>(null);
 
   // Formulario de pago
