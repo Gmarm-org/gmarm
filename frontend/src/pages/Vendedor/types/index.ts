@@ -75,7 +75,7 @@ export interface WeaponReservation {
   fechaReserva: string;
 }
 
-export type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword' | 'weaponSelection' | 'documents' | 'questions';
+export type Page = 'dashboard' | 'clientForm' | 'reserve' | 'summary' | 'userPhoto' | 'userUpdate' | 'userPassword' | 'weaponSelection' | 'documents' | 'questions' | 'profile';
 export type ClientFormMode = 'create' | 'view' | 'edit';
 
 export interface ClientTypeCount {

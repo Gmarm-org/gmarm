@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
-
-import './Usuario.css';
 
 interface User {
   id: number;
@@ -28,14 +25,11 @@ interface Role {
 }
 
 const Usuario: React.FC = () => {
-  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUserForm, setShowUserForm] = useState(false);
-  const [showRoleForm, setShowRoleForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,12 +45,6 @@ const Usuario: React.FC = () => {
     direccion: '',
     password: '',
     roles: [] as number[]
-  });
-
-  const [roleForm, setRoleForm] = useState({
-    nombre: '',
-    descripcion: '',
-    estado: true
   });
 
   useEffect(() => {
@@ -100,8 +88,8 @@ const Usuario: React.FC = () => {
   };
 
   const handleCreateUser = () => {
-    setSelectedUser(null);
     setFormMode('create');
+    setSelectedUser(null);
     setUserForm({
       username: '',
       email: '',
@@ -117,8 +105,8 @@ const Usuario: React.FC = () => {
   };
 
   const handleEditUser = (user: User) => {
-    setSelectedUser(user);
     setFormMode('edit');
+    setSelectedUser(user);
     setUserForm({
       username: user.username,
       email: user.email,
@@ -128,91 +116,65 @@ const Usuario: React.FC = () => {
       telefonoSecundario: user.telefonoSecundario || '',
       direccion: user.direccion,
       password: '',
-      roles: user.roles.map(roleName => {
-        const role = roles.find(r => r.nombre === roleName);
-        return role?.id || 0;
-      }).filter(id => id > 0)
+      roles: user.roles.map(role => parseInt(role))
     });
     setShowUserForm(true);
   };
 
   const handleViewUser = (user: User) => {
-    setSelectedUser(user);
     setFormMode('view');
+    setSelectedUser(user);
+    setUserForm({
+      username: user.username,
+      email: user.email,
+      nombres: user.nombres,
+      apellidos: user.apellidos,
+      telefonoPrincipal: user.telefonoPrincipal,
+      telefonoSecundario: user.telefonoSecundario || '',
+      direccion: user.direccion,
+      password: '',
+      roles: user.roles.map(role => parseInt(role))
+    });
     setShowUserForm(true);
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este usuario?')) {
-      return;
-    }
-
-    try {
-      await apiService.deleteUser(userId);
-      setSuccess('Usuario eliminado exitosamente');
-      await loadUsers();
-    } catch (error: any) {
-      console.error('Error deleting user:', error);
-      setError('Error al eliminar usuario: ' + error.message);
+    if (window.confirm('¿Está seguro de que desea eliminar este usuario?')) {
+      try {
+        await apiService.deleteUser(userId);
+        setSuccess('Usuario eliminado correctamente');
+        loadUsers();
+      } catch (error: any) {
+        setError('Error al eliminar usuario: ' + error.message);
+      }
     }
   };
 
   const handleUserFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
     try {
+      // Convertir roles de números a strings para la API
+      const userDataWithStringRoles = {
+        ...userForm,
+        roles: userForm.roles.map(roleId => roleId.toString())
+      };
+
       if (formMode === 'create') {
-        // Convertir roles de números a strings
-        const userDataWithStringRoles = {
-          ...userForm,
-          roles: userForm.roles.map(roleId => roleId.toString())
-        };
         await apiService.createUser(userDataWithStringRoles);
-        setSuccess('Usuario creado exitosamente');
-              } else if (formMode === 'edit' && selectedUser) {
-          // Convertir roles de números a strings
-          const userDataWithStringRoles = {
-            ...userForm,
-            roles: userForm.roles.map(roleId => roleId.toString())
-          };
-          await apiService.updateUser(selectedUser.id, userDataWithStringRoles);
-        setSuccess('Usuario actualizado exitosamente');
+        setSuccess('Usuario creado correctamente');
+      } else if (formMode === 'edit' && selectedUser) {
+        await apiService.updateUser(selectedUser.id, userDataWithStringRoles);
+        setSuccess('Usuario actualizado correctamente');
       }
-      
       setShowUserForm(false);
-      await loadUsers();
+      loadUsers();
     } catch (error: any) {
-      console.error('Error saving user:', error);
       setError('Error al guardar usuario: ' + error.message);
     }
   };
 
-  const handleCreateRole = () => {
-    setSelectedRole(null);
-    setRoleForm({
-      nombre: '',
-      descripcion: '',
-      estado: true
-    });
-    setShowRoleForm(true);
-  };
-
-
-
-  const handleRoleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Aquí se implementaría la lógica para guardar roles
-    setShowRoleForm(false);
-  };
-
   const handleInputChange = (field: string, value: string | boolean | number[]) => {
-    if (showUserForm) {
-      setUserForm(prev => ({ ...prev, [field]: value }));
-    } else if (showRoleForm) {
-      setRoleForm(prev => ({ ...prev, [field]: value }));
-    }
+    setUserForm(prev => ({ ...prev, [field]: value }));
   };
 
   const handleRoleToggle = (roleId: number) => {
@@ -227,367 +189,399 @@ const Usuario: React.FC = () => {
   const getStatusColor = (estado: string) => {
     switch (estado) {
       case 'ACTIVO':
-        return 'success';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'INACTIVO':
-        return 'warning';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'BLOQUEADO':
-        return 'danger';
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return 'info';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (estado: string) => {
+    switch (estado) {
+      case 'ACTIVO':
+        return '✅';
+      case 'INACTIVO':
+        return '⏸️';
+      case 'BLOQUEADO':
+        return '🚫';
+      default:
+        return '❓';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Cargando usuarios...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white rounded-3xl shadow-2xl p-8">
+          <div className="flex items-center space-x-4">
+            <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-lg font-semibold text-gray-700">Cargando usuarios...</span>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="usuario-container">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="usuario-header">
-        <h1>Gestión de Usuarios</h1>
-        <div className="header-actions">
-          <button onClick={handleCreateRole} className="btn btn-secondary">
-            ➕ Crear Rol
-          </button>
-          <button onClick={handleCreateUser} className="btn btn-primary">
-            ➕ Crear Usuario
-          </button>
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 rounded-xl mr-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+                <p className="text-gray-600">Administrar usuarios del sistema</p>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCreateUser}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg"
+              >
+                + Nuevo Usuario
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700 font-medium">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {success && (
-        <div className="success-message">
-          {success}
-        </div>
-      )}
+        {success && (
+          <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-700 font-medium">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* Users Table */}
-      <div className="users-section">
-        <h2>Lista de Usuarios</h2>
-        
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Teléfono</th>
-                <th>Estado</th>
-                <th>Último Login</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <div className="user-info">
-                      {user.foto && (
-                        <img src={user.foto} alt="Foto" className="user-avatar" />
-                      )}
-                      <div>
-                        <strong>{user.nombres} {user.apellidos}</strong>
-                        <br />
-                        <small>@{user.username}</small>
+        {/* Users List */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900">Lista de Usuarios</h2>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Usuario
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contacto
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Roles
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha Creación
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                          {user.nombres.charAt(0)}{user.apellidos.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.nombres} {user.apellidos}
+                          </div>
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>{user.email}</td>
-                  <td>
-                    <div className="roles-container">
-                      {user.roles.map((role, index) => (
-                        <span key={index} className="badge badge-info">
-                          {role}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td>{user.telefonoPrincipal}</td>
-                  <td>
-                    <span className={`badge badge-${getStatusColor(user.estado)}`}>
-                      {user.estado}
-                    </span>
-                  </td>
-                  <td>
-                    {user.ultimoLogin 
-                      ? new Date(user.ultimoLogin).toLocaleDateString()
-                      : 'Nunca'
-                    }
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleViewUser(user)}
-                        className="btn btn-secondary"
-                        title="Ver Detalle"
-                      >
-                        👁️
-                      </button>
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="btn btn-primary"
-                        title="Editar"
-                      >
-                        ✏️
-                      </button>
-                      {user.id !== currentUser?.id && (
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.email}</div>
+                      <div className="text-sm text-gray-500">{user.telefonoPrincipal}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.map((role, index) => (
+                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(user.estado)}`}>
+                        <span className="mr-1">{getStatusIcon(user.estado)}</span>
+                        {user.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(user.fechaCreacion).toLocaleDateString('es-ES')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleViewUser(user)}
+                          className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors duration-200"
+                        >
+                          Ver
+                        </button>
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg transition-colors duration-200"
+                        >
+                          Editar
+                        </button>
                         <button
                           onClick={() => handleDeleteUser(user.id)}
-                          className="btn btn-danger"
-                          title="Eliminar"
+                          className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors duration-200"
                         >
-                          🗑️
+                          Eliminar
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {users.length === 0 && (
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay usuarios</h3>
+              <p className="mt-1 text-sm text-gray-500">Comienza creando un nuevo usuario.</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* User Form Modal */}
       {showUserForm && (
-        <div className="modal-overlay">
-          <div className="modal-content large">
-            <div className="modal-header">
-              <h2>
-                {formMode === 'create' && 'Crear Nuevo Usuario'}
-                {formMode === 'edit' && 'Editar Usuario'}
-                {formMode === 'view' && 'Ver Usuario'}
-              </h2>
-              <button onClick={() => setShowUserForm(false)} className="close-button">✕</button>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {formMode === 'create' ? 'Crear Usuario' : formMode === 'edit' ? 'Editar Usuario' : 'Ver Usuario'}
+                </h2>
+                <button
+                  onClick={() => setShowUserForm(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
 
-            <form onSubmit={handleUserFormSubmit} className="user-form">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Username *</label>
-                  <input
-                    type="text"
-                    value={userForm.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
-                    disabled={formMode === 'view'}
-                    required
-                    placeholder="Ingrese username"
-                  />
+              <form onSubmit={handleUserFormSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Nombres *
+                    </label>
+                    <input
+                      type="text"
+                      value={userForm.nombres}
+                      onChange={(e) => handleInputChange('nombres', e.target.value)}
+                      required
+                      disabled={formMode === 'view'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                      placeholder="Ingrese los nombres"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Apellidos *
+                    </label>
+                    <input
+                      type="text"
+                      value={userForm.apellidos}
+                      onChange={(e) => handleInputChange('apellidos', e.target.value)}
+                      required
+                      disabled={formMode === 'view'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                      placeholder="Ingrese los apellidos"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Username *
+                    </label>
+                    <input
+                      type="text"
+                      value={userForm.username}
+                      onChange={(e) => handleInputChange('username', e.target.value)}
+                      required
+                      disabled={formMode === 'view'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                      placeholder="Ingrese el username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={userForm.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      required
+                      disabled={formMode === 'view'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                      placeholder="ejemplo@correo.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Teléfono Principal *
+                    </label>
+                    <input
+                      type="tel"
+                      value={userForm.telefonoPrincipal}
+                      onChange={(e) => handleInputChange('telefonoPrincipal', e.target.value)}
+                      required
+                      disabled={formMode === 'view'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                      placeholder="Ingrese el teléfono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Teléfono Secundario
+                    </label>
+                    <input
+                      type="tel"
+                      value={userForm.telefonoSecundario}
+                      onChange={(e) => handleInputChange('telefonoSecundario', e.target.value)}
+                      disabled={formMode === 'view'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                      placeholder="Teléfono secundario (opcional)"
+                    />
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={formMode === 'view'}
-                    required
-                    placeholder="Ingrese email"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Nombres *</label>
-                  <input
-                    type="text"
-                    value={userForm.nombres}
-                    onChange={(e) => handleInputChange('nombres', e.target.value)}
-                    disabled={formMode === 'view'}
-                    required
-                    placeholder="Ingrese nombres"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Apellidos *</label>
-                  <input
-                    type="text"
-                    value={userForm.apellidos}
-                    onChange={(e) => handleInputChange('apellidos', e.target.value)}
-                    disabled={formMode === 'view'}
-                    required
-                    placeholder="Ingrese apellidos"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Teléfono Principal *</label>
-                  <input
-                    type="tel"
-                    value={userForm.telefonoPrincipal}
-                    onChange={(e) => handleInputChange('telefonoPrincipal', e.target.value)}
-                    disabled={formMode === 'view'}
-                    required
-                    placeholder="Ingrese teléfono"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Teléfono Secundario</label>
-                  <input
-                    type="tel"
-                    value={userForm.telefonoSecundario}
-                    onChange={(e) => handleInputChange('telefonoSecundario', e.target.value)}
-                    disabled={formMode === 'view'}
-                    placeholder="Teléfono secundario (opcional)"
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>Dirección *</label>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Dirección *
+                  </label>
                   <input
                     type="text"
                     value={userForm.direccion}
                     onChange={(e) => handleInputChange('direccion', e.target.value)}
-                    disabled={formMode === 'view'}
                     required
-                    placeholder="Ingrese dirección"
+                    disabled={formMode === 'view'}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
+                    placeholder="Ingrese la dirección"
                   />
                 </div>
 
-                {formMode === 'create' && (
-                  <div className="form-group">
-                    <label>Contraseña *</label>
+                {formMode !== 'view' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Contraseña {formMode === 'create' ? '*' : '(dejar en blanco para mantener)'}
+                    </label>
                     <input
                       type="password"
                       value={userForm.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
-                      required
-                      placeholder="Ingrese contraseña"
+                      required={formMode === 'create'}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
+                      placeholder="Ingrese la contraseña"
                     />
                   </div>
                 )}
 
-                <div className="form-group full-width">
-                  <label>Foto de Perfil</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={formMode === 'view'}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) console.log('File selected:', file);
-                    }}
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>Roles *</label>
-                  <div className="roles-checkboxes">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Roles
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {roles.map((role) => (
-                      <label key={role.id} className="role-checkbox">
+                      <label key={role.id} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={userForm.roles.includes(role.id)}
                           onChange={() => handleRoleToggle(role.id)}
                           disabled={formMode === 'view'}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                         />
-                        <span className="role-name">{role.nombre}</span>
-                        <span className="role-description">{role.descripcion}</span>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{role.nombre}</div>
+                          <div className="text-sm text-gray-500">{role.descripcion}</div>
+                        </div>
                       </label>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowUserForm(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancelar
-                </button>
-                
                 {formMode !== 'view' && (
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                  >
-                    {formMode === 'create' ? 'Crear Usuario' : 'Guardar Cambios'}
-                  </button>
+                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowUserForm(false)}
+                      className="px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg"
+                    >
+                      {formMode === 'create' ? 'Crear Usuario' : 'Actualizar Usuario'}
+                    </button>
+                  </div>
                 )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Role Form Modal */}
-      {showRoleForm && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>
-                {selectedRole ? 'Editar Rol' : 'Crear Nuevo Rol'}
-              </h2>
-              <button onClick={() => setShowRoleForm(false)} className="close-button">✕</button>
+              </form>
             </div>
-
-            <form onSubmit={handleRoleFormSubmit} className="role-form">
-              <div className="form-group">
-                <label>Nombre del Rol *</label>
-                <input
-                  type="text"
-                  value={roleForm.nombre}
-                  onChange={(e) => handleInputChange('nombre', e.target.value)}
-                  required
-                  placeholder="Ingrese nombre del rol"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Descripción</label>
-                <textarea
-                  value={roleForm.descripcion}
-                  onChange={(e) => handleInputChange('descripcion', e.target.value)}
-                  placeholder="Ingrese descripción del rol"
-                  rows={3}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={roleForm.estado}
-                    onChange={(e) => handleInputChange('estado', e.target.checked)}
-                  />
-                  <span>Rol Activo</span>
-                </label>
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowRoleForm(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancelar
-                </button>
-                
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                >
-                  {selectedRole ? 'Guardar Cambios' : 'Crear Rol'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

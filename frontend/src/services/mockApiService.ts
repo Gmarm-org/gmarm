@@ -321,15 +321,44 @@ class MockApiService {
     };
   }
 
+  // Obtener usuario por ID
   async getUser(id: number): Promise<User> {
     await simulateApiDelay();
     
+    if (simulateRandomError()) {
+      throw new Error('Error al obtener usuario');
+    }
+
     const user = mockUsers.find(u => u.id === id);
     if (!user) {
       throw new Error('Usuario no encontrado');
     }
-    
+
     return user;
+  }
+
+  // Actualizar usuario
+  async updateUser(id: number, userData: Partial<User>): Promise<User> {
+    await simulateApiDelay();
+    
+    if (simulateRandomError()) {
+      throw new Error('Error al actualizar usuario');
+    }
+
+    const userIndex = mockUsers.findIndex(u => u.id === id);
+    if (userIndex === -1) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Actualizar el usuario en el array mock
+    mockUsers[userIndex] = { ...mockUsers[userIndex], ...userData };
+    
+    // Si es el usuario actual, actualizarlo también
+    if (this.currentUser && this.currentUser.id === id) {
+      this.currentUser = { ...this.currentUser, ...userData };
+    }
+
+    return mockUsers[userIndex];
   }
 
   // ========================================

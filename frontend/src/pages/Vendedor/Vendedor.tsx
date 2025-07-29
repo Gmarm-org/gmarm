@@ -13,7 +13,7 @@ import type {
 import './Vendedor.css';
 
 const Vendedor: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [formMode, setFormMode] = useState<ClientFormMode>('create');
@@ -23,6 +23,16 @@ const Vendedor: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: Weapon; precio: number; cantidad: number }>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [clientFilter, setClientFilter] = useState<string | null>(null);
+  const [profileForm, setProfileForm] = useState({
+    nombres: user?.nombres || '',
+    apellidos: user?.apellidos || '',
+    email: user?.email || '',
+    telefonoPrincipal: user?.telefonoPrincipal || '',
+    telefonoSecundario: user?.telefonoSecundario || '',
+    direccion: user?.direccion || ''
+  });
 
   // Hooks para manejar clientes y armas
   const { loading: clientsLoading, error: clientsError, loadClients, clients } = useClients();
@@ -169,14 +179,84 @@ const Vendedor: React.FC = () => {
     setShowUserMenu(!showUserMenu);
   };
 
-  const handleLogout = () => {
-    // Aquí implementarías la lógica de logout
-    console.log('Cerrar sesión');
+  const handleLogout = async () => {
+    setShowLogoutConfirm(true);
+    setShowUserMenu(false);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await logout();
+      // La redirección se manejará automáticamente en el AuthContext
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    } finally {
+      setShowLogoutConfirm(false);
+    }
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
+
+  const handleFilterByType = (tipoCliente: string) => {
+    if (clientFilter === tipoCliente) {
+      // Si ya está filtrado por ese tipo, quitar el filtro
+      setClientFilter(null);
+    } else {
+      // Aplicar el filtro
+      setClientFilter(tipoCliente);
+    }
+  };
+
+  const clearFilter = () => {
+    setClientFilter(null);
+  };
+
+  const getFilteredClients = () => {
+    if (!clientFilter) {
+      return clients;
+    }
+    return clients.filter(client => client.tipoCliente === clientFilter);
+  };
+
+  const getWeaponForClient = (clientId: string) => {
+    const assignment = clientWeaponAssignments[clientId];
+    return assignment ? assignment.weapon : null;
   };
 
   const handleUpdateProfile = () => {
-    // Aquí implementarías la lógica para actualizar perfil
-    console.log('Actualizar perfil');
+    // Inicializar el formulario con los datos actuales del usuario
+    setProfileForm({
+      nombres: user?.nombres || '',
+      apellidos: user?.apellidos || '',
+      email: user?.email || '',
+      telefonoPrincipal: user?.telefonoPrincipal || '',
+      telefonoSecundario: user?.telefonoSecundario || '',
+      direccion: user?.direccion || ''
+    });
+    setCurrentPage('profile');
+    setShowUserMenu(false);
+  };
+
+  const handleProfileFormChange = (field: string, value: string) => {
+    setProfileForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateProfile(profileForm);
+      setCurrentPage('dashboard');
+      // Mostrar mensaje de éxito
+      alert('Perfil actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      alert('Error al actualizar perfil');
+    }
   };
 
   const getUserInitials = () => {
@@ -321,7 +401,10 @@ const Vendedor: React.FC = () => {
 
             {/* Stats Grid */}
             <div className="stats-grid">
-              <div className="stat-card civil">
+              <div 
+                className={`stat-card civil ${clientFilter === 'Civil' ? 'active' : ''}`}
+                onClick={() => handleFilterByType('Civil')}
+              >
                 <div className="stat-header">
                   <div className="stat-icon">👥</div>
                   <div className="stat-content">
@@ -329,9 +412,17 @@ const Vendedor: React.FC = () => {
                     <p>Clientes Civiles</p>
                   </div>
                 </div>
+                {clientFilter === 'Civil' && (
+                  <div className="filter-indicator">
+                    <span>✓ Filtro activo</span>
+                  </div>
+                )}
               </div>
               
-              <div className="stat-card uniformado">
+              <div 
+                className={`stat-card uniformado ${clientFilter === 'Uniformado' ? 'active' : ''}`}
+                onClick={() => handleFilterByType('Uniformado')}
+              >
                 <div className="stat-header">
                   <div className="stat-icon">🎖️</div>
                   <div className="stat-content">
@@ -339,9 +430,17 @@ const Vendedor: React.FC = () => {
                     <p>Clientes Uniformados</p>
                   </div>
                 </div>
+                {clientFilter === 'Uniformado' && (
+                  <div className="filter-indicator">
+                    <span>✓ Filtro activo</span>
+                  </div>
+                )}
               </div>
               
-              <div className="stat-card empresa">
+              <div 
+                className={`stat-card empresa ${clientFilter === 'Compañía de Seguridad' ? 'active' : ''}`}
+                onClick={() => handleFilterByType('Compañía de Seguridad')}
+              >
                 <div className="stat-header">
                   <div className="stat-icon">🏢</div>
                   <div className="stat-content">
@@ -349,9 +448,17 @@ const Vendedor: React.FC = () => {
                     <p>Compañías de Seguridad</p>
                   </div>
                 </div>
+                {clientFilter === 'Compañía de Seguridad' && (
+                  <div className="filter-indicator">
+                    <span>✓ Filtro activo</span>
+                  </div>
+                )}
               </div>
               
-              <div className="stat-card deportista">
+              <div 
+                className={`stat-card deportista ${clientFilter === 'Deportista' ? 'active' : ''}`}
+                onClick={() => handleFilterByType('Deportista')}
+              >
                 <div className="stat-header">
                   <div className="stat-icon">🏃</div>
                   <div className="stat-content">
@@ -359,6 +466,11 @@ const Vendedor: React.FC = () => {
                     <p>Deportistas</p>
                   </div>
                 </div>
+                {clientFilter === 'Deportista' && (
+                  <div className="filter-indicator">
+                    <span>✓ Filtro activo</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -378,18 +490,44 @@ const Vendedor: React.FC = () => {
             </div>
 
             <div className="clientes-section">
-              <h2>Lista de Clientes</h2>
+              <div className="section-header">
+                <h2>Lista de Clientes</h2>
+                {clientFilter && (
+                  <div className="filter-controls">
+                    <span className="filter-info">
+                      Filtrado por: <strong>{clientFilter}</strong>
+                    </span>
+                    <button 
+                      className="btn-clear-filter"
+                      onClick={clearFilter}
+                    >
+                      ✕ Limpiar Filtro
+                    </button>
+                  </div>
+                )}
+              </div>
               {isLoading ? (
                 <div className="loading-container">
                   <div className="loading-spinner"></div>
                   <p>Cargando clientes...</p>
                 </div>
-              ) : clients.length === 0 ? (
+              ) : getFilteredClients().length === 0 ? (
                 <div className="empty-state">
-                  <p>No hay clientes registrados</p>
-                  <button className="btn-primary" onClick={handleCreateClient}>
-                    Crear Primer Cliente
-                  </button>
+                  <p>
+                    {clientFilter 
+                      ? `No hay clientes de tipo "${clientFilter}"` 
+                      : 'No hay clientes registrados'
+                    }
+                  </p>
+                  {clientFilter ? (
+                    <button className="btn-primary" onClick={clearFilter}>
+                      Ver Todos los Clientes
+                    </button>
+                  ) : (
+                    <button className="btn-primary" onClick={handleCreateClient}>
+                      Crear Primer Cliente
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="clientes-table">
@@ -401,52 +539,66 @@ const Vendedor: React.FC = () => {
                         <th>Tipo</th>
                         <th>Email</th>
                         <th>Teléfono</th>
+                        <th>Modelo de Arma</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {clients.map((client) => (
-                        <tr key={client.id}>
-                          <td>
-                            <div className="client-name">
-                              {client.nombres} {client.apellidos}
-                            </div>
-                          </td>
-                          <td>{client.numeroIdentificacion}</td>
-                          <td>
-                            <span className={`client-type ${client.tipoCliente.toLowerCase().replace(/\s+/g, '-')}`}>
-                              {client.tipoCliente}
-                            </span>
-                          </td>
-                          <td>{client.email}</td>
-                          <td>{client.telefonoPrincipal}</td>
-                          <td>
-                            <div className="client-actions">
-                              <button 
-                                className="action-btn view"
-                                onClick={() => handleViewClient(client)}
-                                title="Ver Cliente"
-                              >
-                                👁️ Ver
-                              </button>
-                              <button 
-                                className="action-btn edit"
-                                onClick={() => handleEditClient(client)}
-                                title="Editar Cliente"
-                              >
-                                ✏️ Editar
-                              </button>
-                              <button 
-                                className="action-btn disable"
-                                onClick={() => handleDisableClient(client.id)}
-                                title="Inhabilitar Cliente"
-                              >
-                                🚫 Inhabilitar
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {getFilteredClients().map((client) => {
+                        const assignedWeapon = getWeaponForClient(client.id);
+                        return (
+                          <tr key={client.id}>
+                            <td>
+                              <div className="client-name">
+                                {client.nombres} {client.apellidos}
+                              </div>
+                            </td>
+                            <td>{client.numeroIdentificacion}</td>
+                            <td>
+                              <span className={`client-type ${client.tipoCliente.toLowerCase().replace(/\s+/g, '-')}`}>
+                                {client.tipoCliente}
+                              </span>
+                            </td>
+                            <td>{client.email}</td>
+                            <td>{client.telefonoPrincipal}</td>
+                            <td>
+                              {assignedWeapon ? (
+                                <div className="weapon-info">
+                                  <span className="weapon-model">{assignedWeapon.modelo}</span>
+                                  <span className="weapon-caliber">{assignedWeapon.calibre}</span>
+                                </div>
+                              ) : (
+                                <span className="no-weapon">Sin arma asignada</span>
+                              )}
+                            </td>
+                            <td>
+                              <div className="client-actions">
+                                <button 
+                                  className="action-btn view"
+                                  onClick={() => handleViewClient(client)}
+                                  title="Ver Cliente"
+                                >
+                                  👁️ Ver
+                                </button>
+                                <button 
+                                  className="action-btn edit"
+                                  onClick={() => handleEditClient(client)}
+                                  title="Editar Cliente"
+                                >
+                                  ✏️ Editar
+                                </button>
+                                <button 
+                                  className="action-btn disable"
+                                  onClick={() => handleDisableClient(client.id)}
+                                  title="Inhabilitar Cliente"
+                                >
+                                  🚫 Inhabilitar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -579,6 +731,121 @@ const Vendedor: React.FC = () => {
           </div>
         );
 
+      case 'profile':
+        return (
+          <div className="profile-page">
+            <div className="page-header">
+              <button className="btn-back" onClick={() => navigateTo('dashboard')}>
+                ← Volver al Dashboard
+              </button>
+              <h1>Actualizar Perfil</h1>
+            </div>
+            
+            <div className="profile-form-container">
+              <form onSubmit={handleProfileSubmit} className="profile-form">
+                <div className="form-section">
+                  <h3>Información Personal</h3>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Nombres *</label>
+                      <input
+                        type="text"
+                        value={profileForm.nombres}
+                        onChange={(e) => handleProfileFormChange('nombres', e.target.value)}
+                        required
+                        className="form-input"
+                        placeholder="Ingrese los nombres"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label">Apellidos *</label>
+                      <input
+                        type="text"
+                        value={profileForm.apellidos}
+                        onChange={(e) => handleProfileFormChange('apellidos', e.target.value)}
+                        required
+                        className="form-input"
+                        placeholder="Ingrese los apellidos"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Email *</label>
+                    <input
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(e) => handleProfileFormChange('email', e.target.value)}
+                      required
+                      className="form-input"
+                      placeholder="ejemplo@correo.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h3>Información de Contacto</h3>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Teléfono Principal *</label>
+                      <input
+                        type="tel"
+                        value={profileForm.telefonoPrincipal}
+                        onChange={(e) => handleProfileFormChange('telefonoPrincipal', e.target.value)}
+                        required
+                        className="form-input"
+                        placeholder="Ingrese el teléfono"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label">Teléfono Secundario</label>
+                      <input
+                        type="tel"
+                        value={profileForm.telefonoSecundario}
+                        onChange={(e) => handleProfileFormChange('telefonoSecundario', e.target.value)}
+                        className="form-input"
+                        placeholder="Teléfono secundario (opcional)"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Dirección *</label>
+                    <input
+                      type="text"
+                      value={profileForm.direccion}
+                      onChange={(e) => handleProfileFormChange('direccion', e.target.value)}
+                      required
+                      className="form-input"
+                      placeholder="Ingrese la dirección"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('dashboard')}
+                    className="btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                  >
+                    Actualizar Perfil
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+
       default:
         return <div>Página no encontrada</div>;
     }
@@ -605,6 +872,44 @@ const Vendedor: React.FC = () => {
 
         {renderCurrentPage()}
       </main>
+
+      {/* Modal de Confirmación de Logout */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  ¿Desea cerrar sesión?
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Se cerrará su sesión actual y será redirigido al login.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={cancelLogout}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 font-semibold"
+                >
+                  Sí, Cerrar Sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

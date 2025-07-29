@@ -129,12 +129,9 @@
   margin-bottom: 40px;
 }
 
+/* Estilos para cuadros de estadísticas clickeables */
 .stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -143,6 +140,112 @@
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.active {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Estilos para controles de filtro */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #f3f4f6;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+
+.filter-info {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.btn-clear-filter {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-filter:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Estilos para la información de arma en la tabla */
+.weapon-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.weapon-model {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.875rem;
+}
+
+.weapon-caliber {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+.no-weapon {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+/* Responsive para los controles de filtro */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .stat-card::before {
@@ -720,5 +823,102 @@
   
   .clientes-table table {
     min-width: 600px;
+  }
+} 
+
+/* Estilos para la pantalla de perfil */
+.profile-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.profile-form-container {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-section {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 2rem;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.form-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive para la pantalla de perfil */
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 1rem;
+  }
+  
+  .profile-form-container {
+    padding: 1.5rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
   }
 } 
