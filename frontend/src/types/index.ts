@@ -39,7 +39,7 @@ export interface User {
 // ===== CLIENTE =====
 export interface Client {
   id: string;
-  cedula: string;
+  numeroIdentificacion: string; // Cédula, RUC, etc.
   nombres: string;
   apellidos: string;
   email: string;
@@ -49,18 +49,47 @@ export interface Client {
   telefonoSecundario?: string;
   tipoCliente: string;
   tipoIdentificacion: string;
-  estadoUniformado?: 'Activo' | 'Pasivo';
+  estadoMilitar?: 'ACTIVO' | 'PASIVO';
+  
+  // Campos para empresa
+  representanteLegal?: string;
   ruc?: string;
-  telefonoReferencia?: string;
+  nombreEmpresa?: string;
   direccionFiscal?: string;
-  correoElectronico?: string;
+  telefonoReferencia?: string;
+  correoEmpresa?: string;
+  provinciaEmpresa?: string;
+  cantonEmpresa?: string;
+  
+  // Campos generales
   provincia?: string;
   canton?: string;
-  provinciaCompania?: string;
-  cantonCompania?: string;
-  vendedorId?: string;
-  createdAt: string;
-  updatedAt: string;
+  vendedorId?: string; // ID del vendedor que creó el cliente
+}
+
+// ===== PAGO =====
+export interface Pago {
+  id: number;
+  clienteId: number;
+  cliente?: Client;
+  planPagoId?: number;
+  planPago?: any; // PlanPago interface si se necesita
+  numeroComprobante: string;
+  montoTotal: number;
+  saldoPendiente: number;
+  metodoPago: string;
+  fechaPago?: string;
+  estado: 'PENDIENTE' | 'COMPLETADO' | 'CANCELADO';
+  observaciones?: string;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+}
+
+// ===== SALDO CLIENTE =====
+export interface SaldoCliente {
+  clienteId: number;
+  saldo: number;
+  tieneSaldoPendiente: boolean;
 }
 
 // ===== ARMA =====

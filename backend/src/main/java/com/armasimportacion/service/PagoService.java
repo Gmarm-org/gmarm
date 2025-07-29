@@ -11,7 +11,6 @@ import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.PlanPagoRepository;
 import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.enums.EstadoPago;
-import com.armasimportacion.enums.TipoPago;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -36,17 +35,13 @@ public class PagoService {
     
     // CRUD Operations
     public Pago crearPago(Pago pago, Long usuarioId) {
-        log.info("Creando nuevo pago: {}", pago.getReferenciaPago());
+        log.info("Creando nuevo pago: {}", pago.getNumeroComprobante());
         
         // Validaciones
-        if (pagoRepository.existsByReferenciaPago(pago.getReferenciaPago())) {
-            throw new BadRequestException("Ya existe un pago con la referencia: " + pago.getReferenciaPago());
+        if (pagoRepository.existsByNumeroComprobante(pago.getNumeroComprobante())) {
+            throw new BadRequestException("Ya existe un pago con el número de comprobante: " + pago.getNumeroComprobante());
         }
         
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        
-        pago.setUsuarioRegistrador(usuario);
         pago.setFechaPago(LocalDateTime.now());
         pago.setEstado(EstadoPago.COMPLETADO);
         
@@ -59,16 +54,17 @@ public class PagoService {
         Pago pago = pagoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pago no encontrado con ID: " + id));
         
-        // Validar referencia de pago única si cambió
-        if (!pago.getReferenciaPago().equals(pagoActualizado.getReferenciaPago()) &&
-            pagoRepository.existsByReferenciaPago(pagoActualizado.getReferenciaPago())) {
-            throw new BadRequestException("Ya existe un pago con la referencia: " + pagoActualizado.getReferenciaPago());
+        // Validar número de comprobante único si cambió
+        if (!pago.getNumeroComprobante().equals(pagoActualizado.getNumeroComprobante()) &&
+            pagoRepository.existsByNumeroComprobante(pagoActualizado.getNumeroComprobante())) {
+            throw new BadRequestException("Ya existe un pago con el número de comprobante: " + pagoActualizado.getNumeroComprobante());
         }
         
         // Actualizar campos
-        pago.setReferenciaPago(pagoActualizado.getReferenciaPago());
-        pago.setMonto(pagoActualizado.getMonto());
-        pago.setTipoPago(pagoActualizado.getTipoPago());
+        pago.setNumeroComprobante(pagoActualizado.getNumeroComprobante());
+        pago.setMontoTotal(pagoActualizado.getMontoTotal());
+        pago.setSaldoPendiente(pagoActualizado.getSaldoPendiente());
+        pago.setMetodoPago(pagoActualizado.getMetodoPago());
         pago.setObservaciones(pagoActualizado.getObservaciones());
         
         return pagoRepository.save(pago);
@@ -98,8 +94,10 @@ public class PagoService {
     }
     
     public BigDecimal obtenerSaldoPlanPago(Long planPagoId) {
-        BigDecimal totalPagos = pagoRepository.sumPagosCompletadosByPlanPago(planPagoId);
-        return totalPagos != null ? totalPagos : BigDecimal.ZERO;
+        return pagoRepository.findByPlanPagoId(planPagoId)
+                .stream()
+                .map(Pago::getSaldoPendiente)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
     
     public List<Pago> obtenerPagosPorFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -107,16 +105,16 @@ public class PagoService {
     }
     
     public List<Pago> obtenerPagosPendientes() {
-        return pagoRepository.findPagosPendientes();
+        return pagoRepository.findByEstado(EstadoPago.PENDIENTE);
     }
     
-    public Page<Pago> buscarPagos(String referenciaPago, EstadoPago estado, TipoPago tipoPago, 
+    public Page<Pago> buscarPagos(String numeroComprobante, EstadoPago estado, 
                                  Long planPagoId, LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable) {
-        return pagoRepository.findWithFilters(referenciaPago, estado, tipoPago, planPagoId, fechaInicio, fechaFin, pageable);
+        return pagoRepository.findWithFilters(numeroComprobante, estado, planPagoId, fechaInicio, fechaFin, pageable);
     }
     
     public List<Object[]> obtenerEstadisticasPorEstado() {
-        return pagoRepository.countByEstado();
+        return pagoRepository.findEstadisticasPorEstado();
     }
     
     public void cambiarEstado(Long id, EstadoPago nuevoEstado) {
@@ -125,13 +123,10 @@ public class PagoService {
         pagoRepository.save(pago);
     }
     
-    public String generarReferenciaPago() {
-        String prefijo = "AUTOMATICO";
-        LocalDateTime ahora = LocalDateTime.now();
-        String timestamp = String.format("%02d%02d%02d%02d%02d%02d", 
-                ahora.getYear(), ahora.getMonthValue(), ahora.getDayOfMonth(),
-                ahora.getHour(), ahora.getMinute(), ahora.getSecond());
-        return prefijo + timestamp;
+    public String generarNumeroComprobante() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String random = String.valueOf((int) (Math.random() * 1000));
+        return "COMP-" + timestamp + "-" + random;
     }
     
     public boolean planPagoTieneSaldoPendiente(Long planPagoId) {
@@ -139,32 +134,21 @@ public class PagoService {
         return saldo.compareTo(BigDecimal.ZERO) > 0;
     }
     
-    // Additional methods for controller
     public List<Pago> obtenerPagosPorCliente(Long clienteId) {
-        clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + clienteId));
-        return pagoRepository.findByCliente(clienteId);
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+        return pagoRepository.findByCliente(cliente);
     }
     
     public BigDecimal obtenerSaldoCliente(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + clienteId));
-        
-        BigDecimal totalPagos = pagoRepository.sumPagosCompletadosByCliente(clienteId);
-        return totalPagos != null ? totalPagos : BigDecimal.ZERO;
+        return pagoRepository.findByClienteId(clienteId)
+                .stream()
+                .map(Pago::getSaldoPendiente)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
     
     public boolean clienteTieneSaldoPendiente(Long clienteId) {
         BigDecimal saldo = obtenerSaldoCliente(clienteId);
         return saldo.compareTo(BigDecimal.ZERO) > 0;
-    }
-    
-    public String generarNumeroComprobante() {
-        String prefijo = "COMP";
-        LocalDateTime ahora = LocalDateTime.now();
-        String timestamp = String.format("%02d%02d%02d%02d%02d%02d", 
-                ahora.getYear(), ahora.getMonthValue(), ahora.getDayOfMonth(),
-                ahora.getHour(), ahora.getMinute(), ahora.getSecond());
-        return prefijo + timestamp;
     }
 } 

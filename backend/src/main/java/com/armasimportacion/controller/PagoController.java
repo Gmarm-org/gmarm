@@ -5,7 +5,6 @@ import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.service.PagoService;
 import com.armasimportacion.enums.EstadoPago;
-import com.armasimportacion.enums.TipoPago;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -148,12 +147,11 @@ public class PagoController {
     public ResponseEntity<Page<Pago>> buscarPagos(
             @RequestParam(required = false) String numeroComprobante,
             @RequestParam(required = false) EstadoPago estado,
-            @RequestParam(required = false) TipoPago tipoPago,
-            @RequestParam(required = false) Long clienteId,
+            @RequestParam(required = false) Long planPagoId,
             @RequestParam(required = false) LocalDateTime fechaInicio,
             @RequestParam(required = false) LocalDateTime fechaFin,
             Pageable pageable) {
-        Page<Pago> pagos = pagoService.buscarPagos(numeroComprobante, estado, tipoPago, clienteId, fechaInicio, fechaFin, pageable);
+        Page<Pago> pagos = pagoService.buscarPagos(numeroComprobante, estado, planPagoId, fechaInicio, fechaFin, pageable);
         return ResponseEntity.ok(pagos);
     }
     

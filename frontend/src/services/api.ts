@@ -41,6 +41,30 @@ export interface User {
   roles: string[];
 }
 
+// Tipos para pagos
+export interface Pago {
+  id: number;
+  clienteId: number;
+  cliente?: any;
+  planPagoId?: number;
+  planPago?: any;
+  numeroComprobante: string;
+  montoTotal: number;
+  saldoPendiente: number;
+  metodoPago: string;
+  fechaPago?: string;
+  estado: 'PENDIENTE' | 'COMPLETADO' | 'CANCELADO';
+  observaciones?: string;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+}
+
+export interface SaldoCliente {
+  clienteId: number;
+  saldo: number;
+  tieneSaldoPendiente: boolean;
+}
+
 // Clase principal de API
 class ApiService {
   private token: string | null = null;
@@ -316,27 +340,27 @@ class ApiService {
   // PAGOS
   // ========================================
 
-  async getPagos(page: number = 0, size: number = 10): Promise<ApiResponse<any[]>> {
-    return this.request<ApiResponse<any[]>>(`/pagos?page=${page}&size=${size}`);
+  async getPagos(page: number = 0, size: number = 10): Promise<ApiResponse<Pago[]>> {
+    return this.request<ApiResponse<Pago[]>>(`/pagos?page=${page}&size=${size}`);
   }
 
-  async getPago(id: number): Promise<any> {
-    return this.request<any>(`/pagos/${id}`);
+  async getPago(id: number): Promise<Pago> {
+    return this.request<Pago>(`/pagos/${id}`);
   }
 
-  async createPago(pagoData: any): Promise<any> {
-    return this.request<any>('/pagos', {
+  async createPago(pagoData: Partial<Pago>): Promise<Pago> {
+    return this.request<Pago>('/pagos', {
       method: 'POST',
       body: JSON.stringify(pagoData),
     });
   }
 
-  async getPagosPorCliente(clienteId: number): Promise<any[]> {
-    return this.request<any[]>(`/pagos/cliente/${clienteId}`);
+  async getPagosPorCliente(clienteId: number): Promise<Pago[]> {
+    return this.request<Pago[]>(`/pagos/cliente/${clienteId}`);
   }
 
-  async getSaldoCliente(clienteId: number): Promise<any> {
-    return this.request<any>(`/pagos/cliente/${clienteId}/saldo`);
+  async getSaldoCliente(clienteId: number): Promise<SaldoCliente> {
+    return this.request<SaldoCliente>(`/pagos/cliente/${clienteId}/saldo`);
   }
 
   // ========================================

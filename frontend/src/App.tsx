@@ -5,6 +5,7 @@ import Login from './pages/Login/Login';
 import Vendedor from './pages/Vendedor/Vendedor';
 import Usuario from './pages/Usuario/Usuario';
 import Dashboard from './pages/Dashboard/Dashboard';
+import Pagos from './pages/Pagos/Pagos';
 import Unauthorized from './pages/Unauthorized/Unauthorized';
 import './styles/App.css';
 
@@ -33,6 +34,15 @@ function App() {
               element={
                 <ProtectedRoute anyRole={['VENDEDOR', 'ADMIN']}>
                   <Vendedor />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/pagos" 
+              element={
+                <ProtectedRoute anyRole={['FINANZAS', 'ADMIN']}>
+                  <Pagos />
                 </ProtectedRoute>
               } 
             />
