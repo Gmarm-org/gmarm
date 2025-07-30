@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { apiService } from '../services/api';
 import { mockApiService } from '../services/mockApiService';
 import type { User, LoginRequest, LoginResponse } from '../types';
 
@@ -31,29 +30,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Función para detectar si el backend está disponible
-  const isBackendAvailable = async (): Promise<boolean> => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
-      const response = await fetch('http://localhost:8080/api/health', {
-        method: 'GET',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      return response.ok;
-    } catch (error) {
-      console.log('Backend no disponible, usando datos mock');
-      return false;
-    }
-  };
-
   // Función para obtener el servicio API apropiado
   const getApiService = async () => {
-    const backendAvailable = await isBackendAvailable();
-    return backendAvailable ? apiService : mockApiService;
+    // Forzar uso de mockApiService para desarrollo
+    return mockApiService;
   };
 
   const login = async (credentials: LoginRequest) => {
@@ -65,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('token', response.token);
       service.setToken(response.token);
       
-      // Obtener usuario completo
+      // Obtener usuario completo con roles
       const fullUser = await service.getCurrentUser();
       setUser(fullUser as User);
       

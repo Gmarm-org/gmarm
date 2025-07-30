@@ -43,24 +43,8 @@ class MockApiService {
       throw new Error('Credenciales inválidas');
     }
 
-    // Simular roles según el email
-    let roles: any[] = [];
-    switch (credentials.email) {
-      case 'admin@test.com':
-        roles = [{ usuarioId: user.id, rolId: 1, fechaAsignacion: new Date().toISOString(), activo: true, rol: { id: 1, nombre: 'ADMIN', descripcion: 'Administrador', estado: true } }];
-        break;
-      case 'vendedor@test.com':
-        roles = [{ usuarioId: user.id, rolId: 2, fechaAsignacion: new Date().toISOString(), activo: true, rol: { id: 2, nombre: 'VENDEDOR', descripcion: 'Vendedor', estado: true } }];
-        break;
-      case 'finanzas@test.com':
-        roles = [{ usuarioId: user.id, rolId: 3, fechaAsignacion: new Date().toISOString(), activo: true, rol: { id: 3, nombre: 'FINANZAS', descripcion: 'Finanzas', estado: true } }];
-        break;
-      case 'jefe@test.com':
-        roles = [{ usuarioId: user.id, rolId: 4, fechaAsignacion: new Date().toISOString(), activo: true, rol: { id: 4, nombre: 'JEFE_VENTAS', descripcion: 'Jefe de Ventas', estado: true } }];
-        break;
-    }
-
-    this.currentUser = { ...user, roles };
+    // Usar los roles reales del mockData
+    this.currentUser = user;
     this.token = 'mock-jwt-token-' + Date.now();
 
     return {
@@ -73,7 +57,7 @@ class MockApiService {
         email: user.email,
         nombres: user.nombres,
         apellidos: user.apellidos,
-        roles
+        roles: user.roles?.map(role => role.rol?.nombre || '').filter(Boolean) || []
       }
     };
   }

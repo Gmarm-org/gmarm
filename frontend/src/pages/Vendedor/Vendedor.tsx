@@ -1,126 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { mockApiService } from '../../services/mockApiService';
+import Header from '../../components/Header';
 import ClientForm from './components/ClientForm';
 import WeaponReserve from './components/WeaponReserve';
-import { useClients } from './hooks/useClients';
-import { useWeapons } from './hooks/useWeapons';
-import type { 
-  Client, 
-  Weapon, 
-  ClientFormMode, 
-  Page
-} from './types';
-import './Vendedor.css';
+import type { Client, Weapon, Page } from './types';
 
 const Vendedor: React.FC = () => {
-  const { user, logout, updateProfile } = useAuth();
+  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [formMode, setFormMode] = useState<ClientFormMode>('create');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [availableWeapons, setAvailableWeapons] = useState<Weapon[]>([]);
   const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
   const [precioModificado, setPrecioModificado] = useState<number>(0);
   const [cantidad, setCantidad] = useState<number>(1);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: Weapon; precio: number; cantidad: number }>>({});
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [clientFilter, setClientFilter] = useState<string | null>(null);
-  const [profileForm, setProfileForm] = useState({
-    nombres: user?.nombres || '',
-    apellidos: user?.apellidos || '',
-    email: user?.email || '',
-    telefonoPrincipal: user?.telefonoPrincipal || '',
-    telefonoSecundario: user?.telefonoSecundario || '',
-    direccion: user?.direccion || ''
-  });
-
-  // Hooks para manejar clientes y armas
-  const { loading: clientsLoading, error: clientsError, loadClients, clients } = useClients();
-  const { weapons: availableWeapons, loading: weaponsLoading, loadWeapons } = useWeapons();
-
-  // Estado de loading combinado
-  const isLoading = clientsLoading || weaponsLoading || !isInitialized;
-
-  // Timeout para evitar loading infinito
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        console.warn('Loading timeout - forcing completion');
-      }
-    }, 10000); // 10 segundos
-
-    return () => clearTimeout(timeout);
-  }, [isLoading]);
+  const [clientsLoading, setClientsLoading] = useState(true);
+  const [weaponsLoading, setWeaponsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     loadClients();
     loadWeapons();
   }, []);
 
-  // Efecto separado para crear asignaciones de prueba cuando los datos estén disponibles
   useEffect(() => {
-    if (availableWeapons.length > 0 && clients.length > 0) {
-      // Solo crear asignaciones si no existen
-      const hasAssignments = Object.keys(clientWeaponAssignments).length > 0;
-      if (!hasAssignments) {
-        const testAssignments: Record<string, { weapon: Weapon; precio: number; cantidad: number }> = {};
-        
-        // Asignar armas a los primeros clientes como prueba
-        clients.slice(0, 3).forEach((client, index) => {
-          if (availableWeapons[index]) {
-            testAssignments[client.id] = {
-              weapon: availableWeapons[index],
-              precio: availableWeapons[index].precio + (index * 100), // Precio diferente por cliente
-              cantidad: index + 1
-            };
-          }
-        });
-        
-        setClientWeaponAssignments(testAssignments);
-      }
+    if (availableWeapons.length > 0 && clients.length > 0 && Object.keys(clientWeaponAssignments).length === 0) {
+      // Crear asignaciones de prueba para los primeros 3 clientes
+      const testAssignments: Record<string, { weapon: Weapon; precio: number; cantidad: number }> = {};
+      const firstWeapon = availableWeapons[0];
+      
+      clients.slice(0, 3).forEach(client => {
+        testAssignments[client.id] = {
+          weapon: firstWeapon,
+          precio: firstWeapon.precio,
+          cantidad: 1
+        };
+      });
+      
+      setClientWeaponAssignments(testAssignments);
       setIsInitialized(true);
     }
-  }, [availableWeapons.length, clients.length]);
+  }, [availableWeapons, clients, clientWeaponAssignments]);
 
-  // Cerrar menú de usuario cuando se hace clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('.user-menu')) {
-        setShowUserMenu(false);
-      }
-    };
-
-    if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+  const loadClients = async () => {
+    try {
+      setClientsLoading(true);
+      const response = await mockApiService.getClientes();
+      setClients(response.data || []);
+    } catch (error) {
+      console.error('Error al cargar clientes:', error);
+    } finally {
+      setClientsLoading(false);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserMenu]);
-
-  // Navegación entre páginas
-  const navigateTo = (page: Page) => {
-    setCurrentPage(page);
   };
 
-  // Gestión de clientes
+  const loadWeapons = async () => {
+    try {
+      setWeaponsLoading(true);
+      const weaponsData = await mockApiService.getWeapons();
+      setAvailableWeapons(weaponsData);
+    } catch (error) {
+      console.error('Error al cargar armas:', error);
+    } finally {
+      setWeaponsLoading(false);
+    }
+  };
+
   const handleCreateClient = () => {
-    setSelectedClient(null);
-    setFormMode('create');
     setCurrentPage('clientForm');
+    setSelectedClient(null);
   };
 
   const handleAssignWeaponWithoutClient = () => {
-    setSelectedClient(null);
-    setSelectedWeapon(null);
     setCurrentPage('weaponSelection');
+    setSelectedClient(null);
   };
 
-  const handleClientSaved = async (client: Client) => {
-    setSelectedClient(client);
+  const handleClientSaved = (client: Client) => {
+    setClients(prev => [client, ...prev]);
     setCurrentPage('weaponSelection');
+    setSelectedClient(client);
   };
 
   const handleCloseForm = () => {
@@ -128,147 +90,6 @@ const Vendedor: React.FC = () => {
     setSelectedClient(null);
   };
 
-  // Funciones para manejar clientes
-  const handleViewClient = (client: Client) => {
-    setSelectedClient(client);
-    setFormMode('view');
-    
-    // Cargar la información de la arma asignada si existe
-    const assignment = clientWeaponAssignments[client.id];
-    if (assignment) {
-      setSelectedWeapon(assignment.weapon);
-      setPrecioModificado(assignment.precio);
-      setCantidad(assignment.cantidad);
-    } else {
-      setSelectedWeapon(null);
-      setPrecioModificado(0);
-      setCantidad(1);
-    }
-    
-    setCurrentPage('clientForm');
-  };
-
-  const handleEditClient = (client: Client) => {
-    setSelectedClient(client);
-    setFormMode('edit');
-    
-    // Cargar la información de la arma asignada si existe
-    const assignment = clientWeaponAssignments[client.id];
-    if (assignment) {
-      setSelectedWeapon(assignment.weapon);
-      setPrecioModificado(assignment.precio);
-      setCantidad(assignment.cantidad);
-    } else {
-      setSelectedWeapon(null);
-      setPrecioModificado(0);
-      setCantidad(1);
-    }
-    
-    setCurrentPage('clientForm');
-  };
-
-  const handleDisableClient = (clientId: string) => {
-    if (window.confirm('¿Está seguro de que desea inhabilitar este cliente?')) {
-      console.log('Inhabilitar cliente:', clientId);
-      // Aquí implementarías la lógica de inhabilitación
-    }
-  };
-
-  // Funciones para el menú de usuario
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
-  };
-
-  const handleLogout = async () => {
-    setShowLogoutConfirm(true);
-    setShowUserMenu(false);
-  };
-
-  const confirmLogout = async () => {
-    try {
-      await logout();
-      // La redirección se manejará automáticamente en el AuthContext
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    } finally {
-      setShowLogoutConfirm(false);
-    }
-  };
-
-  const cancelLogout = () => {
-    setShowLogoutConfirm(false);
-  };
-
-  const handleFilterByType = (tipoCliente: string) => {
-    if (clientFilter === tipoCliente) {
-      // Si ya está filtrado por ese tipo, quitar el filtro
-      setClientFilter(null);
-    } else {
-      // Aplicar el filtro
-      setClientFilter(tipoCliente);
-    }
-  };
-
-  const clearFilter = () => {
-    setClientFilter(null);
-  };
-
-  const getFilteredClients = () => {
-    if (!clientFilter) {
-      return clients;
-    }
-    return clients.filter(client => client.tipoCliente === clientFilter);
-  };
-
-  const getWeaponForClient = (clientId: string) => {
-    const assignment = clientWeaponAssignments[clientId];
-    return assignment ? assignment.weapon : null;
-  };
-
-  const handleUpdateProfile = () => {
-    // Inicializar el formulario con los datos actuales del usuario
-    setProfileForm({
-      nombres: user?.nombres || '',
-      apellidos: user?.apellidos || '',
-      email: user?.email || '',
-      telefonoPrincipal: user?.telefonoPrincipal || '',
-      telefonoSecundario: user?.telefonoSecundario || '',
-      direccion: user?.direccion || ''
-    });
-    setCurrentPage('profile');
-    setShowUserMenu(false);
-  };
-
-  const handleProfileFormChange = (field: string, value: string) => {
-    setProfileForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await updateProfile(profileForm);
-      setCurrentPage('dashboard');
-      // Mostrar mensaje de éxito
-      alert('Perfil actualizado correctamente');
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
-      alert('Error al actualizar perfil');
-    }
-  };
-
-  const getUserInitials = () => {
-    if (!user) return 'U';
-    const names = user.nombres?.split(' ') || [];
-    const surnames = user.apellidos?.split(' ') || [];
-    const first = names[0]?.charAt(0) || '';
-    const last = surnames[0]?.charAt(0) || '';
-    return (first + last).toUpperCase();
-  };
-
-  // Gestión de armas
   const handleWeaponSelected = (weapon: Weapon | null) => {
     if (weapon) {
       setSelectedWeapon(weapon);
@@ -279,16 +100,12 @@ const Vendedor: React.FC = () => {
 
   const handlePriceChange = (_weaponId: string, newPrice: number) => {
     setPrecioModificado(newPrice);
-    
-    // Si hay un cliente seleccionado, actualizar la asignación
     if (selectedClient) {
       setClientWeaponAssignments(prev => ({
         ...prev,
         [selectedClient.id]: {
           ...prev[selectedClient.id],
-          weapon: selectedWeapon!,
-          precio: newPrice,
-          cantidad: cantidad
+          precio: newPrice
         }
       }));
     }
@@ -296,322 +113,364 @@ const Vendedor: React.FC = () => {
 
   const handleQuantityChange = (_weaponId: string, newQuantity: number) => {
     setCantidad(newQuantity);
-    
-    // Si hay un cliente seleccionado, actualizar la asignación
     if (selectedClient) {
       setClientWeaponAssignments(prev => ({
         ...prev,
         [selectedClient.id]: {
           ...prev[selectedClient.id],
-          weapon: selectedWeapon!,
-          precio: precioModificado,
           cantidad: newQuantity
         }
       }));
     }
   };
 
-  // Funciones wrapper para el ClientForm
-  const handlePriceChangeWrapper = (newPrice: number) => {
-    handlePriceChange('', newPrice);
-  };
-
-  const handleQuantityChangeWrapper = (newQuantity: number) => {
-    handleQuantityChange('', newQuantity);
-  };
-
-  const handleNavigateToWeaponSelection = () => {
-    navigateTo('weaponSelection');
-  };
-
-  const handleAssignWeaponToClient = (client: Client, weapon: Weapon) => {
-    setSelectedClient(client);
-    setSelectedWeapon(weapon);
-    setPrecioModificado(weapon.precio);
-    setCantidad(1);
-    
-    // Guardar la asignación
-    setClientWeaponAssignments(prev => ({
-      ...prev,
-      [client.id]: {
-        weapon,
-        precio: weapon.precio,
-        cantidad: 1
-      }
-    }));
-    
-    // Navegar a la página de reserva
-    navigateTo('reserve');
-  };
-
-  const getWeaponPriceForClient = (weaponId: string, clientId?: string) => {
-    if (clientId && clientWeaponAssignments[clientId]) {
-      return clientWeaponAssignments[clientId].precio;
-    }
-    const weapon = availableWeapons.find(w => w.id === weaponId);
-    return weapon ? weapon.precio : 0;
-  };
-
   const handleFinishProcess = () => {
-    // Aquí se guardaría la reserva
-    console.log('Proceso terminado:', {
+    console.log('Reserva completada:', {
       client: selectedClient,
       weapon: selectedWeapon,
-      precioUnitario: precioModificado,
+      precio: precioModificado,
       cantidad,
-      iva: precioModificado * cantidad * 0.15,
-      total: precioModificado * cantidad * 1.15
+      iva: precioModificado * 0.15,
+      total: precioModificado * 1.15
     });
-    
-    // Volver al dashboard
     setCurrentPage('dashboard');
     setSelectedClient(null);
     setSelectedWeapon(null);
-    setPrecioModificado(0);
-    setCantidad(1);
   };
 
-  // Renderizado condicional basado en la página actual
+  const handleViewClient = (client: Client) => {
+    setSelectedClient(client);
+    setCurrentPage('clientForm');
+    
+    // Cargar datos de arma asignada si existe
+    const assignment = clientWeaponAssignments[client.id];
+    if (assignment) {
+      setSelectedWeapon(assignment.weapon);
+      setPrecioModificado(assignment.precio);
+      setCantidad(assignment.cantidad);
+    }
+  };
+
+  const handleEditClient = (client: Client) => {
+    setSelectedClient(client);
+    setCurrentPage('clientForm');
+    
+    // Cargar datos de arma asignada si existe
+    const assignment = clientWeaponAssignments[client.id];
+    if (assignment) {
+      setSelectedWeapon(assignment.weapon);
+      setPrecioModificado(assignment.precio);
+      setCantidad(assignment.cantidad);
+    }
+  };
+
+  const handleDisableClient = (clientId: string) => {
+    setClients(prev => prev.map(c => 
+      c.id === clientId ? { ...c, estado: 'INACTIVO' } : c
+    ));
+  };
+
+  const handleFilterByType = (tipoCliente: string) => {
+    if (clientFilter === tipoCliente) {
+      setClientFilter(null);
+    } else {
+      setClientFilter(tipoCliente);
+    }
+  };
+
+  const clearFilter = () => {
+    setClientFilter(null);
+  };
+
+  const getFilteredClients = () => {
+    if (!clientFilter) return clients;
+    return clients.filter(client => client.tipoCliente === clientFilter);
+  };
+
+  const getWeaponForClient = (clientId: string) => {
+    return clientWeaponAssignments[clientId];
+  };
+
+  const handlePriceChangeWrapper = (price: number) => {
+    if (selectedWeapon) {
+      handlePriceChange(selectedWeapon.id, price);
+    }
+  };
+
+  const handleQuantityChangeWrapper = (quantity: number) => {
+    if (selectedWeapon) {
+      handleQuantityChange(selectedWeapon.id, quantity);
+    }
+  };
+
+  const handleNavigateToWeaponSelection = () => {
+    setCurrentPage('weaponSelection');
+  };
+
+  const isLoading = clientsLoading || weaponsLoading || !isInitialized;
+
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        console.warn('Vendedor screen still loading after 10 seconds');
+      }, 10000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading]);
+
+  const getClientCountByType = (tipo: string) => {
+    return clients.filter(client => client.tipoCliente === tipo).length;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando módulo vendedor...</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
         return (
-          <div className="vendedor-dashboard">
-            <div className="dashboard-header">
-              <h1>Panel de Vendedor</h1>
-              <p>Bienvenido, {user?.nombres}</p>
-              
-              {/* User Menu */}
-              <div className="user-menu">
-                <div className="user-avatar" onClick={toggleUserMenu}>
-                  {getUserInitials()}
-                </div>
-                {showUserMenu && (
-                  <div className="user-dropdown">
-                    <div className="user-dropdown-item" onClick={handleUpdateProfile}>
-                      👤 Actualizar Datos
-                    </div>
-                    <div className="user-dropdown-item logout" onClick={handleLogout}>
-                      🚪 Cerrar Sesión
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="stats-grid">
+          <div className="p-6">
+            {/* Estadísticas de clientes por tipo - CON COLORES como tenías originalmente */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div 
-                className={`stat-card civil ${clientFilter === 'Civil' ? 'active' : ''}`}
+                className={`rounded-xl p-4 shadow-sm border-2 cursor-pointer transition-all duration-200 ${
+                  clientFilter === 'Civil' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-blue-50 hover:border-blue-300 hover:bg-blue-100'
+                }`}
                 onClick={() => handleFilterByType('Civil')}
               >
-                <div className="stat-header">
-                  <div className="stat-icon">👥</div>
-                  <div className="stat-content">
-                    <h3>{clients.filter(c => c.tipoCliente === 'Civil').length}</h3>
-                    <p>Clientes Civiles</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-200 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Civiles</p>
+                      <p className="text-2xl font-bold text-gray-900">{getClientCountByType('Civil')}</p>
+                    </div>
                   </div>
-                </div>
-                {clientFilter === 'Civil' && (
-                  <div className="filter-indicator">
-                    <span>✓ Filtro activo</span>
-                  </div>
-                )}
-              </div>
-              
-              <div 
-                className={`stat-card uniformado ${clientFilter === 'Uniformado' ? 'active' : ''}`}
-                onClick={() => handleFilterByType('Uniformado')}
-              >
-                <div className="stat-header">
-                  <div className="stat-icon">🎖️</div>
-                  <div className="stat-content">
-                    <h3>{clients.filter(c => c.tipoCliente === 'Uniformado').length}</h3>
-                    <p>Clientes Uniformados</p>
-                  </div>
-                </div>
-                {clientFilter === 'Uniformado' && (
-                  <div className="filter-indicator">
-                    <span>✓ Filtro activo</span>
-                  </div>
-                )}
-              </div>
-              
-              <div 
-                className={`stat-card empresa ${clientFilter === 'Compañía de Seguridad' ? 'active' : ''}`}
-                onClick={() => handleFilterByType('Compañía de Seguridad')}
-              >
-                <div className="stat-header">
-                  <div className="stat-icon">🏢</div>
-                  <div className="stat-content">
-                    <h3>{clients.filter(c => c.tipoCliente === 'Compañía de Seguridad').length}</h3>
-                    <p>Compañías de Seguridad</p>
-                  </div>
-                </div>
-                {clientFilter === 'Compañía de Seguridad' && (
-                  <div className="filter-indicator">
-                    <span>✓ Filtro activo</span>
-                  </div>
-                )}
-              </div>
-              
-              <div 
-                className={`stat-card deportista ${clientFilter === 'Deportista' ? 'active' : ''}`}
-                onClick={() => handleFilterByType('Deportista')}
-              >
-                <div className="stat-header">
-                  <div className="stat-icon">🏃</div>
-                  <div className="stat-content">
-                    <h3>{clients.filter(c => c.tipoCliente === 'Deportista').length}</h3>
-                    <p>Deportistas</p>
-                  </div>
-                </div>
-                {clientFilter === 'Deportista' && (
-                  <div className="filter-indicator">
-                    <span>✓ Filtro activo</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="dashboard-actions">
-              <button 
-                className="btn-primary"
-                onClick={handleCreateClient}
-              >
-                ➕ Crear Cliente
-              </button>
-              <button 
-                className="btn-secondary"
-                onClick={handleAssignWeaponWithoutClient}
-              >
-                🔫 Asignar Arma Sin Cliente
-              </button>
-            </div>
-
-            <div className="clientes-section">
-              <div className="section-header">
-                <h2>Lista de Clientes</h2>
-                {clientFilter && (
-                  <div className="filter-controls">
-                    <span className="filter-info">
-                      Filtrado por: <strong>{clientFilter}</strong>
-                    </span>
-                    <button 
-                      className="btn-clear-filter"
-                      onClick={clearFilter}
-                    >
-                      ✕ Limpiar Filtro
-                    </button>
-                  </div>
-                )}
-              </div>
-              {isLoading ? (
-                <div className="loading-container">
-                  <div className="loading-spinner"></div>
-                  <p>Cargando clientes...</p>
-                </div>
-              ) : getFilteredClients().length === 0 ? (
-                <div className="empty-state">
-                  <p>
-                    {clientFilter 
-                      ? `No hay clientes de tipo "${clientFilter}"` 
-                      : 'No hay clientes registrados'
-                    }
-                  </p>
-                  {clientFilter ? (
-                    <button className="btn-primary" onClick={clearFilter}>
-                      Ver Todos los Clientes
-                    </button>
-                  ) : (
-                    <button className="btn-primary" onClick={handleCreateClient}>
-                      Crear Primer Cliente
-                    </button>
+                  {clientFilter === 'Civil' && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   )}
                 </div>
-              ) : (
-                <div className="clientes-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Cliente</th>
-                        <th>Identificación</th>
-                        <th>Tipo</th>
-                        <th>Email</th>
-                        <th>Teléfono</th>
-                        <th>Modelo de Arma</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getFilteredClients().map((client) => {
-                        const assignedWeapon = getWeaponForClient(client.id);
-                        return (
-                          <tr key={client.id}>
-                            <td>
-                              <div className="client-name">
+              </div>
+
+              <div 
+                className={`rounded-xl p-4 shadow-sm border-2 cursor-pointer transition-all duration-200 ${
+                  clientFilter === 'Uniformado' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-orange-50 hover:border-orange-300 hover:bg-orange-100'
+                }`}
+                onClick={() => handleFilterByType('Uniformado')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-orange-200 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Uniformados</p>
+                      <p className="text-2xl font-bold text-gray-900">{getClientCountByType('Uniformado')}</p>
+                    </div>
+                  </div>
+                  {clientFilter === 'Uniformado' && (
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  )}
+                </div>
+              </div>
+
+              <div 
+                className={`rounded-xl p-4 shadow-sm border-2 cursor-pointer transition-all duration-200 ${
+                  clientFilter === 'Compañía de Seguridad' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-green-50 hover:border-green-300 hover:bg-green-100'
+                }`}
+                onClick={() => handleFilterByType('Compañía de Seguridad')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-200 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Compañías</p>
+                      <p className="text-2xl font-bold text-gray-900">{getClientCountByType('Compañía de Seguridad')}</p>
+                    </div>
+                  </div>
+                  {clientFilter === 'Compañía de Seguridad' && (
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  )}
+                </div>
+              </div>
+
+              <div 
+                className={`rounded-xl p-4 shadow-sm border-2 cursor-pointer transition-all duration-200 ${
+                  clientFilter === 'Deportista' ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-red-50 hover:border-red-300 hover:bg-red-100'
+                }`}
+                onClick={() => handleFilterByType('Deportista')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-red-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Deportistas</p>
+                      <p className="text-2xl font-bold text-gray-900">{getClientCountByType('Deportista')}</p>
+                    </div>
+                  </div>
+                  {clientFilter === 'Deportista' && (
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Botón para limpiar filtro - MÁS VISUAL */}
+            {clientFilter && (
+              <div className="mb-6">
+                <button
+                  onClick={clearFilter}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Limpiar Filtro: {clientFilter}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div className="flex space-x-4 mb-6">
+              <button
+                onClick={handleCreateClient}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
+              >
+                Crear Cliente
+              </button>
+              <button
+                onClick={handleAssignWeaponWithoutClient}
+                className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+              >
+                Asignar Arma Sin Cliente
+              </button>
+            </div>
+
+            {/* Tabla de clientes - MENOS PLANA con separación sutil */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-900">Lista de Clientes</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        CLIENTE
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        TIPO
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        IDENTIFICACIÓN
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        TELÉFONO
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        MODELO DE ARMA
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        ACCIONES
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {getFilteredClients().map((client, index) => {
+                      const weaponAssignment = getWeaponForClient(client.id);
+                      return (
+                        <tr key={client.id} className={`hover:bg-gray-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
                                 {client.nombres} {client.apellidos}
                               </div>
-                            </td>
-                            <td>{client.numeroIdentificacion}</td>
-                            <td>
-                              <span className={`client-type ${client.tipoCliente.toLowerCase().replace(/\s+/g, '-')}`}>
-                                {client.tipoCliente}
-                              </span>
-                            </td>
-                            <td>{client.email}</td>
-                            <td>{client.telefonoPrincipal}</td>
-                            <td>
-                              {assignedWeapon ? (
-                                <div className="weapon-info">
-                                  <span className="weapon-model">{assignedWeapon.modelo}</span>
-                                  <span className="weapon-caliber">{assignedWeapon.calibre}</span>
-                                </div>
-                              ) : (
-                                <span className="no-weapon">Sin arma asignada</span>
-                              )}
-                            </td>
-                            <td>
-                              <div className="client-actions">
-                                <button 
-                                  className="action-btn view"
-                                  onClick={() => handleViewClient(client)}
-                                  title="Ver Cliente"
-                                >
-                                  👁️ Ver
-                                </button>
-                                <button 
-                                  className="action-btn edit"
-                                  onClick={() => handleEditClient(client)}
-                                  title="Editar Cliente"
-                                >
-                                  ✏️ Editar
-                                </button>
-                                <button 
-                                  className="action-btn disable"
-                                  onClick={() => handleDisableClient(client.id)}
-                                  title="Inhabilitar Cliente"
-                                >
-                                  🚫 Inhabilitar
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                              <div className="text-sm text-gray-500">{client.email}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              client.tipoCliente === 'Civil' ? 'bg-blue-100 text-blue-800' :
+                              client.tipoCliente === 'Uniformado' ? 'bg-orange-100 text-orange-800' :
+                              client.tipoCliente === 'Compañía de Seguridad' ? 'bg-green-100 text-green-800' :
+                              client.tipoCliente === 'Deportista' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {client.tipoCliente}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {client.numeroIdentificacion}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {client.telefonoPrincipal}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {weaponAssignment ? (
+                              `${weaponAssignment.weapon.modelo} (${weaponAssignment.weapon.calibre})`
+                            ) : (
+                              <span className="text-gray-400">Sin arma asignada</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleViewClient(client)}
+                                className="text-blue-600 hover:text-blue-900 font-medium"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                onClick={() => handleEditClient(client)}
+                                className="text-green-600 hover:text-green-900 font-medium"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleDisableClient(client.id)}
+                                className="text-red-600 hover:text-red-900 font-medium"
+                              >
+                                Desactivar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );
 
       case 'clientForm':
         return (
-          <div className="client-form-container">
+          <div className="p-6">
             <ClientForm
-              mode={formMode}
+              mode={selectedClient ? 'edit' : 'create'}
               client={selectedClient}
               onSave={handleClientSaved}
               onCancel={handleCloseForm}
@@ -627,289 +486,55 @@ const Vendedor: React.FC = () => {
 
       case 'weaponSelection':
         return (
-          <div className="weapon-selection-page">
-            <div className="page-header">
-              <button className="btn-back" onClick={() => navigateTo('dashboard')}>
-                ← Volver al Dashboard
-              </button>
-              <h1>Selección de Arma</h1>
-              {selectedClient && (
-                <p>Cliente: {selectedClient.nombres} {selectedClient.apellidos}</p>
-              )}
-            </div>
-            
+          <div className="p-6">
             <WeaponReserve
               weapons={availableWeapons}
               currentClient={selectedClient}
               reservaParaCliente={selectedClient}
               clienteParaResumen={selectedClient}
               armaSeleccionadaEnReserva={selectedWeapon}
-              onBack={() => navigateTo('dashboard')}
+              onBack={() => setCurrentPage('dashboard')}
               onWeaponSelection={handleWeaponSelected}
               onWeaponSelectionInReserve={handleWeaponSelected}
-              onAssignWeaponToClient={handleAssignWeaponToClient}
-              onAssignWeaponToCupoCivil={(weapon) => {
-                handleWeaponSelected(weapon);
-                setCurrentPage('reserve');
+              onAssignWeaponToClient={(client, weapon) => {
+                setSelectedClient(client);
+                setSelectedWeapon(weapon);
+                setPrecioModificado(weapon.precio);
+                setCantidad(1);
               }}
-              onConfirmData={() => setCurrentPage('reserve')}
+              onAssignWeaponToCupoCivil={(weapon) => {
+                setSelectedWeapon(weapon);
+                setPrecioModificado(weapon.precio);
+                setCantidad(1);
+              }}
+              onConfirmData={handleFinishProcess}
               onUpdateWeaponPrice={handlePriceChange}
               onUpdateWeaponQuantity={handleQuantityChange}
-              getWeaponPriceForClient={getWeaponPriceForClient}
+              getWeaponPriceForClient={(weaponId, clientId) => {
+                if (clientId && clientWeaponAssignments[clientId]) {
+                  return clientWeaponAssignments[clientId].precio;
+                }
+                const weapon = availableWeapons.find(w => w.id === weaponId);
+                return weapon ? weapon.precio : 0;
+              }}
               currentClientId={selectedClient?.id}
             />
           </div>
         );
 
-      case 'reserve':
-        return (
-          <div className="reserve-page">
-            <div className="page-header">
-              <button className="btn-back" onClick={() => navigateTo('weaponSelection')}>
-                ← Volver a Selección
-              </button>
-              <h1>Reserva de Arma</h1>
-            </div>
-            
-            {selectedClient && (
-              <div className="client-info">
-                <h3>Cliente Seleccionado</h3>
-                <p><strong>Nombre:</strong> {selectedClient.nombres} {selectedClient.apellidos}</p>
-                <p><strong>Identificación:</strong> {selectedClient.numeroIdentificacion}</p>
-                <p><strong>Tipo:</strong> {selectedClient.tipoCliente}</p>
-                <p><strong>Email:</strong> {selectedClient.email}</p>
-              </div>
-            )}
-            
-            {selectedWeapon && (
-              <div className="reserve-details">
-                <div className="weapon-info">
-                  <h3>Arma Seleccionada</h3>
-                  <p><strong>Modelo:</strong> {selectedWeapon.modelo}</p>
-                  <p><strong>Calibre:</strong> {selectedWeapon.calibre}</p>
-                  <p><strong>Capacidad:</strong> {selectedWeapon.capacidad}</p>
-                </div>
-
-                <div className="pricing-section">
-                  <h3>Precios</h3>
-                  <div className="price-input">
-                    <label>Precio Unitario:</label>
-                    <input
-                      type="number"
-                      value={precioModificado}
-                      onChange={(e) => handlePriceChange(selectedWeapon?.id || '', parseFloat(e.target.value) || 0)}
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="quantity-input">
-                    <label>Cantidad:</label>
-                    <input
-                      type="number"
-                      value={cantidad}
-                      onChange={(e) => handleQuantityChange(selectedWeapon?.id || '', parseInt(e.target.value) || 1)}
-                      min="1"
-                    />
-                  </div>
-                  
-                  <div className="price-breakdown">
-                    <p><strong>Subtotal:</strong> ${(precioModificado * cantidad).toFixed(2)}</p>
-                    <p><strong>IVA (15%):</strong> <span className="iva-green">${(precioModificado * cantidad * 0.15).toFixed(2)}</span></p>
-                    <p><strong>Total:</strong> <span className="total-green">${(precioModificado * cantidad * 1.15).toFixed(2)}</span></p>
-                  </div>
-                </div>
-
-                <div className="action-buttons">
-                  <button 
-                    className="btn-primary"
-                    onClick={handleFinishProcess}
-                  >
-                    ✅ Terminar Proceso
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      case 'profile':
-        return (
-          <div className="profile-page">
-            <div className="page-header">
-              <button className="btn-back" onClick={() => navigateTo('dashboard')}>
-                ← Volver al Dashboard
-              </button>
-              <h1>Actualizar Perfil</h1>
-            </div>
-            
-            <div className="profile-form-container">
-              <form onSubmit={handleProfileSubmit} className="profile-form">
-                <div className="form-section">
-                  <h3>Información Personal</h3>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Nombres *</label>
-                      <input
-                        type="text"
-                        value={profileForm.nombres}
-                        onChange={(e) => handleProfileFormChange('nombres', e.target.value)}
-                        required
-                        className="form-input"
-                        placeholder="Ingrese los nombres"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label className="form-label">Apellidos *</label>
-                      <input
-                        type="text"
-                        value={profileForm.apellidos}
-                        onChange={(e) => handleProfileFormChange('apellidos', e.target.value)}
-                        required
-                        className="form-input"
-                        placeholder="Ingrese los apellidos"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Email *</label>
-                    <input
-                      type="email"
-                      value={profileForm.email}
-                      onChange={(e) => handleProfileFormChange('email', e.target.value)}
-                      required
-                      className="form-input"
-                      placeholder="ejemplo@correo.com"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-section">
-                  <h3>Información de Contacto</h3>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Teléfono Principal *</label>
-                      <input
-                        type="tel"
-                        value={profileForm.telefonoPrincipal}
-                        onChange={(e) => handleProfileFormChange('telefonoPrincipal', e.target.value)}
-                        required
-                        className="form-input"
-                        placeholder="Ingrese el teléfono"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label className="form-label">Teléfono Secundario</label>
-                      <input
-                        type="tel"
-                        value={profileForm.telefonoSecundario}
-                        onChange={(e) => handleProfileFormChange('telefonoSecundario', e.target.value)}
-                        className="form-input"
-                        placeholder="Teléfono secundario (opcional)"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Dirección *</label>
-                    <input
-                      type="text"
-                      value={profileForm.direccion}
-                      onChange={(e) => handleProfileFormChange('direccion', e.target.value)}
-                      required
-                      className="form-input"
-                      placeholder="Ingrese la dirección"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-actions">
-                  <button
-                    type="button"
-                    onClick={() => navigateTo('dashboard')}
-                    className="btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                  >
-                    Actualizar Perfil
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        );
-
       default:
-        return <div>Página no encontrada</div>;
+        return null;
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Cargando...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="vendedor-container">
-      {/* Contenido principal */}
-      <main className="vendedor-main">
-        {clientsError && (
-          <div className="error-message">
-            {clientsError}
-          </div>
-        )}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header como en la imagen - CON MÁS COLOR */}
+      <Header title="Vendedor" subtitle="Gestión de clientes y ventas" />
 
+      <div className="p-6">
         {renderCurrentPage()}
-      </main>
-
-      {/* Modal de Confirmación de Logout */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  ¿Desea cerrar sesión?
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Se cerrará su sesión actual y será redirigido al login.
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={cancelLogout}
-                  className="px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmLogout}
-                  className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 font-semibold"
-                >
-                  Sí, Cerrar Sesión
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { mockApiService } from '../services/mockApiService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,37 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole, 
   anyRole 
 }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const checkAccess = async () => {
-      if (!isAuthenticated) {
-        setHasAccess(false);
-        return;
-      }
-
-      try {
-        // Usar mockApiService para verificar roles
-        if (requiredRole) {
-          const hasRole = await mockApiService.hasRole(requiredRole);
-          setHasAccess(hasRole);
-        } else if (anyRole && anyRole.length > 0) {
-          const hasAnyRole = await mockApiService.hasAnyRole(anyRole);
-          setHasAccess(hasAnyRole);
-        } else {
-          setHasAccess(true);
-        }
-      } catch (error) {
-        console.error('Error verificando roles:', error);
-        setHasAccess(false);
-      }
-    };
-
-    if (!isLoading) {
-      checkAccess();
-    }
-  }, [isAuthenticated, isLoading, requiredRole, anyRole]);
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return <div>Cargando...</div>;
@@ -54,8 +23,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (hasAccess === null) {
-    return <div>Verificando permisos...</div>;
+  // Verificar roles directamente del usuario
+  const userRoles = user?.roles?.map(role => role.rol?.nombre?.toLowerCase()).filter(Boolean) || [];
+
+  // Debug: ver qué está pasando
+  console.log('🔍 ProtectedRoute - Usuario:', user?.nombres);
+  console.log('🔍 ProtectedRoute - UserRoles:', userRoles);
+  console.log('🔍 ProtectedRoute - RequiredRole:', requiredRole);
+  console.log('🔍 ProtectedRoute - AnyRole:', anyRole);
+
+  let hasAccess = true;
+
+  if (requiredRole) {
+    hasAccess = userRoles.includes(requiredRole.toLowerCase());
+    console.log('🔍 ProtectedRoute - HasRequiredRole:', hasAccess);
+  } else if (anyRole && anyRole.length > 0) {
+    hasAccess = anyRole.some(role => userRoles.includes(role.toLowerCase()));
+    console.log('🔍 ProtectedRoute - HasAnyRole:', hasAccess);
   }
 
   if (!hasAccess) {

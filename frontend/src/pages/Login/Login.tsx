@@ -135,9 +135,10 @@ const Login: React.FC = () => {
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                 <h3 className="text-sm font-semibold text-blue-800 mb-2">Credenciales de Prueba</h3>
                 <div className="text-xs text-blue-600 space-y-1">
-                  <p><strong>Admin:</strong> admin@test.com / admin123</p>
-                  <p><strong>Vendedor:</strong> vendedor@test.com / vendedor123</p>
-                  <p><strong>Finanzas:</strong> finanzas@test.com / finanzas123</p>
+                  <p><strong>Admin:</strong> admin@test.com / password123</p>
+                  <p><strong>Vendedor:</strong> vendedor@test.com / password123</p>
+                  <p><strong>Finanzas:</strong> finanzas@test.com / password123</p>
+                  <p><strong>Jefe Ventas:</strong> jefe@test.com / password123</p>
                 </div>
               </div>
             </div>

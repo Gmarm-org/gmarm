@@ -12,7 +12,7 @@ export const mockUsers: User[] = [
     email: 'admin@test.com',
     nombres: 'Administrador',
     apellidos: 'Sistema',
-    foto: undefined,
+    foto: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjM0I4MkZGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIzMCIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNDAgMTYwQzQwIDEzNS4yIDYwLjIgMTE1IDg1IDExNUgxMTVDMTM5LjggMTE1IDE2MCAxMzUuMiAxNjAgMTYwVjE3MEg0MFYxNjBaIiBmaWxsPSIjRkZGIi8+Cjwvc3ZnPgo=',
     telefonoPrincipal: '0987654321',
     telefonoSecundario: undefined,
     direccion: 'Av. Principal 123',
@@ -22,7 +22,34 @@ export const mockUsers: User[] = [
     intentosLogin: 0,
     ultimoIntento: undefined,
     bloqueado: false,
-    roles: []
+    roles: [
+      {
+        usuarioId: 1,
+        rolId: 5,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: {
+          id: 5,
+          nombre: 'Administrador',
+          descripcion: 'Acceso completo al sistema',
+          tipoRolVendedor: undefined,
+          estado: true
+        }
+      },
+      {
+        usuarioId: 1,
+        rolId: 3,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: {
+          id: 3,
+          nombre: 'Operaciones',
+          descripcion: 'Gestión de importación y documentación',
+          tipoRolVendedor: undefined,
+          estado: true
+        }
+      }
+    ]
   },
   {
     id: 2,
@@ -30,7 +57,7 @@ export const mockUsers: User[] = [
     email: 'vendedor@test.com',
     nombres: 'Juan',
     apellidos: 'Pérez',
-    foto: undefined,
+    foto: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMTA5ODY2Ii8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIzMCIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNDAgMTYwQzQwIDEzNS4yIDYwLjIgMTE1IDg1IDExNUgxMTVDMTM5LjggMTE1IDE2MCAxMzUuMiAxNjAgMTYwVjE3MEg0MFYxNjBaIiBmaWxsPSIjRkZGIi8+Cjwvc3ZnPgo=',
     telefonoPrincipal: '0987654322',
     telefonoSecundario: undefined,
     direccion: 'Av. Comercial 456',
@@ -40,7 +67,21 @@ export const mockUsers: User[] = [
     intentosLogin: 0,
     ultimoIntento: undefined,
     bloqueado: false,
-    roles: []
+    roles: [
+      {
+        usuarioId: 2,
+        rolId: 1,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: {
+          id: 1,
+          nombre: 'Vendedor',
+          descripcion: 'Registro de clientes y selección de armas catálogo',
+          tipoRolVendedor: 'LIBRE',
+          estado: true
+        }
+      }
+    ]
   },
   {
     id: 3,
@@ -48,7 +89,7 @@ export const mockUsers: User[] = [
     email: 'finanzas@test.com',
     nombres: 'María',
     apellidos: 'González',
-    foto: undefined,
+    foto: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRDM0QjU2Ii8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIzMCIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNDAgMTYwQzQwIDEzNS4yIDYwLjIgMTE1IDg1IDExNUgxMTVDMTM5LjggMTE1IDE2MCAxMzUuMiAxNjAgMTYwVjE3MEg0MFYxNjBaIiBmaWxsPSIjRkZGIi8+Cjwvc3ZnPgo=',
     telefonoPrincipal: '0987654323',
     telefonoSecundario: undefined,
     direccion: 'Av. Financiera 789',
@@ -58,7 +99,21 @@ export const mockUsers: User[] = [
     intentosLogin: 0,
     ultimoIntento: undefined,
     bloqueado: false,
-    roles: []
+    roles: [
+      {
+        usuarioId: 3,
+        rolId: 4,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: {
+          id: 4,
+          nombre: 'Finanzas',
+          descripcion: 'Gestión de pagos y facturación',
+          tipoRolVendedor: undefined,
+          estado: true
+        }
+      }
+    ]
   },
   {
     id: 4,
@@ -66,7 +121,7 @@ export const mockUsers: User[] = [
     email: 'jefe@test.com',
     nombres: 'Carlos',
     apellidos: 'Rodríguez',
-    foto: undefined,
+    foto: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjU5QjIzIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIzMCIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNDAgMTYwQzQwIDEzNS4yIDYwLjIgMTE1IDg1IDExNUgxMTVDMTM5LjggMTE1IDE2MCAxMzUuMiAxNjAgMTYwVjE3MEg0MFYxNjBaIiBmaWxsPSIjRkZGIi8+Cjwvc3ZnPgo=',
     telefonoPrincipal: '0987654324',
     telefonoSecundario: undefined,
     direccion: 'Av. Ejecutiva 321',
@@ -76,7 +131,34 @@ export const mockUsers: User[] = [
     intentosLogin: 0,
     ultimoIntento: undefined,
     bloqueado: false,
-    roles: []
+    roles: [
+      {
+        usuarioId: 4,
+        rolId: 2,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: {
+          id: 2,
+          nombre: 'Dirección de Ventas',
+          descripcion: 'Aprobación de solicitudes y creación de grupos de importación',
+          tipoRolVendedor: undefined,
+          estado: true
+        }
+      },
+      {
+        usuarioId: 4,
+        rolId: 1,
+        fechaAsignacion: '2024-01-01T00:00:00Z',
+        activo: true,
+        rol: {
+          id: 1,
+          nombre: 'Vendedor',
+          descripcion: 'Registro de clientes y selección de armas catálogo',
+          tipoRolVendedor: 'LIBRE',
+          estado: true
+        }
+      }
+    ]
   }
 ];
 

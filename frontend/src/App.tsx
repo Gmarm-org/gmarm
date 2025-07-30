@@ -1,13 +1,18 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login/Login';
-import Vendedor from './pages/Vendedor/Vendedor';
-import Usuario from './pages/Usuario/Usuario';
-import Dashboard from './pages/Dashboard/Dashboard';
-import Pagos from './pages/Pagos/Pagos';
 import Unauthorized from './pages/Unauthorized/Unauthorized';
-import { useAuth } from './contexts/AuthContext';
+import Dashboard from './pages/Dashboard/Dashboard';
+import Vendedor from './pages/Vendedor/Vendedor';
+import Pagos from './pages/Pagos/Pagos';
+import Finanzas from './pages/Finanzas/Finanzas';
+import JefeVentas from './pages/JefeVentas/JefeVentas';
+import JefeVentasSupervision from './pages/JefeVentas/JefeVentasSupervision';
+import Usuario from './pages/Usuario/Usuario';
+import Profile from './pages/Profile/Profile';
+import RoleSelection from './pages/RoleSelection/RoleSelection';
 import './styles/App.css';
 
 // Componente para redirección inteligente basada en rol
@@ -18,16 +23,32 @@ const SmartRedirect: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const roleNames = user.roles?.map(role => role.rol?.nombre || '').filter(nombre => nombre !== '') || [];
+  // TEMPORAL: Forzar jefe de ventas a role-selection
+  if (user.email === 'jefe@test.com') {
+    return <Navigate to="/role-selection" replace />;
+  }
 
-  if (roleNames.includes('VENDEDOR')) {
-    return <Navigate to="/vendedor" replace />;
-  } else if (roleNames.includes('FINANZAS')) {
-    return <Navigate to="/pagos" replace />;
-  } else if (roleNames.includes('ADMIN')) {
-    return <Navigate to="/usuarios" replace />;
-  } else {
-    return <Navigate to="/dashboard" replace />;
+  // Si el usuario tiene múltiples roles, mostrar pantalla de selección
+  if (user.roles && user.roles.length > 1) {
+    return <Navigate to="/role-selection" replace />;
+  }
+
+  // Si tiene un solo rol, redirigir directamente
+  const firstRole = user.roles?.[0]?.rol?.nombre?.toLowerCase() || '';
+
+  switch (firstRole) {
+    case 'vendedor':
+      return <Navigate to="/vendedor" replace />;
+    case 'dirección de ventas':
+      return <Navigate to="/jefe-ventas" replace />;
+    case 'finanzas':
+      return <Navigate to="/finanzas" replace />;
+    case 'administrador':
+      return <Navigate to="/dashboard" replace />;
+    case 'operaciones':
+      return <Navigate to="/operaciones" replace />;
+    default:
+      return <Navigate to="/dashboard" replace />;
   }
 };
 
@@ -43,10 +64,10 @@ function App() {
             
             {/* Rutas protegidas */}
             <Route 
-              path="/dashboard" 
+              path="/role-selection" 
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <RoleSelection />
                 </ProtectedRoute>
               } 
             />
@@ -54,7 +75,7 @@ function App() {
             <Route 
               path="/vendedor" 
               element={
-                <ProtectedRoute anyRole={['VENDEDOR', 'ADMIN']}>
+                <ProtectedRoute anyRole={['vendedor', 'dirección de ventas', 'administrador']}>
                   <Vendedor />
                 </ProtectedRoute>
               } 
@@ -63,8 +84,35 @@ function App() {
             <Route 
               path="/pagos" 
               element={
-                <ProtectedRoute anyRole={['FINANZAS', 'ADMIN']}>
+                <ProtectedRoute anyRole={['finanzas', 'administrador']}>
                   <Pagos />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/finanzas" 
+              element={
+                <ProtectedRoute anyRole={['finanzas', 'administrador']}>
+                  <Finanzas />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/jefe-ventas" 
+              element={
+                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                  <JefeVentas />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/jefe-ventas-supervision" 
+              element={
+                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                  <JefeVentasSupervision />
                 </ProtectedRoute>
               } 
             />
@@ -72,8 +120,17 @@ function App() {
             <Route 
               path="/usuarios" 
               element={
-                <ProtectedRoute requiredRole="ADMIN">
+                <ProtectedRoute anyRole={['administrador']}>
                   <Usuario />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               } 
             />
