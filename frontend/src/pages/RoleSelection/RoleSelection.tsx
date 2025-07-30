@@ -6,11 +6,6 @@ const RoleSelection: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Debug: verificar que se está cargando
-  console.log('🔍 RoleSelection - Usuario:', user);
-  console.log('🔍 RoleSelection - Roles:', user?.roles);
-  console.log('🔍 RoleSelection - Cantidad de roles:', user?.roles?.length);
-
   if (!user || !user.roles || user.roles.length === 0) {
     return <div>No hay roles disponibles</div>;
   }

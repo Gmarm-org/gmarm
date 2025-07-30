@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { mockApiService } from '../../services/mockApiService';
+import type { Client } from '../../types';
 import Header from '../../components/Header';
 import ClientForm from './components/ClientForm';
 import WeaponReserve from './components/WeaponReserve';
-import type { Client, Weapon, Page } from './types';
 
 const Vendedor: React.FC = () => {
-  const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [availableWeapons, setAvailableWeapons] = useState<Weapon[]>([]);
-  const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
+  const [availableWeapons, setAvailableWeapons] = useState<any[]>([]); // Changed type to any[] as Weapon type was removed
+  const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null); // Changed type to any
   const [precioModificado, setPrecioModificado] = useState<number>(0);
   const [cantidad, setCantidad] = useState<number>(1);
-  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: Weapon; precio: number; cantidad: number }>>({});
+  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number }>>({}); // Changed type to any
   const [clientFilter, setClientFilter] = useState<string | null>(null);
   const [clientsLoading, setClientsLoading] = useState(true);
   const [weaponsLoading, setWeaponsLoading] = useState(true);
@@ -29,7 +27,7 @@ const Vendedor: React.FC = () => {
   useEffect(() => {
     if (availableWeapons.length > 0 && clients.length > 0 && Object.keys(clientWeaponAssignments).length === 0) {
       // Crear asignaciones de prueba para los primeros 3 clientes
-      const testAssignments: Record<string, { weapon: Weapon; precio: number; cantidad: number }> = {};
+      const testAssignments: Record<string, { weapon: any; precio: number; cantidad: number }> = {};
       const firstWeapon = availableWeapons[0];
       
       clients.slice(0, 3).forEach(client => {
@@ -90,7 +88,7 @@ const Vendedor: React.FC = () => {
     setSelectedClient(null);
   };
 
-  const handleWeaponSelected = (weapon: Weapon | null) => {
+  const handleWeaponSelected = (weapon: any | null) => {
     if (weapon) {
       setSelectedWeapon(weapon);
       setPrecioModificado(weapon.precio);

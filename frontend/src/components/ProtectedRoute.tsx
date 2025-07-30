@@ -26,20 +26,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Verificar roles directamente del usuario
   const userRoles = user?.roles?.map(role => role.rol?.nombre?.toLowerCase()).filter(Boolean) || [];
 
-  // Debug: ver qué está pasando
-  console.log('🔍 ProtectedRoute - Usuario:', user?.nombres);
-  console.log('🔍 ProtectedRoute - UserRoles:', userRoles);
-  console.log('🔍 ProtectedRoute - RequiredRole:', requiredRole);
-  console.log('🔍 ProtectedRoute - AnyRole:', anyRole);
-
   let hasAccess = true;
 
   if (requiredRole) {
     hasAccess = userRoles.includes(requiredRole.toLowerCase());
-    console.log('🔍 ProtectedRoute - HasRequiredRole:', hasAccess);
   } else if (anyRole && anyRole.length > 0) {
     hasAccess = anyRole.some(role => userRoles.includes(role.toLowerCase()));
-    console.log('🔍 ProtectedRoute - HasAnyRole:', hasAccess);
   }
 
   if (!hasAccess) {

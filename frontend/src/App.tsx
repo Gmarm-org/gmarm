@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login/Login';
 import Unauthorized from './pages/Unauthorized/Unauthorized';
-import Dashboard from './pages/Dashboard/Dashboard';
 import Vendedor from './pages/Vendedor/Vendedor';
 import Pagos from './pages/Pagos/Pagos';
 import Finanzas from './pages/Finanzas/Finanzas';
@@ -21,11 +20,6 @@ const SmartRedirect: React.FC = () => {
   
   if (!user) {
     return <Navigate to="/login" replace />;
-  }
-
-  // TEMPORAL: Forzar jefe de ventas a role-selection
-  if (user.email === 'jefe@test.com') {
-    return <Navigate to="/role-selection" replace />;
   }
 
   // Si el usuario tiene múltiples roles, mostrar pantalla de selección
@@ -137,6 +131,7 @@ function App() {
             
             {/* Redirección inteligente por defecto */}
             <Route path="/" element={<SmartRedirect />} />
+            <Route path="/dashboard" element={<SmartRedirect />} />
             <Route path="*" element={<SmartRedirect />} />
           </Routes>
         </div>
