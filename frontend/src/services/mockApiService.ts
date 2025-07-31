@@ -13,7 +13,11 @@ import {
   mockProvinces,
   mockCantons,
   simulateApiDelay,
-  simulateRandomError
+  simulateRandomError,
+  mockClientQuestions,
+  mockRequiredDocuments,
+  mockAdditionalDocuments,
+  clientTypeToProcessId
 } from '../data/mockData';
 import type { 
   User, 
@@ -140,6 +144,7 @@ class MockApiService {
     return cliente;
   }
 
+  // Crear cliente
   async createCliente(clienteData: Partial<Client>): Promise<Client> {
     await simulateApiDelay();
     
@@ -156,7 +161,7 @@ class MockApiService {
       fechaNacimiento: clienteData.fechaNacimiento || '',
       direccion: clienteData.direccion || '',
       telefonoPrincipal: clienteData.telefonoPrincipal || '',
-      telefonoSecundario: clienteData.telefonoSecundario,
+      telefonoSecundario: clienteData.telefonoSecundario || '',
       tipoCliente: clienteData.tipoCliente || '',
       tipoIdentificacion: clienteData.tipoIdentificacion || '',
       estadoMilitar: clienteData.estadoMilitar,
@@ -168,13 +173,37 @@ class MockApiService {
       correoEmpresa: clienteData.correoEmpresa,
       provinciaEmpresa: clienteData.provinciaEmpresa,
       cantonEmpresa: clienteData.cantonEmpresa,
-      provincia: clienteData.provincia,
-      canton: clienteData.canton,
-      vendedorId: clienteData.vendedorId
+      provincia: clienteData.provincia || '',
+      canton: clienteData.canton || '',
+      vendedorId: clienteData.vendedorId || '1'
     };
 
     mockClients.push(newCliente);
     return newCliente;
+  }
+
+  // Actualizar cliente
+  async updateCliente(id: string, clienteData: Partial<Client>): Promise<Client> {
+    await simulateApiDelay();
+    
+    if (simulateRandomError()) {
+      throw new Error('Error al actualizar cliente');
+    }
+
+    const clienteIndex = mockClients.findIndex(c => c.id === id);
+    if (clienteIndex === -1) {
+      throw new Error('Cliente no encontrado');
+    }
+
+    // Actualizar el cliente existente
+    const updatedCliente: Client = {
+      ...mockClients[clienteIndex],
+      ...clienteData,
+      id: id // Mantener el ID original
+    };
+
+    mockClients[clienteIndex] = updatedCliente;
+    return updatedCliente;
   }
 
   // ========================================
@@ -343,6 +372,50 @@ class MockApiService {
     }
 
     return mockUsers[userIndex];
+  }
+
+  // ========================================
+  // DOCUMENTOS Y PREGUNTAS DINÁMICAS
+  // ========================================
+
+  // Obtener preguntas por tipo de cliente
+  async getClientQuestions(clientType: string, estadoMilitar?: string): Promise<any[]> {
+    await simulateApiDelay();
+    
+    let processId = clientTypeToProcessId[clientType as keyof typeof clientTypeToProcessId];
+    
+    // Si es Uniformado y está en servicio pasivo, usar preguntas de Civil
+    if (clientType === 'Uniformado' && estadoMilitar === 'PASIVO') {
+      processId = 1; // Civil
+    }
+    
+    return mockClientQuestions
+      .filter(q => q.tipo_proceso_id === processId)
+      .sort((a, b) => a.orden - b.orden);
+  }
+
+  // Obtener documentos por tipo de cliente
+  async getDocumentsByClientType(clientType: string, estadoMilitar?: string): Promise<any[]> {
+    await simulateApiDelay();
+    
+    let processId = clientTypeToProcessId[clientType as keyof typeof clientTypeToProcessId];
+    
+    // Si es Uniformado y está en servicio pasivo, usar documentos de Civil
+    if (clientType === 'Uniformado' && estadoMilitar === 'PASIVO') {
+      processId = 1; // Civil
+    }
+    
+    // Documentos con links (para todos excepto Compañía de Seguridad)
+    const documentsWithLinks = clientType !== 'Compañía de Seguridad' 
+      ? mockRequiredDocuments 
+      : [];
+    
+    // Documentos adicionales específicos del tipo de cliente
+    const additionalDocuments = mockAdditionalDocuments
+      .filter(d => d.tipo_proceso_id === processId);
+    
+    // Combinar ambos tipos de documentos
+    return [...documentsWithLinks, ...additionalDocuments];
   }
 
   // ========================================

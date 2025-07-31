@@ -78,7 +78,19 @@ const Vendedor: React.FC = () => {
   };
 
   const handleClientSaved = (client: Client) => {
-    setClients(prev => [client, ...prev]);
+    setClients(prev => {
+      // Verificar si el cliente ya existe (modo edit)
+      const existingIndex = prev.findIndex(c => c.id === client.id);
+      if (existingIndex !== -1) {
+        // Actualizar cliente existente
+        const updatedClients = [...prev];
+        updatedClients[existingIndex] = client;
+        return updatedClients;
+      } else {
+        // Agregar nuevo cliente
+        return [client, ...prev];
+      }
+    });
     setCurrentPage('weaponSelection');
     setSelectedClient(client);
   };

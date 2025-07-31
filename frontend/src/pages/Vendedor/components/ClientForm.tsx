@@ -57,10 +57,154 @@ const ClientForm: React.FC<ClientFormProps> = ({
     respuestas: []
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [availableCantons, setAvailableCantons] = useState<string[]>([]);
   const [availableCantonsEmpresa, setAvailableCantonsEmpresa] = useState<string[]>([]);
+  const [clientQuestions, setClientQuestions] = useState<any[]>([]);
+  const [requiredDocuments, setRequiredDocuments] = useState<any[]>([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, File>>({});
+  const [documentStatus, setDocumentStatus] = useState<'pending' | 'complete' | 'incomplete'>('pending');
+  const [showMilitaryWarning, setShowMilitaryWarning] = useState(false);
+
+  // Determinar si es empresa
+  const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
+  const isUniformado = formData.tipoCliente === 'Uniformado';
+
+  // Cargar preguntas y documentos cuando cambie el tipo de cliente
+  useEffect(() => {
+    const loadQuestionsAndDocuments = async () => {
+      try {
+        const questions = await mockApiService.getClientQuestions(formData.tipoCliente, formData.estadoMilitar);
+        const documents = await mockApiService.getDocumentsByClientType(formData.tipoCliente, formData.estadoMilitar);
+        
+        setClientQuestions(questions);
+        setRequiredDocuments(documents);
+      } catch (error) {
+        console.error('Error cargando preguntas y documentos:', error);
+      }
+    };
+
+    if (formData.tipoCliente) {
+      loadQuestionsAndDocuments();
+    }
+  }, [formData.tipoCliente, formData.estadoMilitar]);
+
+  // Mostrar advertencia para uniformado pasivo
+  useEffect(() => {
+    if (isUniformado && formData.estadoMilitar === 'PASIVO') {
+      setShowMilitaryWarning(true);
+    } else {
+      setShowMilitaryWarning(false);
+    }
+  }, [isUniformado, formData.estadoMilitar]);
+
+  // Verificar estado de documentos
+  useEffect(() => {
+    const checkDocumentCompleteness = () => {
+      const mandatoryDocuments = requiredDocuments.filter(doc => doc.obligatorio);
+      const uploadedMandatoryDocs = mandatoryDocuments.filter(doc => 
+        uploadedDocuments[doc.nombre]
+      );
+      
+      if (mandatoryDocuments.length === 0) {
+        setDocumentStatus('complete');
+      } else if (uploadedMandatoryDocs.length === mandatoryDocuments.length) {
+        setDocumentStatus('complete');
+      } else if (uploadedMandatoryDocs.length > 0) {
+        setDocumentStatus('incomplete');
+      } else {
+        setDocumentStatus('pending');
+      }
+    };
+
+    checkDocumentCompleteness();
+  }, [uploadedDocuments, requiredDocuments]);
+
+  // Función para convertir a mayúsculas
+  const toUpperCase = (value: string) => {
+    return value.toUpperCase();
+  };
+
+  // Validación de cédula/RUC
+  const validateIdentification = (value: string, type: string) => {
+    if (!value) return '';
+    
+    if (type === 'Cédula') {
+      if (value.length !== 10) {
+        return 'La cédula debe tener exactamente 10 dígitos';
+      }
+    } else if (type === 'RUC') {
+      if (value.length !== 13) {
+        return 'El RUC debe tener exactamente 13 dígitos';
+      }
+    }
+    
+    return '';
+  };
+
+  // Validación de nombres (solo letras y espacios)
+  const validateName = (value: string) => {
+    if (!value) return '';
+    
+    const nameRegex = /^[A-ZÁÉÍÓÚÑ\s]+$/;
+    if (!nameRegex.test(value)) {
+      return 'Solo se permiten letras y espacios';
+    }
+    
+    return '';
+  };
+
+  // Función para validar teléfono
+  const validatePhone = (value: string) => {
+    return /^\d{0,10}$/.test(value);
+  };
+
+  // Función para manejar carga de documentos
+  const handleDocumentUpload = (documentName: string, file: File) => {
+    setUploadedDocuments(prev => ({
+      ...prev,
+      [documentName]: file
+    }));
+  };
+
+  // Función para obtener el estado de color de documentos
+  const getDocumentStatusColor = () => {
+    switch (documentStatus) {
+      case 'complete': return 'bg-green-100 border-green-500 text-green-700';
+      case 'incomplete': return 'bg-yellow-100 border-yellow-500 text-yellow-700';
+      case 'pending': return 'bg-gray-100 border-gray-500 text-gray-700';
+      default: return 'bg-gray-100 border-gray-500 text-gray-700';
+    }
+  };
+
+  // Función para obtener el texto del estado de documentos
+  const getDocumentStatusText = () => {
+    switch (documentStatus) {
+      case 'complete': return 'Documentos Completos';
+      case 'incomplete': return 'Documentos Pendientes';
+      case 'pending': return 'Sin Documentos';
+      default: return 'Sin Documentos';
+    }
+  };
+
+  // Función para obtener respuesta de pregunta
+  const getAnswerForQuestion = (question: string) => {
+    const respuesta = formData.respuestas?.find(r => r.pregunta === question);
+    return respuesta?.respuesta || '';
+  };
+
+  // Función para manejar cambio de respuesta
+  const handleAnswerChange = (question: string, answer: string) => {
+    const existingIndex = formData.respuestas?.findIndex(r => r.pregunta === question) || -1;
+    const newRespuestas = [...(formData.respuestas || [])];
+    
+    if (existingIndex >= 0) {
+      newRespuestas[existingIndex] = { ...newRespuestas[existingIndex], respuesta: answer };
+    } else {
+      newRespuestas.push({ id: Date.now().toString(), pregunta: question, respuesta: answer, tipo: 'TEXTO' });
+    }
+    
+    setFormData(prev => ({ ...prev, respuestas: newRespuestas }));
+  };
 
   const tiposCliente = [
     { id: 1, nombre: 'Civil', codigo: 'CIVIL' },
@@ -71,8 +215,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   const tiposIdentificacion = [
     { id: 1, nombre: 'Cédula', codigo: 'CEDULA' },
-    { id: 2, nombre: 'RUC', codigo: 'RUC' },
-    { id: 3, nombre: 'Pasaporte', codigo: 'PASAPORTE' }
+    { id: 2, nombre: 'RUC', codigo: 'RUC' }
   ];
 
   useEffect(() => {
@@ -95,89 +238,76 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [formData.provinciaEmpresa]);
 
+  // Función para manejar cambios en los campos del formulario
   const handleInputChange = (field: keyof Client, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
+
+    // Aplicar transformaciones según el campo
+    if (['nombres', 'apellidos', 'representanteLegal'].includes(field)) {
+      // Solo letras y espacios para nombres y apellidos
+      processedValue = toUpperCase(value.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ\s]/g, ''));
+    } else if (['direccion', 'nombreEmpresa', 'direccionFiscal'].includes(field)) {
+      // Direcciones pueden tener números, pero se muestran en mayúsculas
+      processedValue = toUpperCase(value);
+    } else if (['email', 'correoEmpresa'].includes(field)) {
+      // Emails en minúsculas
+      processedValue = value.toLowerCase();
+    } else if (['numeroIdentificacion', 'ruc', 'telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
+      // Solo números para identificación y teléfonos
+      let numericValue = value.replace(/\D/g, '');
+      
+      // Para teléfonos, limitar a máximo 10 dígitos
+      if (['telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
+        numericValue = numericValue.slice(0, 10);
+      }
+      
+      processedValue = numericValue;
+    }
+
+    // Validar campos específicos
+    if (field === 'numeroIdentificacion') {
+      validateIdentification(processedValue, formData.tipoIdentificacion);
+    } else if (['nombres', 'apellidos', 'representanteLegal'].includes(field)) {
+      validateName(processedValue);
+    } else if (['telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
+      validatePhone(processedValue);
+    }
+
+    // Actualizar el formulario con el valor procesado (mayúsculas/minúsculas)
+    setFormData(prev => ({
+      ...prev,
+      [field]: processedValue
+    }));
   };
 
+  // Función para manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    
+    if (!validateForm()) {
+      alert('Por favor, corrija los errores en el formulario antes de continuar.');
+      return;
+    }
 
     try {
-      const newClient = await mockApiService.createCliente(formData);
-      onSave(newClient);
-    } catch (error: any) {
-      setError(error.message || 'Error al guardar el cliente');
-    } finally {
-      setIsLoading(false);
+      let updatedClient;
+      if (mode === 'edit' && client) {
+        // Actualizar cliente existente - incluir el ID original
+        const clientData = {
+          ...formData,
+          id: client.id // Mantener el ID original
+        };
+        updatedClient = await mockApiService.updateCliente(client.id, clientData);
+      } else {
+        // Crear nuevo cliente
+        updatedClient = await mockApiService.createCliente(formData);
+      }
+      
+      onSave(updatedClient);
+    } catch (error) {
+      console.error('Error al guardar cliente:', error);
+      alert('Error al guardar el cliente. Por favor, intente nuevamente.');
     }
-  };
-
-  const getRequiredDocuments = () => {
-    switch (formData.tipoCliente) {
-      case 'Civil':
-        return ['Cédula de Identidad', 'Certificado de Antecedentes Penales', 'Certificado de Capacitación'];
-      case 'Uniformado':
-        return ['Cédula de Identidad', 'Certificado de Antecedentes Penales', 'Certificado de Capacitación', 'Certificado de Servicio Militar'];
-      case 'Compañía de Seguridad':
-        return ['RUC', 'Certificado de Antecedentes Penales', 'Certificado de Capacitación', 'Permiso de Funcionamiento'];
-      case 'Deportista':
-        return ['Cédula de Identidad', 'Certificado de Antecedentes Penales', 'Certificado de Capacitación', 'Certificado Médico Deportivo'];
-      default:
-        return [];
-    }
-  };
-
-  const getSecurityQuestions = () => {
-    switch (formData.tipoCliente) {
-      case 'Civil':
-        return [
-          { id: 1, pregunta: '¿Ha tenido algún antecedente penal?', requerida: true },
-          { id: 2, pregunta: '¿Ha recibido capacitación en el uso de armas?', requerida: true },
-          { id: 3, pregunta: '¿Cuál es el motivo principal para adquirir un arma?', requerida: true }
-        ];
-      case 'Uniformado':
-        return [
-          { id: 1, pregunta: '¿Ha tenido algún antecedente penal?', requerida: true },
-          { id: 2, pregunta: '¿Ha recibido capacitación en el uso de armas?', requerida: true },
-          { id: 3, pregunta: '¿Cuál es el motivo principal para adquirir un arma?', requerida: true },
-          { id: 4, pregunta: '¿Está actualmente en servicio activo?', requerida: true }
-        ];
-      case 'Compañía de Seguridad':
-        return [
-          { id: 1, pregunta: '¿La empresa tiene permiso de funcionamiento vigente?', requerida: true },
-          { id: 2, pregunta: '¿Todos los empleados han recibido capacitación?', requerida: true },
-          { id: 3, pregunta: '¿Cuál es el propósito principal de las armas?', requerida: true }
-        ];
-      case 'Deportista':
-        return [
-          { id: 1, pregunta: '¿Ha tenido algún antecedente penal?', requerida: true },
-          { id: 2, pregunta: '¿Ha recibido capacitación en el uso de armas?', requerida: true },
-          { id: 3, pregunta: '¿Cuál es el deporte que practica?', requerida: true },
-          { id: 4, pregunta: '¿Tiene certificado médico deportivo vigente?', requerida: true }
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const getAnswerForQuestion = (question: string) => {
-    const respuesta = formData.respuestas?.find(r => r.pregunta === question);
-    return respuesta?.respuesta || '';
-  };
-
-  const handleAnswerChange = (question: string, answer: string) => {
-    const existingIndex = formData.respuestas?.findIndex(r => r.pregunta === question) || -1;
-    const newRespuestas = [...(formData.respuestas || [])];
-    
-    if (existingIndex >= 0) {
-      newRespuestas[existingIndex] = { ...newRespuestas[existingIndex], respuesta: answer };
-    } else {
-      newRespuestas.push({ id: Date.now().toString(), pregunta: question, respuesta: answer, tipo: 'TEXTO' });
-    }
-    
-    setFormData(prev => ({ ...prev, respuestas: newRespuestas }));
   };
 
   const getMaxLength = () => {
@@ -215,8 +345,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
     return true;
   };
 
-  const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
-  const isUniformado = formData.tipoCliente === 'Uniformado';
   const edad = calcularEdad(formData.fechaNacimiento);
   const edadValida = validarEdadMinima(formData.fechaNacimiento);
   const mensajeErrorEdad = obtenerMensajeErrorEdad(formData.fechaNacimiento);
@@ -237,20 +365,20 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
           {/* Content */}
           <div className="p-8">
-            {error && (
-              <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700 font-medium">Error: {error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* error && ( // This line was removed */}
+            {/*   <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-lg"> // This line was removed */}
+            {/*     <div className="flex"> // This line was removed */}
+            {/*       <div className="flex-shrink-0"> // This line was removed */}
+            {/*         <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"> // This line was removed */}
+            {/*           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /> // This line was removed */}
+            {/*         </svg> // This line was removed */}
+            {/*       </div> // This line was removed */}
+            {/*       <div className="ml-3"> // This line was removed */}
+            {/*         <p className="text-sm text-red-700 font-medium">Error: {error}</p> // This line was removed */}
+            {/*       </div> // This line was removed */}
+            {/*     </div> // This line was removed */}
+            {/*   </div> // This line was removed */}
+            {/* ) // This line was removed */}
 
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Datos Personales */}
@@ -326,23 +454,23 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nombres *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.nombres || 'No especificado'}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={formData.nombres}
-                        onChange={(e) => handleInputChange('nombres', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="Ingrese los nombres"
-                      />
-                    )}
-                  </div>
+                                      <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Nombres *</label>
+                      {mode === 'view' ? (
+                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
+                          {formData.nombres || 'No especificado'}
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={formData.nombres}
+                          onChange={(e) => handleInputChange('nombres', e.target.value)}
+                          required
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                          placeholder="Ingrese nombres"
+                        />
+                      )}
+                    </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Apellidos *</label>
@@ -438,24 +566,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     )}
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.direccion || 'No especificado'}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={formData.direccion}
-                        onChange={(e) => handleInputChange('direccion', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="Ingrese la dirección completa"
-                      />
-                    )}
-                  </div>
-
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Provincia *</label>
                     {mode === 'view' ? (
@@ -496,6 +606,24 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           <option key={canton} value={canton}>{canton}</option>
                         ))}
                       </select>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección *</label>
+                    {mode === 'view' ? (
+                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
+                        {formData.direccion || 'No especificado'}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={formData.direccion}
+                        onChange={(e) => handleInputChange('direccion', e.target.value)}
+                        required
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                        placeholder="Ingrese la dirección completa"
+                      />
                     )}
                   </div>
 
@@ -691,32 +819,112 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 </div>
               )}
 
-              {/* Documentos Requeridos */}
-              {formData.tipoCliente && (
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-green-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              {/* Advertencia para Uniformado Pasivo */}
+              {showMilitaryWarning && (
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
+                  <div className="flex items-start">
+                    <div className="bg-yellow-100 p-2 rounded-full mr-4 mt-1">
+                      <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Documentos Requeridos</h2>
+                    <div>
+                      <h3 className="text-lg font-semibold text-yellow-800 mb-2">Advertencia - Servicio Pasivo</h3>
+                      <p className="text-yellow-700">
+                        Al estar en servicio pasivo, el proceso continuará como cliente Civil. 
+                        Se aplicarán las preguntas y documentos correspondientes a clientes Civiles.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Documentos del Cliente */}
+              {formData.tipoCliente && requiredDocuments.length > 0 && (
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <div className="bg-green-100 p-3 rounded-full mr-4">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900">Documentos del Cliente</h2>
+                    </div>
+                    <div className={`px-4 py-2 rounded-lg border-2 ${getDocumentStatusColor()}`}>
+                      <span className="font-semibold">{getDocumentStatusText()}</span>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {getRequiredDocuments().map((documentName, index) => (
-                      <div key={index} className="bg-white p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 transition-all duration-200">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold text-gray-800">{documentName}</h3>
-                            <p className="text-sm text-gray-500">Documento requerido</p>
+                    {requiredDocuments.map((document) => (
+                      <div 
+                        key={document.id} 
+                        className={`bg-white p-4 rounded-xl border-2 transition-all duration-200 ${
+                          document.link 
+                            ? 'border-blue-200 hover:border-blue-300' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        } ${
+                          uploadedDocuments[document.nombre] 
+                            ? 'bg-green-50 border-green-300' 
+                            : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-800">{document.nombre}</h3>
+                            <p className="text-sm text-gray-500 mb-2">{document.descripcion}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {document.link && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                                  </svg>
+                                  Con Link
+                                </span>
+                              )}
+                              {document.obligatorio && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  Obligatorio
+                                </span>
+                              )}
+                              {uploadedDocuments[document.nombre] && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  ✅ Subido
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <input
-                            type="file"
-                            disabled={mode === 'view'}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
-                          />
                         </div>
+                        
+                        {document.link && (
+                          <div className="mb-3">
+                            <a 
+                              href={document.link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                              </svg>
+                              Abrir enlace para descargar
+                            </a>
+                          </div>
+                        )}
+                        
+                        <input
+                          type="file"
+                          disabled={mode === 'view'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleDocumentUpload(document.nombre, file);
+                            }
+                          }}
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                        />
                       </div>
                     ))}
                   </div>
@@ -724,11 +932,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
               )}
 
               {/* Preguntas de Seguridad */}
-              {formData.tipoCliente && (
+              {formData.tipoCliente && clientQuestions.length > 0 && (
                 <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
                   <div className="flex items-center mb-6">
-                    <div className="bg-orange-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-purple-100 p-3 rounded-full mr-4">
+                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
@@ -736,24 +944,33 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   </div>
                   
                   <div className="space-y-4">
-                    {getSecurityQuestions().map((question) => (
-                      <div key={question.id} className="bg-white p-6 rounded-xl border-2 border-gray-200 hover:border-orange-300 transition-all duration-200">
-                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                          {question.pregunta}
-                          {question.requerida && <span className="text-red-500 ml-1">*</span>}
-                        </label>
+                    {clientQuestions.map((question) => (
+                      <div key={question.id} className="bg-white p-4 rounded-xl border-2 border-gray-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-800 mb-2">{question.pregunta}</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {question.obligatoria && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  Obligatoria
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
                         {mode === 'view' ? (
-                          <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium min-h-[100px] flex items-start">
-                            {getAnswerForQuestion(question.pregunta) || 'No especificado'}
+                          <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
+                            {getAnswerForQuestion(question.pregunta) || 'Sin respuesta'}
                           </div>
                         ) : (
                           <textarea
                             value={getAnswerForQuestion(question.pregunta)}
                             onChange={(e) => handleAnswerChange(question.pregunta, e.target.value)}
-                            required={question.requerida}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-orange-100 focus:border-orange-500 transition-all duration-200 resize-vertical min-h-[100px]"
-                            placeholder="Ingrese su respuesta"
+                            required={question.obligatoria}
                             rows={3}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 resize-none"
+                            placeholder="Escriba su respuesta aquí..."
                           />
                         )}
                       </div>
@@ -861,7 +1078,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   type="button"
                   onClick={onCancel}
                   className="px-8 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold disabled:opacity-50"
-                  disabled={isLoading}
+                  disabled={false}
                 >
                   Cancelar
                 </button>
@@ -870,9 +1087,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   <button
                     type="submit"
                     className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    disabled={isLoading || !validateForm()}
+                    disabled={false || !validateForm()}
                   >
-                    {isLoading ? 'Guardando...' : mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
+                    {false ? 'Guardando...' : mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
                   </button>
                 )}
               </div>

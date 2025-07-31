@@ -370,4 +370,225 @@ export const simulateApiDelay = (ms: number = 500): Promise<void> => {
 // Función para simular error aleatorio (10% de probabilidad)
 export const simulateRandomError = (): boolean => {
   return Math.random() < 0.1;
-}; 
+};
+
+// ========================================
+// DOCUMENTOS Y PREGUNTAS DINÁMICAS
+// ========================================
+
+// Documentos con links externos (para todos excepto Compañía de Seguridad)
+export const mockRequiredDocuments = [
+  {
+    id: 1,
+    nombre: 'Antecedentes Penales',
+    descripcion: 'Certificado de antecedentes penales (no tener procesos legales)',
+    link: 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/',
+    obligatorio: true,
+    tipo_proceso_id: null // Aplica para todos excepto compañías
+  },
+  {
+    id: 2,
+    nombre: 'Consejo de la Judicatura',
+    descripcion: 'Certificado de no tener juicios en su contra (no casos de robos, violencia o asesinatos)',
+    link: 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/',
+    obligatorio: true,
+    tipo_proceso_id: null // Aplica para todos excepto compañías
+  },
+  {
+    id: 3,
+    nombre: 'Fiscalía',
+    descripcion: 'Certificado de no tener procesos en su contra (no casos de robos, violencia o asesinatos)',
+    link: 'https://www.fiscalia.gob.ec/consulta-de-noticias-del-delito/',
+    obligatorio: true,
+    tipo_proceso_id: null // Aplica para todos excepto compañías
+  },
+  {
+    id: 4,
+    nombre: 'SATJE',
+    descripcion: 'Certificado de procesos judiciales',
+    link: 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros',
+    obligatorio: true,
+    tipo_proceso_id: null // Aplica para todos excepto compañías
+  }
+];
+
+// Documentos adicionales por tipo de cliente
+export const mockAdditionalDocuments = [
+  // Civil (tipo_proceso_id: 1)
+  {
+    id: 5,
+    nombre: 'Copia de cédula',
+    descripcion: 'Copia legible de la cédula de identidad',
+    obligatorio: true,
+    tipo_proceso_id: 1
+  },
+  {
+    id: 6,
+    nombre: 'Formulario de solicitud',
+    descripcion: 'Formulario completo de solicitud de importación',
+    obligatorio: false,
+    tipo_proceso_id: 1
+  },
+  {
+    id: 7,
+    nombre: 'Certificado de antecedentes',
+    descripcion: 'Certificado de antecedentes penales',
+    obligatorio: false,
+    tipo_proceso_id: 1
+  },
+  // Uniformado (tipo_proceso_id: 2)
+  {
+    id: 8,
+    nombre: 'Credencial militar',
+    descripcion: 'Credencial vigente de institución armada',
+    obligatorio: false,
+    tipo_proceso_id: 2
+  },
+  {
+    id: 9,
+    nombre: 'Certificado de servicio activo',
+    descripcion: 'Certificado de servicio activo vigente',
+    obligatorio: false,
+    tipo_proceso_id: 2
+  },
+  // Compañía de Seguridad (tipo_proceso_id: 3)
+  {
+    id: 10,
+    nombre: 'Cédula del representante legal',
+    descripcion: 'Cédula del representante legal',
+    obligatorio: false,
+    tipo_proceso_id: 3
+  },
+  {
+    id: 11,
+    nombre: 'Nombramiento representante legal',
+    descripcion: 'Documento que acredita representación legal',
+    obligatorio: false,
+    tipo_proceso_id: 3
+  },
+  {
+    id: 12,
+    nombre: 'Permiso de funcionamiento',
+    descripcion: 'Permiso de funcionamiento vigente',
+    obligatorio: false,
+    tipo_proceso_id: 3
+  },
+  // Deportista (tipo_proceso_id: 4)
+  {
+    id: 13,
+    nombre: 'Credencial Club deportista',
+    descripcion: 'Credencial de club solo para deportistas',
+    obligatorio: false,
+    tipo_proceso_id: 4
+  }
+];
+
+// Preguntas por tipo de cliente
+export const mockClientQuestions = [
+  // Civil (tipo_proceso_id: 1)
+  {
+    id: 1,
+    tipo_proceso_id: 1,
+    pregunta: '¿Tiene cuenta en el Sicoar?',
+    obligatoria: true,
+    orden: 1
+  },
+  {
+    id: 2,
+    tipo_proceso_id: 1,
+    pregunta: '¿La dirección en Sicoar coincide con su domicilio actual?',
+    obligatoria: true,
+    orden: 2
+  },
+  {
+    id: 3,
+    tipo_proceso_id: 1,
+    pregunta: '¿Ha tenido o tiene armas registradas?',
+    obligatoria: true,
+    orden: 3
+  },
+  {
+    id: 4,
+    tipo_proceso_id: 1,
+    pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+    obligatoria: true,
+    orden: 4
+  },
+  // Uniformado (tipo_proceso_id: 2)
+  {
+    id: 5,
+    tipo_proceso_id: 2,
+    pregunta: '¿Tiene cuenta en el Sicoar?',
+    obligatoria: true,
+    orden: 1
+  },
+  {
+    id: 6,
+    tipo_proceso_id: 2,
+    pregunta: '¿Tiene credencial Ispol o IsFA vigente?',
+    obligatoria: true,
+    orden: 2
+  },
+  {
+    id: 7,
+    tipo_proceso_id: 2,
+    pregunta: '¿Ya tiene firma electrónica habilitada?',
+    obligatoria: true,
+    orden: 3
+  },
+  {
+    id: 8,
+    tipo_proceso_id: 2,
+    pregunta: '¿Tiene certificado de servicio activo?',
+    obligatoria: false,
+    orden: 4
+  },
+  {
+    id: 9,
+    tipo_proceso_id: 2,
+    pregunta: '¿Ha tenido o tiene armas registradas?',
+    obligatoria: true,
+    orden: 5
+  },
+  {
+    id: 10,
+    tipo_proceso_id: 2,
+    pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+    obligatoria: true,
+    orden: 6
+  },
+  // Compañía de Seguridad (tipo_proceso_id: 3)
+  {
+    id: 11,
+    tipo_proceso_id: 3,
+    pregunta: 'Nombramiento del representante legal',
+    obligatoria: true,
+    orden: 1
+  },
+  {
+    id: 12,
+    tipo_proceso_id: 3,
+    pregunta: 'Permiso de operaciones vigente',
+    obligatoria: true,
+    orden: 2
+  },
+  {
+    id: 13,
+    tipo_proceso_id: 3,
+    pregunta: 'Autorización de tenencia de armas',
+    obligatoria: true,
+    orden: 3
+  }
+];
+
+// Mapeo de tipos de cliente a IDs de proceso
+export const clientTypeToProcessId = {
+  'Civil': 1,
+  'Uniformado': 2,
+  'Compañía de Seguridad': 3,
+  'Deportista': 4
+};
+
+// ========================================
+// UTILIDADES
+// ======================================== 
