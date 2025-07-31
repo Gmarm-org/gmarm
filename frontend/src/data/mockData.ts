@@ -294,28 +294,66 @@ export const mockWeapons = [
     id: '1',
     nombre: 'Pistola Glock 19',
     modelo: 'Glock 19',
+    calibre: '9mm',
+    capacidad: 15,
     categoria: 'Pistola',
     precio: 1200.00,
     stock: 5,
-    descripcion: 'Pistola semiautomática 9mm'
+    descripcion: 'Pistola semiautomática 9mm',
+    imagen: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=400&h=300&fit=crop',
+    disponible: true
   },
   {
     id: '2',
     nombre: 'Rifle AR-15',
     modelo: 'AR-15',
+    calibre: '5.56mm',
+    capacidad: 30,
     categoria: 'Rifle',
     precio: 2500.00,
     stock: 3,
-    descripcion: 'Rifle semiautomático 5.56mm'
+    descripcion: 'Rifle semiautomático 5.56mm',
+    imagen: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=400&h=300&fit=crop',
+    disponible: true
   },
   {
     id: '3',
     nombre: 'Escopeta Remington 870',
     modelo: 'Remington 870',
+    calibre: '12 gauge',
+    capacidad: 6,
     categoria: 'Escopeta',
     precio: 800.00,
     stock: 8,
-    descripcion: 'Escopeta de acción de bomba 12 gauge'
+    descripcion: 'Escopeta de acción de bomba 12 gauge',
+    imagen: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=400&h=300&fit=crop',
+    disponible: true
+  },
+  {
+    id: '4',
+    nombre: 'Pistola Sig Sauer P320',
+    modelo: 'Sig Sauer P320',
+    calibre: '.45 ACP',
+    capacidad: 12,
+    categoria: 'Pistola',
+    precio: 1500.00,
+    stock: 4,
+    descripcion: 'Pistola semiautomática .45 ACP',
+    imagen: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=400&h=300&fit=crop',
+    disponible: true
+  },
+  {
+    id: '5',
+    nombre: 'Rifle AK-47',
+    modelo: 'AK-47',
+    calibre: '7.62mm',
+    capacidad: 30,
+    categoria: 'Rifle',
+    precio: 1800.00,
+    stock: 2,
+    descripcion: 'Rifle de asalto 7.62mm',
+    imagen: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=400&h=300&fit=crop',
+    disponible: true
   }
 ];
 

@@ -27,6 +27,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   clienteParaResumen,
   armaSeleccionadaEnReserva,
   onBack,
+  onWeaponSelection,
   onWeaponSelectionInReserve,
   onAssignWeaponToClient,
   onConfirmData,
@@ -110,10 +111,10 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
       // Para cliente en proceso de creación
       if (armaSeleccionadaEnReserva?.id === weapon.id) {
         // Si ya está seleccionada, la deselecciona
-        onWeaponSelectionInReserve(null);
+        onWeaponSelection(null);
       } else {
         // Si no está seleccionada, la selecciona
-        onWeaponSelectionInReserve(weapon);
+        onWeaponSelection(weapon);
       }
     } else {
       // Para cliente existente - asignación directa

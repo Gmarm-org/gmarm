@@ -70,11 +70,17 @@ const Vendedor: React.FC = () => {
   const handleCreateClient = () => {
     setCurrentPage('clientForm');
     setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
   };
 
   const handleAssignWeaponWithoutClient = () => {
     setCurrentPage('weaponSelection');
     setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
   };
 
   const handleClientSaved = (client: Client) => {
@@ -91,13 +97,30 @@ const Vendedor: React.FC = () => {
         return [client, ...prev];
       }
     });
-    setCurrentPage('weaponSelection');
+    
     setSelectedClient(client);
+    
+    // Si ya hay una arma seleccionada, mantener la asignación
+    if (selectedWeapon) {
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [client.id]: {
+          weapon: selectedWeapon,
+          precio: precioModificado,
+          cantidad: cantidad
+        }
+      }));
+    }
+    
+    setCurrentPage('weaponSelection');
   };
 
   const handleCloseForm = () => {
     setCurrentPage('dashboard');
     setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
   };
 
   const handleWeaponSelected = (weapon: any | null) => {
@@ -105,6 +128,31 @@ const Vendedor: React.FC = () => {
       setSelectedWeapon(weapon);
       setPrecioModificado(weapon.precio);
       setCantidad(1);
+      
+      // Si hay un cliente seleccionado, actualizar la asignación inmediatamente
+      if (selectedClient) {
+        setClientWeaponAssignments(prev => ({
+          ...prev,
+          [selectedClient.id]: {
+            weapon: weapon,
+            precio: weapon.precio,
+            cantidad: 1
+          }
+        }));
+      }
+    } else {
+      setSelectedWeapon(null);
+      setPrecioModificado(0);
+      setCantidad(1);
+      
+      // Si hay un cliente seleccionado, remover la asignación
+      if (selectedClient) {
+        setClientWeaponAssignments(prev => {
+          const newAssignments = { ...prev };
+          delete newAssignments[selectedClient.id];
+          return newAssignments;
+        });
+      }
     }
   };
 
@@ -135,22 +183,36 @@ const Vendedor: React.FC = () => {
   };
 
   const handleFinishProcess = () => {
-    console.log('Reserva completada:', {
-      client: selectedClient,
-      weapon: selectedWeapon,
-      precio: precioModificado,
-      cantidad,
-      iva: precioModificado * 0.15,
-      total: precioModificado * 1.15
-    });
+    if (selectedClient && selectedWeapon) {
+      // Guardar la asignación de arma al cliente
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [selectedClient.id]: {
+          weapon: selectedWeapon,
+          precio: precioModificado,
+          cantidad: cantidad
+        }
+      }));
+      
+      console.log('Reserva completada:', {
+        client: selectedClient,
+        weapon: selectedWeapon,
+        precio: precioModificado,
+        cantidad,
+        iva: precioModificado * 0.15,
+        total: precioModificado * 1.15
+      });
+    }
+    
     setCurrentPage('dashboard');
     setSelectedClient(null);
     setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
   };
 
   const handleViewClient = (client: Client) => {
     setSelectedClient(client);
-    setCurrentPage('clientForm');
     
     // Cargar datos de arma asignada si existe
     const assignment = clientWeaponAssignments[client.id];
@@ -158,12 +220,18 @@ const Vendedor: React.FC = () => {
       setSelectedWeapon(assignment.weapon);
       setPrecioModificado(assignment.precio);
       setCantidad(assignment.cantidad);
+    } else {
+      // Limpiar datos de arma si no hay asignación
+      setSelectedWeapon(null);
+      setPrecioModificado(0);
+      setCantidad(1);
     }
+    
+    setCurrentPage('clientForm');
   };
 
   const handleEditClient = (client: Client) => {
     setSelectedClient(client);
-    setCurrentPage('clientForm');
     
     // Cargar datos de arma asignada si existe
     const assignment = clientWeaponAssignments[client.id];
@@ -171,7 +239,14 @@ const Vendedor: React.FC = () => {
       setSelectedWeapon(assignment.weapon);
       setPrecioModificado(assignment.precio);
       setCantidad(assignment.cantidad);
+    } else {
+      // Limpiar datos de arma si no hay asignación
+      setSelectedWeapon(null);
+      setPrecioModificado(0);
+      setCantidad(1);
     }
+    
+    setCurrentPage('clientForm');
   };
 
   const handleDisableClient = (clientId: string) => {
@@ -215,6 +290,8 @@ const Vendedor: React.FC = () => {
 
   const handleNavigateToWeaponSelection = () => {
     setCurrentPage('weaponSelection');
+    // No limpiar selectedClient, selectedWeapon, precioModificado, cantidad
+    // ya que queremos mantener los datos actuales
   };
 
   const isLoading = clientsLoading || weaponsLoading || !isInitialized;
@@ -511,11 +588,24 @@ const Vendedor: React.FC = () => {
                 setSelectedWeapon(weapon);
                 setPrecioModificado(weapon.precio);
                 setCantidad(1);
+                
+                // Actualizar la asignación en el estado
+                setClientWeaponAssignments(prev => ({
+                  ...prev,
+                  [client.id]: {
+                    weapon: weapon,
+                    precio: weapon.precio,
+                    cantidad: 1
+                  }
+                }));
               }}
               onAssignWeaponToCupoCivil={(weapon) => {
                 setSelectedWeapon(weapon);
                 setPrecioModificado(weapon.precio);
                 setCantidad(1);
+                
+                // Para armas sin cliente, no se actualiza clientWeaponAssignments
+                // ya que no hay cliente asociado
               }}
               onConfirmData={handleFinishProcess}
               onUpdateWeaponPrice={handlePriceChange}
