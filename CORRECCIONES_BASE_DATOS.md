@@ -11,6 +11,14 @@ STATEMENT: CREATE INDEX idx_tipo_documento_proceso ON tipo_documento(tipo_proces
 
 Este error ocurría porque el script `03_restructuracion_documentos.sql` estaba intentando crear un índice usando la columna `activo` que no existe en la tabla `tipo_documento`. La tabla tiene una columna llamada `estado` en su lugar.
 
+**Error Adicional Identificado:**
+```
+ERROR: structure of query does not match function result type
+DETAIL: Returned type text does not match expected type integer in column 8.
+```
+
+Este error ocurre porque la función `obtener_documentos_por_tipo_cliente` está retornando `NULL` como texto cuando debería ser un entero.
+
 ## Correcciones Aplicadas
 
 ### 1. Script `03_restructuracion_documentos.sql` (Corregido)
@@ -20,6 +28,7 @@ Este error ocurría porque el script `03_restructuracion_documentos.sql` estaba 
 - ✅ Agregado `IF NOT EXISTS` para evitar errores de duplicación
 - ✅ Agregada columna `orden_visual` a `tipo_documento`
 - ✅ Corregidas las referencias a columnas inexistentes
+- ✅ **NUEVO**: Corregido `NULL as tipo_proceso_id` por `CAST(NULL AS INTEGER) as tipo_proceso_id`
 
 ### 2. Nuevo Script `04_actualizacion_cliente_estado.sql`
 
@@ -40,16 +49,30 @@ Este error ocurría porque el script `03_restructuracion_documentos.sql` estaba 
 - ✅ Verificación de datos de prueba
 - ✅ Pruebas de funcionamiento de funciones
 
+### 4. Script de Corrección Rápida `06_correccion_funcion.sql`
+
+**Corrección específica:**
+- ✅ Corrige el error de tipo de datos en `obtener_documentos_por_tipo_cliente`
+- ✅ Aplica `CAST(NULL AS INTEGER)` para el campo `tipo_proceso_id`
+- ✅ Incluye verificación de que la corrección funcionó
+
 ## Cómo Aplicar las Correcciones
 
-### Opción 1: Script Automático (Recomendado)
+### Opción 1: Corrección Rápida (Recomendado para el error actual)
 
 ```bash
-# Ejecutar el script de reinicio
+# Ejecutar el script de corrección rápida
+./fix-function-error.sh
+```
+
+### Opción 2: Script Automático Completo
+
+```bash
+# Ejecutar el script de reinicio completo
 ./restart-docker-with-fixes.sh
 ```
 
-### Opción 2: Manual
+### Opción 3: Manual
 
 ```bash
 # 1. Detener contenedores
@@ -122,6 +145,11 @@ El sistema ahora soporta los siguientes estados de cliente:
   - Respuestas a preguntas de seguridad
   - Asignación de armas
 
+### `obtener_documentos_por_tipo_cliente(tipo_cliente, estado_militar)`
+- ✅ **CORREGIDA**: Ahora maneja correctamente los tipos de datos
+- Retorna documentos específicos y externos para un tipo de cliente
+- Maneja casos especiales como Uniformados en servicio pasivo
+
 ### Triggers Automáticos
 - **trigger_actualizar_estado_documento** - Actualiza estado cuando cambian documentos
 - **trigger_actualizar_estado_respuesta** - Actualiza estado cuando cambian respuestas
@@ -132,7 +160,11 @@ El sistema ahora soporta los siguientes estados de cliente:
 Después de aplicar las correcciones, ejecuta:
 
 ```bash
+# Para verificación completa
 docker exec gmarm-postgres-dev psql -U postgres -d gmarm_db -f /docker-entrypoint-initdb.d/05_verificacion_estructura.sql
+
+# Para verificar solo la función corregida
+docker exec gmarm-postgres-dev psql -U postgres -d gmarm_db -c "SELECT obtener_documentos_por_tipo_cliente('Civil');"
 ```
 
 Deberías ver:
@@ -164,4 +196,20 @@ Para ver logs específicos:
 docker-compose -f docker-compose.dev.yml logs -f postgres_dev
 docker-compose -f docker-compose.dev.yml logs -f backend
 docker-compose -f docker-compose.dev.yml logs -f frontend
+```
+
+## Solución de Problemas
+
+### Si sigues viendo el error de función:
+```bash
+# Ejecutar corrección manual
+docker exec gmarm-postgres-dev psql -U postgres -d gmarm_db -f /docker-entrypoint-initdb.d/06_correccion_funcion.sql
+```
+
+### Si PostgreSQL no inicia:
+```bash
+# Limpiar completamente y reiniciar
+docker-compose -f docker-compose.dev.yml down
+docker volume rm gmarm_postgres_data_dev
+docker-compose -f docker-compose.dev.yml up -d
 ``` 

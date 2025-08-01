@@ -129,7 +129,7 @@ BEGIN
       TRUE as es_documento_externo,
       cde.link_externo,
       cde.instrucciones_descarga,
-      NULL as tipo_proceso_id,
+      CAST(NULL AS INTEGER) as tipo_proceso_id,
       cde.orden_visual
     FROM configuracion_documento_externo cde
     WHERE cde.activo = TRUE
