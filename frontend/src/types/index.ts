@@ -65,6 +65,11 @@ export interface Client {
   provincia?: string;
   canton?: string;
   vendedorId?: string; // ID del vendedor que creó el cliente
+  
+  // Estado del cliente
+  estado?: 'FALTAN_DOCUMENTOS' | 'BLOQUEADO' | 'LISTO_IMPORTACION' | 'INACTIVO';
+  documentos?: any[];
+  respuestas?: any[];
 }
 
 // ===== PAGO =====

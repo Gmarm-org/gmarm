@@ -18,6 +18,69 @@ const Vendedor: React.FC = () => {
   const [clientsLoading, setClientsLoading] = useState(true);
   const [weaponsLoading, setWeaponsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [clientesBloqueados, setClientesBloqueados] = useState<Record<string, { bloqueado: boolean; motivo: string }>>({});
+
+  // Función para determinar el estado del cliente
+  const getClientStatus = (client: Client) => {
+    // Si el cliente tiene un estado definido, usarlo
+    if (client.estado) {
+      return client.estado;
+    }
+    
+    // Si el cliente está bloqueado por violencia
+    if (clientesBloqueados[client.id]?.bloqueado) {
+      return 'BLOQUEADO';
+    }
+    
+    // Verificar si faltan documentos obligatorios
+    const requiredDocuments = client.documentos?.filter(doc => doc.obligatorio) || [];
+    const uploadedDocuments = client.documentos?.filter(doc => doc.uploaded) || [];
+    
+    if (requiredDocuments.length > 0 && uploadedDocuments.length < requiredDocuments.length) {
+      return 'FALTAN_DOCUMENTOS';
+    }
+    
+    // Si tiene arma asignada y no está bloqueado, está listo
+    const hasWeapon = clientWeaponAssignments[client.id];
+    if (hasWeapon) {
+      return 'LISTO_IMPORTACION';
+    }
+    
+    // Por defecto, faltan documentos si no hay documentos cargados
+    return 'FALTAN_DOCUMENTOS';
+  };
+
+  // Función para obtener el color del estado
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'BLOQUEADO':
+        return 'bg-red-100 text-red-800';
+      case 'FALTAN_DOCUMENTOS':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'LISTO_IMPORTACION':
+        return 'bg-green-100 text-green-800';
+      case 'INACTIVO':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Función para obtener el texto del estado
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'BLOQUEADO':
+        return 'Bloqueado';
+      case 'FALTAN_DOCUMENTOS':
+        return 'Faltan documentos';
+      case 'LISTO_IMPORTACION':
+        return 'Listo para importación';
+      case 'INACTIVO':
+        return 'Inactivo';
+      default:
+        return 'Sin estado';
+    }
+  };
 
   useEffect(() => {
     loadClients();
@@ -112,7 +175,41 @@ const Vendedor: React.FC = () => {
       }));
     }
     
-    setCurrentPage('weaponSelection');
+    // Si el cliente está bloqueado, no ir a selección de armas
+    if (client.estado === 'BLOQUEADO' || clientesBloqueados[client.id]?.bloqueado) {
+      setCurrentPage('dashboard');
+    } else if (client.estado === 'LISTO_IMPORTACION') {
+      // Si está listo para importación, ir al dashboard
+      setCurrentPage('dashboard');
+    } else {
+      // Si no está bloqueado y no está listo, ir a selección de armas
+      setCurrentPage('weaponSelection');
+    }
+  };
+
+  // Función para manejar clientes bloqueados
+  const handleClienteBloqueado = (clientId: string, bloqueado: boolean, motivo: string) => {
+    if (bloqueado) {
+      // Bloquear cliente
+      setClientesBloqueados(prev => ({
+        ...prev,
+        [clientId]: { bloqueado, motivo }
+      }));
+      
+      // Si el cliente está bloqueado, no navegar a selección de armas
+      setCurrentPage('dashboard');
+      setSelectedClient(null);
+      setSelectedWeapon(null);
+      setPrecioModificado(0);
+      setCantidad(1);
+    } else {
+      // Desbloquear cliente - remover de la lista de bloqueados
+      setClientesBloqueados(prev => {
+        const newBlockedClients = { ...prev };
+        delete newBlockedClients[clientId];
+        return newBlockedClients;
+      });
+    }
   };
 
   const handleCloseForm = () => {
@@ -480,6 +577,9 @@ const Vendedor: React.FC = () => {
                         MODELO DE ARMA
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        ESTADO
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         ACCIONES
                       </th>
                     </tr>
@@ -520,6 +620,29 @@ const Vendedor: React.FC = () => {
                             ) : (
                               <span className="text-gray-400">Sin arma asignada</span>
                             )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {(() => {
+                              const status = getClientStatus(client);
+                              return (
+                                <div className="flex items-center space-x-2">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(status)}`}>
+                                    {getStatusText(status)}
+                                  </span>
+                                  {status === 'BLOQUEADO' && clientesBloqueados[client.id]?.motivo && (
+                                    <div className="relative group">
+                                      <svg className="w-4 h-4 text-red-500 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                      </svg>
+                                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                        {clientesBloqueados[client.id]?.motivo}
+                                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-red-900"></div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
@@ -567,6 +690,7 @@ const Vendedor: React.FC = () => {
               onPriceChange={handlePriceChangeWrapper}
               onQuantityChange={handleQuantityChangeWrapper}
               onNavigateToWeaponSelection={handleNavigateToWeaponSelection}
+              onClienteBloqueado={handleClienteBloqueado}
             />
           </div>
         );

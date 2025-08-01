@@ -175,7 +175,10 @@ class MockApiService {
       cantonEmpresa: clienteData.cantonEmpresa,
       provincia: clienteData.provincia || '',
       canton: clienteData.canton || '',
-      vendedorId: clienteData.vendedorId || '1'
+      vendedorId: clienteData.vendedorId || '1',
+      estado: clienteData.estado || 'FALTAN_DOCUMENTOS',
+      documentos: clienteData.documentos || [],
+      respuestas: clienteData.respuestas || []
     };
 
     mockClients.push(newCliente);
@@ -199,7 +202,10 @@ class MockApiService {
     const updatedCliente: Client = {
       ...mockClients[clienteIndex],
       ...clienteData,
-      id: id // Mantener el ID original
+      id: id, // Mantener el ID original
+      estado: clienteData.estado || mockClients[clienteIndex].estado || 'FALTAN_DOCUMENTOS',
+      documentos: clienteData.documentos || mockClients[clienteIndex].documentos || [],
+      respuestas: clienteData.respuestas || mockClients[clienteIndex].respuestas || []
     };
 
     mockClients[clienteIndex] = updatedCliente;

@@ -175,10 +175,13 @@ export const mockClients: Client[] = [
     telefonoPrincipal: '0987654321',
     telefonoSecundario: '0987654322',
     tipoCliente: 'Civil',
-    tipoIdentificacion: 'Cedula',
+    tipoIdentificacion: 'Cédula',
     provincia: 'Guayas',
     canton: 'Guayaquil',
-    vendedorId: '2'
+    vendedorId: '2',
+    estado: 'LISTO_IMPORTACION',
+    documentos: [],
+    respuestas: []
   },
   {
     id: '2',
@@ -191,7 +194,7 @@ export const mockClients: Client[] = [
     telefonoPrincipal: '0987654324',
     telefonoSecundario: '0987654326',
     tipoCliente: 'Compañía de Seguridad',
-    tipoIdentificacion: 'Cedula',
+    tipoIdentificacion: 'Cédula',
     representanteLegal: 'MARÍA ELENA GONZÁLEZ RODRÍGUEZ',
     ruc: '0991234567001',
     nombreEmpresa: 'SEGURIDAD INTEGRAL S.A.',
@@ -202,7 +205,10 @@ export const mockClients: Client[] = [
     cantonEmpresa: 'Guayaquil',
     provincia: 'Guayas',
     canton: 'Guayaquil',
-    vendedorId: '2'
+    vendedorId: '2',
+    estado: 'FALTAN_DOCUMENTOS',
+    documentos: [],
+    respuestas: []
   },
   {
     id: '3',
@@ -215,11 +221,47 @@ export const mockClients: Client[] = [
     telefonoPrincipal: '0987654327',
     telefonoSecundario: '0987654328',
     tipoCliente: 'Uniformado',
-    tipoIdentificacion: 'Cedula',
+    tipoIdentificacion: 'Cédula',
     estadoMilitar: 'ACTIVO',
     provincia: 'Pichincha',
     canton: 'Quito',
-    vendedorId: '2'
+    vendedorId: '2',
+    estado: 'BLOQUEADO',
+    documentos: [],
+    respuestas: [
+      {
+        id: '1',
+        pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+        respuesta: 'SI',
+        tipo: 'SI_NO'
+      }
+    ]
+  },
+  {
+    id: '4',
+    numeroIdentificacion: '1200120012',
+    nombres: 'María Elena',
+    apellidos: 'Vásquez Morales',
+    email: 'maria.vasquez@email.com',
+    fechaNacimiento: '1985-08-15',
+    direccion: 'CALLE 15 DE AGOSTO N456-789',
+    telefonoPrincipal: '0987654329',
+    telefonoSecundario: '0987654330',
+    tipoCliente: 'Civil',
+    tipoIdentificacion: 'Cédula',
+    provincia: 'Azuay',
+    canton: 'Cuenca',
+    vendedorId: '2',
+    estado: 'BLOQUEADO',
+    documentos: [],
+    respuestas: [
+      {
+        id: '1',
+        pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+        respuesta: 'SI',
+        tipo: 'SI_NO'
+      }
+    ]
   }
 ];
 
@@ -529,28 +571,34 @@ export const mockClientQuestions = [
     tipo_proceso_id: 1,
     pregunta: '¿Tiene cuenta en el Sicoar?',
     obligatoria: true,
-    orden: 1
+    orden: 1,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 2,
     tipo_proceso_id: 1,
     pregunta: '¿La dirección en Sicoar coincide con su domicilio actual?',
     obligatoria: true,
-    orden: 2
+    orden: 2,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 3,
     tipo_proceso_id: 1,
     pregunta: '¿Ha tenido o tiene armas registradas?',
     obligatoria: true,
-    orden: 3
+    orden: 3,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 4,
     tipo_proceso_id: 1,
     pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
     obligatoria: true,
-    orden: 4
+    orden: 4,
+    tipo_respuesta: 'SI_NO',
+    bloquea_proceso: true,
+    mensaje_bloqueo: 'No se puede continuar con el proceso debido a denuncias de violencia de género o intrafamiliar. El cliente será marcado como bloqueado.'
   },
   // Uniformado (tipo_proceso_id: 2)
   {
@@ -558,42 +606,50 @@ export const mockClientQuestions = [
     tipo_proceso_id: 2,
     pregunta: '¿Tiene cuenta en el Sicoar?',
     obligatoria: true,
-    orden: 1
+    orden: 1,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 6,
     tipo_proceso_id: 2,
     pregunta: '¿Tiene credencial Ispol o IsFA vigente?',
     obligatoria: true,
-    orden: 2
+    orden: 2,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 7,
     tipo_proceso_id: 2,
     pregunta: '¿Ya tiene firma electrónica habilitada?',
     obligatoria: true,
-    orden: 3
+    orden: 3,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 8,
     tipo_proceso_id: 2,
     pregunta: '¿Tiene certificado de servicio activo?',
     obligatoria: false,
-    orden: 4
+    orden: 4,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 9,
     tipo_proceso_id: 2,
     pregunta: '¿Ha tenido o tiene armas registradas?',
     obligatoria: true,
-    orden: 5
+    orden: 5,
+    tipo_respuesta: 'SI_NO'
   },
   {
     id: 10,
     tipo_proceso_id: 2,
     pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
     obligatoria: true,
-    orden: 6
+    orden: 6,
+    tipo_respuesta: 'SI_NO',
+    bloquea_proceso: true,
+    mensaje_bloqueo: 'No se puede continuar con el proceso debido a denuncias de violencia de género o intrafamiliar. El cliente será marcado como bloqueado.'
   },
   // Compañía de Seguridad (tipo_proceso_id: 3)
   {
@@ -601,21 +657,59 @@ export const mockClientQuestions = [
     tipo_proceso_id: 3,
     pregunta: 'Nombramiento del representante legal',
     obligatoria: true,
-    orden: 1
+    orden: 1,
+    tipo_respuesta: 'TEXTO'
   },
   {
     id: 12,
     tipo_proceso_id: 3,
     pregunta: 'Permiso de operaciones vigente',
     obligatoria: true,
-    orden: 2
+    orden: 2,
+    tipo_respuesta: 'TEXTO'
   },
   {
     id: 13,
     tipo_proceso_id: 3,
     pregunta: 'Autorización de tenencia de armas',
     obligatoria: true,
-    orden: 3
+    orden: 3,
+    tipo_respuesta: 'TEXTO'
+  },
+  // Deportista (tipo_proceso_id: 4)
+  {
+    id: 14,
+    tipo_proceso_id: 4,
+    pregunta: '¿Tiene credencial de club deportivo vigente?',
+    obligatoria: true,
+    orden: 1,
+    tipo_respuesta: 'SI_NO'
+  },
+  {
+    id: 15,
+    tipo_proceso_id: 4,
+    pregunta: '¿Participa en competencias oficiales?',
+    obligatoria: true,
+    orden: 2,
+    tipo_respuesta: 'SI_NO'
+  },
+  {
+    id: 16,
+    tipo_proceso_id: 4,
+    pregunta: '¿Ha tenido o tiene armas registradas?',
+    obligatoria: true,
+    orden: 3,
+    tipo_respuesta: 'SI_NO'
+  },
+  {
+    id: 17,
+    tipo_proceso_id: 4,
+    pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+    obligatoria: true,
+    orden: 4,
+    tipo_respuesta: 'SI_NO',
+    bloquea_proceso: true,
+    mensaje_bloqueo: 'No se puede continuar con el proceso debido a denuncias de violencia de género o intrafamiliar. El cliente será marcado como bloqueado.'
   }
 ];
 

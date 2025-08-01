@@ -1,6 +1,6 @@
 -- =====================================================
 -- RESTRUCTURACIÓN DE DOCUMENTOS CON LINKS EXTERNOS
--- Versión: 1.0
+-- Versión: 1.1
 -- Fecha: 2024-12-31
 -- Descripción: Modificaciones para manejar documentos con links externos
 -- =====================================================
@@ -11,10 +11,11 @@
 
 -- Agregar columnas para manejar links externos
 ALTER TABLE tipo_documento 
-ADD COLUMN link_externo VARCHAR(500),
-ADD COLUMN es_documento_externo BOOLEAN DEFAULT FALSE,
-ADD COLUMN aplica_para_todos BOOLEAN DEFAULT FALSE,
-ADD COLUMN instrucciones_descarga TEXT;
+ADD COLUMN IF NOT EXISTS link_externo VARCHAR(500),
+ADD COLUMN IF NOT EXISTS es_documento_externo BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS aplica_para_todos BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS instrucciones_descarga TEXT,
+ADD COLUMN IF NOT EXISTS orden_visual INTEGER DEFAULT 999;
 
 -- =====================================================
 -- 2. ACTUALIZAR DOCUMENTOS EXISTENTES CON LINKS
@@ -29,17 +30,17 @@ UPDATE tipo_documento SET
 WHERE nombre = 'Certificado de antecedentes';
 
 -- Insertar nuevos documentos con links externos
-INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, es_documento_externo, aplica_para_todos, link_externo, instrucciones_descarga) VALUES
-('Antecedentes Penales', 'Certificado de antecedentes penales (no tener procesos legales)', TRUE, NULL, TRUE, TRUE, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/', 'Descargar certificado de antecedentes penales (no tener procesos legales)'),
-('Consejo de la Judicatura', 'Certificado de no tener juicios en su contra (no casos de robos, violencia o asesinatos)', TRUE, NULL, TRUE, TRUE, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/', 'Descargar certificado de no tener juicios en su contra'),
-('Fiscalía', 'Certificado de no tener procesos en su contra (no casos de robos, violencia o asesinatos)', TRUE, NULL, TRUE, TRUE, 'https://www.fiscalia.gob.ec/consulta-de-noticias-del-delito/', 'Descargar certificado de no tener procesos en su contra'),
-('SATJE', 'Certificado de procesos judiciales', TRUE, NULL, TRUE, TRUE, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros', 'Descargar certificado de procesos judiciales');
+INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, es_documento_externo, aplica_para_todos, link_externo, instrucciones_descarga, orden_visual) VALUES
+('Antecedentes Penales', 'Certificado de antecedentes penales (no tener procesos legales)', TRUE, NULL, TRUE, TRUE, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/', 'Descargar certificado de antecedentes penales (no tener procesos legales)', 1),
+('Consejo de la Judicatura', 'Certificado de no tener juicios en su contra (no casos de robos, violencia o asesinatos)', TRUE, NULL, TRUE, TRUE, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/', 'Descargar certificado de no tener juicios en su contra', 2),
+('Fiscalía', 'Certificado de no tener procesos en su contra (no casos de robos, violencia o asesinatos)', TRUE, NULL, TRUE, TRUE, 'https://www.fiscalia.gob.ec/consulta-de-noticias-del-delito/', 'Descargar certificado de no tener procesos en su contra', 3),
+('SATJE', 'Certificado de procesos judiciales', TRUE, NULL, TRUE, TRUE, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros', 'Descargar certificado de procesos judiciales', 4);
 
 -- =====================================================
 -- 3. CREAR TABLA PARA CONFIGURACIÓN DE DOCUMENTOS EXTERNOS
 -- =====================================================
 
-CREATE TABLE configuracion_documento_externo (
+CREATE TABLE IF NOT EXISTS configuracion_documento_externo (
   id SERIAL PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   descripcion TEXT,
@@ -115,7 +116,7 @@ BEGIN
       COALESCE(td.orden_visual, 999) as orden_visual
     FROM tipo_documento td
     WHERE td.tipo_proceso_id = v_tipo_proceso_id
-      AND td.activo = TRUE
+      AND td.estado = TRUE
     ORDER BY orden_visual, td.nombre;
 
     -- Retornar documentos externos que aplican para este tipo de cliente
@@ -156,11 +157,11 @@ CREATE TRIGGER update_configuracion_documento_externo_updated_at
 -- 7. CREAR ÍNDICES PARA OPTIMIZAR CONSULTAS
 -- =====================================================
 
-CREATE INDEX idx_tipo_documento_proceso ON tipo_documento(tipo_proceso_id, activo);
-CREATE INDEX idx_tipo_documento_externo ON tipo_documento(es_documento_externo, aplica_para_todos);
-CREATE INDEX idx_config_doc_externo_activo ON configuracion_documento_externo(activo);
-CREATE INDEX idx_config_doc_externo_tipos ON configuracion_documento_externo USING GIN(aplica_para_tipos_cliente);
-CREATE INDEX idx_config_doc_externo_excluye ON configuracion_documento_externo USING GIN(excluye_tipos_cliente);
+CREATE INDEX IF NOT EXISTS idx_tipo_documento_proceso ON tipo_documento(tipo_proceso_id, estado);
+CREATE INDEX IF NOT EXISTS idx_tipo_documento_externo ON tipo_documento(es_documento_externo, aplica_para_todos);
+CREATE INDEX IF NOT EXISTS idx_config_doc_externo_activo ON configuracion_documento_externo(activo);
+CREATE INDEX IF NOT EXISTS idx_config_doc_externo_tipos ON configuracion_documento_externo USING GIN(aplica_para_tipos_cliente);
+CREATE INDEX IF NOT EXISTS idx_config_doc_externo_excluye ON configuracion_documento_externo USING GIN(excluye_tipos_cliente);
 
 -- =====================================================
 -- 8. COMENTARIOS Y DOCUMENTACIÓN

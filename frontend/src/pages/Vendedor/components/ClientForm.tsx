@@ -16,6 +16,7 @@ interface ClientFormProps {
   onPriceChange?: (price: number) => void;
   onQuantityChange?: (quantity: number) => void;
   onNavigateToWeaponSelection?: () => void;
+  onClienteBloqueado?: (clientId: string, bloqueado: boolean, motivo: string) => void;
 }
 
 const ClientForm: React.FC<ClientFormProps> = ({ 
@@ -28,7 +29,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
   cantidad = 1,
   onPriceChange,
   onQuantityChange,
-  onNavigateToWeaponSelection
+  onNavigateToWeaponSelection,
+  onClienteBloqueado
 }) => {
   const [formData, setFormData] = useState<Client>({
     id: '',
@@ -64,6 +66,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, File>>({});
   const [documentStatus, setDocumentStatus] = useState<'pending' | 'complete' | 'incomplete'>('pending');
   const [showMilitaryWarning, setShowMilitaryWarning] = useState(false);
+  const [clienteBloqueado, setClienteBloqueado] = useState(false);
+  const [motivoBloqueo, setMotivoBloqueo] = useState<string>('');
 
   // Determinar si es empresa
   const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
@@ -188,22 +192,73 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   // Función para obtener respuesta de pregunta
   const getAnswerForQuestion = (question: string) => {
-    const respuesta = formData.respuestas?.find(r => r.pregunta === question);
-    return respuesta?.respuesta || '';
+    console.log('getAnswerForQuestion called for:', question);
+    console.log('Current formData.respuestas:', formData.respuestas);
+    
+    // Temporary test for violence report question
+    if (question.includes('denuncias de violencia')) {
+      console.log('This is the violence report question!');
+      console.log('Question text:', question);
+      console.log('Available responses:', formData.respuestas);
+    }
+    
+    const respuesta = formData.respuestas?.find(r => {
+      console.log('Checking response:', r.pregunta, 'against:', question);
+      console.log('Strings match?', r.pregunta === question);
+      return r.pregunta === question;
+    });
+    
+    const answer = respuesta?.respuesta || '';
+    console.log('Found answer:', answer, 'for question:', question);
+    return answer;
+  };
+
+  // Función para validar denuncias de violencia
+  const validateViolenceReports = (question: string, answer: string) => {
+    console.log('validateViolenceReports called:', { question, answer, clienteBloqueado });
+    if (question.includes('denuncias de violencia') && answer === 'SI') {
+      console.log('Setting clienteBloqueado to true');
+      setClienteBloqueado(true);
+      setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
+    } else if (question.includes('denuncias de violencia') && answer === 'NO') {
+      console.log('Setting clienteBloqueado to false');
+      setClienteBloqueado(false);
+      setMotivoBloqueo('');
+      // Notificar al componente padre que el cliente ya no está bloqueado
+      if (client?.id) {
+        onClienteBloqueado?.(client.id, false, '');
+      }
+    }
   };
 
   // Función para manejar cambio de respuesta
   const handleAnswerChange = (question: string, answer: string) => {
+    console.log('handleAnswerChange called:', { question, answer });
+    console.log('Current formData.respuestas:', formData.respuestas);
+    
     const existingIndex = formData.respuestas?.findIndex(r => r.pregunta === question) || -1;
+    console.log('Existing index:', existingIndex);
+    
     const newRespuestas = [...(formData.respuestas || [])];
     
     if (existingIndex >= 0) {
+      console.log('Updating existing response at index:', existingIndex);
       newRespuestas[existingIndex] = { ...newRespuestas[existingIndex], respuesta: answer };
     } else {
+      console.log('Adding new response');
       newRespuestas.push({ id: Date.now().toString(), pregunta: question, respuesta: answer, tipo: 'TEXTO' });
     }
     
-    setFormData(prev => ({ ...prev, respuestas: newRespuestas }));
+    console.log('New respuestas array:', newRespuestas);
+    
+    // Update state immediately
+    setFormData(prev => {
+      console.log('Setting formData with new respuestas:', newRespuestas);
+      return { ...prev, respuestas: newRespuestas };
+    });
+    
+    // Validar si hay denuncias de violencia
+    validateViolenceReports(question, answer);
   };
 
   const tiposCliente = [
@@ -220,9 +275,34 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   useEffect(() => {
     if (client && mode !== 'create') {
+      console.log('Loading client data:', client);
       setFormData(client);
+      
+      // Validar respuestas existentes para verificar si está bloqueado
+      if (client.respuestas) {
+        console.log('Validating existing responses:', client.respuestas);
+        client.respuestas.forEach(respuesta => {
+          console.log('Validating response:', respuesta);
+          validateViolenceReports(respuesta.pregunta, respuesta.respuesta);
+        });
+      }
     }
   }, [client, mode]);
+
+  // Debug useEffect to monitor formData.respuestas changes
+  useEffect(() => {
+    console.log('formData.respuestas changed:', formData.respuestas);
+  }, [formData.respuestas]);
+
+  // Debug useEffect to monitor clienteBloqueado state changes
+  useEffect(() => {
+    console.log('clienteBloqueado state changed:', clienteBloqueado, 'motivo:', motivoBloqueo);
+  }, [clienteBloqueado, motivoBloqueo]);
+
+  // Debug useEffect to monitor entire formData
+  useEffect(() => {
+    console.log('formData changed:', formData);
+  }, [formData]);
 
   useEffect(() => {
     if (formData.provincia) {
@@ -263,6 +343,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
       
       processedValue = numericValue;
     }
+    // Para campos de dropdown (tipoCliente, tipoIdentificacion, provincia, canton, etc.) no aplicar procesamiento
 
     // Validar campos específicos
     if (field === 'numeroIdentificacion') {
@@ -290,17 +371,39 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
 
     try {
+      // Determinar el estado del cliente
+      let clientStatus: 'FALTAN_DOCUMENTOS' | 'BLOQUEADO' | 'LISTO_IMPORTACION' = 'FALTAN_DOCUMENTOS';
+      
+      if (clienteBloqueado) {
+        clientStatus = 'BLOQUEADO';
+      } else if (documentStatus === 'complete') {
+        clientStatus = 'LISTO_IMPORTACION';
+      }
+
       let updatedClient;
       if (mode === 'edit' && client) {
-        // Actualizar cliente existente - incluir el ID original
+        // Actualizar cliente existente - incluir el ID original y el estado
         const clientData = {
           ...formData,
-          id: client.id // Mantener el ID original
+          id: client.id, // Mantener el ID original
+          estado: clientStatus
         };
         updatedClient = await mockApiService.updateCliente(client.id, clientData);
       } else {
-        // Crear nuevo cliente
-        updatedClient = await mockApiService.createCliente(formData);
+        // Crear nuevo cliente con estado
+        const clientData = {
+          ...formData,
+          estado: clientStatus
+        };
+        updatedClient = await mockApiService.createCliente(clientData);
+      }
+      
+      // Notificar al componente padre sobre el estado de bloqueo
+      if (clienteBloqueado) {
+        onClienteBloqueado?.(updatedClient.id, true, motivoBloqueo);
+      } else if (client && (client as any).estado === 'BLOQUEADO' && !clienteBloqueado) {
+        // Si el cliente estaba bloqueado pero ya no lo está, notificar el desbloqueo
+        onClienteBloqueado?.(updatedClient.id, false, '');
       }
       
       onSave(updatedClient);
@@ -343,6 +446,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
     if (isUniformado && !formData.estadoMilitar) return false;
 
     return true;
+  };
+
+  // Función para validar si puede continuar con el proceso de armas
+  const canContinueWithWeapons = () => {
+    return validateForm() && !clienteBloqueado;
   };
 
   const edad = calcularEdad(formData.fechaNacimiento);
@@ -942,6 +1050,28 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">Preguntas de Seguridad</h2>
                   </div>
+
+                  {/* Advertencia de Cliente Bloqueado */}
+                  {clienteBloqueado && (
+                    <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 mb-6">
+                      <div className="flex items-start">
+                        <div className="bg-red-100 p-2 rounded-full mr-4 mt-1">
+                          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-red-800 mb-2">CLIENTE BLOQUEADO</h3>
+                          <p className="text-red-700 mb-3">
+                            <strong>Motivo:</strong> {motivoBloqueo}
+                          </p>
+                          <p className="text-red-600 text-sm">
+                            ⚠️ El cliente puede ser guardado pero NO podrá continuar con el proceso de selección de armas.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="space-y-4">
                     {clientQuestions.map((question) => (
@@ -955,6 +1085,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
                                   Obligatoria
                                 </span>
                               )}
+                              {question.tipo_respuesta === 'SI_NO' && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  SI/NO
+                                </span>
+                              )}
+                              {question.bloquea_proceso && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                  Bloquea Proceso
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -964,14 +1104,58 @@ const ClientForm: React.FC<ClientFormProps> = ({
                             {getAnswerForQuestion(question.pregunta) || 'Sin respuesta'}
                           </div>
                         ) : (
-                          <textarea
-                            value={getAnswerForQuestion(question.pregunta)}
-                            onChange={(e) => handleAnswerChange(question.pregunta, e.target.value)}
-                            required={question.obligatoria}
-                            rows={3}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 resize-none"
-                            placeholder="Escriba su respuesta aquí..."
-                          />
+                          question.tipo_respuesta === 'SI_NO' ? (
+                            <div>
+                              <select
+                                value={getAnswerForQuestion(question.pregunta)}
+                                onChange={(e) => handleAnswerChange(question.pregunta, e.target.value)}
+                                required={question.obligatoria}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
+                              >
+                                <option value="">Seleccionar respuesta</option>
+                                <option value="SI">Sí</option>
+                                <option value="NO">No</option>
+                              </select>
+                              {/* Temporary test button for violence report question */}
+                              {question.pregunta.includes('denuncias de violencia') && (
+                                <div className="mt-2 space-y-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      console.log('Test button clicked');
+                                      const currentAnswer = getAnswerForQuestion(question.pregunta);
+                                      const newAnswer = currentAnswer === 'SI' ? 'NO' : 'SI';
+                                      console.log('Changing answer from', currentAnswer, 'to', newAnswer);
+                                      handleAnswerChange(question.pregunta, newAnswer);
+                                    }}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                  >
+                                    Test: Change to {getAnswerForQuestion(question.pregunta) === 'SI' ? 'NO' : 'SI'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      console.log('Direct toggle button clicked');
+                                      setClienteBloqueado(!clienteBloqueado);
+                                      console.log('clienteBloqueado toggled to:', !clienteBloqueado);
+                                    }}
+                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                                  >
+                                    Direct Toggle: {clienteBloqueado ? 'Unblock' : 'Block'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <textarea
+                              value={getAnswerForQuestion(question.pregunta)}
+                              onChange={(e) => handleAnswerChange(question.pregunta, e.target.value)}
+                              required={question.obligatoria}
+                              rows={3}
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 resize-none"
+                              placeholder="Escriba su respuesta aquí..."
+                            />
+                          )
                         )}
                       </div>
                     ))}
@@ -1084,13 +1268,39 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 </button>
                 
                 {mode !== 'view' && (
-                  <button
-                    type="submit"
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    disabled={false || !validateForm()}
-                  >
-                    {false ? 'Guardando...' : mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
-                  </button>
+                  <>
+                    <button
+                      type="submit"
+                      className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      disabled={false || !validateForm()}
+                    >
+                      {false ? 'Guardando...' : mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
+                    </button>
+                    
+                    {/* Botón para continuar con selección de armas (solo si no está bloqueado) */}
+                    {!clienteBloqueado && (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToWeaponSelection?.()}
+                        disabled={!canContinueWithWeapons()}
+                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        Continuar con Selección de Armas
+                      </button>
+                    )}
+                    
+                    {/* Botón para guardar cliente bloqueado */}
+                    {clienteBloqueado && (
+                      <button
+                        type="button"
+                        onClick={() => onSave(formData)}
+                        disabled={!validateForm()}
+                        className="px-8 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        Guardar Cliente Bloqueado
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </form>
