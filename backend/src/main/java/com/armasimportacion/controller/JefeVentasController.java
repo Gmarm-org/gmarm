@@ -9,7 +9,6 @@ import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.LicenciaService;
 import com.armasimportacion.service.GrupoImportacionService;
 import com.armasimportacion.enums.EstadoCliente;
-import com.armasimportacion.enums.EstadoLicencia;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
