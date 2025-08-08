@@ -37,7 +37,7 @@ export const isCupoCivil = (client: Client) => client.nombres.startsWith('Cupo C
 
 // Hardcoded documents/questions by tipoCliente
 export const docsByTipo: Record<string, string[]> = {
-  Civil: ['Cédula', 'Certificado de antecedentes'],
+  Civil: ['Cédula', 'Antecedentes Penales'],
   'Compañía de Seguridad': ['RUC', 'Permiso de funcionamiento', 'Representante legal'],
   Uniformado: ['Cédula', 'Credencial policial'],
   Deportista: ['Cédula', 'Credencial club', 'Permiso deportivo']

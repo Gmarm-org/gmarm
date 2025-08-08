@@ -157,10 +157,12 @@ public class LicenciaController {
     @Operation(summary = "Buscar licencias", description = "Busca licencias con filtros específicos")
     public ResponseEntity<Page<Licencia>> buscarLicencias(
             @RequestParam(required = false) String numeroLicencia,
+            @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String tipoLicencia,
             @RequestParam(required = false) EstadoLicencia estado,
+            @RequestParam(required = false) String ruc,
             Pageable pageable) {
-        Page<Licencia> licencias = licenciaService.buscarLicencias(numeroLicencia, tipoLicencia, estado, pageable);
+        Page<Licencia> licencias = licenciaService.buscarLicencias(numeroLicencia, nombre, tipoLicencia, estado, ruc, pageable);
         return ResponseEntity.ok(licencias);
     }
     

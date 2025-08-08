@@ -137,6 +137,23 @@ public class Cliente {
     @Column(name = "estado", nullable = false, length = 20)
     @Builder.Default
     private EstadoCliente estado = EstadoCliente.ACTIVO;
+    
+    // Campos para proceso de aprobación del jefe de ventas
+    @Column(name = "proceso_completado", nullable = false)
+    @Builder.Default
+    private Boolean procesoCompletado = false;
+    
+    @Column(name = "aprobado_por_jefe_ventas")
+    private Boolean aprobadoPorJefeVentas;
+    
+    @Column(name = "fecha_aprobacion")
+    private LocalDateTime fechaAprobacion;
+    
+    @Column(name = "motivo_rechazo", length = 500)
+    private String motivoRechazo;
+    
+    @Column(name = "fecha_rechazo")
+    private LocalDateTime fechaRechazo;
 
     // Relaciones
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

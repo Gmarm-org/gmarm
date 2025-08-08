@@ -28,37 +28,62 @@ public class Licencia {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "numero_licencia", nullable = false, unique = true, length = 50)
-    private String numeroLicencia;
+    @Column(name = "numero", nullable = false, unique = true, length = 50)
+    private String numero;
 
-    @Column(name = "tipo_licencia", nullable = false, length = 50)
+    @Column(name = "nombre", nullable = false, length = 255)
+    private String nombre;
+
+    @Column(name = "ruc", length = 20)
+    private String ruc;
+
+    @Column(name = "cuenta_bancaria", length = 50)
+    private String cuentaBancaria;
+
+    @Column(name = "nombre_banco", length = 100)
+    private String nombreBanco;
+
+    @Column(name = "tipo_cuenta", length = 20)
+    private String tipoCuenta;
+
+    @Column(name = "cedula_cuenta", length = 20)
+    private String cedulaCuenta;
+
+    @Column(name = "email", length = 255)
+    private String email;
+
+    @Column(name = "telefono", length = 20)
+    private String telefono;
+
+    @Column(name = "fecha_vencimiento", nullable = false)
+    private LocalDate fechaVencimiento;
+
+    // Campos adicionales para el sistema de gestión
+    @Column(name = "tipo_licencia", length = 50)
     private String tipoLicencia;
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
-    @Column(name = "fecha_emision", nullable = false)
+    @Column(name = "fecha_emision")
     private LocalDate fechaEmision;
 
-    @Column(name = "fecha_vencimiento", nullable = false)
-    private LocalDate fechaVencimiento;
-
-    @Column(name = "cupo_total", nullable = false)
+    @Column(name = "cupo_total")
     private Integer cupoTotal;
 
-    @Column(name = "cupo_disponible", nullable = false)
+    @Column(name = "cupo_disponible")
     private Integer cupoDisponible;
 
-    @Column(name = "cupo_civil", nullable = false)
+    @Column(name = "cupo_civil")
     private Integer cupoCivil;
 
-    @Column(name = "cupo_militar", nullable = false)
+    @Column(name = "cupo_militar")
     private Integer cupoMilitar;
 
-    @Column(name = "cupo_empresa", nullable = false)
+    @Column(name = "cupo_empresa")
     private Integer cupoEmpresa;
 
-    @Column(name = "cupo_deportista", nullable = false)
+    @Column(name = "cupo_deportista")
     private Integer cupoDeportista;
 
     @Column(name = "observaciones", columnDefinition = "TEXT")
@@ -69,15 +94,15 @@ public class Licencia {
     private Usuario usuarioActualizador;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "estado", nullable = false, length = 20)
+    @Column(name = "estado", length = 20)
     private EstadoLicencia estado = EstadoLicencia.ACTIVA;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_creador_id", nullable = false)
+    @JoinColumn(name = "usuario_creador_id")
     private Usuario usuarioCreador;
 
     @CreatedDate
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;
 
     @LastModifiedDate
@@ -90,17 +115,19 @@ public class Licencia {
 
     // Métodos de utilidad
     public Integer getCupoDisponible(String tipoCliente) {
+        if (tipoCliente == null) return cupoDisponible;
+        
         switch (tipoCliente.toLowerCase()) {
             case "civil":
-                return cupoCivil;
+                return cupoCivil != null ? cupoCivil : 0;
             case "militar":
-                return cupoMilitar;
+                return cupoMilitar != null ? cupoMilitar : 0;
             case "empresa":
-                return cupoEmpresa;
+                return cupoEmpresa != null ? cupoEmpresa : 0;
             case "deportista":
-                return cupoDeportista;
+                return cupoDeportista != null ? cupoDeportista : 0;
             default:
-                return cupoDisponible;
+                return cupoDisponible != null ? cupoDisponible : 0;
         }
     }
 
@@ -111,20 +138,49 @@ public class Licencia {
     public void decrementarCupo(String tipoCliente) {
         switch (tipoCliente.toLowerCase()) {
             case "civil":
-                if (cupoCivil > 0) cupoCivil--;
+                if (cupoCivil != null && cupoCivil > 0) cupoCivil--;
                 break;
             case "militar":
-                if (cupoMilitar > 0) cupoMilitar--;
+                if (cupoMilitar != null && cupoMilitar > 0) cupoMilitar--;
                 break;
             case "empresa":
-                if (cupoEmpresa > 0) cupoEmpresa--;
+                if (cupoEmpresa != null && cupoEmpresa > 0) cupoEmpresa--;
                 break;
             case "deportista":
-                if (cupoDeportista > 0) cupoDeportista--;
+                if (cupoDeportista != null && cupoDeportista > 0) cupoDeportista--;
                 break;
             default:
-                if (cupoDisponible > 0) cupoDisponible--;
+                if (cupoDisponible != null && cupoDisponible > 0) cupoDisponible--;
                 break;
+        }
+    }
+
+    // Método para determinar si la licencia está vencida
+    public boolean isVencida() {
+        return fechaVencimiento != null && fechaVencimiento.isBefore(LocalDate.now());
+    }
+
+    // Método para obtener días restantes hasta el vencimiento
+    public long getDiasRestantes() {
+        if (fechaVencimiento == null) return 0;
+        return LocalDate.now().until(fechaVencimiento).getDays();
+    }
+
+    // Método para obtener el tipo de licencia basado en los datos existentes
+    public String getTipoLicenciaInferido() {
+        if (tipoLicencia != null && !tipoLicencia.isEmpty()) {
+            return tipoLicencia;
+        }
+        
+        // Inferir tipo basado en el RUC o nombre
+        if (ruc != null && ruc.length() == 13) {
+            return "IMPORTACION_EMPRESA";
+        } else if (nombre != null && nombre.toLowerCase().contains("militar")) {
+            return "IMPORTACION_MILITAR";
+        } else if (nombre != null && nombre.toLowerCase().contains("deportista")) {
+            return "IMPORTACION_DEPORTISTA";
+        } else {
+            return "IMPORTACION_CIVIL";
         }
     }
 } 

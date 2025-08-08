@@ -9,6 +9,10 @@ import Pagos from './pages/Pagos/Pagos';
 import Finanzas from './pages/Finanzas/Finanzas';
 import JefeVentas from './pages/JefeVentas/JefeVentas';
 import JefeVentasSupervision from './pages/JefeVentas/JefeVentasSupervision';
+import LicenseManagementPage from './pages/JefeVentas/LicenseManagementPage';
+import ImportGroupManagementPage from './pages/JefeVentas/ImportGroupManagementPage';
+import ClientManagementPage from './pages/JefeVentas/ClientManagementPage';
+import ReportsAndStatsPage from './pages/JefeVentas/ReportsAndStatsPage';
 import Usuario from './pages/Usuario/Usuario';
 import Profile from './pages/Profile/Profile';
 import RoleSelection from './pages/RoleSelection/RoleSelection';
@@ -107,6 +111,43 @@ function App() {
               element={
                 <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
                   <JefeVentasSupervision />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Rutas específicas del Jefe de Ventas */}
+            <Route 
+              path="/jefe-ventas/licencias" 
+              element={
+                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                  <LicenseManagementPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/jefe-ventas/grupos-importacion" 
+              element={
+                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                  <ImportGroupManagementPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/jefe-ventas/clientes" 
+              element={
+                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                  <ClientManagementPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/jefe-ventas/reportes" 
+              element={
+                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                  <ReportsAndStatsPage />
                 </ProtectedRoute>
               } 
             />

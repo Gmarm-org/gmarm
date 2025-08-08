@@ -8,6 +8,17 @@ export interface ApiResponse<T> {
   success: boolean;
 }
 
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -63,6 +74,75 @@ export interface SaldoCliente {
   clienteId: number;
   saldo: number;
   tieneSaldoPendiente: boolean;
+}
+
+// Tipos para Licencias
+export interface Licencia {
+  id: number;
+  numero: string;
+  nombre: string;
+  ruc?: string;
+  cuentaBancaria?: string;
+  nombreBanco?: string;
+  tipoCuenta?: string;
+  cedulaCuenta?: string;
+  email?: string;
+  telefono?: string;
+  fechaVencimiento: string;
+  tipoLicencia?: string;
+  descripcion?: string;
+  fechaEmision?: string;
+  cupoTotal?: number;
+  cupoDisponible?: number;
+  cupoCivil?: number;
+  cupoMilitar?: number;
+  cupoEmpresa?: number;
+  cupoDeportista?: number;
+  observaciones?: string;
+  estado: 'ACTIVA' | 'INACTIVA' | 'VENCIDA' | 'SUSPENDIDA';
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+  usuarioCreador?: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+  };
+  usuarioActualizador?: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+  };
+}
+
+export interface LicenciaCreateRequest {
+  numero: string;
+  nombre: string;
+  ruc?: string;
+  cuentaBancaria?: string;
+  nombreBanco?: string;
+  tipoCuenta?: string;
+  cedulaCuenta?: string;
+  email?: string;
+  telefono?: string;
+  fechaVencimiento: string;
+  tipoLicencia?: string;
+  descripcion?: string;
+  fechaEmision?: string;
+  cupoTotal?: number;
+  cupoCivil?: number;
+  cupoMilitar?: number;
+  cupoEmpresa?: number;
+  cupoDeportista?: number;
+  observaciones?: string;
+  estado?: string;
+}
+
+export interface LicenciaSearchParams {
+  numeroLicencia?: string;
+  tipoLicencia?: string;
+  estado?: string;
+  page?: number;
+  size?: number;
 }
 
 // Clase principal de API
@@ -259,38 +339,69 @@ class ApiService {
   // LICENCIAS
   // ========================================
 
-  async getLicencias(page: number = 0, size: number = 10): Promise<ApiResponse<any[]>> {
-    return this.request<ApiResponse<any[]>>(`/licencias?page=${page}&size=${size}`);
+  async getLicencias(page: number = 0, size: number = 10): Promise<Page<Licencia>> {
+    return this.request<Page<Licencia>>(`/licencias?page=${page}&size=${size}`);
   }
 
-  async getLicencia(id: number): Promise<any> {
-    return this.request<any>(`/licencias/${id}`);
+  async getLicencia(id: number): Promise<Licencia> {
+    return this.request<Licencia>(`/licencias/${id}`);
   }
 
-  async createLicencia(licenciaData: any): Promise<any> {
-    return this.request<any>('/licencias', {
+  async createLicencia(licenciaData: LicenciaCreateRequest, usuarioId: number): Promise<Licencia> {
+    return this.request<Licencia>(`/licencias?usuarioId=${usuarioId}`, {
       method: 'POST',
       body: JSON.stringify(licenciaData),
     });
   }
 
-  async updateLicencia(id: number, licenciaData: any): Promise<any> {
-    return this.request<any>(`/licencias/${id}`, {
+  async updateLicencia(id: number, licenciaData: Partial<LicenciaCreateRequest>, usuarioId: number): Promise<Licencia> {
+    return this.request<Licencia>(`/licencias/${id}?usuarioId=${usuarioId}`, {
       method: 'PUT',
       body: JSON.stringify(licenciaData),
     });
   }
 
-  async getLicenciasActivas(): Promise<any[]> {
-    return this.request<any[]>('/licencias/activas');
+  async deleteLicencia(id: number): Promise<void> {
+    await this.request(`/licencias/${id}`, { method: 'DELETE' });
   }
 
-  async getLicenciasConCupoCivil(): Promise<any[]> {
-    return this.request<any[]>('/licencias/cupo-civil-disponible');
+  async getLicenciasActivas(): Promise<Licencia[]> {
+    return this.request<Licencia[]>('/licencias/activas');
   }
 
-  async decrementarCupoLicencia(id: number): Promise<void> {
-    await this.request(`/licencias/${id}/decrementar-cupo`, { method: 'POST' });
+  async getLicenciasConCupoCivil(): Promise<Licencia[]> {
+    return this.request<Licencia[]>('/licencias/cupo-civil-disponible');
+  }
+
+  async decrementarCupoLicencia(id: number, tipoCliente: string): Promise<void> {
+    await this.request(`/licencias/${id}/decrementar-cupo?tipoCliente=${tipoCliente}`, { method: 'POST' });
+  }
+
+  async verificarCupoDisponible(id: number, tipoCliente: string): Promise<{ tieneCupo: boolean; cupoDisponible: number }> {
+    return this.request<{ tieneCupo: boolean; cupoDisponible: number }>(`/licencias/${id}/tiene-cupo?tipoCliente=${tipoCliente}`);
+  }
+
+  async getLicenciasProximasAVencer(dias: number = 30): Promise<Licencia[]> {
+    return this.request<Licencia[]>(`/licencias/proximas-vencer?dias=${dias}`);
+  }
+
+  async buscarLicencias(params: LicenciaSearchParams): Promise<Page<Licencia>> {
+    const queryParams = new URLSearchParams();
+    if (params.numeroLicencia) queryParams.append('numeroLicencia', params.numeroLicencia);
+    if (params.tipoLicencia) queryParams.append('tipoLicencia', params.tipoLicencia);
+    if (params.estado) queryParams.append('estado', params.estado);
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    
+    return this.request<Page<Licencia>>(`/licencias/buscar?${queryParams.toString()}`);
+  }
+
+  async getEstadisticasLicencias(): Promise<Array<{ estado: string; count: number }>> {
+    return this.request<Array<{ estado: string; count: number }>>('/licencias/estadisticas');
+  }
+
+  async cambiarEstadoLicencia(id: number, nuevoEstado: string): Promise<void> {
+    await this.request(`/licencias/${id}/estado?nuevoEstado=${nuevoEstado}`, { method: 'PUT' });
   }
 
   // ========================================

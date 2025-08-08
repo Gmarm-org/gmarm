@@ -32,6 +32,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
   onNavigateToWeaponSelection,
   onClienteBloqueado
 }) => {
+
   const [formData, setFormData] = useState<Client>({
     id: '',
     nombres: '',
@@ -192,73 +193,53 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   // Función para obtener respuesta de pregunta
   const getAnswerForQuestion = (question: string) => {
-    console.log('getAnswerForQuestion called for:', question);
-    console.log('Current formData.respuestas:', formData.respuestas);
-    
-    // Temporary test for violence report question
-    if (question.includes('denuncias de violencia')) {
-      console.log('This is the violence report question!');
-      console.log('Question text:', question);
-      console.log('Available responses:', formData.respuestas);
-    }
-    
-    const respuesta = formData.respuestas?.find(r => {
-      console.log('Checking response:', r.pregunta, 'against:', question);
-      console.log('Strings match?', r.pregunta === question);
-      return r.pregunta === question;
+    const respuesta = formData.respuestas?.find(r => r.pregunta === question);
+    const result = respuesta?.respuesta || '';
+    console.log('getAnswerForQuestion:', { 
+      question, 
+      result, 
+      allRespuestas: formData.respuestas,
+      foundRespuesta: respuesta,
+      formDataLength: formData.respuestas?.length || 0,
+      formDataKeys: formData.respuestas ? Object.keys(formData.respuestas) : []
     });
-    
-    const answer = respuesta?.respuesta || '';
-    console.log('Found answer:', answer, 'for question:', question);
-    return answer;
-  };
-
-  // Función para validar denuncias de violencia
-  const validateViolenceReports = (question: string, answer: string) => {
-    console.log('validateViolenceReports called:', { question, answer, clienteBloqueado });
-    if (question.includes('denuncias de violencia') && answer === 'SI') {
-      console.log('Setting clienteBloqueado to true');
-      setClienteBloqueado(true);
-      setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
-    } else if (question.includes('denuncias de violencia') && answer === 'NO') {
-      console.log('Setting clienteBloqueado to false');
-      setClienteBloqueado(false);
-      setMotivoBloqueo('');
-      // Notificar al componente padre que el cliente ya no está bloqueado
-      if (client?.id) {
-        onClienteBloqueado?.(client.id, false, '');
-      }
-    }
+    return result;
   };
 
   // Función para manejar cambio de respuesta
   const handleAnswerChange = (question: string, answer: string) => {
-    console.log('handleAnswerChange called:', { question, answer });
-    console.log('Current formData.respuestas:', formData.respuestas);
+    console.log('handleAnswerChange called:', { question, answer, currentRespuestas: formData.respuestas });
     
-    const existingIndex = formData.respuestas?.findIndex(r => r.pregunta === question) || -1;
-    console.log('Existing index:', existingIndex);
-    
-    const newRespuestas = [...(formData.respuestas || [])];
-    
-    if (existingIndex >= 0) {
-      console.log('Updating existing response at index:', existingIndex);
-      newRespuestas[existingIndex] = { ...newRespuestas[existingIndex], respuesta: answer };
-    } else {
-      console.log('Adding new response');
-      newRespuestas.push({ id: Date.now().toString(), pregunta: question, respuesta: answer, tipo: 'TEXTO' });
-    }
-    
-    console.log('New respuestas array:', newRespuestas);
-    
-    // Update state immediately
+    // Use a more direct approach to avoid potential race conditions
     setFormData(prev => {
-      console.log('Setting formData with new respuestas:', newRespuestas);
-      return { ...prev, respuestas: newRespuestas };
+      const currentRespuestas = prev.respuestas || [];
+      const existingIndex = currentRespuestas.findIndex(r => r.pregunta === question);
+      
+      console.log('setFormData - existingIndex:', existingIndex, 'for question:', question);
+      
+      let newRespuestas;
+      if (existingIndex >= 0) {
+        // Update existing answer
+        newRespuestas = [...currentRespuestas];
+        newRespuestas[existingIndex] = { ...newRespuestas[existingIndex], respuesta: answer };
+        console.log('Updated existing answer at index:', existingIndex, 'with answer:', answer);
+      } else {
+        // Add new answer
+        newRespuestas = [...currentRespuestas, { 
+          id: Date.now().toString(), 
+          pregunta: question, 
+          respuesta: answer, 
+          tipo: 'TEXTO' 
+        }];
+        console.log('Added new answer for question:', question, 'with answer:', answer);
+      }
+      
+      console.log('New respuestas array:', newRespuestas);
+      
+      const updatedFormData = { ...prev, respuestas: newRespuestas };
+      console.log('setFormData returning updated formData with respuestas:', updatedFormData.respuestas);
+      return updatedFormData;
     });
-    
-    // Validar si hay denuncias de violencia
-    validateViolenceReports(question, answer);
   };
 
   const tiposCliente = [
@@ -275,34 +256,84 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   useEffect(() => {
     if (client && mode !== 'create') {
-      console.log('Loading client data:', client);
       setFormData(client);
       
-      // Validar respuestas existentes para verificar si está bloqueado
+      // Reset bloqueo state first
+      setClienteBloqueado(false);
+      setMotivoBloqueo('');
+      
+      // Validar respuestas existentes para verificar si está bloqueado (sin notificar al padre al cargar)
       if (client.respuestas) {
-        console.log('Validating existing responses:', client.respuestas);
-        client.respuestas.forEach(respuesta => {
-          console.log('Validating response:', respuesta);
-          validateViolenceReports(respuesta.pregunta, respuesta.respuesta);
-        });
+        const violenciaRespuesta = client.respuestas.find(r => r.pregunta.includes('denuncias de violencia'));
+        if (violenciaRespuesta?.respuesta === 'SI') {
+          setClienteBloqueado(true);
+          setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
+        }
       }
+    } else if (mode === 'create') {
+      // Reset form data for create mode
+      setFormData({
+        id: '',
+        nombres: '',
+        apellidos: '',
+        email: '',
+        numeroIdentificacion: '',
+        tipoCliente: '',
+        tipoIdentificacion: '',
+        telefonoPrincipal: '',
+        telefonoSecundario: '',
+        direccion: '',
+        provincia: '',
+        canton: '',
+        fechaNacimiento: '',
+        representanteLegal: '',
+        ruc: '',
+        nombreEmpresa: '',
+        direccionFiscal: '',
+        telefonoReferencia: '',
+        correoEmpresa: '',
+        provinciaEmpresa: '',
+        cantonEmpresa: '',
+        estadoMilitar: undefined,
+        documentos: [],
+        respuestas: []
+      });
+      setClienteBloqueado(false);
+      setMotivoBloqueo('');
     }
-  }, [client, mode]);
+  }, [client?.id, mode]); // Use client.id instead of client to avoid unnecessary re-renders
 
-  // Debug useEffect to monitor formData.respuestas changes
+  // Monitor formData.respuestas changes for debugging
   useEffect(() => {
     console.log('formData.respuestas changed:', formData.respuestas);
   }, [formData.respuestas]);
 
-  // Debug useEffect to monitor clienteBloqueado state changes
+  // Re-validar todas las respuestas cuando cambien (solo en modo edit, no en view)
   useEffect(() => {
-    console.log('clienteBloqueado state changed:', clienteBloqueado, 'motivo:', motivoBloqueo);
-  }, [clienteBloqueado, motivoBloqueo]);
-
-  // Debug useEffect to monitor entire formData
-  useEffect(() => {
-    console.log('formData changed:', formData);
-  }, [formData]);
+    console.log('useEffect re-validating responses:', { 
+      formData: formData.respuestas, 
+      mode,
+      respuestasLength: formData.respuestas?.length || 0
+    });
+    // Solo ejecutar si no estamos en modo view y hay respuestas
+    if (formData.respuestas && formData.respuestas.length > 0 && mode !== 'view') {
+      formData.respuestas.forEach(respuesta => {
+        if (respuesta.pregunta.includes('denuncias de violencia')) {
+          console.log('Processing violence question:', respuesta);
+          // Solo actualizar el estado local, no notificar al padre inmediatamente
+          if (respuesta.respuesta === 'SI') {
+            console.log('Setting clienteBloqueado to true');
+            setClienteBloqueado(true);
+            setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
+          } else if (respuesta.respuesta === 'NO') {
+            console.log('Setting clienteBloqueado to false');
+            setClienteBloqueado(false);
+            setMotivoBloqueo('');
+          }
+        }
+      });
+    }
+  }, [formData.respuestas, mode]);
 
   useEffect(() => {
     if (formData.provincia) {
@@ -456,6 +487,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const edad = calcularEdad(formData.fechaNacimiento);
   const edadValida = validarEdadMinima(formData.fechaNacimiento);
   const mensajeErrorEdad = obtenerMensajeErrorEdad(formData.fechaNacimiento);
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8 px-4">
@@ -1074,7 +1107,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   )}
                   
                   <div className="space-y-4">
-                    {clientQuestions.map((question) => (
+                    {clientQuestions.map((question) => {
+                      console.log('Rendering question:', { 
+                        id: question.id, 
+                        pregunta: question.pregunta, 
+                        currentValue: getAnswerForQuestion(question.pregunta),
+                        isViolenceQuestion: question.pregunta.includes('denuncias de violencia')
+                      });
+                      return (
                       <div key={question.id} className="bg-white p-4 rounded-xl border-2 border-gray-200">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
@@ -1107,8 +1147,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           question.tipo_respuesta === 'SI_NO' ? (
                             <div>
                               <select
+                                key={`${question.id}-${getAnswerForQuestion(question.pregunta)}`}
                                 value={getAnswerForQuestion(question.pregunta)}
-                                onChange={(e) => handleAnswerChange(question.pregunta, e.target.value)}
+                                onChange={(e) => {
+                                  console.log('Dropdown onChange triggered:', { 
+                                    question: question.pregunta, 
+                                    newValue: e.target.value,
+                                    currentValue: getAnswerForQuestion(question.pregunta)
+                                  });
+                                  handleAnswerChange(question.pregunta, e.target.value);
+                                }}
                                 required={question.obligatoria}
                                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
                               >
@@ -1116,35 +1164,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                                 <option value="SI">Sí</option>
                                 <option value="NO">No</option>
                               </select>
-                              {/* Temporary test button for violence report question */}
-                              {question.pregunta.includes('denuncias de violencia') && (
-                                <div className="mt-2 space-y-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      console.log('Test button clicked');
-                                      const currentAnswer = getAnswerForQuestion(question.pregunta);
-                                      const newAnswer = currentAnswer === 'SI' ? 'NO' : 'SI';
-                                      console.log('Changing answer from', currentAnswer, 'to', newAnswer);
-                                      handleAnswerChange(question.pregunta, newAnswer);
-                                    }}
-                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                                  >
-                                    Test: Change to {getAnswerForQuestion(question.pregunta) === 'SI' ? 'NO' : 'SI'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      console.log('Direct toggle button clicked');
-                                      setClienteBloqueado(!clienteBloqueado);
-                                      console.log('clienteBloqueado toggled to:', !clienteBloqueado);
-                                    }}
-                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                                  >
-                                    Direct Toggle: {clienteBloqueado ? 'Unblock' : 'Block'}
-                                  </button>
-                                </div>
-                              )}
+
                             </div>
                           ) : (
                             <textarea
@@ -1158,7 +1178,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           )
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
               )}
@@ -1266,6 +1287,20 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 >
                   Cancelar
                 </button>
+                
+                {mode === 'view' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Cambiar a modo edit
+                      const event = new Event('edit-mode');
+                      window.dispatchEvent(event);
+                    }}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg"
+                  >
+                    Editar Cliente
+                  </button>
+                )}
                 
                 {mode !== 'view' && (
                   <>

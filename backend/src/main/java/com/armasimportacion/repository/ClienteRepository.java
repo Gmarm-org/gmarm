@@ -91,4 +91,32 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     // Búsquedas para reportes
     @Query("SELECT c FROM Cliente c WHERE c.fechaCreacion >= :fechaInicio AND c.fechaCreacion <= :fechaFin")
     List<Cliente> findForReport(@Param("fechaInicio") LocalDate fechaInicio, @Param("fechaFin") LocalDate fechaFin);
+    
+    // Métodos para Jefe de Ventas
+    @Query("SELECT c FROM Cliente c WHERE c.estado = :estado AND c.usuarioCreador.nombres LIKE %:vendedor%")
+    Page<Cliente> findByEstadoAndUsuarioCreadorNombreContainingIgnoreCase(@Param("estado") EstadoCliente estado, 
+                                                                         @Param("vendedor") String vendedor, 
+                                                                         Pageable pageable);
+    
+    @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.nombres LIKE %:vendedor%")
+    Page<Cliente> findByUsuarioCreadorNombreContainingIgnoreCase(@Param("vendedor") String vendedor, Pageable pageable);
+    
+    List<Cliente> findByEstadoAndProcesoCompletadoTrue(EstadoCliente estado);
+    List<Cliente> findByEstadoAndProcesoCompletadoFalse(EstadoCliente estado);
+    
+    // Métodos de conteo para estadísticas
+    Long countByAprobadoPorJefeVentasTrue();
+    Long countByAprobadoPorJefeVentasFalseAndEstado(EstadoCliente estado);
+    Long countByAprobadoPorJefeVentasFalseAndMotivoRechazoIsNotNull();
+    
+    @Query("SELECT c.estado, COUNT(c) FROM Cliente c GROUP BY c.estado")
+    List<Object[]> getEstadisticasPorEstado();
+    
+    @Query("SELECT c.usuarioCreador.nombres, COUNT(c) FROM Cliente c GROUP BY c.usuarioCreador.nombres")
+    List<Object[]> getEstadisticasPorVendedor();
+    
+    // Métodos adicionales para estadísticas de vendedor
+    Long countByUsuarioCreadorAndEstado(Long usuarioId, EstadoCliente estado);
+    Long countByUsuarioCreadorAndProcesoCompletadoTrue(Long usuarioId);
+    Long countByUsuarioCreadorAndProcesoCompletadoFalse(Long usuarioId);
 } 

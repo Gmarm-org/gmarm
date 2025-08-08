@@ -8,6 +8,7 @@ import WeaponReserve from './components/WeaponReserve';
 const Vendedor: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientFormMode, setClientFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [clients, setClients] = useState<Client[]>([]);
   const [availableWeapons, setAvailableWeapons] = useState<any[]>([]); // Changed type to any[] as Weapon type was removed
   const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null); // Changed type to any
@@ -132,6 +133,7 @@ const Vendedor: React.FC = () => {
 
   const handleCreateClient = () => {
     setCurrentPage('clientForm');
+    setClientFormMode('create');
     setSelectedClient(null);
     setSelectedWeapon(null);
     setPrecioModificado(0);
@@ -196,12 +198,15 @@ const Vendedor: React.FC = () => {
         [clientId]: { bloqueado, motivo }
       }));
       
-      // Si el cliente está bloqueado, no navegar a selección de armas
-      setCurrentPage('dashboard');
-      setSelectedClient(null);
-      setSelectedWeapon(null);
-      setPrecioModificado(0);
-      setCantidad(1);
+      // Solo redirigir al dashboard si no estamos actualmente en el formulario de cliente
+      // Esto permite que el formulario se mantenga abierto cuando se está editando un cliente bloqueado
+      if (currentPage !== 'clientForm') {
+        setCurrentPage('dashboard');
+        setSelectedClient(null);
+        setSelectedWeapon(null);
+        setPrecioModificado(0);
+        setCantidad(1);
+      }
     } else {
       // Desbloquear cliente - remover de la lista de bloqueados
       setClientesBloqueados(prev => {
@@ -214,6 +219,7 @@ const Vendedor: React.FC = () => {
 
   const handleCloseForm = () => {
     setCurrentPage('dashboard');
+    setClientFormMode('create');
     setSelectedClient(null);
     setSelectedWeapon(null);
     setPrecioModificado(0);
@@ -291,14 +297,7 @@ const Vendedor: React.FC = () => {
         }
       }));
       
-      console.log('Reserva completada:', {
-        client: selectedClient,
-        weapon: selectedWeapon,
-        precio: precioModificado,
-        cantidad,
-        iva: precioModificado * 0.15,
-        total: precioModificado * 1.15
-      });
+
     }
     
     setCurrentPage('dashboard');
@@ -310,6 +309,7 @@ const Vendedor: React.FC = () => {
 
   const handleViewClient = (client: Client) => {
     setSelectedClient(client);
+    setClientFormMode('view');
     
     // Cargar datos de arma asignada si existe
     const assignment = clientWeaponAssignments[client.id];
@@ -329,6 +329,7 @@ const Vendedor: React.FC = () => {
 
   const handleEditClient = (client: Client) => {
     setSelectedClient(client);
+    setClientFormMode('edit');
     
     // Cargar datos de arma asignada si existe
     const assignment = clientWeaponAssignments[client.id];
@@ -346,11 +347,7 @@ const Vendedor: React.FC = () => {
     setCurrentPage('clientForm');
   };
 
-  const handleDisableClient = (clientId: string) => {
-    setClients(prev => prev.map(c => 
-      c.id === clientId ? { ...c, estado: 'INACTIVO' } : c
-    ));
-  };
+
 
   const handleFilterByType = (tipoCliente: string) => {
     if (clientFilter === tipoCliente) {
@@ -401,6 +398,19 @@ const Vendedor: React.FC = () => {
       return () => clearTimeout(timeout);
     }
   }, [isLoading]);
+
+  // Escuchar evento para cambiar de view a edit
+  useEffect(() => {
+    const handleEditMode = () => {
+      if (clientFormMode === 'view' && selectedClient) {
+        setClientFormMode('edit');
+
+      }
+    };
+
+    window.addEventListener('edit-mode', handleEditMode);
+    return () => window.removeEventListener('edit-mode', handleEditMode);
+  }, [clientFormMode, selectedClient]);
 
   const getClientCountByType = (tipo: string) => {
     return clients.filter(client => client.tipoCliente === tipo).length;
@@ -658,12 +668,6 @@ const Vendedor: React.FC = () => {
                               >
                                 Editar
                               </button>
-                              <button
-                                onClick={() => handleDisableClient(client.id)}
-                                className="text-red-600 hover:text-red-900 font-medium"
-                              >
-                                Desactivar
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -677,10 +681,11 @@ const Vendedor: React.FC = () => {
         );
 
       case 'clientForm':
+
         return (
           <div className="p-6">
             <ClientForm
-              mode={selectedClient ? 'edit' : 'create'}
+              mode={clientFormMode}
               client={selectedClient}
               onSave={handleClientSaved}
               onCancel={handleCloseForm}

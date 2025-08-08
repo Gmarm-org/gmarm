@@ -49,6 +49,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ onLogout }) => {
     setShowUserMenu(false);
   };
 
+  const handleChangeRole = () => {
+    navigate('/role-selection');
+    setShowUserMenu(false);
+  };
+
   const handleLogoutClick = () => {
     if (onLogout) {
       onLogout();
@@ -112,6 +117,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ onLogout }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <span className="text-sm font-medium">Actualizar Datos</span>
+            </div>
+            
+            {/* Opción Cambiar Rol */}
+            <div 
+              className="flex items-center space-x-3 px-4 py-3 text-blue-600 hover:bg-blue-50 transition-colors duration-200 cursor-pointer"
+              onClick={handleChangeRole}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+              </svg>
+              <span className="text-sm font-medium">Cambiar Rol</span>
             </div>
             
             {/* Opción Cerrar Sesión */}

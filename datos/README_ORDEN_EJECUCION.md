@@ -63,6 +63,19 @@ Los archivos SQL se ejecutan en orden alfabético. El orden correcto es:
 - ✅ Asigna roles
 - ✅ Configura credenciales de acceso
 
+### 8. `08_actualizacion_licencia_sistema.sql`
+**Propósito:** Actualizar sistema de licencias
+- ✅ Agrega campos de licencia al sistema
+- ✅ Configura estados de licencia
+- ✅ Crea relaciones con usuarios
+
+### 9. `09_eliminar_duplicacion_antecedentes.sql`
+**Propósito:** Eliminar duplicación de documentos de antecedentes
+- ✅ Elimina "Certificado de antecedentes" (duplicado)
+- ✅ Mantiene "Antecedentes Penales" (documento correcto)
+- ✅ Limpia documentos de clientes asociados al duplicado
+- ✅ Verifica configuración de documentos externos
+
 ## Verificación Local
 
 Para probar sin hacer deploy:
@@ -86,6 +99,8 @@ datos/
 ├── 05_verificacion_estructura.sql    # Verificación
 ├── 06_correccion_funcion.sql         # Corrección función
 ├── 07_usuario_admin_default.sql      # Usuarios admin
+├── 08_actualizacion_licencia_sistema.sql # Sistema de licencias
+├── 09_eliminar_duplicacion_antecedentes.sql # Eliminar duplicación
 ├── verificar_orden_ejecucion.sql     # Verificación orden
 └── README_ORDEN_EJECUCION.md         # Esta documentación
 ```
@@ -98,6 +113,8 @@ datos/
 - `04_actualizacion_cliente_estado.sql` depende de `01_gmarm_schema_mejorado.sql`
 - `05_verificacion_estructura.sql` depende de todos los anteriores
 - `06_correccion_funcion.sql` depende de `03_restructuracion_documentos.sql`
+- `08_actualizacion_licencia_sistema.sql` depende de `01_gmarm_schema_mejorado.sql`
+- `09_eliminar_duplicacion_antecedentes.sql` depende de `02_gmarm_datos_prueba.sql` y `03_restructuracion_documentos.sql`
 - `07_usuario_admin_default.sql` depende de `01_gmarm_schema_mejorado.sql`
 
 ## Solución de Problemas

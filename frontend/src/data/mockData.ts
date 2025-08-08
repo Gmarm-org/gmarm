@@ -509,13 +509,7 @@ export const mockAdditionalDocuments = [
     obligatorio: false,
     tipo_proceso_id: 1
   },
-  {
-    id: 7,
-    nombre: 'Certificado de antecedentes',
-    descripcion: 'Certificado de antecedentes penales',
-    obligatorio: false,
-    tipo_proceso_id: 1
-  },
+
   // Uniformado (tipo_proceso_id: 2)
   {
     id: 8,

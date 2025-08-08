@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -177,6 +179,93 @@ public class ClienteService {
 
     public List<Object[]> getEstadisticasPorProvincia() {
         return clienteRepository.countByProvincia();
+    }
+    
+    // ===== MÉTODOS PARA JEFE DE VENTAS =====
+    
+    public Page<Cliente> findAllForJefeVentas(EstadoCliente estado, String vendedor, Pageable pageable) {
+        if (estado != null && vendedor != null && !vendedor.trim().isEmpty()) {
+            return clienteRepository.findByEstadoAndUsuarioCreadorNombreContainingIgnoreCase(estado, vendedor, pageable);
+        } else if (estado != null) {
+            return clienteRepository.findByEstado(estado, pageable);
+        } else if (vendedor != null && !vendedor.trim().isEmpty()) {
+            return clienteRepository.findByUsuarioCreadorNombreContainingIgnoreCase(vendedor, pageable);
+        } else {
+            return clienteRepository.findAll(pageable);
+        }
+    }
+    
+    public List<Cliente> findClientesAprobados() {
+        return clienteRepository.findByEstadoAndProcesoCompletadoTrue(EstadoCliente.ACTIVO);
+    }
+    
+    public List<Cliente> findClientesPendientesAprobacion() {
+        return clienteRepository.findByEstadoAndProcesoCompletadoFalse(EstadoCliente.ACTIVO);
+    }
+    
+    public Map<String, Object> getDetalleCompleto(Long clienteId) {
+        Cliente cliente = findById(clienteId);
+        Map<String, Object> detalle = new java.util.HashMap<>();
+        
+        detalle.put("cliente", cliente);
+        detalle.put("documentos", cliente.getDocumentos());
+        detalle.put("respuestas", cliente.getRespuestas());
+        detalle.put("asignacionesArma", cliente.getAsignacionesArma());
+        detalle.put("asignacionesAccesorio", cliente.getAsignacionesAccesorio());
+        
+        return detalle;
+    }
+    
+    public Cliente aprobarCliente(Long clienteId) {
+        Cliente cliente = findById(clienteId);
+        
+        if (cliente.getEstado() != EstadoCliente.ACTIVO) {
+            throw new BadRequestException("Solo se pueden aprobar clientes activos");
+        }
+        
+        if (!cliente.getProcesoCompletado()) {
+            throw new BadRequestException("El cliente debe tener el proceso de datos completado");
+        }
+        
+        cliente.setAprobadoPorJefeVentas(true);
+        cliente.setFechaAprobacion(java.time.LocalDateTime.now());
+        
+        return clienteRepository.save(cliente);
+    }
+    
+    public Cliente rechazarCliente(Long clienteId, String motivo) {
+        Cliente cliente = findById(clienteId);
+        
+        cliente.setAprobadoPorJefeVentas(false);
+        cliente.setMotivoRechazo(motivo);
+        cliente.setFechaRechazo(java.time.LocalDateTime.now());
+        
+        return clienteRepository.save(cliente);
+    }
+    
+    public Map<String, Object> getEstadisticasJefeVentas() {
+        Map<String, Object> estadisticas = new java.util.HashMap<>();
+        
+        estadisticas.put("totalClientes", clienteRepository.count());
+        estadisticas.put("clientesAprobados", clienteRepository.countByAprobadoPorJefeVentasTrue());
+        estadisticas.put("clientesPendientes", clienteRepository.countByAprobadoPorJefeVentasFalseAndEstado(EstadoCliente.ACTIVO));
+        estadisticas.put("clientesRechazados", clienteRepository.countByAprobadoPorJefeVentasFalseAndMotivoRechazoIsNotNull());
+        estadisticas.put("clientesPorEstado", clienteRepository.getEstadisticasPorEstado());
+        estadisticas.put("clientesPorVendedor", clienteRepository.getEstadisticasPorVendedor());
+        
+        return estadisticas;
+    }
+    
+    public Map<String, Object> getEstadisticasVendedor(Long usuarioId) {
+        Map<String, Object> estadisticas = new java.util.HashMap<>();
+        
+        estadisticas.put("totalClientes", clienteRepository.countByUsuarioCreador(usuarioId));
+        estadisticas.put("clientesActivos", clienteRepository.countByUsuarioCreadorAndEstado(usuarioId, EstadoCliente.ACTIVO));
+        estadisticas.put("clientesBloqueados", clienteRepository.countByUsuarioCreadorAndEstado(usuarioId, EstadoCliente.BLOQUEADO));
+        estadisticas.put("clientesCompletados", clienteRepository.countByUsuarioCreadorAndProcesoCompletadoTrue(usuarioId));
+        estadisticas.put("clientesPendientes", clienteRepository.countByUsuarioCreadorAndProcesoCompletadoFalse(usuarioId));
+        
+        return estadisticas;
     }
 
     // ===== MÉTODOS PRIVADOS =====

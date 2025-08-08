@@ -14,8 +14,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -29,11 +31,11 @@ public class LicenciaService {
     
     // CRUD Operations
     public Licencia crearLicencia(Licencia licencia, Long usuarioId) {
-        log.info("Creando nueva licencia: {}", licencia.getNumeroLicencia());
+        log.info("Creando nueva licencia: {}", licencia.getNumero());
         
         // Validaciones
-        if (licenciaRepository.existsByNumeroLicencia(licencia.getNumeroLicencia())) {
-            throw new BadRequestException("Ya existe una licencia con el número: " + licencia.getNumeroLicencia());
+        if (licenciaRepository.existsByNumero(licencia.getNumero())) {
+            throw new BadRequestException("Ya existe una licencia con el número: " + licencia.getNumero());
         }
         
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -42,6 +44,11 @@ public class LicenciaService {
         licencia.setUsuarioCreador(usuario);
         licencia.setEstado(EstadoLicencia.ACTIVA);
         licencia.setFechaCreacion(LocalDateTime.now());
+        
+        // Inferir tipo de licencia si no se especifica
+        if (licencia.getTipoLicencia() == null || licencia.getTipoLicencia().isEmpty()) {
+            licencia.setTipoLicencia(licencia.getTipoLicenciaInferido());
+        }
         
         return licenciaRepository.save(licencia);
     }
@@ -56,16 +63,27 @@ public class LicenciaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         
         // Validar número de licencia único si cambió
-        if (!licencia.getNumeroLicencia().equals(licenciaActualizada.getNumeroLicencia()) &&
-            licenciaRepository.existsByNumeroLicencia(licenciaActualizada.getNumeroLicencia())) {
-            throw new BadRequestException("Ya existe una licencia con el número: " + licenciaActualizada.getNumeroLicencia());
+        if (!licencia.getNumero().equals(licenciaActualizada.getNumero()) &&
+            licenciaRepository.existsByNumero(licenciaActualizada.getNumero())) {
+            throw new BadRequestException("Ya existe una licencia con el número: " + licenciaActualizada.getNumero());
         }
         
         // Actualizar campos
-        licencia.setNumeroLicencia(licenciaActualizada.getNumeroLicencia());
+        licencia.setNumero(licenciaActualizada.getNumero());
+        licencia.setNombre(licenciaActualizada.getNombre());
+        licencia.setRuc(licenciaActualizada.getRuc());
+        licencia.setCuentaBancaria(licenciaActualizada.getCuentaBancaria());
+        licencia.setNombreBanco(licenciaActualizada.getNombreBanco());
+        licencia.setTipoCuenta(licenciaActualizada.getTipoCuenta());
+        licencia.setCedulaCuenta(licenciaActualizada.getCedulaCuenta());
+        licencia.setEmail(licenciaActualizada.getEmail());
+        licencia.setTelefono(licenciaActualizada.getTelefono());
         licencia.setTipoLicencia(licenciaActualizada.getTipoLicencia());
+        licencia.setDescripcion(licenciaActualizada.getDescripcion());
         licencia.setFechaEmision(licenciaActualizada.getFechaEmision());
         licencia.setFechaVencimiento(licenciaActualizada.getFechaVencimiento());
+        licencia.setCupoTotal(licenciaActualizada.getCupoTotal());
+        licencia.setCupoDisponible(licenciaActualizada.getCupoDisponible());
         licencia.setCupoCivil(licenciaActualizada.getCupoCivil());
         licencia.setCupoEmpresa(licenciaActualizada.getCupoEmpresa());
         licencia.setCupoMilitar(licenciaActualizada.getCupoMilitar());
@@ -95,11 +113,23 @@ public class LicenciaService {
     
     // Business Logic
     public List<Licencia> obtenerLicenciasActivas() {
-        return licenciaRepository.findLicenciasActivas(LocalDateTime.now());
+        return licenciaRepository.findLicenciasActivas(LocalDate.now());
     }
     
     public List<Licencia> obtenerLicenciasConCupoCivilDisponible() {
         return licenciaRepository.findLicenciasConCupoCivilDisponible();
+    }
+    
+    public List<Licencia> obtenerLicenciasConCupoMilitarDisponible() {
+        return licenciaRepository.findLicenciasConCupoMilitarDisponible();
+    }
+    
+    public List<Licencia> obtenerLicenciasConCupoEmpresaDisponible() {
+        return licenciaRepository.findLicenciasConCupoEmpresaDisponible();
+    }
+    
+    public List<Licencia> obtenerLicenciasConCupoDeportistaDisponible() {
+        return licenciaRepository.findLicenciasConCupoDeportistaDisponible();
     }
     
     public boolean tieneCupoDisponible(Long licenciaId, String tipoCliente) {
@@ -114,13 +144,13 @@ public class LicenciaService {
     }
     
     public List<Licencia> obtenerLicenciasProximasAVencer(int dias) {
-        LocalDateTime fechaInicio = LocalDateTime.now();
-        LocalDateTime fechaFin = fechaInicio.plusDays(dias);
+        LocalDate fechaInicio = LocalDate.now();
+        LocalDate fechaFin = fechaInicio.plusDays(dias);
         return licenciaRepository.findLicenciasProximasAVencer(fechaInicio, fechaFin);
     }
     
-    public Page<Licencia> buscarLicencias(String numeroLicencia, String tipoLicencia, EstadoLicencia estado, Pageable pageable) {
-        return licenciaRepository.findWithFilters(numeroLicencia, tipoLicencia, estado, pageable);
+    public Page<Licencia> buscarLicencias(String numero, String nombre, String tipoLicencia, EstadoLicencia estado, String ruc, Pageable pageable) {
+        return licenciaRepository.findWithFilters(numero, nombre, tipoLicencia, estado, ruc, pageable);
     }
     
     public List<Object[]> obtenerEstadisticasPorEstado() {
@@ -132,5 +162,87 @@ public class LicenciaService {
         licencia.setEstado(nuevoEstado);
         licencia.setFechaActualizacion(LocalDateTime.now());
         licenciaRepository.save(licencia);
+    }
+    
+    // Métodos adicionales para la nueva estructura
+    public List<Licencia> obtenerLicenciasPorRuc(String ruc) {
+        return licenciaRepository.findByRuc(ruc);
+    }
+    
+    public List<Licencia> obtenerLicenciasPorEmail(String email) {
+        return licenciaRepository.findByEmail(email);
+    }
+    
+    public List<Licencia> obtenerLicenciasVencidas() {
+        return licenciaRepository.findLicenciasVencidas(LocalDate.now());
+    }
+    
+    public List<Licencia> obtenerLicenciasConCupoDisponible() {
+        return licenciaRepository.findLicenciasConCupoDisponible();
+    }
+    
+    public List<Object[]> obtenerEstadisticasCupos() {
+        return licenciaRepository.getEstadisticasCupos();
+    }
+    
+    public List<Licencia> obtenerLicenciasDisponiblesPorTipo(String tipo) {
+        return licenciaRepository.findLicenciasDisponiblesPorTipo(tipo);
+    }
+    
+    // ===== MÉTODOS PARA JEFE DE VENTAS =====
+    
+    public List<Licencia> findLicenciasDisponibles() {
+        return licenciaRepository.findLicenciasConCupoDisponible();
+    }
+    
+    public Map<String, Object> getCuposDetallados(Long licenciaId) {
+        Licencia licencia = obtenerLicencia(licenciaId);
+        Map<String, Object> cupos = new java.util.HashMap<>();
+        
+        cupos.put("licencia", licencia);
+        cupos.put("cupoCivil", licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0);
+        cupos.put("cupoEmpresa", licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0);
+        cupos.put("cupoMilitar", licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0);
+        cupos.put("cupoDeportista", licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0);
+        cupos.put("totalCupos", (licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0) + 
+                                 (licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0) + 
+                                 (licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0) + 
+                                 (licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0));
+        cupos.put("diasRestantes", licencia.getDiasRestantes());
+        cupos.put("vencida", licencia.isVencida());
+        
+        return cupos;
+    }
+    
+    public Map<String, Object> asignarCliente(Long licenciaId, Long clienteId) {
+        Licencia licencia = obtenerLicencia(licenciaId);
+        // Aquí implementarías la lógica de asignación
+        // Por ahora retornamos un mapa con información básica
+        
+        Map<String, Object> resultado = new java.util.HashMap<>();
+        resultado.put("licenciaId", licenciaId);
+        resultado.put("clienteId", clienteId);
+        resultado.put("asignado", true);
+        resultado.put("fechaAsignacion", LocalDateTime.now());
+        
+        return resultado;
+    }
+    
+    public void removerCliente(Long licenciaId, Long clienteId) {
+        Licencia licencia = obtenerLicencia(licenciaId);
+        // Aquí implementarías la lógica de remoción
+        log.info("Removiendo cliente {} de licencia {}", clienteId, licenciaId);
+    }
+    
+    public Map<String, Object> getEstadisticasJefeVentas() {
+        Map<String, Object> estadisticas = new java.util.HashMap<>();
+        
+        estadisticas.put("totalLicencias", licenciaRepository.count());
+        estadisticas.put("licenciasActivas", licenciaRepository.findByEstado(EstadoLicencia.ACTIVA).size());
+        estadisticas.put("licenciasVencidas", licenciaRepository.findLicenciasVencidas(LocalDate.now()).size());
+        estadisticas.put("estadisticasPorEstado", licenciaRepository.countByEstado());
+        estadisticas.put("estadisticasCupos", licenciaRepository.getEstadisticasCupos());
+        
+        return estadisticas;
     }
 } 

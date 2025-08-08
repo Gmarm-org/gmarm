@@ -150,7 +150,7 @@ export const tiposDeCliente = ['Civil', 'Compañía de Seguridad', 'Uniformado',
 export const tiposDeIdentificacion = ['Cedula', 'RUC'];
 
 export const docsByTipo: Record<string, string[]> = {
-  Civil: ['Cédula', 'Certificado de antecedentes'],
+  Civil: ['Cédula', 'Antecedentes Penales'],
   'Compañía de Seguridad': ['RUC', 'Permiso de funcionamiento', 'Representante legal'],
   Uniformado: ['Cédula', 'Credencial policial'],
   Deportista: ['Cédula', 'Credencial club', 'Permiso deportivo']

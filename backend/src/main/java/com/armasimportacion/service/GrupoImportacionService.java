@@ -94,6 +94,57 @@ public class GrupoImportacionService {
         return grupoImportacionRepository.findAll(pageable);
     }
     
+    public Page<GrupoImportacion> findAll(Pageable pageable) {
+        return grupoImportacionRepository.findAll(pageable);
+    }
+    
+    public GrupoImportacion findById(Long id) {
+        return grupoImportacionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado con ID: " + id));
+    }
+    
+    public GrupoImportacion create(GrupoImportacion grupoImportacion) {
+        log.info("Creando nuevo grupo de importación: {}", grupoImportacion.getCodigo());
+        
+        // Validaciones
+        if (grupoImportacionRepository.existsByCodigo(grupoImportacion.getCodigo())) {
+            throw new BadRequestException("Ya existe un grupo con el código: " + grupoImportacion.getCodigo());
+        }
+        
+        // Generar código automático si no se proporciona
+        if (grupoImportacion.getCodigo() == null || grupoImportacion.getCodigo().trim().isEmpty()) {
+            grupoImportacion.setCodigo(generarCodigoAutomatico());
+        }
+        
+        grupoImportacion.setEstado(EstadoGrupoImportacion.BORRADOR);
+        grupoImportacion.setFechaCreacion(LocalDateTime.now());
+        
+        return grupoImportacionRepository.save(grupoImportacion);
+    }
+    
+    public GrupoImportacion update(Long id, GrupoImportacion grupoActualizado) {
+        log.info("Actualizando grupo de importación con ID: {}", id);
+        
+        GrupoImportacion grupo = grupoImportacionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado con ID: " + id));
+        
+        // Validar código único si cambió
+        if (!grupo.getCodigo().equals(grupoActualizado.getCodigo()) &&
+            grupoImportacionRepository.existsByCodigo(grupoActualizado.getCodigo())) {
+            throw new BadRequestException("Ya existe un grupo con el código: " + grupoActualizado.getCodigo());
+        }
+        
+        // Actualizar campos
+        grupo.setCodigo(grupoActualizado.getCodigo());
+        grupo.setDescripcion(grupoActualizado.getDescripcion());
+        grupo.setFechaEstimadaLlegada(grupoActualizado.getFechaEstimadaLlegada());
+        grupo.setCostoTotal(grupoActualizado.getCostoTotal());
+        grupo.setObservaciones(grupoActualizado.getObservaciones());
+        grupo.setFechaActualizacion(LocalDateTime.now());
+        
+        return grupoImportacionRepository.save(grupo);
+    }
+    
     public void eliminarGrupoImportacion(Long id) {
         if (!grupoImportacionRepository.existsById(id)) {
             throw new ResourceNotFoundException("Grupo de importación no encontrado con ID: " + id);
