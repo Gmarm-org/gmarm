@@ -91,7 +91,11 @@ UPDATE licencia SET
         ELSE 0
     END,
     observaciones = 'Licencia migrada del sistema anterior',
-    usuario_creador_id = (SELECT id FROM usuario WHERE rol = 'ADMIN' LIMIT 1),
+    usuario_creador_id = (SELECT u.id FROM usuario u 
+                         JOIN usuario_rol ur ON u.id = ur.usuario_id 
+                         JOIN rol r ON ur.rol_id = r.id 
+                         WHERE r.nombre = 'ADMIN' AND ur.activo = true 
+                         LIMIT 1),
     estado = CASE 
         WHEN fecha_vencimiento < CURRENT_DATE THEN 'VENCIDA'
         ELSE 'ACTIVA'
