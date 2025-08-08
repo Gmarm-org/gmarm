@@ -20,13 +20,29 @@ ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN IF NOT EXISTS fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- Agregar foreign keys si no existen
-ALTER TABLE licencia 
-ADD CONSTRAINT IF NOT EXISTS fk_licencia_usuario_actualizador 
-FOREIGN KEY (usuario_actualizador_id) REFERENCES usuario(id);
-
-ALTER TABLE licencia 
-ADD CONSTRAINT IF NOT EXISTS fk_licencia_usuario_creador 
-FOREIGN KEY (usuario_creador_id) REFERENCES usuario(id);
+DO $$
+BEGIN
+    -- Verificar si la constraint ya existe antes de agregarla
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_licencia_usuario_actualizador' 
+        AND table_name = 'licencia'
+    ) THEN
+        ALTER TABLE licencia 
+        ADD CONSTRAINT fk_licencia_usuario_actualizador 
+        FOREIGN KEY (usuario_actualizador_id) REFERENCES usuario(id);
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_licencia_usuario_creador' 
+        AND table_name = 'licencia'
+    ) THEN
+        ALTER TABLE licencia 
+        ADD CONSTRAINT fk_licencia_usuario_creador 
+        FOREIGN KEY (usuario_creador_id) REFERENCES usuario(id);
+    END IF;
+END $$;
 
 -- Actualizar las licencias existentes con valores por defecto
 UPDATE licencia SET 
