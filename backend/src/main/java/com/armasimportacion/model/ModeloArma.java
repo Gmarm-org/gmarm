@@ -51,7 +51,7 @@ public class ModeloArma {
     @Column(name = "capacidad", nullable = false)
     private Integer capacidad;
 
-    @Column(name = "precio_referencia", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_referencia", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal precioReferencia;
 
     @Column(name = "estado", nullable = false)

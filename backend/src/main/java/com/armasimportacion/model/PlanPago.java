@@ -36,7 +36,7 @@ public class PlanPago {
     @Column(name = "numero_cuotas", nullable = false)
     private Integer numeroCuotas;
     
-    @Column(name = "porcentaje_anticipo", precision = 5, scale = 2)
+    @Column(name = "porcentaje_anticipo", columnDefinition = "DECIMAL(5,2)")
     private BigDecimal porcentajeAnticipo;
     
     @Column(name = "estado", nullable = false)

@@ -37,10 +37,10 @@ public class Pago {
     @Column(name = "numero_comprobante", nullable = false, length = 50, unique = true)
     private String numeroComprobante;
 
-    @Column(name = "monto_total", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monto_total", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal montoTotal;
 
-    @Column(name = "saldo_pendiente", nullable = false, precision = 10, scale = 2)
+    @Column(name = "saldo_pendiente", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal saldoPendiente;
 
     @Column(name = "metodo_pago", nullable = false, length = 50)

@@ -34,7 +34,7 @@ public class Accesorio {
     @Column(name = "descripcion")
     private String descripcion;
     
-    @Column(name = "precio_referencia", precision = 10, scale = 2)
+    @Column(name = "precio_referencia", columnDefinition = "DECIMAL(10,2)")
     private BigDecimal precioReferencia;
     
     @Column(name = "estado", nullable = false)

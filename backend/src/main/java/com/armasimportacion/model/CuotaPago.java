@@ -34,7 +34,7 @@ public class CuotaPago {
     @Column(name = "numero_cuota", nullable = false)
     private Integer numeroCuota;
 
-    @Column(name = "monto", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monto", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal monto;
 
     @Column(name = "fecha_vencimiento", nullable = false)
@@ -47,7 +47,7 @@ public class CuotaPago {
     @Column(name = "fecha_pago")
     private LocalDateTime fechaPago;
 
-    @Column(name = "monto_pagado", precision = 10, scale = 2)
+    @Column(name = "monto_pagado", columnDefinition = "DECIMAL(10,2)")
     private BigDecimal montoPagado;
 
     @CreatedDate

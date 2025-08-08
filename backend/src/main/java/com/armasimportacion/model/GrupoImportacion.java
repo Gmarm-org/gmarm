@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -60,8 +61,8 @@ public class GrupoImportacion {
     @Column(name = "fecha_estimada_llegada")
     private LocalDate fechaEstimadaLlegada;
 
-    @Column(name = "costo_total", precision = 10, scale = 2)
-    private Double costoTotal;
+    @Column(name = "costo_total", columnDefinition = "DECIMAL(10,2)")
+    private BigDecimal costoTotal;
 
     @Column(name = "observaciones", columnDefinition = "TEXT")
     private String observaciones;

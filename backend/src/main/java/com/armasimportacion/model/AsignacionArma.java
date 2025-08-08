@@ -41,7 +41,7 @@ public class AsignacionArma {
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad = 1;
 
-    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_unitario", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal precioUnitario;
 
     @Enumerated(EnumType.STRING)
