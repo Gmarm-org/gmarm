@@ -46,6 +46,6 @@ public interface TipoClienteRepository extends JpaRepository<TipoCliente, Long> 
     boolean existsByNombreAndIdNot(String nombre, Long id);
 
     // Estadísticas
-    @Query("SELECT COUNT(tc) FROM TipoCliente tc WHERE tc.estado = :estado")
-    Long countByEstado(@Param("estado") Boolean estado);
+    // @Query("SELECT COUNT(tc) FROM TipoCliente tc WHERE tc.estado = :estado")
+    // Long countByEstado(@Param("estado") Boolean estado);
 }

@@ -7,10 +7,10 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_dev:5432/gmarm_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_dev:5432/gmarm_dev
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
-      - APP_JWT_SECRET=devSecretKeyForJWT2024ArmasImportacionDevelopmentEnvironment
+      - APP_JWT_SECRET=devSecretKeyForJWT2024ArmasImportacionDevelopmentEnvironmentSecureKey512BitsMinimum
       - APP_JWT_EXPIRATION=86400000
     depends_on:
       - postgres_dev
@@ -43,7 +43,7 @@ services:
     image: postgres:14
     container_name: gmarm-postgres-dev
     environment:
-      POSTGRES_DB: gmarm_db
+      POSTGRES_DB: gmarm_dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:

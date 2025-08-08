@@ -116,7 +116,12 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     List<Object[]> getEstadisticasPorVendedor();
     
     // Métodos adicionales para estadísticas de vendedor
-    Long countByUsuarioCreadorAndEstado(Long usuarioId, EstadoCliente estado);
-    Long countByUsuarioCreadorAndProcesoCompletadoTrue(Long usuarioId);
-    Long countByUsuarioCreadorAndProcesoCompletadoFalse(Long usuarioId);
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado = :estado")
+    Long countByUsuarioCreadorAndEstado(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
+    
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.procesoCompletado = true")
+    Long countByUsuarioCreadorAndProcesoCompletadoTrue(@Param("usuarioId") Long usuarioId);
+    
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.procesoCompletado = false")
+    Long countByUsuarioCreadorAndProcesoCompletadoFalse(@Param("usuarioId") Long usuarioId);
 } 

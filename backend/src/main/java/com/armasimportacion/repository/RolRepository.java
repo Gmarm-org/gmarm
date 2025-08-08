@@ -39,8 +39,8 @@ public interface RolRepository extends JpaRepository<Rol, Long> {
     boolean existsByNombreAndIdNot(String nombre, Long id);
 
     // Estadísticas
-    @Query("SELECT COUNT(r) FROM Rol r WHERE r.estado = :estado")
-    Long countByEstado(@Param("estado") Boolean estado);
+    // @Query("SELECT COUNT(r) FROM Rol r WHERE r.estado = :estado")
+    // Long countByEstado(@Param("estado") Boolean estado);
 
     @Query("SELECT COUNT(r) FROM Rol r WHERE r.tipoRolVendedor IS NOT NULL")
     Long countVendedorRoles();

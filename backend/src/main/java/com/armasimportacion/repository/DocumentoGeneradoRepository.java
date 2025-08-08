@@ -20,7 +20,7 @@ public interface DocumentoGeneradoRepository extends JpaRepository<DocumentoGene
     // Búsquedas básicas
     List<DocumentoGenerado> findByCliente(Cliente cliente);
     List<DocumentoGenerado> findByGrupoImportacion(GrupoImportacion grupoImportacion);
-    List<DocumentoGenerado> findByTipo(TipoDocumentoGenerado tipo);
+    List<DocumentoGenerado> findByTipoDocumento(TipoDocumentoGenerado tipoDocumento);
     List<DocumentoGenerado> findByEstado(EstadoDocumentoGenerado estado);
     
     // Documentos por cliente
@@ -32,8 +32,8 @@ public interface DocumentoGeneradoRepository extends JpaRepository<DocumentoGene
     List<DocumentoGenerado> findByGrupoImportacionId(@Param("grupoId") Long grupoId);
     
     // Documentos por tipo y cliente
-    @Query("SELECT dg FROM DocumentoGenerado dg WHERE dg.cliente.id = :clienteId AND dg.tipo = :tipo")
-    List<DocumentoGenerado> findByClienteIdAndTipo(@Param("clienteId") Long clienteId, @Param("tipo") TipoDocumentoGenerado tipo);
+    @Query("SELECT dg FROM DocumentoGenerado dg WHERE dg.cliente.id = :clienteId AND dg.tipoDocumento = :tipoDocumento")
+    List<DocumentoGenerado> findByClienteIdAndTipo(@Param("clienteId") Long clienteId, @Param("tipoDocumento") TipoDocumentoGenerado tipoDocumento);
     
     // Documentos firmados
     @Query("SELECT dg FROM DocumentoGenerado dg WHERE dg.fechaFirma IS NOT NULL")
@@ -43,10 +43,10 @@ public interface DocumentoGeneradoRepository extends JpaRepository<DocumentoGene
     List<DocumentoGenerado> findByFechaGeneracionBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
     // Verificar existencia
-    boolean existsByClienteAndTipo(Cliente cliente, TipoDocumentoGenerado tipo);
+    boolean existsByClienteAndTipoDocumento(Cliente cliente, TipoDocumentoGenerado tipoDocumento);
     
     // Contar documentos por tipo
-    @Query("SELECT dg.tipo, COUNT(dg) FROM DocumentoGenerado dg GROUP BY dg.tipo")
+    @Query("SELECT dg.tipoDocumento, COUNT(dg) FROM DocumentoGenerado dg GROUP BY dg.tipoDocumento")
     List<Object[]> countByTipo();
     
     // Contar documentos por estado

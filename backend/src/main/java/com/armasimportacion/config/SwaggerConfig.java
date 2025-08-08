@@ -32,8 +32,8 @@ public class SwaggerConfig {
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Servidor de Desarrollo"),
-                        new Server().url("https://api.armasimportacion.com").description("Servidor de Producción")
+                        new Server().url("http://localhost:8080").description("Servidor de Desarrollo Local"),
+                        new Server().url("http://gmarm-backend-dev:8080").description("Servidor de Docker")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components()

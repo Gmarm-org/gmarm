@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -23,8 +24,7 @@ public interface GrupoImportacionRepository extends JpaRepository<GrupoImportaci
     List<GrupoImportacion> findByUsuarioCreador(Usuario usuarioCreador);
     
     // Búsquedas por fecha
-    List<GrupoImportacion> findByFechaEstimadaLlegadaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
-    List<GrupoImportacion> findByFechaRealLlegadaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    List<GrupoImportacion> findByFechaEstimadaLlegadaBetween(LocalDate fechaInicio, LocalDate fechaFin);
     
     // Grupos activos
     @Query("SELECT gi FROM GrupoImportacion gi WHERE gi.estado IN ('PENDIENTE', 'EN_PROCESO', 'EN_ADUANA')")

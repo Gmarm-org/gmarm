@@ -17,12 +17,12 @@ public interface ModeloArmaRepository extends JpaRepository<ModeloArma, Long> {
 
     // Búsquedas básicas
     Optional<ModeloArma> findByCodigo(String codigo);
-    List<ModeloArma> findByEstado(String estado);
-    List<ModeloArma> findByCategoriaId(Long categoriaId);
+    List<ModeloArma> findByEstado(Boolean estado);
+    List<ModeloArma> findByCategoriaArmaId(Long categoriaArmaId);
 
     // Búsquedas por calibre
     List<ModeloArma> findByCalibre(String calibre);
-    List<ModeloArma> findByCalibreAndEstado(String calibre, String estado);
+    List<ModeloArma> findByCalibreAndEstado(String calibre, Boolean estado);
 
     // Búsquedas por precio
     List<ModeloArma> findByPrecioReferenciaBetween(BigDecimal precioMin, BigDecimal precioMax);
@@ -33,17 +33,17 @@ public interface ModeloArmaRepository extends JpaRepository<ModeloArma, Long> {
            "(:codigo IS NULL OR ma.codigo LIKE %:codigo%) AND " +
            "(:nombre IS NULL OR ma.nombre LIKE %:nombre%) AND " +
            "(:calibre IS NULL OR ma.calibre = :calibre) AND " +
-           "(:categoriaId IS NULL OR ma.categoriaId = :categoriaId) AND " +
+           "(:categoriaArmaId IS NULL OR ma.categoriaArma.id = :categoriaArmaId) AND " +
            "(:estado IS NULL OR ma.estado = :estado)")
     Page<ModeloArma> findByFiltros(@Param("codigo") String codigo,
                                    @Param("nombre") String nombre,
                                    @Param("calibre") String calibre,
-                                   @Param("categoriaId") Long categoriaId,
-                                   @Param("estado") String estado,
+                                   @Param("categoriaArmaId") Long categoriaArmaId,
+                                   @Param("estado") Boolean estado,
                                    Pageable pageable);
 
     // Búsquedas por disponibilidad
-    @Query("SELECT ma FROM ModeloArma ma WHERE ma.estado = 'DISPONIBLE'")
+    @Query("SELECT ma FROM ModeloArma ma WHERE ma.estado = true")
     List<ModeloArma> findDisponibles();
 
     // Verificaciones
@@ -52,11 +52,11 @@ public interface ModeloArmaRepository extends JpaRepository<ModeloArma, Long> {
 
     // Estadísticas
     @Query("SELECT COUNT(ma) FROM ModeloArma ma WHERE ma.estado = :estado")
-    Long countByEstado(@Param("estado") String estado);
+    Long countByEstado(@Param("estado") Boolean estado);
 
     @Query("SELECT ma.calibre, COUNT(ma) FROM ModeloArma ma GROUP BY ma.calibre")
     List<Object[]> countByCalibre();
 
-    @Query("SELECT AVG(ma.precioReferencia) FROM ModeloArma ma WHERE ma.estado = 'DISPONIBLE'")
+    @Query("SELECT AVG(ma.precioReferencia) FROM ModeloArma ma WHERE ma.estado = true")
     BigDecimal getPrecioPromedio();
 } 
