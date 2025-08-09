@@ -6,7 +6,7 @@ import ClientManagement from './components/ClientManagement';
 const ClientManagementPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleNavigate = (page: string, data?: any) => {
+  const handleNavigate = (page: string, data?: Record<string, unknown>) => {
     // Handle navigation within this context if needed
     console.log('Navigate to:', page, data);
   };
@@ -30,7 +30,7 @@ const ClientManagementPage: React.FC = () => {
         </button>
       </div>
 
-      <ClientManagement onNavigate={handleNavigate} />
+      <ClientManagement onNavigate={handleNavigate as any} />
     </div>
   );
 };

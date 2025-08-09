@@ -2,32 +2,48 @@
 // API SERVICE MOCK PARA QA
 // ========================================
 
-import { 
-  mockUsers, 
-  mockClients, 
-  mockPagos, 
-  mockSaldos, 
+import {
+  mockUsers,
+  mockClients,
+  mockPagos,
+  mockSaldos,
   mockWeapons,
   mockClientTypes,
   mockIdentificationTypes,
   mockProvinces,
   mockCantons,
-  simulateApiDelay,
-  simulateRandomError,
   mockClientQuestions,
   mockRequiredDocuments,
   mockAdditionalDocuments,
   clientTypeToProcessId
 } from '../data/mockData';
-import type { 
-  User, 
-  Client, 
-  Pago, 
-  SaldoCliente, 
+import type {
+  User,
+  Client,
+  Pago,
+  SaldoCliente,
   ApiResponse,
   LoginRequest,
   LoginResponse
 } from '../types';
+
+// Funciones de simulación
+const simulateApiDelay = async (): Promise<void> => {
+  await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 100));
+};
+
+const simulateRandomError = (): boolean => {
+  return Math.random() < 0.1; // 10% de probabilidad de error
+};
+
+// Interfaces adicionales para mockApiService
+interface ClientQuestion {
+  id: number;
+  pregunta: string;
+  tipo_proceso_id: number;
+  orden: number;
+  obligatoria: boolean;
+}
 
 class MockApiService {
   private token: string | null = null;
@@ -36,13 +52,13 @@ class MockApiService {
   // Simular login
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error de conexión simulado');
     }
 
     const user = mockUsers.find(u => u.email === credentials.email);
-    
+
     if (!user || credentials.password !== 'password123') {
       throw new Error('Credenciales inválidas');
     }
@@ -76,11 +92,11 @@ class MockApiService {
   // Obtener usuario actual
   async getCurrentUser(): Promise<User> {
     await simulateApiDelay();
-    
+
     if (!this.currentUser) {
       throw new Error('Usuario no autenticado');
     }
-    
+
     return this.currentUser;
   }
 
@@ -93,7 +109,7 @@ class MockApiService {
   async getUserRoles(): Promise<string[]> {
     await simulateApiDelay();
     if (!this.currentUser || !this.currentUser.roles) return [];
-    
+
     return this.currentUser.roles.map(role => role.rol?.nombre || '').filter(nombre => nombre !== '');
   }
 
@@ -106,7 +122,7 @@ class MockApiService {
   // Verificar si tiene alguno de los roles
   async hasAnyRole(roles: string[]): Promise<boolean> {
     if (!this.currentUser || !this.currentUser.roles) return false;
-    return this.currentUser.roles.some(userRole => 
+    return this.currentUser.roles.some(userRole =>
       roles.includes(userRole.rol?.nombre || '')
     );
   }
@@ -117,7 +133,7 @@ class MockApiService {
 
   async getClientes(page: number = 0, size: number = 10): Promise<ApiResponse<Client[]>> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al cargar clientes');
     }
@@ -135,19 +151,19 @@ class MockApiService {
 
   async getCliente(id: number): Promise<Client> {
     await simulateApiDelay();
-    
+
     const cliente = mockClients.find(c => c.id === id.toString());
     if (!cliente) {
       throw new Error('Cliente no encontrado');
     }
-    
+
     return cliente;
   }
 
   // Crear cliente
   async createCliente(clienteData: Partial<Client>): Promise<Client> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al crear cliente');
     }
@@ -188,7 +204,7 @@ class MockApiService {
   // Actualizar cliente
   async updateCliente(id: string, clienteData: Partial<Client>): Promise<Client> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al actualizar cliente');
     }
@@ -218,7 +234,7 @@ class MockApiService {
 
   async getPagos(page: number = 0, size: number = 10): Promise<ApiResponse<Pago[]>> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al cargar pagos');
     }
@@ -236,18 +252,18 @@ class MockApiService {
 
   async getPago(id: number): Promise<Pago> {
     await simulateApiDelay();
-    
+
     const pago = mockPagos.find(p => p.id === id);
     if (!pago) {
       throw new Error('Pago no encontrado');
     }
-    
+
     return pago;
   }
 
   async createPago(pagoData: Partial<Pago>): Promise<Pago> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al crear pago');
     }
@@ -280,7 +296,7 @@ class MockApiService {
 
   async getSaldoCliente(clienteId: number): Promise<SaldoCliente> {
     await simulateApiDelay();
-    
+
     const saldo = mockSaldos.find(s => s.clienteId === clienteId);
     if (!saldo) {
       return {
@@ -289,7 +305,7 @@ class MockApiService {
         tieneSaldoPendiente: false
       };
     }
-    
+
     return saldo;
   }
 
@@ -328,7 +344,7 @@ class MockApiService {
 
   async getUsers(page: number = 0, size: number = 10): Promise<ApiResponse<User[]>> {
     await simulateApiDelay();
-    
+
     const start = page * size;
     const end = start + size;
     const paginatedUsers = mockUsers.slice(start, end);
@@ -343,7 +359,7 @@ class MockApiService {
   // Obtener usuario por ID
   async getUser(id: number): Promise<User> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al obtener usuario');
     }
@@ -359,7 +375,7 @@ class MockApiService {
   // Actualizar usuario
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
     await simulateApiDelay();
-    
+
     if (simulateRandomError()) {
       throw new Error('Error al actualizar usuario');
     }
@@ -371,7 +387,7 @@ class MockApiService {
 
     // Actualizar el usuario en el array mock
     mockUsers[userIndex] = { ...mockUsers[userIndex], ...userData };
-    
+
     // Si es el usuario actual, actualizarlo también
     if (this.currentUser && this.currentUser.id === id) {
       this.currentUser = { ...this.currentUser, ...userData };
@@ -385,16 +401,16 @@ class MockApiService {
   // ========================================
 
   // Obtener preguntas por tipo de cliente
-  async getClientQuestions(clientType: string, estadoMilitar?: string): Promise<any[]> {
+  async getClientQuestions(clientType: string, estadoMilitar?: string): Promise<ClientQuestion[]> {
     await simulateApiDelay();
-    
+
     let processId = clientTypeToProcessId[clientType as keyof typeof clientTypeToProcessId];
-    
+
     // Si es Uniformado y está en servicio pasivo, usar preguntas de Civil
     if (clientType === 'Uniformado' && estadoMilitar === 'PASIVO') {
       processId = 1; // Civil
     }
-    
+
     return mockClientQuestions
       .filter(q => q.tipo_proceso_id === processId)
       .sort((a, b) => a.orden - b.orden);
@@ -403,23 +419,23 @@ class MockApiService {
   // Obtener documentos por tipo de cliente
   async getDocumentsByClientType(clientType: string, estadoMilitar?: string): Promise<any[]> {
     await simulateApiDelay();
-    
+
     let processId = clientTypeToProcessId[clientType as keyof typeof clientTypeToProcessId];
-    
+
     // Si es Uniformado y está en servicio pasivo, usar documentos de Civil
     if (clientType === 'Uniformado' && estadoMilitar === 'PASIVO') {
       processId = 1; // Civil
     }
-    
+
     // Documentos con links (para todos excepto Compañía de Seguridad)
-    const documentsWithLinks = clientType !== 'Compañía de Seguridad' 
-      ? mockRequiredDocuments 
+    const documentsWithLinks = clientType !== 'Compañía de Seguridad'
+      ? mockRequiredDocuments
       : [];
-    
+
     // Documentos adicionales específicos del tipo de cliente
     const additionalDocuments = mockAdditionalDocuments
       .filter(d => d.tipo_proceso_id === processId);
-    
+
     // Combinar ambos tipos de documentos
     return [...documentsWithLinks, ...additionalDocuments];
   }

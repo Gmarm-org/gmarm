@@ -419,14 +419,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
           id: client.id, // Mantener el ID original
           estado: clientStatus
         };
-        updatedClient = await mockApiService.updateCliente(client.id, clientData);
+        updatedClient = await mockApiService.updateCliente(client.id, clientData as any);
       } else {
         // Crear nuevo cliente con estado
         const clientData = {
           ...formData,
           estado: clientStatus
         };
-        updatedClient = await mockApiService.createCliente(clientData);
+        updatedClient = await mockApiService.createCliente(clientData as any);
       }
       
       // Notificar al componente padre sobre el estado de bloqueo
@@ -437,7 +437,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         onClienteBloqueado?.(updatedClient.id, false, '');
       }
       
-      onSave(updatedClient);
+      onSave(updatedClient as any);
     } catch (error) {
       console.error('Error al guardar cliente:', error);
       alert('Error al guardar el cliente. Por favor, intente nuevamente.');
@@ -1283,7 +1283,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   type="button"
                   onClick={onCancel}
                   className="px-8 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold disabled:opacity-50"
-                  disabled={false}
                 >
                   Cancelar
                 </button>
@@ -1307,9 +1306,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     <button
                       type="submit"
                       className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                      disabled={false || !validateForm()}
+                      disabled={!validateForm()}
                     >
-                      {false ? 'Guardando...' : mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
+                      {mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
                     </button>
                     
                     {/* Botón para continuar con selección de armas (solo si no está bloqueado) */}

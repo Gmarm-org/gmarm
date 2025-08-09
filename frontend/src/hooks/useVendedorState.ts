@@ -36,7 +36,7 @@ export const useVendedorState = () => {
     
     try {
       const response = await apiService.getClientes();
-      setClients(response.data || []);
+      setClients((response.data || []) as any);
     } catch (error) {
       setErrors(prev => ({ ...prev, clients: error instanceof Error ? error.message : 'Error al cargar clientes' }));
     } finally {
@@ -100,66 +100,45 @@ export const useVendedorState = () => {
 
   // Crear cliente (placeholder)
   const createClient = useCallback(async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      // Placeholder - implementar cuando esté disponible
-      const newClient = { ...clientData, id: Date.now().toString() } as Client;
-      setClients(prev => [...prev, newClient]);
-      return newClient;
-    } catch (error) {
-      throw error;
-    }
+    // Placeholder - implementar cuando esté disponible
+    const newClient = { ...clientData, id: Date.now().toString() } as Client;
+    setClients(prev => [...prev, newClient]);
+    return newClient;
   }, []);
 
   // Actualizar cliente (placeholder)
   const updateClient = useCallback(async (id: string, clientData: Partial<Client>) => {
-    try {
-      // Placeholder - implementar cuando esté disponible
-      const updatedClient = { ...clientData, id } as Client;
-      setClients(prev => prev.map(client => client.id === id ? updatedClient : client));
-      return updatedClient;
-    } catch (error) {
-      throw error;
-    }
+    // Placeholder - implementar cuando esté disponible
+    const updatedClient = { ...clientData, id } as Client;
+    setClients(prev => prev.map(client => client.id === id ? updatedClient : client));
+    return updatedClient;
   }, []);
 
   // Eliminar cliente (placeholder)
   const deleteClient = useCallback(async (id: string) => {
-    try {
-      // Placeholder - implementar cuando esté disponible
-      setClients(prev => prev.filter(client => client.id !== id));
-    } catch (error) {
-      throw error;
-    }
+    // Placeholder - implementar cuando esté disponible
+    setClients(prev => prev.filter(client => client.id !== id));
   }, []);
 
   // Asignar arma a cliente (placeholder)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const assignWeaponToClient = useCallback(async (clientId: string, _weaponId: string, _price: number, _quantity: number = 1) => {
-    try {
-      // Placeholder - implementar cuando esté disponible
-      await loadClientWeapons(clientId);
-    } catch (error) {
-      throw error;
-    }
+    // Placeholder - implementar cuando esté disponible
+    await loadClientWeapons(clientId);
   }, [loadClientWeapons]);
 
   // Actualizar precio de arma (placeholder)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateWeaponPrice = useCallback(async (clientId: string, _weaponId: string, _price: number) => {
-    try {
-      // Placeholder - implementar cuando esté disponible
-      await loadClientWeapons(clientId);
-    } catch (error) {
-      throw error;
-    }
+    // Placeholder - implementar cuando esté disponible
+    await loadClientWeapons(clientId);
   }, [loadClientWeapons]);
 
   // Verificar cédula duplicada (placeholder)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const checkCedulaExists = useCallback(async (_cedula: string, _excludeId?: string) => {
-    try {
-      // Placeholder - implementar cuando esté disponible
-      return false;
-    } catch (error) {
-      throw error;
-    }
+    // Placeholder - implementar cuando esté disponible
+    return false;
   }, []);
 
   // Cargar datos iniciales

@@ -16,7 +16,7 @@ export const useClients = () => {
         signal: AbortSignal.timeout(3000)
       });
       return response.ok ? apiService : mockApiService;
-    } catch (error) {
+    } catch {
       console.log('Usando datos mock para clientes');
       return mockApiService;
     }
@@ -27,10 +27,10 @@ export const useClients = () => {
       setLoading(true);
       const service = await getApiService();
       const response = await service.getClientes();
-      setClients(response.data);
+      setClients(response.data as any);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar clientes');
+    } catch (error) {
+      console.error('Error loading clients:', error);
     } finally {
       setLoading(false);
     }
@@ -39,11 +39,12 @@ export const useClients = () => {
   const createClient = async (clientData: Partial<Client>) => {
     try {
       const service = await getApiService();
-      const newClient = await service.createCliente(clientData);
-      setClients(prev => [...prev, newClient]);
+      const newClient = await service.createCliente(clientData as any);
+      setClients(prev => [...prev, newClient as any]);
       return newClient;
-    } catch (err: any) {
-      setError(err.message || 'Error al crear cliente');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear cliente';
+      setError(errorMessage);
       throw err;
     }
   };

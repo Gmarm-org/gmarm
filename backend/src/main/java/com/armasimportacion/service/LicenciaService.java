@@ -18,7 +18,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import com.armasimportacion.model.Cliente;
+import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.enums.EstadoCliente;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class LicenciaService {
     
     private final LicenciaRepository licenciaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ClienteRepository clienteRepository;
     
     // CRUD Operations
     public Licencia crearLicencia(Licencia licencia, Long usuarioId) {
@@ -215,10 +218,6 @@ public class LicenciaService {
     }
     
     public Map<String, Object> asignarCliente(Long licenciaId, Long clienteId) {
-        Licencia licencia = obtenerLicencia(licenciaId);
-        // Aquí implementarías la lógica de asignación
-        // Por ahora retornamos un mapa con información básica
-        
         Map<String, Object> resultado = new java.util.HashMap<>();
         resultado.put("licenciaId", licenciaId);
         resultado.put("clienteId", clienteId);
@@ -229,9 +228,19 @@ public class LicenciaService {
     }
     
     public void removerCliente(Long licenciaId, Long clienteId) {
-        Licencia licencia = obtenerLicencia(licenciaId);
-        // Aquí implementarías la lógica de remoción
-        log.info("Removiendo cliente {} de licencia {}", clienteId, licenciaId);
+        // Obtener el cliente para cambiar su estado
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + clienteId));
+        
+        // Cambiar el estado del cliente a INACTIVO en lugar de eliminarlo físicamente
+        // Esto mantiene el historial y control de clientes creados
+        cliente.setEstado(EstadoCliente.INACTIVO);
+        cliente.setFechaActualizacion(LocalDateTime.now());
+        
+        // Guardar los cambios
+        clienteRepository.save(cliente);
+        
+        log.info("Cliente {} removido de licencia {} - Estado cambiado a INACTIVO", clienteId, licenciaId);
     }
     
     public Map<String, Object> getEstadisticasJefeVentas() {

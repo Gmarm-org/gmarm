@@ -1,7 +1,19 @@
 package com.armasimportacion.config;
 
-import com.armasimportacion.model.*;
-import com.armasimportacion.repository.*;
+import com.armasimportacion.model.CategoriaArma;
+import com.armasimportacion.model.ModeloArma;
+import com.armasimportacion.model.Rol;
+import com.armasimportacion.model.TipoCliente;
+import com.armasimportacion.model.TipoIdentificacion;
+import com.armasimportacion.model.TipoProceso;
+import com.armasimportacion.model.Usuario;
+import com.armasimportacion.repository.CategoriaArmaRepository;
+import com.armasimportacion.repository.ModeloArmaRepository;
+import com.armasimportacion.repository.RolRepository;
+import com.armasimportacion.repository.TipoClienteRepository;
+import com.armasimportacion.repository.TipoIdentificacionRepository;
+import com.armasimportacion.repository.TipoProcesoRepository;
+import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.enums.EstadoUsuario;
 import com.armasimportacion.enums.TipoRolVendedor;
 import lombok.RequiredArgsConstructor;

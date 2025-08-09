@@ -6,7 +6,7 @@ import ImportGroupManagement from './components/ImportGroupManagement';
 const ImportGroupManagementPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleNavigate = (page: string, data?: any) => {
+  const handleNavigate = (page: string, data?: Record<string, unknown>) => {
     // Handle navigation within this context if needed
     console.log('Navigate to:', page, data);
   };
@@ -30,7 +30,7 @@ const ImportGroupManagementPage: React.FC = () => {
         </button>
       </div>
 
-      <ImportGroupManagement onNavigate={handleNavigate} />
+      <ImportGroupManagement onNavigate={handleNavigate as any} />
     </div>
   );
 };

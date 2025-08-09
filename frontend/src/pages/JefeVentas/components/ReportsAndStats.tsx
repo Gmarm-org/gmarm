@@ -28,7 +28,7 @@ interface LicenseStats {
 }
 
 interface ReportsAndStatsProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: string, data?: unknown) => void;
 }
 
 const ReportsAndStats: React.FC<ReportsAndStatsProps> = ({ onNavigate: _onNavigate }) => {

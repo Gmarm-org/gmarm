@@ -19,7 +19,7 @@ interface Client {
 }
 
 interface ClientManagementProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: string, data?: unknown) => void;
 }
 
 const ClientManagement: React.FC<ClientManagementProps> = ({ onNavigate }) => {

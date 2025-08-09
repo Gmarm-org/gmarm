@@ -13,8 +13,9 @@ export const useWeapons = () => {
       const weaponsData = await mockApiService.getWeapons();
       setWeapons(weaponsData);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar armas');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar armas';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

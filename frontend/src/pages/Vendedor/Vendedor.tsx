@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { mockApiService } from '../../services/mockApiService';
 import type { Client } from '../../types';
-import Header from '../../components/Header';
 import ClientForm from './components/ClientForm';
 import WeaponReserve from './components/WeaponReserve';
+import Header from '../../components/Header';
 
 const Vendedor: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientFormMode, setClientFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [clients, setClients] = useState<Client[]>([]);
-  const [availableWeapons, setAvailableWeapons] = useState<any[]>([]); // Changed type to any[] as Weapon type was removed
-  const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null); // Changed type to any
+  const [availableWeapons, setAvailableWeapons] = useState<any[]>([]);
+  const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null);
   const [precioModificado, setPrecioModificado] = useState<number>(0);
   const [cantidad, setCantidad] = useState<number>(1);
-  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number }>>({}); // Changed type to any
+  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number }>>({});
   const [clientFilter, setClientFilter] = useState<string | null>(null);
   const [clientsLoading, setClientsLoading] = useState(true);
   const [weaponsLoading, setWeaponsLoading] = useState(true);
@@ -34,8 +34,8 @@ const Vendedor: React.FC = () => {
     }
     
     // Verificar si faltan documentos obligatorios
-    const requiredDocuments = client.documentos?.filter(doc => doc.obligatorio) || [];
-    const uploadedDocuments = client.documentos?.filter(doc => doc.uploaded) || [];
+    const requiredDocuments = client.documentos?.filter(doc => doc.status === 'pending') || [];
+    const uploadedDocuments = client.documentos?.filter(doc => doc.status === 'approved') || [];
     
     if (requiredDocuments.length > 0 && uploadedDocuments.length < requiredDocuments.length) {
       return 'FALTAN_DOCUMENTOS';
@@ -686,8 +686,8 @@ const Vendedor: React.FC = () => {
           <div className="p-6">
             <ClientForm
               mode={clientFormMode}
-              client={selectedClient}
-              onSave={handleClientSaved}
+              client={selectedClient as any}
+              onSave={handleClientSaved as any}
               onCancel={handleCloseForm}
               selectedWeapon={selectedWeapon}
               precioModificado={precioModificado}
@@ -705,15 +705,15 @@ const Vendedor: React.FC = () => {
           <div className="p-6">
             <WeaponReserve
               weapons={availableWeapons}
-              currentClient={selectedClient}
-              reservaParaCliente={selectedClient}
-              clienteParaResumen={selectedClient}
+              currentClient={selectedClient as any}
+              reservaParaCliente={selectedClient as any}
+              clienteParaResumen={selectedClient as any}
               armaSeleccionadaEnReserva={selectedWeapon}
               onBack={() => setCurrentPage('dashboard')}
               onWeaponSelection={handleWeaponSelected}
               onWeaponSelectionInReserve={handleWeaponSelected}
               onAssignWeaponToClient={(client, weapon) => {
-                setSelectedClient(client);
+                setSelectedClient(client as any);
                 setSelectedWeapon(weapon);
                 setPrecioModificado(weapon.precio);
                 setCantidad(1);

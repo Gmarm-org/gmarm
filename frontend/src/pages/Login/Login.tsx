@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import type { UserRole } from '../../types';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,7 +13,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   // Función para redirigir según el rol
-  const redirectBasedOnRole = (userRoles: any[]) => {
+  const redirectBasedOnRole = (userRoles: UserRole[]) => {
     const roleNames = userRoles.map(role => role.rol?.nombre || '').filter(nombre => nombre !== '');
     
     if (roleNames.includes('VENDEDOR')) {
@@ -34,8 +35,9 @@ const Login: React.FC = () => {
     try {
       await login({ email, password });
       // La redirección se manejará en el useEffect cuando el usuario se actualice
-    } catch (error: any) {
-      setError(error.message || 'Error al iniciar sesión');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al iniciar sesión';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

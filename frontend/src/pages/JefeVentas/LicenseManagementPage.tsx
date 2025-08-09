@@ -6,7 +6,7 @@ import LicenseManagement from './components/LicenseManagement';
 const LicenseManagementPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleNavigate = (page: string, data?: any) => {
+  const handleNavigate = (page: string, data?: Record<string, unknown>) => {
     // Handle navigation within this context if needed
     console.log('Navigate to:', page, data);
   };
@@ -30,7 +30,7 @@ const LicenseManagementPage: React.FC = () => {
         </button>
       </div>
 
-      <LicenseManagement onNavigate={handleNavigate} />
+      <LicenseManagement onNavigate={handleNavigate as any} />
     </div>
   );
 };

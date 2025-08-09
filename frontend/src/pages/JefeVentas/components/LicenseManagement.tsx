@@ -3,7 +3,7 @@ import { apiService, type Licencia, type LicenciaCreateRequest, type LicenciaSea
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface LicenseManagementProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: string, data?: unknown) => void;
 }
 
 interface LicenseForm {

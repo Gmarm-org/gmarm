@@ -5,7 +5,6 @@ import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.PlanPago;
-import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.PlanPagoRepository;

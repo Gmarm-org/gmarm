@@ -4,12 +4,7 @@ import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoMilitar;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.TipoCliente;
-import com.armasimportacion.model.TipoIdentificacion;
-import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ClienteRepository;
-import com.armasimportacion.repository.TipoClienteRepository;
-import com.armasimportacion.repository.TipoIdentificacionRepository;
-import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -31,9 +25,7 @@ import java.util.Map;
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
-    private final TipoClienteRepository tipoClienteRepository;
-    private final TipoIdentificacionRepository tipoIdentificacionRepository;
-    private final UsuarioRepository usuarioRepository;
+    
 
     // ===== OPERACIONES CRUD =====
 

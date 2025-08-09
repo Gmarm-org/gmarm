@@ -58,7 +58,7 @@ export const validateTelefono = (telefono: string): boolean => {
   if (!telefono) return false;
   
   // Remover espacios y caracteres especiales
-  const cleanTelefono = telefono.replace(/[\s\-\(\)]/g, '');
+  const cleanTelefono = telefono.replace(/[\s\-()]/g, '');
   
   // Verificar que sea solo números y tenga 10 dígitos
   return /^\d{10}$/.test(cleanTelefono);
@@ -68,7 +68,7 @@ export const formatTelefono = (telefono: string): string => {
   if (!telefono) return '';
   
   // Remover espacios y caracteres especiales
-  const cleanTelefono = telefono.replace(/[\s\-\(\)]/g, '');
+  const cleanTelefono = telefono.replace(/[\s\-()]/g, '');
   
   // Formatear como (XXX) XXX-XXXX
   if (cleanTelefono.length === 10) {
@@ -181,83 +181,83 @@ export interface ValidationResult {
   errors: string[];
 }
 
-export const validateClientForm = (formData: any): ValidationResult => {
+export const validateClientForm = (formData: Record<string, unknown>): ValidationResult => {
   const errors: string[] = [];
   
   // Validar tipo de cliente
-  if (!validateSelection(formData.tipoCliente)) {
+  if (!validateSelection(formData.tipoCliente as string)) {
     errors.push('Tipo de cliente es obligatorio');
   }
   
   // Validar tipo de identificación
-  if (!validateSelection(formData.tipoIdentificacion)) {
+  if (!validateSelection(formData.tipoIdentificacion as string)) {
     errors.push('Tipo de identificación es obligatorio');
   }
   
   // Validar identificación
-  if (!validateIdentificacion(formData.cedula, formData.tipoIdentificacion)) {
+  if (!validateIdentificacion(formData.cedula as string, formData.tipoIdentificacion as string)) {
     errors.push('Número de identificación no es válido');
   }
   
   // Validar nombres
-  if (!validateNombre(formData.nombres)) {
+  if (!validateNombre(formData.nombres as string)) {
     errors.push('Nombres no son válidos');
   }
   
   // Validar apellidos
-  if (!validateNombre(formData.apellidos)) {
+  if (!validateNombre(formData.apellidos as string)) {
     errors.push('Apellidos no son válidos');
   }
   
   // Validar email
-  if (!validateEmail(formData.email)) {
+  if (!validateEmail(formData.email as string)) {
     errors.push('Email no es válido');
   }
   
   // Validar provincia
-  if (!validateSelection(formData.provincia)) {
+  if (!validateSelection(formData.provincia as string)) {
     errors.push('Provincia es obligatoria');
   }
   
   // Validar cantón
-  if (!validateSelection(formData.canton)) {
+  if (!validateSelection(formData.canton as string)) {
     errors.push('Cantón es obligatorio');
   }
   
   // Validar dirección
-  if (!validateDireccion(formData.direccion)) {
+  if (!validateDireccion(formData.direccion as string)) {
     errors.push('Dirección debe tener entre 10 y 500 caracteres');
   }
   
   // Validar teléfono principal
-  if (!validateTelefono(formData.telefonoPrincipal)) {
+  if (!validateTelefono(formData.telefonoPrincipal as string)) {
     errors.push('Teléfono principal no es válido');
   }
   
   // Validaciones específicas por tipo de cliente
   if (formData.tipoCliente === 'Uniformado') {
-    if (!validateSelection(formData.estadoUniformado)) {
+    if (!validateSelection(formData.estadoUniformado as string)) {
       errors.push('Estado militar es obligatorio para uniformados');
     }
   }
   
   if (formData.tipoCliente === 'Compañía de Seguridad') {
-    if (!validateRUC(formData.ruc)) {
+    if (!validateRUC(formData.ruc as string)) {
       errors.push('RUC no es válido');
     }
-    if (!validateEmail(formData.correoElectronico)) {
+    if (!validateEmail(formData.correoElectronico as string)) {
       errors.push('Correo electrónico de la empresa no es válido');
     }
-    if (!validateSelection(formData.provinciaCompania)) {
+    if (!validateSelection(formData.provinciaCompania as string)) {
       errors.push('Provincia de la empresa es obligatoria');
     }
-    if (!validateSelection(formData.cantonCompania)) {
+    if (!validateSelection(formData.cantonCompania as string)) {
       errors.push('Cantón de la empresa es obligatorio');
     }
-    if (!validateDireccion(formData.direccionFiscal)) {
+    if (!validateDireccion(formData.direccionFiscal as string)) {
       errors.push('Dirección fiscal debe tener entre 10 y 500 caracteres');
     }
-    if (!validateTelefono(formData.telefonoReferencia)) {
+    if (!validateTelefono(formData.telefonoReferencia as string)) {
       errors.push('Teléfono de referencia no es válido');
     }
   }

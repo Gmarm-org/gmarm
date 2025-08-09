@@ -56,9 +56,9 @@ export interface User {
 export interface Pago {
   id: number;
   clienteId: number;
-  cliente?: any;
+  cliente?: Client;
   planPagoId?: number;
-  planPago?: any;
+  planPago?: PlanPago;
   numeroComprobante: string;
   montoTotal: number;
   saldoPendiente: number;
@@ -68,6 +68,50 @@ export interface Pago {
   observaciones?: string;
   fechaCreacion: string;
   fechaActualizacion?: string;
+}
+
+// Tipos adicionales
+export interface Client {
+  id: number;
+  numeroIdentificacion: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefonoPrincipal: string;
+  tipoCliente: string;
+  estado: string;
+}
+
+export interface PlanPago {
+  id: number;
+  clienteId: number;
+  montoTotal: number;
+  saldoPendiente: number;
+  estado: string;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+}
+
+export interface GrupoImportacion {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+  estado: string;
+  cuposDisponibles: {
+    civil: number;
+    militar: number;
+    empresa: number;
+    deportista: number;
+  };
+  cuposUtilizados: {
+    civil: number;
+    militar: number;
+    empresa: number;
+    deportista: number;
+  };
+  clientesAsignados: number;
 }
 
 export interface SaldoCliente {
@@ -291,23 +335,23 @@ class ApiService {
   // CLIENTES
   // ========================================
 
-  async getClientes(page: number = 0, size: number = 10): Promise<ApiResponse<any[]>> {
-    return this.request<ApiResponse<any[]>>(`/clientes?page=${page}&size=${size}`);
+  async getClientes(page: number = 0, size: number = 10): Promise<ApiResponse<Client[]>> {
+    return this.request<ApiResponse<Client[]>>(`/clientes?page=${page}&size=${size}`);
   }
 
-  async getCliente(id: number): Promise<any> {
-    return this.request<any>(`/clientes/${id}`);
+  async getCliente(id: number): Promise<Client> {
+    return this.request<Client>(`/clientes/${id}`);
   }
 
-  async createCliente(clienteData: any): Promise<any> {
-    return this.request<any>('/clientes', {
+  async createCliente(clienteData: Partial<Client>): Promise<Client> {
+    return this.request<Client>('/clientes', {
       method: 'POST',
       body: JSON.stringify(clienteData),
     });
   }
 
-  async updateCliente(id: number, clienteData: any): Promise<any> {
-    return this.request<any>(`/clientes/${id}`, {
+  async updateCliente(id: number, clienteData: Partial<Client>): Promise<Client> {
+    return this.request<Client>(`/clientes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(clienteData),
     });
@@ -317,12 +361,12 @@ class ApiService {
     await this.request(`/clientes/${id}`, { method: 'DELETE' });
   }
 
-  async getClientesPorVendedor(vendedorId: number): Promise<any[]> {
-    return this.request<any[]>(`/clientes/por-vendedor/${vendedorId}`);
+  async getClientesPorVendedor(vendedorId: number): Promise<Client[]> {
+    return this.request<Client[]>(`/clientes/por-vendedor/${vendedorId}`);
   }
 
-  async buscarClientePorIdentificacion(numero: string): Promise<any> {
-    return this.request<any>(`/clientes/por-identificacion/${numero}`);
+  async buscarClientePorIdentificacion(numero: string): Promise<Client> {
+    return this.request<Client>(`/clientes/por-identificacion/${numero}`);
   }
 
   async validarIdentificacion(numero: string): Promise<{ existe: boolean; mensaje: string }> {
@@ -408,30 +452,30 @@ class ApiService {
   // GRUPOS DE IMPORTACIÓN
   // ========================================
 
-  async getGruposImportacion(page: number = 0, size: number = 10): Promise<ApiResponse<any[]>> {
-    return this.request<ApiResponse<any[]>>(`/grupos-importacion?page=${page}&size=${size}`);
+  async getGruposImportacion(page: number = 0, size: number = 10): Promise<ApiResponse<GrupoImportacion[]>> {
+    return this.request<ApiResponse<GrupoImportacion[]>>(`/grupos-importacion?page=${page}&size=${size}`);
   }
 
-  async getGrupoImportacion(id: number): Promise<any> {
-    return this.request<any>(`/grupos-importacion/${id}`);
+  async getGrupoImportacion(id: number): Promise<GrupoImportacion> {
+    return this.request<GrupoImportacion>(`/grupos-importacion/${id}`);
   }
 
-  async createGrupoImportacion(grupoData: any): Promise<any> {
-    return this.request<any>('/grupos-importacion', {
+  async createGrupoImportacion(grupoData: Partial<GrupoImportacion>): Promise<GrupoImportacion> {
+    return this.request<GrupoImportacion>('/grupos-importacion', {
       method: 'POST',
       body: JSON.stringify(grupoData),
     });
   }
 
-  async updateGrupoImportacion(id: number, grupoData: any): Promise<any> {
-    return this.request<any>(`/grupos-importacion/${id}`, {
+  async updateGrupoImportacion(id: number, grupoData: Partial<GrupoImportacion>): Promise<GrupoImportacion> {
+    return this.request<GrupoImportacion>(`/grupos-importacion/${id}`, {
       method: 'PUT',
       body: JSON.stringify(grupoData),
     });
   }
 
-  async getGruposActivos(): Promise<any[]> {
-    return this.request<any[]>('/grupos-importacion/activos');
+  async getGruposActivos(): Promise<GrupoImportacion[]> {
+    return this.request<GrupoImportacion[]>('/grupos-importacion/activos');
   }
 
   async agregarClienteAGrupo(grupoId: number, clienteId: number): Promise<void> {

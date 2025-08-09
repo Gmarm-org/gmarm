@@ -2,8 +2,16 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.exception.ResourceNotFoundException;
-import com.armasimportacion.model.*;
-import com.armasimportacion.repository.*;
+import com.armasimportacion.model.Cliente;
+import com.armasimportacion.model.ClienteGrupoImportacion;
+import com.armasimportacion.model.GrupoImportacion;
+import com.armasimportacion.model.GrupoImportacionCupo;
+import com.armasimportacion.model.Usuario;
+import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
+import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.repository.GrupoImportacionCupoRepository;
+import com.armasimportacion.repository.GrupoImportacionRepository;
+import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoClienteGrupo;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +36,8 @@ public class GrupoImportacionService {
     private final GrupoImportacionRepository grupoImportacionRepository;
     private final ClienteGrupoImportacionRepository clienteGrupoRepository;
     private final GrupoImportacionCupoRepository cupoRepository;
-    private final DocumentoGrupoImportacionRepository documentoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ClienteRepository clienteRepository;
-    private final LicenciaRepository licenciaRepository;
-    private final TipoProcesoRepository tipoProcesoRepository;
-    
     // CRUD Operations
     public GrupoImportacion crearGrupoImportacion(GrupoImportacion grupo, Long usuarioId) {
         log.info("Creando nuevo grupo de importación: {}", grupo.getCodigo());

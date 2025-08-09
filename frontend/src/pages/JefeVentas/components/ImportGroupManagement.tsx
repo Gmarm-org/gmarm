@@ -3,7 +3,7 @@ import type { ImportGroup, Client } from '../types';
 import { mockImportGroups, mockClients } from '../HardcodedData';
 
 interface ImportGroupManagementProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: string, data?: unknown) => void;
 }
 
 const ImportGroupManagement: React.FC<ImportGroupManagementProps> = ({ onNavigate }) => {
@@ -86,7 +86,8 @@ const ImportGroupManagement: React.FC<ImportGroupManagementProps> = ({ onNavigat
     setShowCreateModal(false);
   };
 
-  const handleAssignClient = (groupId: number, _clientId: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleAssignClient = (groupId: number, _clientId: number) => { // _clientId is unused
     setImportGroups(prev => prev.map(group => 
       group.id === groupId 
         ? { 
@@ -94,7 +95,7 @@ const ImportGroupManagement: React.FC<ImportGroupManagementProps> = ({ onNavigat
             clientesAsignados: group.clientesAsignados + 1,
             cuposUtilizados: {
               ...group.cuposUtilizados,
-              civil: group.cuposUtilizados.civil + 1 // Por defecto civil
+              civil: group.cuposUtilizados.civil + 1
             }
           }
         : group

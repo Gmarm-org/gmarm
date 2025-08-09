@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (userData: any) => Promise<void>;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const fullUser = await service.getCurrentUser();
       setUser(fullUser as User);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error en login:', error);
       throw error;
     }
@@ -67,14 +67,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateProfile = async (userData: any) => {
+  const updateProfile = async (userData: Partial<User>) => {
     try {
       const service = await getApiService();
       if (user?.id) {
         const updatedUser = await service.updateUser(user.id, userData);
         setUser(updatedUser as User);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error actualizando perfil:', error);
       throw error;
     }
@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     updateProfile,
     isLoading,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
   };
 
   return (

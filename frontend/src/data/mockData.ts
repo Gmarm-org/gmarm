@@ -181,7 +181,22 @@ export const mockClients: Client[] = [
     vendedorId: '2',
     estado: 'LISTO_IMPORTACION',
     documentos: [],
-    respuestas: []
+    respuestas: [
+      {
+        id: '1',
+        clientId: '1',
+        questionId: '1',
+        question: {
+          id: '1',
+          clientTypeId: '1',
+          question: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+          required: true,
+          order: 1
+        },
+        answer: 'SI',
+        createdAt: '2024-01-15T10:30:00Z'
+      }
+    ]
   },
   {
     id: '2',
@@ -231,9 +246,17 @@ export const mockClients: Client[] = [
     respuestas: [
       {
         id: '1',
-        pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
-        respuesta: 'SI',
-        tipo: 'SI_NO'
+        clientId: '3',
+        questionId: '1',
+        question: {
+          id: '1',
+          clientTypeId: '2',
+          question: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+          required: true,
+          order: 1
+        },
+        answer: 'SI',
+        createdAt: '2024-01-15T10:30:00Z'
       }
     ]
   },
@@ -257,9 +280,17 @@ export const mockClients: Client[] = [
     respuestas: [
       {
         id: '1',
-        pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
-        respuesta: 'SI',
-        tipo: 'SI_NO'
+        clientId: '4',
+        questionId: '1',
+        question: {
+          id: '1',
+          clientTypeId: '1',
+          question: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+          required: true,
+          order: 1
+        },
+        answer: 'SI',
+        createdAt: '2024-01-15T10:30:00Z'
       }
     ]
   }

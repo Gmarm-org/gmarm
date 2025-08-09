@@ -68,8 +68,8 @@ export interface Client {
   
   // Estado del cliente
   estado?: 'FALTAN_DOCUMENTOS' | 'BLOQUEADO' | 'LISTO_IMPORTACION' | 'INACTIVO';
-  documentos?: any[];
-  respuestas?: any[];
+  documentos?: Document[];
+  respuestas?: ClientAnswer[];
 }
 
 // ===== PAGO =====
@@ -78,7 +78,7 @@ export interface Pago {
   clienteId: number;
   cliente?: Client;
   planPagoId?: number;
-  planPago?: any; // PlanPago interface si se necesita
+  planPago?: PlanPago; // PlanPago interface si se necesita
   numeroComprobante: string;
   montoTotal: number;
   saldoPendiente: number;
@@ -86,6 +86,17 @@ export interface Pago {
   fechaPago?: string;
   estado: 'PENDIENTE' | 'COMPLETADO' | 'CANCELADO';
   observaciones?: string;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+}
+
+// ===== PLAN DE PAGO =====
+export interface PlanPago {
+  id: number;
+  clienteId: number;
+  montoTotal: number;
+  saldoPendiente: number;
+  estado: 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
   fechaCreacion: string;
   fechaActualizacion?: string;
 }

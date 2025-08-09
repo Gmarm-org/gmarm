@@ -6,7 +6,7 @@ import ReportsAndStats from './components/ReportsAndStats';
 const ReportsAndStatsPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleNavigate = (page: string, data?: any) => {
+  const handleNavigate = (page: string, data?: Record<string, unknown>) => {
     // Handle navigation within this context if needed
     console.log('Navigate to:', page, data);
   };
@@ -30,7 +30,7 @@ const ReportsAndStatsPage: React.FC = () => {
         </button>
       </div>
 
-      <ReportsAndStats onNavigate={handleNavigate} />
+      <ReportsAndStats onNavigate={handleNavigate as any} />
     </div>
   );
 };

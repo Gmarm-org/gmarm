@@ -4,21 +4,21 @@ import type { ValidationResult, ValidationError } from '../utils/schemaValidator
 
 interface UseFormValidationOptions {
   schemaName: keyof typeof import('../schemas').Schemas;
-  initialData?: any;
+  initialData?: Record<string, unknown>;
   validateOnChange?: boolean;
   validateOnBlur?: boolean;
 }
 
 interface UseFormValidationReturn {
-  data: any;
+  data: Record<string, unknown>;
   errors: ValidationError[];
   isValid: boolean;
-  setFieldValue: (field: string, value: any) => void;
+  setFieldValue: (field: string, value: unknown) => void;
   setFieldError: (field: string, error: string) => void;
   clearFieldError: (field: string) => void;
   validateField: (field: string) => void;
   validateForm: () => ValidationResult;
-  resetForm: (newData?: any) => void;
+  resetForm: (newData?: Record<string, unknown>) => void;
   getFieldError: (field: string) => string | undefined;
   hasErrors: boolean;
 }
@@ -26,7 +26,7 @@ interface UseFormValidationReturn {
 export const useFormValidation = (options: UseFormValidationOptions): UseFormValidationReturn => {
   const { schemaName, initialData = {}, validateOnChange = false } = options;
   
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<Record<string, unknown>>(initialData);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isValid, setIsValid] = useState(true);
 
@@ -52,8 +52,8 @@ export const useFormValidation = (options: UseFormValidationOptions): UseFormVal
   }, [data, schemaName]);
 
   // Función para establecer el valor de un campo
-  const setFieldValue = useCallback((field: string, value: any) => {
-    setData((prev: any) => {
+  const setFieldValue = useCallback((field: string, value: unknown) => {
+    setData((prev: Record<string, unknown>) => {
       const newData = { ...prev, [field]: value };
       
       // Validar en tiempo real si está habilitado
@@ -90,7 +90,7 @@ export const useFormValidation = (options: UseFormValidationOptions): UseFormVal
   }, [errors]);
 
   // Función para resetear el formulario
-  const resetForm = useCallback((newData?: any) => {
+  const resetForm = useCallback((newData?: Record<string, unknown>) => {
     setData(newData || initialData);
     setErrors([]);
     setIsValid(true);
@@ -114,7 +114,7 @@ export const useFormValidation = (options: UseFormValidationOptions): UseFormVal
 };
 
 // Hook específico para formularios de cliente
-export const useClientFormValidation = (initialData?: any) => {
+export const useClientFormValidation = (initialData?: Record<string, unknown>) => {
   return useFormValidation({
     schemaName: 'ClientForm',
     initialData,
@@ -146,12 +146,12 @@ export const useDebouncedValidation = (
   schemaName: keyof typeof import('../schemas').Schemas,
   delay: number = 300
 ) => {
-  const [data, setData] = useState<any>({});
+  const [data, setData] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isValid, setIsValid] = useState(true);
   const [timeoutId, setTimeoutId] = useState<number | null>(null);
 
-  const debouncedValidate = useCallback((newData: any) => {
+  const debouncedValidate = useCallback((newData: Record<string, unknown>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
@@ -165,7 +165,7 @@ export const useDebouncedValidation = (
     setTimeoutId(newTimeoutId);
   }, [schemaName, delay, timeoutId]);
 
-  const setFieldValue = useCallback((field: string, value: any) => {
+  const setFieldValue = useCallback((field: string, value: unknown) => {
     const newData = { ...data, [field]: value };
     setData(newData);
     debouncedValidate(newData);
@@ -178,7 +178,7 @@ export const useDebouncedValidation = (
     return validation;
   }, [data, schemaName]);
 
-  const resetForm = useCallback((newData?: any) => {
+  const resetForm = useCallback((newData?: Record<string, unknown>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
@@ -203,7 +203,7 @@ export const useMultiStepValidation = (
   schemas: Array<keyof typeof import('../schemas').Schemas>
 ) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [stepData, setStepData] = useState<any[]>(schemas.map(() => ({})));
+  const [stepData, setStepData] = useState<Record<string, unknown>[]>(schemas.map(() => ({})));
   const [stepErrors, setStepErrors] = useState<ValidationError[][]>(schemas.map(() => []));
   const [stepValid, setStepValid] = useState<boolean[]>(schemas.map(() => true));
 
@@ -226,7 +226,7 @@ export const useMultiStepValidation = (
     return stepValidation;
   }, [schemas, stepData]);
 
-  const setStepFieldValue = useCallback((stepIndex: number, field: string, value: any) => {
+  const setStepFieldValue = useCallback((stepIndex: number, field: string, value: unknown) => {
     setStepData(prev => {
       const newData = [...prev];
       newData[stepIndex] = { ...newData[stepIndex], [field]: value };
@@ -277,7 +277,7 @@ export const useMultiStepValidation = (
     };
   }, [schemas, validateStep]);
 
-  const getAllData = useCallback((): any => {
+  const getAllData = useCallback((): Record<string, unknown> => {
     return stepData.reduce((acc, data) => {
       return { ...acc, ...data };
     }, {});
@@ -297,6 +297,8 @@ export const useMultiStepValidation = (
     getAllData,
     totalSteps: schemas.length,
     canGoNext: stepValid[currentStep],
-    canGoPrev: currentStep > 0
+    canGoPrev: currentStep > 0,
+    isFirstStep: currentStep === 0,
+    isLastStep: currentStep === schemas.length - 1
   };
 }; 
