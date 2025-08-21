@@ -36,15 +36,11 @@ public class SwaggerConfig {
                         new Server().url("http://gmarm-backend-dev:8080").description("Servidor de Docker")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
-                .components(new Components()
-                        .addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()));
-    }
-
-    private SecurityScheme createAPIKeyScheme() {
-        return new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
-                .bearerFormat("JWT")
-                .scheme("bearer")
-                .description("JWT token obtenido del endpoint /api/auth/login");
+                .components(new Components().addSecuritySchemes("Bearer Authentication",
+                        new SecurityScheme()
+                                .name("Bearer Authentication")
+                                .type(SecurityScheme.Type.HTTP)
+                                .bearerFormat("JWT")
+                                .scheme("bearer")));
     }
 }

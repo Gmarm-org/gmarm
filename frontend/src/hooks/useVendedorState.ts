@@ -35,8 +35,8 @@ export const useVendedorState = () => {
     setErrors(prev => ({ ...prev, clients: '' }));
     
     try {
-      const response = await apiService.getClientes();
-      setClients((response.data || []) as any);
+      const response = await apiService.getMisClientes();
+      setClients((Array.isArray(response) ? response : (response as any).content || []) as any);
     } catch (error) {
       setErrors(prev => ({ ...prev, clients: error instanceof Error ? error.message : 'Error al cargar clientes' }));
     } finally {

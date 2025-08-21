@@ -6,7 +6,6 @@ import com.armasimportacion.model.Licencia;
 import com.armasimportacion.service.LicenciaService;
 import com.armasimportacion.enums.EstadoLicencia;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +13,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +39,6 @@ public class LicenciaController {
     
     @PostMapping
     @Operation(summary = "Crear nueva licencia", description = "Crea una nueva licencia de importación")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Licencia> crearLicencia(
             @Valid @RequestBody Licencia licencia,
             @RequestParam Long usuarioId) {
@@ -56,7 +53,6 @@ public class LicenciaController {
     
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Licencia> actualizarLicencia(
             @PathVariable Long id,
             @Valid @RequestBody Licencia licencia,
@@ -91,7 +87,6 @@ public class LicenciaController {
     
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar licencia", description = "Elimina una licencia por su ID")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarLicencia(@PathVariable Long id) {
         try {
             licenciaService.eliminarLicencia(id);
@@ -141,7 +136,6 @@ public class LicenciaController {
     
     @PostMapping("/{id}/decrementar-cupo")
     @Operation(summary = "Decrementar cupo", description = "Decrementa el cupo de una licencia para un tipo de cliente")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> decrementarCupo(
             @PathVariable Long id,
             @RequestParam String tipoCliente) {
@@ -184,7 +178,6 @@ public class LicenciaController {
     
     @PutMapping("/{id}/estado")
     @Operation(summary = "Cambiar estado de licencia", description = "Cambia el estado de una licencia")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> cambiarEstado(
             @PathVariable Long id,
             @RequestParam EstadoLicencia nuevoEstado) {

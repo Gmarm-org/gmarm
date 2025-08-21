@@ -1,5 +1,6 @@
 package com.armasimportacion.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -30,6 +31,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@JsonIgnoreProperties({"preguntas"})
 public class TipoProceso {
 
     @Id
@@ -39,7 +41,7 @@ public class TipoProceso {
     @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
 
-    @Column(name = "codigo", unique = true, nullable = false, length = 20)
+    @Column(name = "codigo", nullable = false, length = 20, unique = true)
     private String codigo;
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
@@ -52,10 +54,6 @@ public class TipoProceso {
     @CreatedDate
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
-
-    @LastModifiedDate
-    @Column(name = "fecha_actualizacion")
-    private LocalDateTime fechaActualizacion;
 
     // Relaciones
     @OneToMany(mappedBy = "tipoProceso", fetch = FetchType.LAZY)

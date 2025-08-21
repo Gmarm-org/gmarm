@@ -1,12 +1,17 @@
 package com.armasimportacion.service;
 
+import com.armasimportacion.dto.ClienteDTO;
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoMilitar;
-import com.armasimportacion.model.Cliente;
-import com.armasimportacion.model.TipoCliente;
-import com.armasimportacion.repository.ClienteRepository;
-import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
+import com.armasimportacion.mapper.ClienteMapper;
+import com.armasimportacion.model.Cliente;
+import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.repository.TipoIdentificacionRepository;
+import com.armasimportacion.repository.TipoClienteRepository;
+import com.armasimportacion.repository.UsuarioRepository;
+import com.armasimportacion.dto.ClienteCreateDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +30,10 @@ import java.util.Map;
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final ClienteMapper clienteMapper;
+    private final TipoIdentificacionRepository tipoIdentificacionRepository;
+    private final TipoClienteRepository tipoClienteRepository;
+    private final UsuarioRepository usuarioRepository;
     
 
     // ===== OPERACIONES CRUD =====
@@ -260,6 +269,48 @@ public class ClienteService {
         return estadisticas;
     }
 
+    // ===== MÉTODOS CON DTOs PARA EVITAR PROBLEMAS DE SERIALIZACIÓN =====
+    
+    public List<ClienteDTO> findAllAsDTO() {
+        List<Cliente> clientes = findAll();
+        return clienteMapper.toDTOList(clientes);
+    }
+    
+    public Page<ClienteDTO> findAllAsDTO(Pageable pageable) {
+        Page<Cliente> clientes = findAll(pageable);
+        return clientes.map(clienteMapper::toDTO);
+    }
+    
+    public ClienteDTO findByIdAsDTO(Long id) {
+        Cliente cliente = findById(id);
+        return clienteMapper.toDTO(cliente);
+    }
+    
+    public List<ClienteDTO> findByUsuarioCreadorAsDTO(Long usuarioId) {
+        List<Cliente> clientes = findByUsuarioCreador(usuarioId);
+        return clienteMapper.toDTOList(clientes);
+    }
+    
+    public Page<ClienteDTO> findByUsuarioCreadorAsDTO(Long usuarioId, Pageable pageable) {
+        Page<Cliente> clientes = findByUsuarioCreador(usuarioId, pageable);
+        return clientes.map(clienteMapper::toDTO);
+    }
+    
+    public List<ClienteDTO> findByEstadoAsDTO(EstadoCliente estado) {
+        List<Cliente> clientes = findByEstado(estado);
+        return clienteMapper.toDTOList(clientes);
+    }
+    
+    public List<ClienteDTO> findClientesAprobadosAsDTO() {
+        List<Cliente> clientes = findClientesAprobados();
+        return clienteMapper.toDTOList(clientes);
+    }
+    
+    public List<ClienteDTO> findClientesPendientesAprobacionAsDTO() {
+        List<Cliente> clientes = findClientesPendientesAprobacion();
+        return clienteMapper.toDTOList(clientes);
+    }
+
     // ===== MÉTODOS PRIVADOS =====
 
     private void validateClienteForCreate(Cliente cliente) {
@@ -341,47 +392,7 @@ public class ClienteService {
     }
 
     private void validateCamposEspecificos(Cliente cliente) {
-        TipoCliente tipoCliente = cliente.getTipoCliente();
-
-        if (tipoCliente.esEmpresa()) {
-            // Validar campos obligatorios para empresas
-            if (cliente.getRuc() == null || cliente.getRuc().trim().isEmpty()) {
-                throw new BadRequestException("El RUC es obligatorio para empresas");
-            }
-            if (cliente.getNombreEmpresa() == null || cliente.getNombreEmpresa().trim().isEmpty()) {
-                throw new BadRequestException("El nombre de la empresa es obligatorio");
-            }
-            if (cliente.getRepresentanteLegal() == null || cliente.getRepresentanteLegal().trim().isEmpty()) {
-                throw new BadRequestException("El representante legal es obligatorio");
-            }
-            if (cliente.getDireccionFiscal() == null || cliente.getDireccionFiscal().trim().isEmpty()) {
-                throw new BadRequestException("La dirección fiscal es obligatoria para empresas");
-            }
-            if (cliente.getTelefonoReferencia() == null || cliente.getTelefonoReferencia().trim().isEmpty()) {
-                throw new BadRequestException("El teléfono de referencia es obligatorio para empresas");
-            }
-            if (cliente.getCorreoEmpresa() == null || cliente.getCorreoEmpresa().trim().isEmpty()) {
-                throw new BadRequestException("El correo electrónico de la empresa es obligatorio");
-            }
-            if (cliente.getProvinciaEmpresa() == null || cliente.getProvinciaEmpresa().trim().isEmpty()) {
-                throw new BadRequestException("La provincia de la empresa es obligatoria");
-            }
-            if (cliente.getCantonEmpresa() == null || cliente.getCantonEmpresa().trim().isEmpty()) {
-                throw new BadRequestException("El cantón de la empresa es obligatorio");
-            }
-            
-            // Validar formato de RUC
-            if (!validateRuc(cliente.getRuc())) {
-                throw new BadRequestException("Formato de RUC inválido");
-            }
-        }
-
-        if (tipoCliente.esUniformado()) {
-            // Validar campos obligatorios para uniformados
-            if (cliente.getEstadoMilitar() == null) {
-                throw new BadRequestException("El estado militar es obligatorio para uniformados");
-            }
-        }
+        // This method is no longer needed as validation is done in DTOs
     }
 
     private void updateClienteFields(Cliente cliente, Cliente clienteUpdate) {
@@ -406,4 +417,193 @@ public class ClienteService {
         cliente.setProvinciaEmpresa(clienteUpdate.getProvinciaEmpresa());
         cliente.setCantonEmpresa(clienteUpdate.getCantonEmpresa());
     }
+
+    // ===== MÉTODOS DTO =====
+
+    public ClienteDTO createFromDTO(ClienteCreateDTO dto, Long usuarioId) {
+        // Crear entidad Cliente desde DTO
+        Cliente cliente = new Cliente();
+        cliente.setNombres(dto.getNombres());
+        cliente.setApellidos(dto.getApellidos());
+        cliente.setNumeroIdentificacion(dto.getNumeroIdentificacion());
+        cliente.setFechaNacimiento(dto.getFechaNacimiento());
+        cliente.setDireccion(dto.getDireccion());
+        cliente.setProvincia(dto.getProvincia());
+        cliente.setCanton(dto.getCanton());
+        cliente.setEmail(dto.getEmail());
+        cliente.setTelefonoPrincipal(dto.getTelefonoPrincipal());
+        cliente.setTelefonoSecundario(dto.getTelefonoSecundario());
+        cliente.setRepresentanteLegal(dto.getRepresentanteLegal());
+        if (dto.getEstadoMilitar() != null) {
+            try {
+                cliente.setEstadoMilitar(EstadoMilitar.valueOf(dto.getEstadoMilitar().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Estado militar inválido: " + dto.getEstadoMilitar());
+            }
+        }
+
+        // Campos de empresa
+        cliente.setRuc(dto.getRuc());
+        cliente.setNombreEmpresa(dto.getNombreEmpresa());
+        cliente.setDireccionFiscal(dto.getDireccionFiscal());
+        cliente.setTelefonoReferencia(dto.getTelefonoReferencia());
+        cliente.setCorreoEmpresa(dto.getCorreoEmpresa());
+        cliente.setProvinciaEmpresa(dto.getProvinciaEmpresa());
+        cliente.setCantonEmpresa(dto.getCantonEmpresa());
+
+        // Establecer relaciones - MAPEAR CÓDIGOS A IDs
+        if (dto.getTipoIdentificacionCodigo() != null) {
+            // Mapear código a ID
+            Long tipoIdentificacionId = mapTipoIdentificacionCodigoToId(dto.getTipoIdentificacionCodigo());
+            cliente.setTipoIdentificacion(tipoIdentificacionRepository.findById(tipoIdentificacionId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de identificación no encontrado: " + dto.getTipoIdentificacionCodigo())));
+        }
+
+        if (dto.getTipoClienteCodigo() != null) {
+            // Mapear código a ID
+            Long tipoClienteId = mapTipoClienteCodigoToId(dto.getTipoClienteCodigo());
+            cliente.setTipoCliente(tipoClienteRepository.findById(tipoClienteId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de cliente no encontrado: " + dto.getTipoClienteCodigo())));
+        }
+
+        // Establecer usuario creador
+        if (usuarioId != null) {
+            cliente.setUsuarioCreador(usuarioRepository.findById(usuarioId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado")));
+        }
+
+        // Configurar valores por defecto
+        cliente.setEstado(EstadoCliente.ACTIVO);
+        cliente.setFechaCreacion(java.time.LocalDateTime.now());
+
+        // Guardar y retornar DTO
+        Cliente clienteGuardado = clienteRepository.save(cliente);
+        return clienteMapper.toDTO(clienteGuardado);
+    }
+
+    public ClienteDTO updateFromDTO(Long id, ClienteCreateDTO dto) {
+        Cliente cliente = findById(id);
+        
+        // Actualizar campos
+        cliente.setNombres(dto.getNombres());
+        cliente.setApellidos(dto.getApellidos());
+        cliente.setNumeroIdentificacion(dto.getNumeroIdentificacion());
+        cliente.setFechaNacimiento(dto.getFechaNacimiento());
+        cliente.setDireccion(dto.getDireccion());
+        cliente.setProvincia(dto.getProvincia());
+        cliente.setCanton(dto.getCanton());
+        cliente.setEmail(dto.getEmail());
+        cliente.setTelefonoPrincipal(dto.getTelefonoPrincipal());
+        cliente.setTelefonoSecundario(dto.getTelefonoSecundario());
+        cliente.setRepresentanteLegal(dto.getRepresentanteLegal());
+        if (dto.getEstadoMilitar() != null) {
+            try {
+                cliente.setEstadoMilitar(EstadoMilitar.valueOf(dto.getEstadoMilitar().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Estado militar inválido: " + dto.getEstadoMilitar());
+            }
+        }
+
+        // Campos de empresa
+        cliente.setRuc(dto.getRuc());
+        cliente.setNombreEmpresa(dto.getNombreEmpresa());
+        cliente.setDireccionFiscal(dto.getDireccionFiscal());
+        cliente.setTelefonoReferencia(dto.getTelefonoReferencia());
+        cliente.setCorreoEmpresa(dto.getCorreoEmpresa());
+        cliente.setProvinciaEmpresa(dto.getProvinciaEmpresa());
+        cliente.setCantonEmpresa(dto.getCantonEmpresa());
+
+        // Establecer relaciones - MAPEAR CÓDIGOS A IDs
+        if (dto.getTipoIdentificacionCodigo() != null) {
+            // Mapear código a ID
+            Long tipoIdentificacionId = mapTipoIdentificacionCodigoToId(dto.getTipoIdentificacionCodigo());
+            cliente.setTipoIdentificacion(tipoIdentificacionRepository.findById(tipoIdentificacionId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de identificación no encontrado: " + dto.getTipoIdentificacionCodigo())));
+        }
+
+        if (dto.getTipoClienteCodigo() != null) {
+            // Mapear código a ID
+            Long tipoClienteId = mapTipoClienteCodigoToId(dto.getTipoClienteCodigo());
+            cliente.setTipoCliente(tipoClienteRepository.findById(tipoClienteId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de cliente no encontrado: " + dto.getTipoClienteCodigo())));
+        }
+
+        // Guardar y retornar DTO
+        Cliente clienteActualizado = clienteRepository.save(cliente);
+        return clienteMapper.toDTO(clienteActualizado);
+    }
+
+    public ClienteDTO findByNumeroIdentificacionAsDTO(String numeroIdentificacion) {
+        // Buscar por cualquier tipo de identificación
+        List<Cliente> clientes = clienteRepository.findByRuc(numeroIdentificacion);
+        if (clientes.isEmpty()) {
+            // Si no es RUC, buscar por otros tipos de identificación
+            throw new ResourceNotFoundException("Cliente no encontrado con identificación: " + numeroIdentificacion);
+        }
+        return clienteMapper.toDTO(clientes.get(0));
+    }
+
+    public Page<ClienteDTO> findByFiltrosAsDTO(String nombres, EstadoCliente estado, Long vendedorId, 
+                                               String numeroIdentificacion, String email, String apellidos, Pageable pageable) {
+        // Usar el método existente del repository
+        Page<Cliente> clientes = clienteRepository.findByFiltros(null, estado, vendedorId, null, email, nombres, pageable);
+        return clientes.map(clienteMapper::toDTO);
+    }
+
+    // ===== MÉTODOS DE APROBACIÓN/RECHAZO =====
+
+    public ClienteDTO aprobarClienteAsDTO(Long id) {
+        Cliente cliente = findById(id);
+        cliente.setAprobadoPorJefeVentas(true);
+        cliente.setFechaAprobacion(java.time.LocalDateTime.now());
+        cliente.setEstado(EstadoCliente.APROBADO);
+        
+        Cliente clienteActualizado = clienteRepository.save(cliente);
+        return clienteMapper.toDTO(clienteActualizado);
+    }
+
+    public ClienteDTO rechazarClienteAsDTO(Long id, String motivo) {
+        Cliente cliente = findById(id);
+        cliente.setAprobadoPorJefeVentas(false);
+        cliente.setMotivoRechazo(motivo);
+        cliente.setFechaRechazo(java.time.LocalDateTime.now());
+        cliente.setEstado(EstadoCliente.RECHAZADO);
+        
+        Cliente clienteActualizado = clienteRepository.save(cliente);
+        return clienteMapper.toDTO(clienteActualizado);
+    }
+
+    // ===== MÉTODOS DTO ADICIONALES =====
+
+    // ===== MÉTODOS DE MAPEO CÓDIGO A ID =====
+    
+    private Long mapTipoIdentificacionCodigoToId(String tipoIdentificacionCodigo) {
+        switch (tipoIdentificacionCodigo.toUpperCase()) {
+            case "CED":
+                return 1L;
+            case "RUC":
+                return 2L;
+            default:
+                throw new BadRequestException("Código de tipo de identificación no válido: " + tipoIdentificacionCodigo);
+        }
+    }
+    
+    private Long mapTipoClienteCodigoToId(String tipoClienteCodigo) {
+        switch (tipoClienteCodigo.toUpperCase()) {
+            case "CIV":
+                return 1L;
+            case "MIL":
+            case "NAV":
+            case "AER":
+            case "POL":
+                return 2L; // Usar el primer tipo militar disponible
+            case "EMP":
+                return 6L;
+            case "DEP":
+                return 7L;
+            default:
+                throw new BadRequestException("Código de tipo de cliente no válido: " + tipoClienteCodigo);
+        }
+    }
+    
 } 

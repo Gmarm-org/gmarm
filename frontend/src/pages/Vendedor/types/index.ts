@@ -55,12 +55,13 @@ export interface Respuesta {
 
 export interface Weapon {
   id: string;
-  modelo: string;
+  nombre: string;
+  codigo: string;
   calibre: string;
-  capacidad: number;
-  precio: number;
-  imagen: string;
-  disponible: boolean;
+  categoriaNombre: string;
+  precioReferencia: number;
+  urlImagen?: string;
+  disponible?: boolean;
   precioModificado?: number; // Para el precio modificable
 }
 

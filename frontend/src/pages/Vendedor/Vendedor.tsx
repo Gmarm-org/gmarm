@@ -1,420 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { mockApiService } from '../../services/mockApiService';
-import type { Client } from '../../types';
-import ClientForm from './components/ClientForm';
+import React from 'react';
 import WeaponReserve from './components/WeaponReserve';
 import Header from '../../components/Header';
+import ClientForm from './components/ClientForm';
+import { useVendedorLogic } from './hooks/useVendedorLogic';
 
-const Vendedor: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<string>('dashboard');
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientFormMode, setClientFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  const [clients, setClients] = useState<Client[]>([]);
-  const [availableWeapons, setAvailableWeapons] = useState<any[]>([]);
-  const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null);
-  const [precioModificado, setPrecioModificado] = useState<number>(0);
-  const [cantidad, setCantidad] = useState<number>(1);
-  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number }>>({});
-  const [clientFilter, setClientFilter] = useState<string | null>(null);
-  const [clientsLoading, setClientsLoading] = useState(true);
-  const [weaponsLoading, setWeaponsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [clientesBloqueados, setClientesBloqueados] = useState<Record<string, { bloqueado: boolean; motivo: string }>>({});
-
-  // Función para determinar el estado del cliente
-  const getClientStatus = (client: Client) => {
-    // Si el cliente tiene un estado definido, usarlo
-    if (client.estado) {
-      return client.estado;
-    }
-    
-    // Si el cliente está bloqueado por violencia
-    if (clientesBloqueados[client.id]?.bloqueado) {
-      return 'BLOQUEADO';
-    }
-    
-    // Verificar si faltan documentos obligatorios
-    const requiredDocuments = client.documentos?.filter(doc => doc.status === 'pending') || [];
-    const uploadedDocuments = client.documentos?.filter(doc => doc.status === 'approved') || [];
-    
-    if (requiredDocuments.length > 0 && uploadedDocuments.length < requiredDocuments.length) {
-      return 'FALTAN_DOCUMENTOS';
-    }
-    
-    // Si tiene arma asignada y no está bloqueado, está listo
-    const hasWeapon = clientWeaponAssignments[client.id];
-    if (hasWeapon) {
-      return 'LISTO_IMPORTACION';
-    }
-    
-    // Por defecto, faltan documentos si no hay documentos cargados
-    return 'FALTAN_DOCUMENTOS';
-  };
-
-  // Función para obtener el color del estado
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'BLOQUEADO':
-        return 'bg-red-100 text-red-800';
-      case 'FALTAN_DOCUMENTOS':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'LISTO_IMPORTACION':
-        return 'bg-green-100 text-green-800';
-      case 'INACTIVO':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  // Función para obtener el texto del estado
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'BLOQUEADO':
-        return 'Bloqueado';
-      case 'FALTAN_DOCUMENTOS':
-        return 'Faltan documentos';
-      case 'LISTO_IMPORTACION':
-        return 'Listo para importación';
-      case 'INACTIVO':
-        return 'Inactivo';
-      default:
-        return 'Sin estado';
-    }
-  };
-
-  useEffect(() => {
-    loadClients();
-    loadWeapons();
-  }, []);
-
-  useEffect(() => {
-    if (availableWeapons.length > 0 && clients.length > 0 && Object.keys(clientWeaponAssignments).length === 0) {
-      // Crear asignaciones de prueba para los primeros 3 clientes
-      const testAssignments: Record<string, { weapon: any; precio: number; cantidad: number }> = {};
-      const firstWeapon = availableWeapons[0];
-      
-      clients.slice(0, 3).forEach(client => {
-        testAssignments[client.id] = {
-          weapon: firstWeapon,
-          precio: firstWeapon.precio,
-          cantidad: 1
-        };
-      });
-      
-      setClientWeaponAssignments(testAssignments);
-      setIsInitialized(true);
-    }
-  }, [availableWeapons, clients, clientWeaponAssignments]);
-
-  const loadClients = async () => {
-    try {
-      setClientsLoading(true);
-      const response = await mockApiService.getClientes();
-      setClients(response.data || []);
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-    } finally {
-      setClientsLoading(false);
-    }
-  };
-
-  const loadWeapons = async () => {
-    try {
-      setWeaponsLoading(true);
-      const weaponsData = await mockApiService.getWeapons();
-      setAvailableWeapons(weaponsData);
-    } catch (error) {
-      console.error('Error al cargar armas:', error);
-    } finally {
-      setWeaponsLoading(false);
-    }
-  };
-
-  const handleCreateClient = () => {
-    setCurrentPage('clientForm');
-    setClientFormMode('create');
-    setSelectedClient(null);
-    setSelectedWeapon(null);
-    setPrecioModificado(0);
-    setCantidad(1);
-  };
-
-  const handleAssignWeaponWithoutClient = () => {
-    setCurrentPage('weaponSelection');
-    setSelectedClient(null);
-    setSelectedWeapon(null);
-    setPrecioModificado(0);
-    setCantidad(1);
-  };
-
-  const handleClientSaved = (client: Client) => {
-    setClients(prev => {
-      // Verificar si el cliente ya existe (modo edit)
-      const existingIndex = prev.findIndex(c => c.id === client.id);
-      if (existingIndex !== -1) {
-        // Actualizar cliente existente
-        const updatedClients = [...prev];
-        updatedClients[existingIndex] = client;
-        return updatedClients;
-      } else {
-        // Agregar nuevo cliente
-        return [client, ...prev];
-      }
-    });
-    
-    setSelectedClient(client);
-    
-    // Si ya hay una arma seleccionada, mantener la asignación
-    if (selectedWeapon) {
-      setClientWeaponAssignments(prev => ({
-        ...prev,
-        [client.id]: {
-          weapon: selectedWeapon,
-          precio: precioModificado,
-          cantidad: cantidad
-        }
-      }));
-    }
-    
-    // Si el cliente está bloqueado, no ir a selección de armas
-    if (client.estado === 'BLOQUEADO' || clientesBloqueados[client.id]?.bloqueado) {
-      setCurrentPage('dashboard');
-    } else if (client.estado === 'LISTO_IMPORTACION') {
-      // Si está listo para importación, ir al dashboard
-      setCurrentPage('dashboard');
-    } else {
-      // Si no está bloqueado y no está listo, ir a selección de armas
-      setCurrentPage('weaponSelection');
-    }
-  };
-
-  // Función para manejar clientes bloqueados
-  const handleClienteBloqueado = (clientId: string, bloqueado: boolean, motivo: string) => {
-    if (bloqueado) {
-      // Bloquear cliente
-      setClientesBloqueados(prev => ({
-        ...prev,
-        [clientId]: { bloqueado, motivo }
-      }));
-      
-      // Solo redirigir al dashboard si no estamos actualmente en el formulario de cliente
-      // Esto permite que el formulario se mantenga abierto cuando se está editando un cliente bloqueado
-      if (currentPage !== 'clientForm') {
-        setCurrentPage('dashboard');
-        setSelectedClient(null);
-        setSelectedWeapon(null);
-        setPrecioModificado(0);
-        setCantidad(1);
-      }
-    } else {
-      // Desbloquear cliente - remover de la lista de bloqueados
-      setClientesBloqueados(prev => {
-        const newBlockedClients = { ...prev };
-        delete newBlockedClients[clientId];
-        return newBlockedClients;
-      });
-    }
-  };
-
-  const handleCloseForm = () => {
-    setCurrentPage('dashboard');
-    setClientFormMode('create');
-    setSelectedClient(null);
-    setSelectedWeapon(null);
-    setPrecioModificado(0);
-    setCantidad(1);
-  };
-
-  const handleWeaponSelected = (weapon: any | null) => {
-    if (weapon) {
-      setSelectedWeapon(weapon);
-      setPrecioModificado(weapon.precio);
-      setCantidad(1);
-      
-      // Si hay un cliente seleccionado, actualizar la asignación inmediatamente
-      if (selectedClient) {
-        setClientWeaponAssignments(prev => ({
-          ...prev,
-          [selectedClient.id]: {
-            weapon: weapon,
-            precio: weapon.precio,
-            cantidad: 1
-          }
-        }));
-      }
-    } else {
-      setSelectedWeapon(null);
-      setPrecioModificado(0);
-      setCantidad(1);
-      
-      // Si hay un cliente seleccionado, remover la asignación
-      if (selectedClient) {
-        setClientWeaponAssignments(prev => {
-          const newAssignments = { ...prev };
-          delete newAssignments[selectedClient.id];
-          return newAssignments;
-        });
-      }
-    }
-  };
-
-  const handlePriceChange = (_weaponId: string, newPrice: number) => {
-    setPrecioModificado(newPrice);
-    if (selectedClient) {
-      setClientWeaponAssignments(prev => ({
-        ...prev,
-        [selectedClient.id]: {
-          ...prev[selectedClient.id],
-          precio: newPrice
-        }
-      }));
-    }
-  };
-
-  const handleQuantityChange = (_weaponId: string, newQuantity: number) => {
-    setCantidad(newQuantity);
-    if (selectedClient) {
-      setClientWeaponAssignments(prev => ({
-        ...prev,
-        [selectedClient.id]: {
-          ...prev[selectedClient.id],
-          cantidad: newQuantity
-        }
-      }));
-    }
-  };
-
-  const handleFinishProcess = () => {
-    if (selectedClient && selectedWeapon) {
-      // Guardar la asignación de arma al cliente
-      setClientWeaponAssignments(prev => ({
-        ...prev,
-        [selectedClient.id]: {
-          weapon: selectedWeapon,
-          precio: precioModificado,
-          cantidad: cantidad
-        }
-      }));
-      
-
-    }
-    
-    setCurrentPage('dashboard');
-    setSelectedClient(null);
-    setSelectedWeapon(null);
-    setPrecioModificado(0);
-    setCantidad(1);
-  };
-
-  const handleViewClient = (client: Client) => {
-    setSelectedClient(client);
-    setClientFormMode('view');
-    
-    // Cargar datos de arma asignada si existe
-    const assignment = clientWeaponAssignments[client.id];
-    if (assignment) {
-      setSelectedWeapon(assignment.weapon);
-      setPrecioModificado(assignment.precio);
-      setCantidad(assignment.cantidad);
-    } else {
-      // Limpiar datos de arma si no hay asignación
-      setSelectedWeapon(null);
-      setPrecioModificado(0);
-      setCantidad(1);
-    }
-    
-    setCurrentPage('clientForm');
-  };
-
-  const handleEditClient = (client: Client) => {
-    setSelectedClient(client);
-    setClientFormMode('edit');
-    
-    // Cargar datos de arma asignada si existe
-    const assignment = clientWeaponAssignments[client.id];
-    if (assignment) {
-      setSelectedWeapon(assignment.weapon);
-      setPrecioModificado(assignment.precio);
-      setCantidad(assignment.cantidad);
-    } else {
-      // Limpiar datos de arma si no hay asignación
-      setSelectedWeapon(null);
-      setPrecioModificado(0);
-      setCantidad(1);
-    }
-    
-    setCurrentPage('clientForm');
-  };
-
-
-
-  const handleFilterByType = (tipoCliente: string) => {
-    if (clientFilter === tipoCliente) {
-      setClientFilter(null);
-    } else {
-      setClientFilter(tipoCliente);
-    }
-  };
-
-  const clearFilter = () => {
-    setClientFilter(null);
-  };
-
-  const getFilteredClients = () => {
-    if (!clientFilter) return clients;
-    return clients.filter(client => client.tipoCliente === clientFilter);
-  };
-
-  const getWeaponForClient = (clientId: string) => {
-    return clientWeaponAssignments[clientId];
-  };
-
-  const handlePriceChangeWrapper = (price: number) => {
-    if (selectedWeapon) {
-      handlePriceChange(selectedWeapon.id, price);
-    }
-  };
-
-  const handleQuantityChangeWrapper = (quantity: number) => {
-    if (selectedWeapon) {
-      handleQuantityChange(selectedWeapon.id, quantity);
-    }
-  };
-
-  const handleNavigateToWeaponSelection = () => {
-    setCurrentPage('weaponSelection');
-    // No limpiar selectedClient, selectedWeapon, precioModificado, cantidad
-    // ya que queremos mantener los datos actuales
-  };
-
-  const isLoading = clientsLoading || weaponsLoading || !isInitialized;
-
-  useEffect(() => {
-    if (isLoading) {
-      const timeout = setTimeout(() => {
-        console.warn('Vendedor screen still loading after 10 seconds');
-      }, 10000);
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoading]);
-
-  // Escuchar evento para cambiar de view a edit
-  useEffect(() => {
-    const handleEditMode = () => {
-      if (clientFormMode === 'view' && selectedClient) {
-        setClientFormMode('edit');
-
-      }
-    };
-
-    window.addEventListener('edit-mode', handleEditMode);
-    return () => window.removeEventListener('edit-mode', handleEditMode);
-  }, [clientFormMode, selectedClient]);
-
-  const getClientCountByType = (tipo: string) => {
-    return clients.filter(client => client.tipoCliente === tipo).length;
-  };
+const Vendedor: React.FC = React.memo(() => {
+  console.log('🔫 Vendedor - COMPONENTE INICIADO - TIMESTAMP:', new Date().toISOString());
+  
+  // Usar el hook personalizado para toda la lógica
+  const {
+    currentPage,
+    selectedClient,
+    clientFormMode,
+    availableWeapons,
+    selectedWeapon,
+    precioModificado,
+    cantidad,
+    clientWeaponAssignments,
+    clientFilter,
+    clientesBloqueados,
+    isLoading,
+    setCurrentPage,
+    setSelectedClient,
+    setSelectedWeapon,
+    setPrecioModificado,
+    setCantidad,
+    setClientWeaponAssignments,
+    getClientStatus,
+    getStatusColor,
+    getStatusText,
+    handleCreateClient,
+    handleAssignWeaponWithoutClient,
+    handleClientSaved,
+    handleClienteBloqueado,
+    handleCloseForm,
+    handleWeaponSelected,
+    handlePriceChange,
+    handleQuantityChange,
+    handleFinishProcess,
+    handleViewClient,
+    handleEditClient,
+    handleFilterByType,
+    clearFilter,
+    getFilteredClients,
+    getWeaponForClient,
+    handlePriceChangeWrapper,
+    handleQuantityChangeWrapper,
+    handleNavigateToWeaponSelection,
+    getClientCountByType,
+  } = useVendedorLogic();
 
   if (isLoading) {
     return (
@@ -432,7 +66,7 @@ const Vendedor: React.FC = () => {
       case 'dashboard':
         return (
           <div className="p-6">
-            {/* Estadísticas de clientes por tipo - CON COLORES como tenías originalmente */}
+            {/* Estadísticas de clientes por tipo */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div 
                 className={`rounded-xl p-4 shadow-sm border-2 cursor-pointer transition-all duration-200 ${
@@ -531,7 +165,7 @@ const Vendedor: React.FC = () => {
               </div>
             </div>
 
-            {/* Botón para limpiar filtro - MÁS VISUAL */}
+            {/* Botón para limpiar filtro */}
             {clientFilter && (
               <div className="mb-6">
                 <button
@@ -562,7 +196,7 @@ const Vendedor: React.FC = () => {
               </button>
             </div>
 
-            {/* Tabla de clientes - MENOS PLANA con separación sutil */}
+            {/* Tabla de clientes */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-semibold text-gray-900">Lista de Clientes</h3>
@@ -626,7 +260,7 @@ const Vendedor: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {weaponAssignment ? (
-                              `${weaponAssignment.weapon.modelo} (${weaponAssignment.weapon.calibre})`
+                              `${weaponAssignment.weapon.nombre} (${weaponAssignment.weapon.calibre})`
                             ) : (
                               <span className="text-gray-400">Sin arma asignada</span>
                             )}
@@ -681,7 +315,6 @@ const Vendedor: React.FC = () => {
         );
 
       case 'clientForm':
-
         return (
           <div className="p-6">
             <ClientForm
@@ -715,26 +348,22 @@ const Vendedor: React.FC = () => {
               onAssignWeaponToClient={(client, weapon) => {
                 setSelectedClient(client as any);
                 setSelectedWeapon(weapon);
-                setPrecioModificado(weapon.precio);
+                setPrecioModificado(weapon.precioReferencia || 0);
                 setCantidad(1);
                 
-                // Actualizar la asignación en el estado
                 setClientWeaponAssignments(prev => ({
                   ...prev,
                   [client.id]: {
                     weapon: weapon,
-                    precio: weapon.precio,
+                    precio: weapon.precioReferencia || 0,
                     cantidad: 1
                   }
                 }));
               }}
               onAssignWeaponToCupoCivil={(weapon) => {
                 setSelectedWeapon(weapon);
-                setPrecioModificado(weapon.precio);
+                setPrecioModificado(weapon.precioReferencia || 0);
                 setCantidad(1);
-                
-                // Para armas sin cliente, no se actualiza clientWeaponAssignments
-                // ya que no hay cliente asociado
               }}
               onConfirmData={handleFinishProcess}
               onUpdateWeaponPrice={handlePriceChange}
@@ -744,7 +373,7 @@ const Vendedor: React.FC = () => {
                   return clientWeaponAssignments[clientId].precio;
                 }
                 const weapon = availableWeapons.find(w => w.id === weaponId);
-                return weapon ? weapon.precio : 0;
+                return weapon ? weapon.precioReferencia : 0;
               }}
               currentClientId={selectedClient?.id}
             />
@@ -758,14 +387,12 @@ const Vendedor: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header como en la imagen - CON MÁS COLOR */}
       <Header title="Vendedor" subtitle="Gestión de clientes y ventas" />
-
       <div className="p-6">
         {renderCurrentPage()}
       </div>
     </div>
   );
-};
+});
 
 export default Vendedor; 

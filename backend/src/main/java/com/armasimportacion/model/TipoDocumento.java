@@ -41,9 +41,6 @@ public class TipoDocumento {
     @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
 
-    @Column(name = "codigo", unique = true, nullable = false, length = 20)
-    private String codigo;
-
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
@@ -55,6 +52,9 @@ public class TipoDocumento {
     @Builder.Default
     private Boolean estado = true;
 
+    @Column(name = "url_documento", length = 500)
+    private String urlDocumento;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_proceso_id", nullable = false)
     private TipoProceso tipoProceso;
@@ -62,10 +62,6 @@ public class TipoDocumento {
     @CreatedDate
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
-
-    @LastModifiedDate
-    @Column(name = "fecha_actualizacion")
-    private LocalDateTime fechaActualizacion;
 
     // Relaciones
     @OneToMany(mappedBy = "tipoDocumento", fetch = FetchType.LAZY)

@@ -30,8 +30,6 @@ public class PagoService {
     private final PagoRepository pagoRepository;
     private final ClienteRepository clienteRepository;
     private final PlanPagoRepository planPagoRepository;
-    private final UsuarioRepository usuarioRepository;
-    
     // CRUD Operations
     public Pago crearPago(Pago pago, Long usuarioId) {
         log.info("Creando nuevo pago: {}", pago.getNumeroComprobante());

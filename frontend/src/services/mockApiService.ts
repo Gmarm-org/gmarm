@@ -15,7 +15,8 @@ import {
   mockClientQuestions,
   mockRequiredDocuments,
   mockAdditionalDocuments,
-  clientTypeToProcessId
+  clientTypeToProcessId,
+  mockLicencias
 } from '../data/mockData';
 import type {
   User,
@@ -26,6 +27,12 @@ import type {
   LoginRequest,
   LoginResponse
 } from '../types';
+import type {
+  Licencia,
+  LicenciaCreateRequest,
+  LicenciaSearchParams,
+  Page
+} from './api';
 
 // Funciones de simulación
 const simulateApiDelay = async (): Promise<void> => {
@@ -149,6 +156,25 @@ class MockApiService {
     };
   }
 
+  // Método específico para vendedores - obtiene solo sus clientes
+  async getMisClientes(page: number = 0, size: number = 10): Promise<ApiResponse<Client[]>> {
+    await simulateApiDelay();
+
+    if (simulateRandomError()) {
+      throw new Error('Error al cargar clientes del vendedor');
+    }
+
+    const start = page * size;
+    const end = start + size;
+    const paginatedClients = mockClients.slice(start, end);
+
+    return {
+      success: true,
+      data: paginatedClients,
+      message: 'Clientes del vendedor cargados exitosamente'
+    };
+  }
+
   async getCliente(id: number): Promise<Client> {
     await simulateApiDelay();
 
@@ -180,6 +206,11 @@ class MockApiService {
       telefonoSecundario: clienteData.telefonoSecundario || '',
       tipoCliente: clienteData.tipoCliente || '',
       tipoIdentificacion: clienteData.tipoIdentificacion || '',
+      // Propiedades requeridas para el tipo Client actualizado
+      tipoClienteId: 1,
+      tipoClienteNombre: clienteData.tipoCliente || '',
+      tipoIdentificacionId: 1,
+      tipoIdentificacionNombre: clienteData.tipoIdentificacion || '',
       estadoMilitar: clienteData.estadoMilitar,
       representanteLegal: clienteData.representanteLegal,
       ruc: clienteData.ruc,
@@ -441,11 +472,174 @@ class MockApiService {
   }
 
   // ========================================
+  // LICENCIAS
+  // ========================================
+
+  async createLicencia(licenciaData: LicenciaCreateRequest, usuarioId: number): Promise<Licencia> {
+    await simulateApiDelay();
+
+    if (simulateRandomError()) {
+      throw new Error('Error al crear licencia');
+    }
+
+    const newLicencia = {
+      id: mockLicencias.length + 1,
+      numero: licenciaData.numero,
+      nombre: licenciaData.nombre,
+      ruc: licenciaData.ruc,
+      cuentaBancaria: licenciaData.cuentaBancaria,
+      nombreBanco: licenciaData.nombreBanco,
+      tipoCuenta: licenciaData.tipoCuenta,
+      cedulaCuenta: licenciaData.cedulaCuenta,
+      email: licenciaData.email,
+      telefono: licenciaData.telefono,
+      fechaVencimiento: licenciaData.fechaVencimiento,
+      tipoLicencia: licenciaData.tipoLicencia,
+      descripcion: licenciaData.descripcion,
+      fechaEmision: licenciaData.fechaEmision,
+      cupoTotal: licenciaData.cupoTotal,
+      cupoDisponible: licenciaData.cupoTotal,
+      cupoCivil: licenciaData.cupoCivil,
+      cupoMilitar: licenciaData.cupoMilitar,
+      cupoEmpresa: licenciaData.cupoEmpresa,
+      cupoDeportista: licenciaData.cupoDeportista,
+      observaciones: licenciaData.observaciones,
+      estado: (licenciaData.estado as 'ACTIVA' | 'INACTIVA' | 'VENCIDA' | 'SUSPENDIDA') || 'ACTIVA',
+      fechaCreacion: new Date().toISOString(),
+      fechaActualizacion: new Date().toISOString(),
+      usuarioCreador: {
+        id: usuarioId,
+        nombres: 'Usuario',
+        apellidos: 'Sistema'
+      },
+      usuarioActualizador: undefined
+    };
+
+    mockLicencias.push(newLicencia);
+    return newLicencia as Licencia;
+  }
+
+  async buscarLicencias(params: LicenciaSearchParams): Promise<Page<Licencia>> {
+    await simulateApiDelay();
+
+    if (simulateRandomError()) {
+      throw new Error('Error al cargar licencias');
+    }
+
+    const page = params.page || 0;
+    const size = params.size || 10;
+    const start = page * size;
+    const end = start + size;
+
+    let filteredLicencias = [...mockLicencias];
+
+    // Aplicar filtros
+    if (params.numeroLicencia) {
+      filteredLicencias = filteredLicencias.filter(l => 
+        l.numero.toLowerCase().includes(params.numeroLicencia!.toLowerCase())
+      );
+    }
+
+    if (params.tipoLicencia) {
+      filteredLicencias = filteredLicencias.filter(l => l.tipoLicencia === params.tipoLicencia);
+    }
+
+    if (params.estado) {
+      filteredLicencias = filteredLicencias.filter(l => l.estado === params.estado);
+    }
+
+    // Ordenar por fecha de actualización (más reciente primero)
+    filteredLicencias.sort((a, b) => 
+      new Date(b.fechaActualizacion || b.fechaCreacion).getTime() - 
+      new Date(a.fechaActualizacion || a.fechaCreacion).getTime()
+    );
+
+    const total = filteredLicencias.length;
+    const content = filteredLicencias.slice(start, end);
+
+    return {
+      content: content as Licencia[],
+      totalElements: total,
+      totalPages: Math.ceil(total / size),
+      size,
+      number: page,
+      first: page === 0,
+      last: end >= total,
+      numberOfElements: content.length
+    };
+  }
+
+  async getLicencia(id: number): Promise<Licencia> {
+    await simulateApiDelay();
+
+    const licencia = mockLicencias.find(l => l.id === id);
+    if (!licencia) {
+      throw new Error('Licencia no encontrada');
+    }
+
+    return licencia as Licencia;
+  }
+
+  async updateLicencia(id: number, licenciaData: Partial<LicenciaCreateRequest>, usuarioId: number): Promise<Licencia> {
+    await simulateApiDelay();
+
+    if (simulateRandomError()) {
+      throw new Error('Error al actualizar licencia');
+    }
+
+    const licenciaIndex = mockLicencias.findIndex(l => l.id === id);
+    if (licenciaIndex === -1) {
+      throw new Error('Licencia no encontrada');
+    }
+
+    const updatedLicencia = {
+      ...mockLicencias[licenciaIndex],
+      ...licenciaData,
+      id: id,
+      fechaActualizacion: new Date().toISOString(),
+      usuarioActualizador: {
+        id: usuarioId,
+        nombres: 'Usuario',
+        apellidos: 'Sistema'
+      }
+    };
+
+    mockLicencias[licenciaIndex] = updatedLicencia;
+    return updatedLicencia as Licencia;
+  }
+
+  async deleteLicencia(id: number): Promise<void> {
+    await simulateApiDelay();
+
+    if (simulateRandomError()) {
+      throw new Error('Error al eliminar licencia');
+    }
+
+    const licenciaIndex = mockLicencias.findIndex(l => l.id === id);
+    if (licenciaIndex === -1) {
+      throw new Error('Licencia no encontrada para eliminar');
+    }
+
+    mockLicencias.splice(licenciaIndex, 1);
+  }
+
+  // ========================================
   // UTILIDADES
   // ========================================
 
   setToken(token: string) {
     this.token = token;
+    
+    // Si tenemos un token pero no un usuario, intentar restaurar el usuario
+    if (token && !this.currentUser) {
+      // Buscar un usuario con rol de dirección de ventas para simular la restauración
+      const userWithRole = mockUsers.find(u => 
+        u.roles?.some(role => role.rol?.codigo === 'SALES_CHIEF')
+      );
+      if (userWithRole) {
+        this.currentUser = userWithRole;
+      }
+    }
   }
 
   getToken(): string | null {

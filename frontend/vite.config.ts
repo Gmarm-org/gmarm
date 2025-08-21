@@ -12,5 +12,15 @@ export default defineConfig({
   preview: {
     port: 5173,
     host: true
+  },
+  // Configuración para servir archivos estáticos
+  publicDir: 'public',
+  build: {
+    assetsDir: 'assets',
+    rollupOptions: {
+      input: {
+        main: 'index.html'
+      }
+    }
   }
 })

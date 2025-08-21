@@ -1,5 +1,5 @@
 // API Service para comunicación con el backend
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8080';
 
 // Tipos de respuesta
 export interface ApiResponse<T> {
@@ -267,19 +267,19 @@ class ApiService {
   // ========================================
 
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/auth/login', {
+    return this.request<LoginResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
   async logout(): Promise<void> {
-    await this.request('/auth/logout', { method: 'POST' });
+    await this.request('/api/auth/logout', { method: 'POST' });
     this.clearToken();
   }
 
   async refreshToken(): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/auth/refresh', {
+    const response = await this.request<LoginResponse>('/api/auth/refresh', {
       method: 'POST',
     });
     this.setToken(response.token);
@@ -287,7 +287,7 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request<User>('/auth/me');
+    return this.request<User>('/api/auth/me');
   }
 
   // ========================================
@@ -335,46 +335,71 @@ class ApiService {
   // CLIENTES
   // ========================================
 
-  async getClientes(page: number = 0, size: number = 10): Promise<ApiResponse<Client[]>> {
-    return this.request<ApiResponse<Client[]>>(`/clientes?page=${page}&size=${size}`);
+  async getClientes(page: number = 0, size: number = 10): Promise<Page<Client>> {
+    return this.request<Page<Client>>(`/api/clientes?page=${page}&size=${size}`);
+  }
+
+  // Método específico para vendedores - obtiene solo sus clientes
+  async getMisClientes(page: number = 0, size: number = 10): Promise<Page<Client>> {
+    return this.request<Page<Client>>(`/api/clientes?page=${page}&size=${size}`);
+  }
+
+  // Obtener tipos de cliente
+  async getTiposCliente(): Promise<any[]> {
+    return this.request<any[]>('/api/tipo-cliente');
+  }
+
+  // Obtener tipos de identificación
+  async getTiposIdentificacion(): Promise<any[]> {
+    return this.request<any[]>('/api/tipo-identificacion');
+  }
+
+  // Obtener provincias de Ecuador
+  async getProvincias(): Promise<string[]> {
+    return this.request<string[]>('/api/localizacion/provincias');
+  }
+
+  // Obtener cantones por provincia
+  async getCantones(provincia: string): Promise<string[]> {
+    return this.request<string[]>(`/api/localizacion/cantones/${encodeURIComponent(provincia)}`);
   }
 
   async getCliente(id: number): Promise<Client> {
-    return this.request<Client>(`/clientes/${id}`);
+    return this.request<Client>(`/api/clientes/${id}`);
   }
 
   async createCliente(clienteData: Partial<Client>): Promise<Client> {
-    return this.request<Client>('/clientes', {
+    return this.request<Client>('/api/clientes', {
       method: 'POST',
       body: JSON.stringify(clienteData),
     });
   }
 
   async updateCliente(id: number, clienteData: Partial<Client>): Promise<Client> {
-    return this.request<Client>(`/clientes/${id}`, {
+    return this.request<Client>(`/api/clientes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(clienteData),
     });
   }
 
   async deleteCliente(id: number): Promise<void> {
-    await this.request(`/clientes/${id}`, { method: 'DELETE' });
+    await this.request(`/api/clientes/${id}`, { method: 'DELETE' });
   }
 
   async getClientesPorVendedor(vendedorId: number): Promise<Client[]> {
-    return this.request<Client[]>(`/clientes/por-vendedor/${vendedorId}`);
+    return this.request<Client[]>(`/api/clientes/por-vendedor/${vendedorId}`);
   }
 
   async buscarClientePorIdentificacion(numero: string): Promise<Client> {
-    return this.request<Client>(`/clientes/por-identificacion/${numero}`);
+    return this.request<Client>(`/api/clientes/por-identificacion/${numero}`);
   }
 
   async validarIdentificacion(numero: string): Promise<{ existe: boolean; mensaje: string }> {
-    return this.request<{ existe: boolean; mensaje: string }>(`/clientes/validar-identificacion/${numero}`);
+    return this.request<{ existe: boolean; mensaje: string }>(`/api/clientes/validar-identificacion/${numero}`);
   }
 
   async cambiarEstadoCliente(id: number, estado: string): Promise<void> {
-    await this.request(`/clientes/${id}/estado?nuevoEstado=${estado}`, {
+    await this.request(`/api/clientes/${id}/estado?nuevoEstado=${estado}`, {
       method: 'PUT',
     });
   }
@@ -519,6 +544,12 @@ class ApiService {
   }
 
   // ========================================
+  // ARMAS (REEMPLAZA A MODELOS DE ARMAS)
+  // ========================================
+
+  // NOTA: Los métodos de ModeloArma han sido reemplazados por getArmas()
+
+  // ========================================
   // UTILIDADES
   // ========================================
 
@@ -547,6 +578,137 @@ class ApiService {
   async hasAnyRole(roles: string[]): Promise<boolean> {
     const userRoles = await this.getUserRoles();
     return roles.some(role => userRoles.includes(role));
+  }
+
+  // ========================================
+  // FORMULARIO DE CLIENTE
+  // ========================================
+
+  // Obtener preguntas y documentos por tipo de cliente
+  async getFormularioCliente(tipoClienteId: number): Promise<any> {
+    return this.request<any>(`/api/cliente-formulario/${tipoClienteId}`);
+  }
+
+  // ========================================
+  // DOCUMENTOS DE CLIENTE
+  // ========================================
+
+  // Cargar documento para un cliente
+  async cargarDocumentoCliente(clienteId: number, tipoDocumentoId: number, archivo: File, descripcion?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('clienteId', clienteId.toString());
+    formData.append('tipoDocumentoId', tipoDocumentoId.toString());
+    formData.append('archivo', archivo);
+    if (descripcion) {
+      formData.append('descripcion', descripcion);
+    }
+
+    return this.request<any>('/api/documentos-cliente/cargar', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // No incluir Content-Type para FormData
+      }
+    });
+  }
+
+  // Obtener documentos de un cliente
+  async getDocumentosCliente(clienteId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/documentos-cliente/cliente/${clienteId}`);
+  }
+
+  // Obtener documento específico
+  async getDocumentoCliente(documentoId: number): Promise<any> {
+    return this.request<any>(`/api/documentos-cliente/${documentoId}`);
+  }
+
+  // Actualizar documento
+  async actualizarDocumentoCliente(documentoId: number, archivo: File, descripcion?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    if (descripcion) {
+      formData.append('descripcion', descripcion);
+    }
+
+    return this.request<any>(`/api/documentos-cliente/${documentoId}`, {
+      method: 'PUT',
+      body: formData,
+      headers: {
+        // No incluir Content-Type para FormData
+      }
+    });
+  }
+
+  // Eliminar documento
+  async eliminarDocumentoCliente(documentoId: number): Promise<boolean> {
+    return this.request<boolean>(`/api/documentos-cliente/${documentoId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // Cambiar estado de documento
+  async cambiarEstadoDocumento(documentoId: number, estado: string): Promise<any> {
+    return this.request<any>(`/api/documentos-cliente/${documentoId}/estado?estado=${estado}`, {
+      method: 'PUT'
+    });
+  }
+
+  // Verificar si cliente tiene documentos completos
+  async verificarDocumentosCompletos(clienteId: number): Promise<boolean> {
+    return this.request<boolean>(`/api/documentos-cliente/cliente/${clienteId}/verificar-completos`);
+  }
+
+  // Obtener resumen de documentos
+  async getResumenDocumentos(clienteId: number): Promise<any> {
+    return this.request<any>(`/api/documentos-cliente/cliente/${clienteId}/resumen`);
+  }
+
+  // ========================================
+  // GESTIÓN DE ARMAS
+  // ========================================
+
+  // Obtener todas las armas
+  async getArmas(): Promise<any[]> {
+    console.log('🔫 API Service - Iniciando llamada a /api/arma');
+    try {
+      const response = await this.request<any>('/api/arma');
+      console.log('🔫 API Service - RESPUESTA COMPLETA DEL BACKEND:', response);
+      console.log('🔫 API Service - Tipo de respuesta:', typeof response);
+      console.log('🔫 API Service - Es array:', Array.isArray(response));
+      console.log('🔫 API Service - Longitud del array:', Array.isArray(response) ? response.length : 'NO ES ARRAY');
+      
+      // Si es array, devolver directamente
+      if (Array.isArray(response)) {
+        console.log('🔫 API Service - ✅ Respuesta es array, devolviendo directamente');
+        console.log('🔫 API Service - Primeras 3 armas:', response.slice(0, 3));
+        console.log('🔫 API Service - Últimas 3 armas:', response.slice(-3));
+        return response;
+      }
+      
+      // Si no es array, mostrar error
+      console.error('🔫 API Service - ❌ Respuesta NO es array:', response);
+      console.error('🔫 API Service - Estructura de respuesta:', JSON.stringify(response, null, 2));
+      return [];
+      
+    } catch (error) {
+      console.error('🔫 API Service - Error en getArmas:', error);
+      throw error;
+    }
+  }
+
+  // Obtener arma por ID
+  async getArmaById(id: number): Promise<any> {
+    return this.request<any>(`/api/arma/${id}`);
+  }
+
+  // Obtener armas por categoría
+  async getArmasByCategoria(categoriaId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/arma/categoria/${categoriaId}`);
+  }
+
+  // Obtener armas disponibles
+  async getArmasDisponibles(): Promise<any[]> {
+    return this.request<any[]>('/api/arma/disponibles');
   }
 }
 

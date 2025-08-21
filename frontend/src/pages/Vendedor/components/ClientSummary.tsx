@@ -69,8 +69,8 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
 
   const cantidad = (clienteParaResumen?.tipoCliente === 'Compañía de Seguridad' && cantidadesArmas && armaSeleccionada) ? (cantidadesArmas[armaSeleccionada.id] || 1) : 1;
   const iva = 0.15;
-  const precioBase = armaSeleccionada.precio * cantidad;
-  const ivaTotal = armaSeleccionada.precio * cantidad * iva;
+  const precioBase = armaSeleccionada.precioReferencia * cantidad;
+  const ivaTotal = armaSeleccionada.precioReferencia * cantidad * iva;
   const precioFinal = precioBase + ivaTotal;
 
   return (
@@ -277,16 +277,16 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
           <h3>Arma Seleccionada</h3>
           {armaSeleccionada && (
             <div className="weapon-summary">
-              <img src={armaSeleccionada.imagen} alt={armaSeleccionada.modelo} />
+              <img src={armaSeleccionada.urlImagen || '/images/weapons/default-weapon.jpg'} alt={armaSeleccionada.nombre} />
               <div className="weapon-details">
                 <p style={{ 
                   margin: '0.2rem 0', 
                   fontSize: '1rem',
                   color: '#1f2937',
                   fontWeight: '600'
-                }}><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
+                }}><strong>Modelo:</strong> {armaSeleccionada.nombre}</p>
                 <p><strong>Calibre:</strong> {armaSeleccionada.calibre}</p>
-                <p><strong>Capacidad:</strong> {armaSeleccionada.capacidad}</p>
+                <p><strong>Código:</strong> {armaSeleccionada.codigo}</p>
                 {clienteParaResumen?.tipoCliente === 'Compañía de Seguridad' && (
                   <p><strong>Cantidad:</strong> {cantidad}</p>
                 )}

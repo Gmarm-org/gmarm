@@ -13,7 +13,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,7 +41,6 @@ public class PagoController {
     
     @PostMapping
     @Operation(summary = "Crear nuevo pago", description = "Crea un nuevo pago para un cliente")
-    @PreAuthorize("hasRole('FINANZAS') or hasRole('ADMIN')")
     public ResponseEntity<Pago> crearPago(
             @Valid @RequestBody Pago pago,
             @RequestParam Long usuarioId) {
@@ -57,7 +55,6 @@ public class PagoController {
     
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar pago", description = "Actualiza un pago existente")
-    @PreAuthorize("hasRole('FINANZAS') or hasRole('ADMIN')")
     public ResponseEntity<Pago> actualizarPago(
             @PathVariable Long id,
             @Valid @RequestBody Pago pago,
@@ -92,7 +89,6 @@ public class PagoController {
     
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar pago", description = "Elimina un pago por su ID")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarPago(@PathVariable Long id) {
         try {
             pagoService.eliminarPago(id);
@@ -173,7 +169,6 @@ public class PagoController {
     
     @PutMapping("/{id}/estado")
     @Operation(summary = "Cambiar estado de pago", description = "Cambia el estado de un pago")
-    @PreAuthorize("hasRole('FINANZAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> cambiarEstado(
             @PathVariable Long id,
             @RequestParam EstadoPago nuevoEstado) {

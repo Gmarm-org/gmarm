@@ -1,5 +1,6 @@
 package com.armasimportacion.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -18,7 +19,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
@@ -56,12 +56,9 @@ public class TipoCliente {
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
-    @LastModifiedDate
-    @Column(name = "fecha_actualizacion")
-    private LocalDateTime fechaActualizacion;
-
     // Relaciones
     @OneToMany(mappedBy = "tipoCliente", fetch = FetchType.LAZY)
+    @JsonManagedReference
     @Builder.Default
     private List<Cliente> clientes = new ArrayList<>();
 
@@ -80,7 +77,7 @@ public class TipoCliente {
     }
 
     public boolean esEmpresa() {
-        return "Empresa Seguridad".equals(nombre);
+        return "Compañía de Seguridad".equals(nombre);
     }
 
     public boolean esUniformado() {

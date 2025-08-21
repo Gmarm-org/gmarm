@@ -46,8 +46,8 @@ public class AsignacionArma {
     private GrupoImportacion grupoImportacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "modelo_arma_id", nullable = false)
-    private ModeloArma modeloArma;
+    @JoinColumn(name = "arma_id", nullable = false)
+    private Arma arma;
 
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad = 1;

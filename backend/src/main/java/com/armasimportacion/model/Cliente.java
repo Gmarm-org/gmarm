@@ -2,28 +2,14 @@ package com.armasimportacion.model;
 
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoMilitar;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,42 +18,81 @@ import java.util.List;
 
 @Entity
 @Table(name = "cliente")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EntityListeners(AuditingEntityListener.class)
 public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relaciones con catálogos
+    @Column(name = "numero_identificacion", nullable = false, length = 20)
+    private String numeroIdentificacion;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_identificacion_id", nullable = false)
     private TipoIdentificacion tipoIdentificacion;
+
+    @Column(name = "nombres", nullable = false, length = 100)
+    private String nombres;
+
+    @Column(name = "apellidos", nullable = false, length = 100)
+    private String apellidos;
+
+    @Column(name = "email", length = 100)
+    private String email;
+
+    @Column(name = "telefono_principal", length = 20)
+    private String telefonoPrincipal;
+
+    @Column(name = "telefono_secundario", length = 20)
+    private String telefonoSecundario;
+
+    @Column(name = "direccion", columnDefinition = "TEXT")
+    private String direccion;
+
+    @Column(name = "fecha_nacimiento")
+    private LocalDate fechaNacimiento;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", length = 20)
+    private EstadoCliente estado = EstadoCliente.EN_PROCESO;
+
+    @Column(name = "aprobado")
+    private Boolean aprobado = false;
+
+    @Column(name = "fecha_aprobacion")
+    private LocalDateTime fechaAprobacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_aprobador_id")
+    private Usuario usuarioAprobador;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_cliente_id", nullable = false)
     private TipoCliente tipoCliente;
 
-    // Información básica
-    @Column(name = "numero_identificacion", nullable = false, length = 20)
-    private String numeroIdentificacion;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_creador_id", nullable = false)
+    private Usuario usuarioCreador;
 
-    @Column(name = "nombres", nullable = false, length = 100)
-    private String nombres;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_actualizador_id")
+    private Usuario usuarioActualizador;
 
-    @Column(name = "apellidos", length = 100)
-    private String apellidos;
+    @Column(name = "proceso_completado")
+    private Boolean procesoCompletado = false;
 
-    @Column(name = "fecha_nacimiento")
-    private LocalDate fechaNacimiento;
+    @Column(name = "aprobado_por_jefe_ventas")
+    private Boolean aprobadoPorJefeVentas;
 
-    @Column(name = "direccion", nullable = false, length = 255)
-    private String direccion;
+    @Column(name = "motivo_rechazo", length = 500)
+    private String motivoRechazo;
+
+    @Column(name = "fecha_rechazo")
+    private LocalDateTime fechaRechazo;
 
     @Column(name = "provincia", length = 100)
     private String provincia;
@@ -75,20 +100,9 @@ public class Cliente {
     @Column(name = "canton", length = 100)
     private String canton;
 
-    @Column(name = "email", nullable = false, length = 100)
-    private String email;
-
-    @Column(name = "telefono_principal", nullable = false, length = 15)
-    private String telefonoPrincipal;
-
-    @Column(name = "telefono_secundario", length = 15)
-    private String telefonoSecundario;
-
-    // Información de representante legal (para empresas)
     @Column(name = "representante_legal", length = 100)
     private String representanteLegal;
 
-    // Información de empresa (solo para tipo empresa)
     @Column(name = "ruc", length = 13)
     private String ruc;
 
@@ -110,85 +124,36 @@ public class Cliente {
     @Column(name = "canton_empresa", length = 100)
     private String cantonEmpresa;
 
-    // Información militar (solo para uniformados)
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_militar", length = 20)
-    @Builder.Default
-    private EstadoMilitar estadoMilitar = EstadoMilitar.ACTIVO;
+    private EstadoMilitar estadoMilitar;
 
-    // Auditoría
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_creador_id", nullable = false)
-    private Usuario usuarioCreador;
-
-    @CreatedDate
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_actualizador_id")
-    private Usuario usuarioActualizador;
-
-    @LastModifiedDate
+    @UpdateTimestamp
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado", nullable = false, length = 20)
-    @Builder.Default
-    private EstadoCliente estado = EstadoCliente.ACTIVO;
-    
-    // Campos para proceso de aprobación del jefe de ventas
-    @Column(name = "proceso_completado", nullable = false)
-    @Builder.Default
-    private Boolean procesoCompletado = false;
-    
-    @Column(name = "aprobado_por_jefe_ventas")
-    private Boolean aprobadoPorJefeVentas;
-    
-    @Column(name = "fecha_aprobacion")
-    private LocalDateTime fechaAprobacion;
-    
-    @Column(name = "motivo_rechazo", length = 500)
-    private String motivoRechazo;
-    
-    @Column(name = "fecha_rechazo")
-    private LocalDateTime fechaRechazo;
-
     // Relaciones
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
+    @JsonIgnore
     private List<RespuestaCliente> respuestas = new ArrayList<>();
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
+    @JsonIgnore
     private List<DocumentoCliente> documentos = new ArrayList<>();
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<AsignacionArma> asignacionesArma = new ArrayList<>();
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<AsignacionAccesorio> asignacionesAccesorio = new ArrayList<>();
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<ArmaFisica> armasFisicas = new ArrayList<>();
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Pago> pagos = new ArrayList<>();
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<DocumentoGenerado> documentosGenerados = new ArrayList<>();
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
+    @JsonIgnore
     private List<ClienteGrupoImportacion> gruposImportacion = new ArrayList<>();
 
-    // Métodos de utilidad
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<ClienteArma> armas = new ArrayList<>();
+
+    // Métodos de conveniencia
     public String getNombreCompleto() {
         return nombres + " " + apellidos;
     }
@@ -197,55 +162,36 @@ public class Cliente {
         return tipoCliente != null && "EMPRESA".equals(tipoCliente.getCodigo());
     }
 
-    public boolean esUniformado() {
-        return tipoCliente != null && "MILITAR".equals(tipoCliente.getCodigo());
+    public boolean esMilitar() {
+        return estadoMilitar != null;
     }
 
-    public boolean esCivil() {
-        return tipoCliente != null && "CIVIL".equals(tipoCliente.getCodigo());
+    // Métodos que necesitan los servicios
+    public List<ClienteArma> getAsignacionesArma() {
+        return armas;
     }
 
-    public boolean esDeportista() {
-        return tipoCliente != null && "DEPORTISTA".equals(tipoCliente.getCodigo());
-    }
-
-    public boolean tieneEdadMinima() {
-        if (fechaNacimiento == null) return false;
-        LocalDate fechaMinima = LocalDate.now().minusYears(25);
-        return fechaNacimiento.isBefore(fechaMinima);
-    }
-
-    public int getEdad() {
-        if (fechaNacimiento == null) return 0;
-        LocalDate fechaActual = LocalDate.now();
-        int edad = fechaActual.getYear() - fechaNacimiento.getYear();
-        if (fechaActual.getMonthValue() < fechaNacimiento.getMonthValue() || 
-            (fechaActual.getMonthValue() == fechaNacimiento.getMonthValue() && 
-             fechaActual.getDayOfMonth() < fechaNacimiento.getDayOfMonth())) {
-            edad--;
-        }
-        return edad;
+    public List<AsignacionAccesorio> getAsignacionesAccesorio() {
+        // Por ahora retornamos una lista vacía, se puede implementar después
+        return new ArrayList<>();
     }
 
     public String getMensajeErrorEdad() {
-        if (fechaNacimiento == null) return "Fecha de nacimiento no especificada";
-        
-        int edad = getEdad();
-        if (edad >= 25) return null;
-        
-        int añosFaltantes = 25 - edad;
-        if (añosFaltantes == 1) {
-            return "El cliente debe tener al menos 25 años para comprar armas. Le falta 1 año.";
-        } else {
-            return "El cliente debe tener al menos 25 años para comprar armas. Le faltan " + añosFaltantes + " años.";
+        if (fechaNacimiento != null) {
+            LocalDate hoy = LocalDate.now();
+            int edad = hoy.getYear() - fechaNacimiento.getYear();
+            if (hoy.getDayOfYear() < fechaNacimiento.getDayOfYear()) {
+                edad--;
+            }
+            if (edad < 25) {
+                return "El cliente debe tener al menos 25 años. Edad actual: " + edad;
+            }
         }
+        return null;
     }
 
-    public String getIdentificacionCompleta() {
-        return tipoIdentificacion.getNombre() + ": " + numeroIdentificacion;
+    public Long getTipoProcesoId() {
+        // Por ahora retornamos null, se puede implementar después
+        return null;
     }
-
-    public boolean esActivo() {
-        return estado == EstadoCliente.ACTIVO;
-    }
-} 
+}

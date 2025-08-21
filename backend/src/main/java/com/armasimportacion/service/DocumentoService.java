@@ -162,10 +162,9 @@ public class DocumentoService {
         
         DocumentoCliente documento = new DocumentoCliente();
         documento.setCliente(cliente);
-        documento.setUrlArchivo(urlArchivo);
+        documento.setRutaArchivo(urlArchivo);
         documento.setUsuarioCarga(usuario);
         documento.setFechaCarga(LocalDateTime.now());
-        documento.setFechaCreacion(LocalDateTime.now());
         
         return documentoClienteRepository.save(documento);
     }

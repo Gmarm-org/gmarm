@@ -1,5 +1,7 @@
 package com.armasimportacion.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -32,6 +34,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@JsonIgnoreProperties({"tipoProceso"})
 public class PreguntaCliente {
 
     @Id
@@ -40,9 +43,6 @@ public class PreguntaCliente {
 
     @Column(name = "pregunta", nullable = false, columnDefinition = "TEXT")
     private String pregunta;
-
-    @Column(name = "tipo_respuesta", nullable = false, length = 20)
-    private String tipoRespuesta;
 
     @Column(name = "obligatoria", nullable = false)
     @Builder.Default
@@ -58,18 +58,16 @@ public class PreguntaCliente {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_proceso_id", nullable = false)
+    @JsonIgnoreProperties({"preguntas"})
     private TipoProceso tipoProceso;
 
     @CreatedDate
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
-    @LastModifiedDate
-    @Column(name = "fecha_actualizacion")
-    private LocalDateTime fechaActualizacion;
-
     // Relaciones
     @OneToMany(mappedBy = "pregunta", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"pregunta", "cliente"})
     @Builder.Default
     private List<RespuestaCliente> respuestas = new ArrayList<>();
 } 

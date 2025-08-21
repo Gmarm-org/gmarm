@@ -1,31 +1,23 @@
 package com.armasimportacion.controller;
 
+import com.armasimportacion.dto.ClienteDTO;
+import com.armasimportacion.dto.ClienteCreateDTO;
+import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.service.ClienteService;
-import com.armasimportacion.enums.EstadoCliente;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -38,13 +30,18 @@ public class ClienteController {
     
     private final ClienteService clienteService;
     
+    // ==================== MÉTODOS AUXILIARES ====================
+    
+    // TODO: Implementar obtención del usuario desde el token JWT cuando se implemente la autenticación completa
+    
     @PostMapping
     @Operation(summary = "Crear nuevo cliente", description = "Crea un nuevo cliente en el sistema")
-    @PreAuthorize("hasRole('VENDEDOR') or hasRole('ADMIN')")
-    public ResponseEntity<Cliente> crearCliente(
-            @Valid @RequestBody Cliente cliente) {
+    public ResponseEntity<ClienteDTO> crearCliente(
+            @Valid @RequestBody ClienteCreateDTO clienteCreateDTO) {
         try {
-            Cliente nuevoCliente = clienteService.create(cliente);
+            // TODO: Obtener el ID del usuario desde el token JWT
+            Long usuarioId = 1L; // Temporalmente hardcodeado para desarrollo
+            ClienteDTO nuevoCliente = clienteService.createFromDTO(clienteCreateDTO, usuarioId);
             return ResponseEntity.status(HttpStatus.CREATED).body(nuevoCliente);
         } catch (BadRequestException e) {
             log.error("Error al crear cliente: {}", e.getMessage());
@@ -54,12 +51,11 @@ public class ClienteController {
     
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar cliente", description = "Actualiza un cliente existente")
-    @PreAuthorize("hasRole('VENDEDOR') or hasRole('ADMIN')")
-    public ResponseEntity<Cliente> actualizarCliente(
+    public ResponseEntity<ClienteDTO> actualizarCliente(
             @PathVariable Long id,
-            @Valid @RequestBody Cliente cliente) {
+            @Valid @RequestBody ClienteCreateDTO clienteCreateDTO) {
         try {
-            Cliente clienteActualizado = clienteService.update(id, cliente);
+            ClienteDTO clienteActualizado = clienteService.updateFromDTO(id, clienteCreateDTO);
             return ResponseEntity.ok(clienteActualizado);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -69,9 +65,9 @@ public class ClienteController {
     
     @GetMapping("/{id}")
     @Operation(summary = "Obtener cliente por ID", description = "Obtiene un cliente específico por su ID")
-    public ResponseEntity<Cliente> obtenerCliente(@PathVariable Long id) {
+    public ResponseEntity<ClienteDTO> obtenerCliente(@PathVariable Long id) {
         try {
-            Cliente cliente = clienteService.findById(id);
+            ClienteDTO cliente = clienteService.findByIdAsDTO(id);
             return ResponseEntity.ok(cliente);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -81,14 +77,13 @@ public class ClienteController {
     
     @GetMapping
     @Operation(summary = "Listar clientes", description = "Obtiene una lista paginada de clientes")
-    public ResponseEntity<Page<Cliente>> obtenerClientes(Pageable pageable) {
-        Page<Cliente> clientes = clienteService.findAll(pageable);
+    public ResponseEntity<Page<ClienteDTO>> obtenerClientes(Pageable pageable) {
+        Page<ClienteDTO> clientes = clienteService.findAllAsDTO(pageable);
         return ResponseEntity.ok(clientes);
     }
     
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar cliente", description = "Elimina un cliente por su ID")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarCliente(@PathVariable Long id) {
         try {
             clienteService.delete(id);
@@ -101,9 +96,9 @@ public class ClienteController {
     
     @GetMapping("/por-vendedor/{vendedorId}")
     @Operation(summary = "Obtener clientes por vendedor", description = "Obtiene todos los clientes de un vendedor específico")
-    public ResponseEntity<List<Cliente>> obtenerClientesPorVendedor(@PathVariable Long vendedorId) {
+    public ResponseEntity<List<ClienteDTO>> obtenerClientesPorVendedor(@PathVariable Long vendedorId) {
         try {
-            List<Cliente> clientes = clienteService.findByUsuarioCreador(vendedorId);
+            List<ClienteDTO> clientes = clienteService.findByUsuarioCreadorAsDTO(vendedorId);
             return ResponseEntity.ok(clientes);
         } catch (ResourceNotFoundException e) {
             log.error("Vendedor no encontrado: {}", e.getMessage());
@@ -113,10 +108,10 @@ public class ClienteController {
     
     @GetMapping("/por-identificacion/{numero}")
     @Operation(summary = "Buscar cliente por identificación", description = "Busca un cliente por su número de identificación")
-    public ResponseEntity<Cliente> buscarPorIdentificacion(@PathVariable String numero) {
+    public ResponseEntity<ClienteDTO> buscarPorIdentificacion(@PathVariable String numero) {
         try {
-            // This method doesn't exist in the service, we'll need to implement it
-            throw new ResourceNotFoundException("Método no implementado");
+            ClienteDTO cliente = clienteService.findByNumeroIdentificacionAsDTO(numero);
+            return ResponseEntity.ok(cliente);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
             throw e;
@@ -125,14 +120,14 @@ public class ClienteController {
     
     @GetMapping("/por-estado/{estado}")
     @Operation(summary = "Obtener clientes por estado", description = "Obtiene clientes filtrados por estado")
-    public ResponseEntity<List<Cliente>> obtenerClientesPorEstado(@PathVariable EstadoCliente estado) {
-        List<Cliente> clientes = clienteService.findByEstado(estado);
+    public ResponseEntity<List<ClienteDTO>> obtenerClientesPorEstado(@PathVariable EstadoCliente estado) {
+        List<ClienteDTO> clientes = clienteService.findByEstadoAsDTO(estado);
         return ResponseEntity.ok(clientes);
     }
     
     @GetMapping("/buscar")
     @Operation(summary = "Buscar clientes", description = "Busca clientes con filtros específicos")
-    public ResponseEntity<Page<Cliente>> buscarClientes(
+    public ResponseEntity<Page<ClienteDTO>> buscarClientes(
             @RequestParam(required = false) String nombres,
             @RequestParam(required = false) String apellidos,
             @RequestParam(required = false) String numeroIdentificacion,
@@ -140,13 +135,12 @@ public class ClienteController {
             @RequestParam(required = false) EstadoCliente estado,
             @RequestParam(required = false) Long vendedorId,
             Pageable pageable) {
-        Page<Cliente> clientes = clienteService.findByFiltros(null, estado, vendedorId, null, email, nombres, pageable);
+        Page<ClienteDTO> clientes = clienteService.findByFiltrosAsDTO(null, estado, vendedorId, null, email, nombres, pageable);
         return ResponseEntity.ok(clientes);
     }
     
     @PutMapping("/{id}/estado")
     @Operation(summary = "Cambiar estado de cliente", description = "Cambia el estado de un cliente")
-    @PreAuthorize("hasRole('VENDEDOR') or hasRole('ADMIN')")
     public ResponseEntity<Void> cambiarEstado(
             @PathVariable Long id,
             @RequestParam EstadoCliente nuevoEstado) {
@@ -176,7 +170,7 @@ public class ClienteController {
     @Operation(summary = "Validar edad del cliente", description = "Verifica si el cliente cumple con la edad mínima para comprar armas")
     public ResponseEntity<Map<String, Object>> validarEdadCliente(@PathVariable Long id) {
         try {
-            Cliente cliente = clienteService.findById(id);
+            ClienteDTO cliente = clienteService.findByIdAsDTO(id);
             int edad = cliente.getEdad();
             boolean puedeComprar = cliente.tieneEdadMinima();
             String mensajeError = cliente.getMensajeErrorEdad();

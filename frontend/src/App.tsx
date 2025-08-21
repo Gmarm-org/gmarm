@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -9,48 +9,77 @@ import Pagos from './pages/Pagos/Pagos';
 import Finanzas from './pages/Finanzas/Finanzas';
 import JefeVentas from './pages/JefeVentas/JefeVentas';
 import JefeVentasSupervision from './pages/JefeVentas/JefeVentasSupervision';
-import LicenseManagementPage from './pages/JefeVentas/LicenseManagementPage';
-import ImportGroupManagementPage from './pages/JefeVentas/ImportGroupManagementPage';
+
 import ClientManagementPage from './pages/JefeVentas/ClientManagementPage';
 import ReportsAndStatsPage from './pages/JefeVentas/ReportsAndStatsPage';
+import ClientAssignmentPage from './pages/JefeVentas/ClientAssignmentPage';
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import LicenseManagementPage from './pages/Admin/LicenseManagementPage';
 import Usuario from './pages/Usuario/Usuario';
 import Profile from './pages/Profile/Profile';
 import RoleSelection from './pages/RoleSelection/RoleSelection';
 import './styles/App.css';
 
 // Componente para redirección inteligente basada en rol
-const SmartRedirect: React.FC = () => {
+const SmartRedirect: React.FC = React.memo(() => {
   const { user } = useAuth();
   
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  // Memoizar la lógica de redirección para evitar re-renders
+  const redirectPath = useMemo(() => {
+    if (!user) {
+      console.log('SmartRedirect - No hay usuario, redirigiendo a login');
+      return '/login';
+    }
 
-  // Si el usuario tiene múltiples roles, mostrar pantalla de selección
-  if (user.roles && user.roles.length > 1) {
-    return <Navigate to="/role-selection" replace />;
-  }
+    // Si el usuario tiene el rol "SALES_CHIEF", ir directamente al dashboard de jefe de ventas
+    const hasSalesChief = (user as any).roles?.some((role: any) => role.codigo === 'SALES_CHIEF');
+    console.log('SmartRedirect - Tiene SALES_CHIEF:', hasSalesChief);
 
-  // Si tiene un solo rol, redirigir directamente
-  const firstRole = user.roles?.[0]?.rol?.nombre?.toLowerCase() || '';
+    if (hasSalesChief) {
+      console.log('SmartRedirect - Redirigiendo a jefe-ventas');
+      return '/jefe-ventas';
+    }
 
-  switch (firstRole) {
-    case 'vendedor':
-      return <Navigate to="/vendedor" replace />;
-    case 'dirección de ventas':
-      return <Navigate to="/jefe-ventas" replace />;
-    case 'finanzas':
-      return <Navigate to="/finanzas" replace />;
-    case 'administrador':
-      return <Navigate to="/dashboard" replace />;
-    case 'operaciones':
-      return <Navigate to="/operaciones" replace />;
-    default:
-      return <Navigate to="/dashboard" replace />;
-  }
-};
+    // Si el usuario tiene múltiples roles (pero no SALES_CHIEF), mostrar pantalla de selección
+    if ((user as any).roles && (user as any).roles.length > 1) {
+      console.log('SmartRedirect - Múltiples roles, redirigiendo a role-selection');
+      return '/role-selection';
+    }
 
-function App() {
+    // Si tiene un solo rol, redirigir directamente
+    const firstRole = (user as any).roles?.[0] || '';
+    console.log('SmartRedirect - Primer rol:', firstRole);
+
+    // Comparar con el código del rol
+    const roleCode = firstRole?.codigo || '';
+    console.log('SmartRedirect - Código del rol:', roleCode);
+
+    switch (roleCode) {
+      case 'VENDOR':
+        console.log('SmartRedirect - Redirigiendo a vendedor');
+        return '/vendedor';
+      case 'SALES_CHIEF':
+        console.log('SmartRedirect - Redirigiendo a jefe-ventas');
+        return '/jefe-ventas';
+      case 'FINANCE':
+        console.log('SmartRedirect - Redirigiendo a finanzas');
+        return '/finanzas';
+      case 'ADMIN':
+        console.log('SmartRedirect - Redirigiendo a admin');
+        return '/admin';
+      case 'OPERATIONS':
+        console.log('SmartRedirect - Redirigiendo a operaciones');
+        return '/operaciones';
+      default:
+        console.log('SmartRedirect - Rol por defecto, redirigiendo a vendedor');
+        return '/vendedor';
+    }
+  }, [user]);
+
+  return <Navigate to={redirectPath} replace />;
+});
+
+const App = React.memo(() => {
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -73,7 +102,7 @@ function App() {
             <Route 
               path="/vendedor" 
               element={
-                <ProtectedRoute anyRole={['vendedor', 'dirección de ventas', 'administrador']}>
+                <ProtectedRoute anyRole={['VENDOR', 'SALES_CHIEF', 'ADMIN']}>
                   <Vendedor />
                 </ProtectedRoute>
               } 
@@ -82,7 +111,7 @@ function App() {
             <Route 
               path="/pagos" 
               element={
-                <ProtectedRoute anyRole={['finanzas', 'administrador']}>
+                <ProtectedRoute anyRole={['FINANCE', 'ADMIN']}>
                   <Pagos />
                 </ProtectedRoute>
               } 
@@ -91,7 +120,7 @@ function App() {
             <Route 
               path="/finanzas" 
               element={
-                <ProtectedRoute anyRole={['finanzas', 'administrador']}>
+                <ProtectedRoute anyRole={['FINANCE', 'ADMIN']}>
                   <Finanzas />
                 </ProtectedRoute>
               } 
@@ -100,7 +129,7 @@ function App() {
             <Route 
               path="/jefe-ventas" 
               element={
-                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                <ProtectedRoute anyRole={['SALES_CHIEF', 'ADMIN']}>
                   <JefeVentas />
                 </ProtectedRoute>
               } 
@@ -109,27 +138,8 @@ function App() {
             <Route 
               path="/jefe-ventas-supervision" 
               element={
-                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                <ProtectedRoute anyRole={['SALES_CHIEF', 'ADMIN']}>
                   <JefeVentasSupervision />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Rutas específicas del Jefe de Ventas */}
-            <Route 
-              path="/jefe-ventas/licencias" 
-              element={
-                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
-                  <LicenseManagementPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/jefe-ventas/grupos-importacion" 
-              element={
-                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
-                  <ImportGroupManagementPage />
                 </ProtectedRoute>
               } 
             />
@@ -137,7 +147,7 @@ function App() {
             <Route 
               path="/jefe-ventas/clientes" 
               element={
-                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                <ProtectedRoute anyRole={['SALES_CHIEF', 'ADMIN']}>
                   <ClientManagementPage />
                 </ProtectedRoute>
               } 
@@ -146,8 +156,17 @@ function App() {
             <Route 
               path="/jefe-ventas/reportes" 
               element={
-                <ProtectedRoute anyRole={['dirección de ventas', 'administrador']}>
+                <ProtectedRoute anyRole={['SALES_CHIEF', 'ADMIN']}>
                   <ReportsAndStatsPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/jefe-ventas/grupos-importacion/:groupId/asignar-clientes" 
+              element={
+                <ProtectedRoute anyRole={['SALES_CHIEF', 'ADMIN']}>
+                  <ClientAssignmentPage />
                 </ProtectedRoute>
               } 
             />
@@ -155,8 +174,27 @@ function App() {
             <Route 
               path="/usuarios" 
               element={
-                <ProtectedRoute anyRole={['administrador']}>
+                <ProtectedRoute anyRole={['ADMIN']}>
                   <Usuario />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Rutas de Administración */}
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute anyRole={['ADMIN']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/licencias" 
+              element={
+                <ProtectedRoute anyRole={['ADMIN']}>
+                  <LicenseManagementPage />
                 </ProtectedRoute>
               } 
             />
@@ -172,13 +210,12 @@ function App() {
             
             {/* Redirección inteligente por defecto */}
             <Route path="/" element={<SmartRedirect />} />
-            <Route path="/dashboard" element={<SmartRedirect />} />
             <Route path="*" element={<SmartRedirect />} />
           </Routes>
         </div>
       </BrowserRouter>
     </AuthProvider>
   );
-}
+});
 
 export default App;

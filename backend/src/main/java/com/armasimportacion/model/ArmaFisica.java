@@ -40,8 +40,8 @@ public class ArmaFisica {
     private String numeroSerie;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "modelo_arma_id", nullable = false)
-    private ModeloArma modeloArma;
+    @JoinColumn(name = "arma_id", nullable = false)
+    private Arma arma;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "grupo_importacion_id", nullable = false)

@@ -26,8 +26,8 @@ export const useClients = () => {
     try {
       setLoading(true);
       const service = await getApiService();
-      const response = await service.getClientes();
-      setClients(response.data as any);
+      const response = await service.getMisClientes();
+      setClients((Array.isArray(response) ? response : (response as any).content || []) as any);
       setError(null);
     } catch (error) {
       console.error('Error loading clients:', error);

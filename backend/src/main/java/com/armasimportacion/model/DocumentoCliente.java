@@ -1,22 +1,11 @@
 package com.armasimportacion.model;
 
-import com.armasimportacion.enums.EstadoDocumento;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -25,10 +14,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "documento_cliente")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = false)
+@Builder
 @EntityListeners(AuditingEntityListener.class)
 public class DocumentoCliente {
 
@@ -44,37 +34,53 @@ public class DocumentoCliente {
     @JoinColumn(name = "tipo_documento_id", nullable = false)
     private TipoDocumento tipoDocumento;
 
-    @Column(name = "nombre_archivo", nullable = false, length = 255)
-    private String nombreArchivo;
-
-    @Column(name = "ruta_archivo", nullable = false, length = 500)
+    @Column(name = "ruta_archivo", length = 500)
     private String rutaArchivo;
 
-    @Column(name = "tamanio_bytes")
-    private Long tamanioBytes;
+    @Column(name = "nombre_archivo", length = 255)
+    private String nombreArchivo;
+
+    @Column(name = "tipo_archivo", length = 100)
+    private String tipoArchivo;
+
+    @Column(name = "tamanio_archivo")
+    private Long tamanioArchivo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
+    @Builder.Default
+    private EstadoDocumento estado = EstadoDocumento.PENDIENTE;
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
-    @Column(name = "url_archivo", length = 500)
-    private String urlArchivo;
-
-    @Column(name = "fecha_carga")
-    private LocalDateTime fechaCarga;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado", nullable = false, length = 20)
-    private EstadoDocumento estado = EstadoDocumento.PENDIENTE;
+    @Column(name = "observaciones", columnDefinition = "TEXT")
+    private String observaciones;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_carga_id", nullable = false)
+    @JoinColumn(name = "usuario_carga_id")
     private Usuario usuarioCarga;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_revision_id")
+    private Usuario usuarioRevision;
+
     @CreatedDate
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
-    private LocalDateTime fechaCreacion;
+    @Column(name = "fecha_carga")
+    private LocalDateTime fechaCarga;
 
     @LastModifiedDate
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
-} 
+
+    @Column(name = "fecha_revision")
+    private LocalDateTime fechaRevision;
+
+    public enum EstadoDocumento {
+        PENDIENTE,
+        APROBADO,
+        RECHAZADO,
+        OBSERVADO,
+        EN_REVISION
+    }
+}

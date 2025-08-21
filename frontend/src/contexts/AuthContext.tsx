@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { mockApiService } from '../services/mockApiService';
+
+import { apiService } from '../services/api';
 import type { User, LoginRequest, LoginResponse } from '../types';
 
 interface AuthContextType {
@@ -29,33 +30,34 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // const [isInitialized, setIsInitialized] = useState(false); // No usado actualmente
 
   // Función para obtener el servicio API apropiado
-  const getApiService = async () => {
-    // Forzar uso de mockApiService para desarrollo
-    return mockApiService;
-  };
+  const getApiService = useCallback(async () => {
+    // Usar la API real del backend
+    return apiService;
+  }, []);
 
-  const login = async (credentials: LoginRequest) => {
+  const login = useCallback(async (credentials: LoginRequest) => {
     try {
-      const service = await getApiService();
-      const response: LoginResponse = await service.login(credentials);
+      // Usar directamente la API real del backend
+      const response: LoginResponse = await apiService.login(credentials);
       
       // Guardar token
       localStorage.setItem('token', response.token);
-      service.setToken(response.token);
+      apiService.setToken(response.token);
       
       // Obtener usuario completo con roles
-      const fullUser = await service.getCurrentUser();
-      setUser(fullUser as User);
+      const fullUser = await apiService.getCurrentUser();
+      setUser(fullUser as any);
       
     } catch (error: unknown) {
       console.error('Error en login:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const service = await getApiService();
       await service.logout();
@@ -65,50 +67,82 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('token');
       setUser(null);
     }
-  };
+  }, []);
 
-  const updateProfile = async (userData: Partial<User>) => {
+  const updateProfile = useCallback(async (userData: any) => {
     try {
       const service = await getApiService();
       if (user?.id) {
         const updatedUser = await service.updateUser(user.id, userData);
-        setUser(updatedUser as User);
+        setUser(updatedUser as any);
       }
     } catch (error: unknown) {
       console.error('Error actualizando perfil:', error);
       throw error;
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const initializeAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (token) {
+        
+        if (token && isMounted) {
           const service = await getApiService();
           service.setToken(token);
-          const currentUser = await service.getCurrentUser();
-          setUser(currentUser as User);
+          
+          try {
+            const currentUser = await service.getCurrentUser();
+            if (isMounted) {
+              setUser(currentUser as any);
+            }
+          } catch (authError) {
+            console.error('Token inválido o expirado:', authError);
+            // Limpiar token inválido
+            if (isMounted) {
+              localStorage.removeItem('token');
+              setUser(null);
+            }
+          }
         }
       } catch (error) {
         console.error('Error inicializando auth:', error);
-        localStorage.removeItem('token');
+        if (isMounted) {
+          localStorage.removeItem('token');
+          setUser(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          // setIsInitialized(true); // No usado actualmente
+        }
       }
     };
 
     initializeAuth();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Sin dependencias - solo se ejecuta una vez
 
-  const value: AuthContextType = {
-    user,
-    login,
-    logout,
-    updateProfile,
-    isLoading,
-    isAuthenticated: !!user,
-  };
+  // Memoizar el valor del contexto para evitar re-renders innecesarios
+  const value: AuthContextType = useMemo(() => {
+    console.log('🔐 AuthContext - Creando nuevo valor del contexto - TIMESTAMP:', new Date().toISOString());
+    console.log('🔐 AuthContext - user:', user);
+    console.log('🔐 AuthContext - isLoading:', isLoading);
+    
+    return {
+      user,
+      login,
+      logout,
+      updateProfile,
+      isLoading,
+      isAuthenticated: !!user,
+    };
+  }, [user, isLoading, login, logout, updateProfile]);
 
   return (
     <AuthContext.Provider value={value}>

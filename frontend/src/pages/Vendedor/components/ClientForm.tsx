@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { mockApiService } from '../../../services/mockApiService';
-import { ecuadorProvinces } from '../../../data/ecuadorLocations';
+import { apiService } from '../../../services/api';
 import { calcularEdad, validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
+import { validateIdentificacion, validateTelefono, validateEmail } from '../../../utils/validations';
 import type { Client } from '../types';
-import type { Weapon } from '../types';
+import type { Arma } from '../hooks/useArmas';
 
 interface ClientFormProps {
   mode: 'create' | 'edit' | 'view';
   client?: Client | null;
   onSave: (client: Client) => void;
   onCancel: () => void;
-  selectedWeapon?: Weapon | null;
+  selectedWeapon?: Arma | null;
   precioModificado?: number;
   cantidad?: number;
   onPriceChange?: (price: number) => void;
@@ -69,29 +69,97 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const [showMilitaryWarning, setShowMilitaryWarning] = useState(false);
   const [clienteBloqueado, setClienteBloqueado] = useState(false);
   const [motivoBloqueo, setMotivoBloqueo] = useState<string>('');
+  
+  // Estados para catálogos
+  const [tiposCliente, setTiposCliente] = useState<any[]>([]);
+  const [tiposIdentificacion, setTiposIdentificacion] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<string[]>([]);
+  
+  // Estados para errores de validación
+  // const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Determinar si es empresa
   const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
-  const isUniformado = formData.tipoCliente === 'Uniformado';
+  
+  // Determinar si es uniformado basado en el tipo de cliente
+  const isUniformadoByType = formData.tipoCliente === 'Militar Fuerza Terrestre' || 
+                             formData.tipoCliente === 'Militar Fuerza Naval' || 
+                             formData.tipoCliente === 'Militar Fuerza Aérea' || 
+                             formData.tipoCliente === 'Uniformado Policial';
+  
+  // Determinar si es uniformado en servicio activo basado en estado militar
+  const isUniformado = isUniformadoByType && formData.estadoMilitar === 'ACTIVO';
+  
+  // Determinar el tipo de proceso real para cargar preguntas y documentos
+  const getTipoProcesoReal = () => {
+    if (isUniformadoByType) {
+      // Si es uniformado por tipo pero está en estado pasivo, tratar como civil
+      if (formData.estadoMilitar === 'PASIVO') {
+        return 'Civil';
+      }
+      // Si está activo, mantener como uniformado
+      return formData.tipoCliente;
+    }
+    
+    return formData.tipoCliente;
+  };
 
-  // Cargar preguntas y documentos cuando cambie el tipo de cliente
+  // Cargar catálogos al iniciar el componente
+  useEffect(() => {
+    const loadCatalogos = async () => {
+      try {
+        const [tiposClienteData, tiposIdentificacionData, provinciasData] = await Promise.all([
+          apiService.getTiposCliente(),
+          apiService.getTiposIdentificacion(),
+          apiService.getProvincias()
+        ]);
+        
+        setTiposCliente(tiposClienteData);
+        setTiposIdentificacion(tiposIdentificacionData);
+        setProvincias(provinciasData);
+      } catch (error) {
+        console.error('Error cargando catálogos:', error);
+      }
+    };
+
+    loadCatalogos();
+  }, []);
+
+  // Cargar preguntas y documentos cuando cambie el tipo de cliente o las respuestas
   useEffect(() => {
     const loadQuestionsAndDocuments = async () => {
       try {
-        const questions = await mockApiService.getClientQuestions(formData.tipoCliente, formData.estadoMilitar);
-        const documents = await mockApiService.getDocumentsByClientType(formData.tipoCliente, formData.estadoMilitar);
+        if (!formData.tipoCliente) return;
         
-        setClientQuestions(questions);
-        setRequiredDocuments(documents);
+        // Usar el tipo de proceso real (puede ser Civil si es uniformado en servicio pasivo)
+        const tipoProcesoReal = getTipoProcesoReal();
+        
+        // Buscar el ID del tipo de cliente real para cargar preguntas y documentos
+        const tipoClienteSeleccionado = tiposCliente.find(tc => tc.nombre === tipoProcesoReal);
+        
+        if (!tipoClienteSeleccionado) {
+          console.error('No se encontró tipo de cliente para:', tipoProcesoReal);
+          return;
+        }
+        
+        // Obtener preguntas y documentos del backend según el tipo de proceso real
+        const formulario = await apiService.getFormularioCliente(tipoClienteSeleccionado.id);
+        
+        setClientQuestions(formulario.preguntas || []);
+        setRequiredDocuments(formulario.documentos || []);
+        
       } catch (error) {
         console.error('Error cargando preguntas y documentos:', error);
+        // Fallback a datos básicos si hay error
+        setClientQuestions([]);
+        setRequiredDocuments([]);
       }
     };
 
     if (formData.tipoCliente) {
       loadQuestionsAndDocuments();
     }
-  }, [formData.tipoCliente, formData.estadoMilitar]);
+  }, [formData.tipoCliente, formData.estadoMilitar, tiposCliente]);
 
   // Mostrar advertencia para uniformado pasivo
   useEffect(() => {
@@ -129,7 +197,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
     return value.toUpperCase();
   };
 
-  // Validación de cédula/RUC
+  // Validación de cédula/RUC (comentada temporalmente)
+  /*
   const validateIdentification = (value: string, type: string) => {
     if (!value) return '';
     
@@ -145,7 +214,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
     
     return '';
   };
+  */
 
+  /*
   // Validación de nombres (solo letras y espacios)
   const validateName = (value: string) => {
     if (!value) return '';
@@ -157,11 +228,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
     
     return '';
   };
+  */
 
+  /*
   // Función para validar teléfono
   const validatePhone = (value: string) => {
     return /^\d{0,10}$/.test(value);
   };
+  */
 
   // Función para manejar carga de documentos
   const handleDocumentUpload = (documentName: string, file: File) => {
@@ -171,13 +245,48 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }));
   };
 
+  // Función para obtener el color del borde según la validación del campo
+  const getBorderColor = (fieldName: string, value: string) => {
+    if (!value) return 'border-gray-200'; // Campo vacío - borde normal
+    
+    switch (fieldName) {
+      case 'numeroIdentificacion':
+        if (formData.tipoIdentificacion === 'Cédula' && value.length !== 10) {
+          return 'border-red-500'; // Cédula debe tener 10 dígitos
+        }
+        if (formData.tipoIdentificacion === 'RUC' && value.length !== 13) {
+          return 'border-red-500'; // RUC debe tener 13 dígitos
+        }
+        return 'border-green-500'; // Válido
+      case 'ruc':
+        if (value.length !== 13) {
+          return 'border-red-500'; // RUC debe tener 13 dígitos
+        }
+        return 'border-green-500'; // Válido
+      case 'telefonoPrincipal':
+      case 'telefonoSecundario':
+      case 'telefonoReferencia':
+        if (value.length !== 10) {
+          return 'border-red-500'; // Teléfono debe tener 10 dígitos
+        }
+        return 'border-green-500'; // Válido
+      case 'email':
+        if (!validateEmail(value)) {
+          return 'border-red-500'; // Email inválido
+        }
+        return 'border-green-500'; // Válido
+      default:
+        return 'border-gray-200'; // Campo normal
+    }
+  };
+
   // Función para obtener el estado de color de documentos
   const getDocumentStatusColor = () => {
     switch (documentStatus) {
       case 'complete': return 'bg-green-100 border-green-500 text-green-700';
       case 'incomplete': return 'bg-yellow-100 border-yellow-500 text-yellow-700';
       case 'pending': return 'bg-gray-100 border-gray-500 text-gray-700';
-      default: return 'bg-gray-100 border-gray-500 text-gray-700';
+      default: return 'bg-gray-100 border-gray-500 text-green-700';
     }
   };
 
@@ -242,20 +351,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
     });
   };
 
-  const tiposCliente = [
-    { id: 1, nombre: 'Civil', codigo: 'CIVIL' },
-    { id: 2, nombre: 'Uniformado', codigo: 'UNIFORMADO' },
-    { id: 3, nombre: 'Compañía de Seguridad', codigo: 'COMPANIA_SEGURIDAD' },
-    { id: 4, nombre: 'Deportista', codigo: 'DEPORTISTA' }
-  ];
 
-  const tiposIdentificacion = [
-    { id: 1, nombre: 'Cédula', codigo: 'CEDULA' },
-    { id: 2, nombre: 'RUC', codigo: 'RUC' }
-  ];
 
   useEffect(() => {
+    console.log('ClientForm useEffect triggered:', { client, mode, clientId: client?.id });
+    
     if (client && mode !== 'create') {
+      console.log('Setting form data from client:', client);
       setFormData(client);
       
       // Reset bloqueo state first
@@ -271,6 +373,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         }
       }
     } else if (mode === 'create') {
+      console.log('Resetting form data for create mode');
       // Reset form data for create mode
       setFormData({
         id: '',
@@ -301,12 +404,22 @@ const ClientForm: React.FC<ClientFormProps> = ({
       setClienteBloqueado(false);
       setMotivoBloqueo('');
     }
-  }, [client?.id, mode]); // Use client.id instead of client to avoid unnecessary re-renders
+  }, [client, mode]); // Changed back to client to ensure proper updates
 
   // Monitor formData.respuestas changes for debugging
   useEffect(() => {
     console.log('formData.respuestas changed:', formData.respuestas);
   }, [formData.respuestas]);
+
+  // Monitor formData changes for debugging
+  useEffect(() => {
+    console.log('formData changed:', { 
+      nombres: formData.nombres, 
+      apellidos: formData.apellidos, 
+      tipoCliente: formData.tipoCliente,
+      mode 
+    });
+  }, [formData.nombres, formData.apellidos, formData.tipoCliente, mode]);
 
   // Re-validar todas las respuestas cuando cambien (solo en modo edit, no en view)
   useEffect(() => {
@@ -337,15 +450,31 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   useEffect(() => {
     if (formData.provincia) {
-      const cantons = ecuadorProvinces.find(p => p.nombre === formData.provincia)?.cantones || [];
-      setAvailableCantons(cantons.map(c => c.nombre));
+      const loadCantones = async () => {
+        try {
+          const cantones = await apiService.getCantones(formData.provincia!);
+          setAvailableCantons(cantones);
+        } catch (error) {
+          console.error('Error cargando cantones:', error);
+          setAvailableCantons([]);
+        }
+      };
+      loadCantones();
     }
   }, [formData.provincia]);
 
   useEffect(() => {
     if (formData.provinciaEmpresa) {
-      const cantons = ecuadorProvinces.find(p => p.nombre === formData.provinciaEmpresa)?.cantones || [];
-      setAvailableCantonsEmpresa(cantons.map(c => c.nombre));
+      const loadCantones = async () => {
+        try {
+          const cantones = await apiService.getCantones(formData.provinciaEmpresa!);
+          setAvailableCantonsEmpresa(cantones);
+        } catch (error) {
+          console.error('Error cargando cantones empresa:', error);
+          setAvailableCantonsEmpresa([]);
+        }
+      };
+      loadCantones();
     }
   }, [formData.provinciaEmpresa]);
 
@@ -372,18 +501,20 @@ const ClientForm: React.FC<ClientFormProps> = ({
         numericValue = numericValue.slice(0, 10);
       }
       
+      // Para identificación, limitar según el tipo seleccionado
+      if (field === 'numeroIdentificacion' && formData.tipoIdentificacion) {
+        const maxLength = getMaxLength();
+        numericValue = numericValue.slice(0, maxLength);
+      }
+      
+      // Para RUC, limitar a 13 dígitos
+      if (field === 'ruc') {
+        numericValue = numericValue.slice(0, 13);
+      }
+      
       processedValue = numericValue;
     }
     // Para campos de dropdown (tipoCliente, tipoIdentificacion, provincia, canton, etc.) no aplicar procesamiento
-
-    // Validar campos específicos
-    if (field === 'numeroIdentificacion') {
-      validateIdentification(processedValue, formData.tipoIdentificacion);
-    } else if (['nombres', 'apellidos', 'representanteLegal'].includes(field)) {
-      validateName(processedValue);
-    } else if (['telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
-      validatePhone(processedValue);
-    }
 
     // Actualizar el formulario con el valor procesado (mayúsculas/minúsculas)
     setFormData(prev => ({
@@ -419,22 +550,22 @@ const ClientForm: React.FC<ClientFormProps> = ({
           id: client.id, // Mantener el ID original
           estado: clientStatus
         };
-        updatedClient = await mockApiService.updateCliente(client.id, clientData as any);
+        updatedClient = await apiService.updateCliente(parseInt(client.id.toString()), clientData as any);
       } else {
         // Crear nuevo cliente con estado
         const clientData = {
           ...formData,
           estado: clientStatus
         };
-        updatedClient = await mockApiService.createCliente(clientData as any);
+        updatedClient = await apiService.createCliente(clientData as any);
       }
       
       // Notificar al componente padre sobre el estado de bloqueo
       if (clienteBloqueado) {
-        onClienteBloqueado?.(updatedClient.id, true, motivoBloqueo);
+        onClienteBloqueado?.(updatedClient.id.toString(), true, motivoBloqueo);
       } else if (client && (client as any).estado === 'BLOQUEADO' && !clienteBloqueado) {
         // Si el cliente estaba bloqueado pero ya no lo está, notificar el desbloqueo
-        onClienteBloqueado?.(updatedClient.id, false, '');
+        onClienteBloqueado?.(updatedClient.id.toString(), false, '');
       }
       
       onSave(updatedClient as any);
@@ -454,14 +585,38 @@ const ClientForm: React.FC<ClientFormProps> = ({
   };
 
   const validateForm = () => {
+    // Validaciones básicas de campos obligatorios
     if (!formData.tipoCliente || !formData.tipoIdentificacion || !formData.numeroIdentificacion || 
         !formData.nombres || !formData.apellidos || !formData.email || !formData.telefonoPrincipal || 
         !formData.direccion || !formData.provincia || !formData.canton || !formData.fechaNacimiento) {
       return false;
     }
 
+    // Validar identificación usando las funciones de validación
+    if (!validateIdentificacion(formData.numeroIdentificacion, formData.tipoIdentificacion)) {
+      return false;
+    }
+
+    // Validar email
+    if (!validateEmail(formData.email)) {
+      return false;
+    }
+
+    // Validar teléfono principal
+    if (!validateTelefono(formData.telefonoPrincipal)) {
+      return false;
+    }
+
+    // Validar teléfono secundario si existe
+    if (formData.telefonoSecundario && !validateTelefono(formData.telefonoSecundario)) {
+      return false;
+    }
+
     const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
-    const isUniformado = formData.tipoCliente === 'Uniformado';
+    const isUniformadoByType = formData.tipoCliente === 'Militar Fuerza Terrestre' || 
+                               formData.tipoCliente === 'Militar Fuerza Naval' || 
+                               formData.tipoCliente === 'Militar Fuerza Aérea' || 
+                               formData.tipoCliente === 'Uniformado Policial';
 
     if (isEmpresa) {
       if (!formData.representanteLegal?.trim()) return false;
@@ -472,9 +627,27 @@ const ClientForm: React.FC<ClientFormProps> = ({
       if (!formData.correoEmpresa?.trim()) return false;
       if (!formData.provinciaEmpresa) return false;
       if (!formData.cantonEmpresa) return false;
+      
+      // Validar RUC de empresa
+      if (!validateIdentificacion(formData.ruc, 'RUC')) {
+        return false;
+      }
+      
+      // Validar teléfono de referencia
+      if (!validateTelefono(formData.telefonoReferencia)) {
+        return false;
+      }
+      
+      // Validar correo de empresa
+      if (!validateEmail(formData.correoEmpresa)) {
+        return false;
+      }
     }
 
-    if (isUniformado && !formData.estadoMilitar) return false;
+    // Para uniformados, validar que tengan estado militar
+    if (isUniformadoByType) {
+      if (!formData.estadoMilitar) return false;
+    }
 
     return true;
   };
@@ -490,6 +663,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
 
 
+  console.log('ClientForm render - mode:', mode, 'client:', client, 'formData:', formData);
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -583,15 +758,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         {formData.numeroIdentificacion || 'No especificado'}
                       </div>
                     ) : (
-                      <input
-                        type="text"
-                        value={formData.numeroIdentificacion}
-                        onChange={(e) => handleInputChange('numeroIdentificacion', e.target.value)}
-                        required
-                        maxLength={getMaxLength()}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder={`Ingrese ${formData.tipoIdentificacion.toLowerCase()}`}
-                      />
+                                             <input
+                         type="text"
+                         value={formData.numeroIdentificacion}
+                         onChange={(e) => handleInputChange('numeroIdentificacion', e.target.value)}
+                         required
+                         maxLength={getMaxLength()}
+                         className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('numeroIdentificacion', formData.numeroIdentificacion)}`}
+                         placeholder={`Ingrese ${formData.tipoIdentificacion.toLowerCase()}`}
+                       />
                     )}
                   </div>
 
@@ -661,14 +836,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         {formData.email || 'No especificado'}
                       </div>
                     ) : (
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="ejemplo@correo.com"
-                      />
+                                               <input
+                           type="email"
+                           value={formData.email}
+                           onChange={(e) => handleInputChange('email', e.target.value)}
+                           required
+                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('email', formData.email)}`}
+                           placeholder="ejemplo@correo.com"
+                         />
                     )}
                   </div>
 
@@ -679,14 +854,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         {formData.telefonoPrincipal || 'No especificado'}
                       </div>
                     ) : (
-                      <input
-                        type="tel"
-                        value={formData.telefonoPrincipal}
-                        onChange={(e) => handleInputChange('telefonoPrincipal', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="0999999999"
-                      />
+                                               <input
+                           type="tel"
+                           value={formData.telefonoPrincipal}
+                           onChange={(e) => handleInputChange('telefonoPrincipal', e.target.value)}
+                           required
+                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('telefonoPrincipal', formData.telefonoPrincipal)}`}
+                           placeholder="0999999999"
+                         />
                     )}
                   </div>
 
@@ -697,13 +872,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         {formData.telefonoSecundario || 'No especificado'}
                       </div>
                     ) : (
-                      <input
-                        type="tel"
-                        value={formData.telefonoSecundario}
-                        onChange={(e) => handleInputChange('telefonoSecundario', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="0999999999 (opcional)"
-                      />
+                                               <input
+                           type="tel"
+                           value={formData.telefonoSecundario}
+                           onChange={(e) => handleInputChange('telefonoSecundario', e.target.value)}
+                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('telefonoSecundario', formData.telefonoSecundario || '')}`}
+                           placeholder="0999999999 (opcional)"
+                         />
                     )}
                   </div>
 
@@ -721,8 +896,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
                       >
                         <option value="">Seleccionar provincia</option>
-                        {ecuadorProvinces.map(provincia => (
-                          <option key={provincia.nombre} value={provincia.nombre}>{provincia.nombre}</option>
+                        {provincias.map(provincia => (
+                          <option key={provincia} value={provincia}>{provincia}</option>
                         ))}
                       </select>
                     )}
@@ -768,7 +943,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     )}
                   </div>
 
-                  {isUniformado && (
+                  {isUniformadoByType && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Estado Militar *</label>
                       {mode === 'view' ? (
@@ -789,6 +964,30 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       )}
                     </div>
                   )}
+
+                  {/* Mensaje informativo para uniformados en estado pasivo */}
+                  {isUniformadoByType && formData.estadoMilitar === 'PASIVO' && (
+                    <div className="md:col-span-2">
+                      <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
+                        <div className="flex items-start">
+                          <div className="bg-yellow-100 p-2 rounded-full mr-4 mt-1">
+                            <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Proceso como Cliente Civil</h3>
+                            <p className="text-yellow-700">
+                              Al estar en estado pasivo, el proceso continuará como cliente Civil. 
+                              Se aplicarán las preguntas y documentos correspondientes a clientes Civiles.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
                 </div>
               </div>
 
@@ -830,15 +1029,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           {formData.ruc || 'No especificado'}
                         </div>
                       ) : (
-                        <input
-                          type="text"
-                          value={formData.ruc}
-                          onChange={(e) => handleInputChange('ruc', e.target.value)}
-                          required
-                          maxLength={13}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                          placeholder="1234567890001"
-                        />
+                                                 <input
+                           type="text"
+                           value={formData.ruc}
+                           onChange={(e) => handleInputChange('ruc', e.target.value)}
+                           required
+                           maxLength={13}
+                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 ${getBorderColor('ruc', formData.ruc || '')}`}
+                           placeholder="1234567890001"
+                         />
                       )}
                     </div>
 
@@ -885,14 +1084,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           {formData.telefonoReferencia || 'No especificado'}
                         </div>
                       ) : (
-                        <input
-                          type="tel"
-                          value={formData.telefonoReferencia}
-                          onChange={(e) => handleInputChange('telefonoReferencia', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                          placeholder="Teléfono de la empresa"
-                        />
+                                                 <input
+                           type="tel"
+                           value={formData.telefonoReferencia}
+                           onChange={(e) => handleInputChange('telefonoReferencia', e.target.value)}
+                           required
+                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 ${getBorderColor('telefonoReferencia', formData.telefonoReferencia || '')}`}
+                           placeholder="Teléfono de la empresa"
+                         />
                       )}
                     </div>
 
@@ -903,14 +1102,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           {formData.correoEmpresa || 'No especificado'}
                         </div>
                       ) : (
-                        <input
-                          type="email"
-                          value={formData.correoEmpresa}
-                          onChange={(e) => handleInputChange('correoEmpresa', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                          placeholder="correo@empresa.com"
-                        />
+                                                 <input
+                           type="email"
+                           value={formData.correoEmpresa}
+                           onChange={(e) => handleInputChange('correoEmpresa', e.target.value)}
+                           required
+                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 ${getBorderColor('correoEmpresa', formData.correoEmpresa || '')}`}
+                           placeholder="correo@empresa.com"
+                         />
                       )}
                     </div>
 
@@ -927,10 +1126,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           required
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
                         >
-                          <option value="">Seleccionar provincia</option>
-                          {ecuadorProvinces.map(provincia => (
-                            <option key={provincia.nombre} value={provincia.nombre}>{provincia.nombre}</option>
-                          ))}
+                                                  <option value="">Seleccionar provincia</option>
+                        {provincias.map(provincia => (
+                          <option key={provincia} value={provincia}>{provincia}</option>
+                        ))}
                         </select>
                       )}
                     </div>
@@ -1002,7 +1201,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       <div 
                         key={document.id} 
                         className={`bg-white p-4 rounded-xl border-2 transition-all duration-200 ${
-                          document.link 
+                          document.urlDocumento 
                             ? 'border-blue-200 hover:border-blue-300' 
                             : 'border-gray-200 hover:border-gray-300'
                         } ${
@@ -1016,12 +1215,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
                             <h3 className="font-semibold text-gray-800">{document.nombre}</h3>
                             <p className="text-sm text-gray-500 mb-2">{document.descripcion}</p>
                             <div className="flex flex-wrap gap-2">
-                              {document.link && (
+                              {document.urlDocumento && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
                                   </svg>
-                                  Con Link
+                                  📄 En Línea
                                 </span>
                               )}
                               {document.obligatorio && (
@@ -1038,19 +1237,19 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           </div>
                         </div>
                         
-                        {document.link && (
-                          <div className="mb-3">
+                        {document.urlDocumento && (
+                          <div className="mb-3 flex justify-center">
                             <a 
-                              href={document.link} 
+                              href={document.urlDocumento} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm"
                             >
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
                                 <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
                               </svg>
-                              Abrir enlace para descargar
+                              Acceder a la Fuente Oficial
                             </a>
                           </div>
                         )}
@@ -1202,7 +1401,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="font-medium text-gray-700">Modelo:</span>
-                          <span className="text-gray-900">{selectedWeapon.modelo}</span>
+                          <span className="text-gray-900">{selectedWeapon.nombre}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="font-medium text-gray-700">Calibre:</span>

@@ -16,6 +16,8 @@ export interface Client {
     nombres: string;
     apellidos: string;
   };
+  estadoProcesoVentas: 'PENDIENTE' | 'EN_PROCESO' | 'LISTO_IMPORTACION' | 'COMPLETADO';
+  tipoCliente: 'CIVIL' | 'MILITAR' | 'EMPRESA' | 'DEPORTISTA';
 }
 
 export interface License {
@@ -67,6 +69,8 @@ export interface ImportGroup {
   fechaCreacion: string;
   fechaInicio: string;
   fechaFin: string;
+  licenciaAsignada: License | null;
+  clientesAsignados: Client[];
   cuposDisponibles: {
     civil: number;
     militar: number;
@@ -79,8 +83,12 @@ export interface ImportGroup {
     empresa: number;
     deportista: number;
   };
-  licenciasAsignadas: number;
-  clientesAsignados: number;
+  cuposRestantes: {
+    civil: number;
+    militar: number;
+    empresa: number;
+    deportista: number;
+  };
 }
 
 export interface SalesStats {

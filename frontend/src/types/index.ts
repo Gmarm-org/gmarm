@@ -1,6 +1,7 @@
 // ===== USUARIO Y AUTENTICACIÓN =====
 export interface Role {
   id: number;
+  codigo: string;
   nombre: string;
   descripcion: string;
   tipoRolVendedor?: 'FIJO' | 'LIBRE';
@@ -47,8 +48,17 @@ export interface Client {
   direccion: string;
   telefonoPrincipal: string;
   telefonoSecundario?: string;
-  tipoCliente: string;
-  tipoIdentificacion: string;
+  
+  // Campos de tipo de cliente e identificación (con IDs y nombres)
+  tipoClienteId: number;
+  tipoClienteNombre: string;
+  tipoIdentificacionId: number;
+  tipoIdentificacionNombre: string;
+  
+  // Mantener compatibilidad con el código existente
+  tipoCliente: string; // Alias para tipoClienteNombre
+  tipoIdentificacion: string; // Alias para tipoIdentificacionNombre
+  
   estadoMilitar?: 'ACTIVO' | 'PASIVO';
   
   // Campos para empresa
@@ -117,6 +127,11 @@ export interface Weapon {
   precio: number;
   imagen: string;
   disponible: boolean;
+  vendedorId?: string; // ID del vendedor que creó la reserva de arma
+  clienteId?: string; // ID del cliente asignado (opcional para armas en stock)
+  tipoClienteAsignado?: 'CIVIL' | 'UNIFORMADO' | 'COMPANIA_SEGURIDAD' | 'DEPORTISTA'; // Tipo de cliente para el que está reservada
+  estado: 'DISPONIBLE' | 'RESERVADA' | 'ASIGNADA' | 'IMPORTADA' | 'CANCELADA';
+  enStock: boolean; // Indica si está en stock para asignación a clientes civiles
   createdAt: string;
   updatedAt: string;
 }

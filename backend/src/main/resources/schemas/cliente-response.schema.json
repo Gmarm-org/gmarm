@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClienteResponse",
+  "description": "Esquema para la respuesta de clientes en el sistema GMARM",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "ID único del cliente"
+    },
+    "numeroIdentificacion": {
+      "type": "string",
+      "description": "Número de identificación del cliente"
+    },
+    "nombres": {
+      "type": "string",
+      "description": "Nombres del cliente"
+    },
+    "apellidos": {
+      "type": "string",
+      "description": "Apellidos del cliente"
+    },
+    "fechaNacimiento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de nacimiento del cliente"
+    },
+    "direccion": {
+      "type": "string",
+      "description": "Dirección del cliente"
+    },
+    "provincia": {
+      "type": "string",
+      "description": "Provincia del cliente"
+    },
+    "canton": {
+      "type": "string",
+      "description": "Cantón del cliente"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "telefonoPrincipal": {
+      "type": "string",
+      "description": "Teléfono principal del cliente"
+    },
+    "telefonoSecundario": {
+      "type": "string",
+      "description": "Teléfono secundario del cliente"
+    },
+    "representanteLegal": {
+      "type": "string",
+      "description": "Representante legal (solo para empresas)"
+    },
+    "ruc": {
+      "type": "string",
+      "description": "RUC de la empresa (solo para empresas)"
+    },
+    "nombreEmpresa": {
+      "type": "string",
+      "description": "Nombre de la empresa (solo para empresas)"
+    },
+    "direccionFiscal": {
+      "type": "string",
+      "description": "Dirección fiscal de la empresa (solo para empresas)"
+    },
+    "telefonoReferencia": {
+      "type": "string",
+      "description": "Teléfono de referencia de la empresa (solo para empresas)"
+    },
+    "correoEmpresa": {
+      "type": "string",
+      "description": "Correo de la empresa (solo para empresas)"
+    },
+    "provinciaEmpresa": {
+      "type": "string",
+      "description": "Provincia de la empresa (solo para empresas)"
+    },
+    "cantonEmpresa": {
+      "type": "string",
+      "description": "Cantón de la empresa (solo para empresas)"
+    },
+    "estadoMilitar": {
+      "type": "string",
+      "enum": ["ACTIVO", "PASIVO"],
+      "description": "Estado militar del cliente (solo para tipos militar y policial)"
+    },
+    "usuarioCreadorId": {
+      "type": "integer",
+      "description": "ID del usuario que creó el cliente"
+    },
+    "fechaCreacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de creación del cliente"
+    },
+    "fechaActualizacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de última actualización del cliente"
+    },
+    "estado": {
+      "type": "string",
+      "enum": ["ACTIVO", "PENDIENTE", "BLOQUEADO", "APROBADO", "RECHAZADO"],
+      "description": "Estado actual del cliente"
+    },
+    "procesoCompletado": {
+      "type": "boolean",
+      "description": "Indica si el proceso de datos del cliente está completado"
+    },
+    "aprobadoPorJefeVentas": {
+      "type": "boolean",
+      "description": "Indica si el cliente fue aprobado por el jefe de ventas"
+    },
+    "fechaAprobacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de aprobación del cliente"
+    },
+    "motivoRechazo": {
+      "type": "string",
+      "description": "Motivo del rechazo del cliente"
+    },
+    "fechaRechazo": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del rechazo del cliente"
+    },
+    "tipoIdentificacionId": {
+      "type": "integer",
+      "description": "ID del tipo de identificación"
+    },
+    "tipoIdentificacionNombre": {
+      "type": "string",
+      "description": "Nombre del tipo de identificación"
+    },
+    "tipoClienteId": {
+      "type": "integer",
+      "description": "ID del tipo de cliente"
+    },
+    "tipoClienteNombre": {
+      "type": "string",
+      "description": "Nombre del tipo de cliente"
+    },
+    "respuestas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "pregunta": { "type": "string" },
+          "respuesta": { "type": "string" },
+          "fechaRespuesta": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Respuestas del cliente a las preguntas del proceso"
+    }
+  },
+  "required": [
+    "id",
+    "numeroIdentificacion",
+    "nombres",
+    "apellidos",
+    "direccion",
+    "email",
+    "telefonoPrincipal",
+    "provincia",
+    "canton",
+    "usuarioCreadorId",
+    "fechaCreacion",
+    "estado",
+    "tipoIdentificacionId",
+    "tipoClienteId"
+  ],
+  "examples": [
+    {
+      "id": 1,
+      "numeroIdentificacion": "1725781254",
+      "nombres": "Juan Carlos",
+      "apellidos": "Pérez González",
+      "fechaNacimiento": "1990-05-15",
+      "direccion": "Av. Amazonas 123, Quito",
+      "provincia": "Pichincha",
+      "canton": "Quito",
+      "email": "juan.perez@email.com",
+      "telefonoPrincipal": "0987654321",
+      "usuarioCreadorId": 2,
+      "fechaCreacion": "2025-08-14T22:15:00",
+      "estado": "ACTIVO",
+      "tipoIdentificacionId": 1,
+      "tipoClienteId": 1,
+      "procesoCompletado": false,
+      "aprobadoPorJefeVentas": null
+    }
+  ]
+}

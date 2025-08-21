@@ -72,8 +72,8 @@ const ClientTable: React.FC<ClientTableProps> = ({
                   <td>
                     {arma ? (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <img src={arma.imagen} alt={arma.modelo} style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb', background: '#f3f4f6' }} />
-                        <span style={{ fontSize: '0.95rem', color: '#374151' }}>{arma.modelo}</span>
+                        <img src={arma.urlImagen || '/images/weapons/default-weapon.jpg'} alt={arma.nombre} style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb', background: '#f3f4f6' }} />
+                        <span style={{ fontSize: '0.95rem', color: '#374151' }}>{arma.nombre}</span>
                       </span>
                     ) : (
                       <span style={{ color: '#9ca3af', fontSize: '0.95rem' }}>—</span>
@@ -172,8 +172,8 @@ const ClientTable: React.FC<ClientTableProps> = ({
                     <div className="client-card-value">
                       {arma ? (
                         <div className="client-card-weapon">
-                          <img src={arma.imagen} alt={arma.modelo} />
-                          <span>{arma.modelo}</span>
+                          <img src={arma.urlImagen || '/images/weapons/default-weapon.jpg'} alt={arma.nombre} />
+                          <span>{arma.nombre}</span>
                         </div>
                       ) : (
                         <span style={{ color: '#9ca3af' }}>—</span>

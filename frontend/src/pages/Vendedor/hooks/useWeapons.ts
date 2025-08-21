@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { mockApiService } from '../../../services/mockApiService';
+import { apiService } from '../../../services/api';
 import type { Weapon } from '../types';
 
 export const useWeapons = () => {
@@ -10,7 +10,7 @@ export const useWeapons = () => {
   const loadWeapons = async () => {
     try {
       setLoading(true);
-      const weaponsData = await mockApiService.getWeapons();
+      const weaponsData = await apiService.getArmas();
       setWeapons(weaponsData);
       setError(null);
     } catch (err: unknown) {

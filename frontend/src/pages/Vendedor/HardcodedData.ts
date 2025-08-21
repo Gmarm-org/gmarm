@@ -1,36 +1,50 @@
+// ========================================
+// DATOS MOCK ESPECÍFICOS PARA VENDEDOR
+// ========================================
+
 import type { Client, Weapon } from './types';
 
-export const clientes: Client[] = [
+// Clientes mock con la estructura correcta para el formulario
+// TEMPORALMENTE COMENTADO PARA FORZAR USO DE API REAL
+/*
+export const mockClients: Client[] = [
   {
     id: '1',
     numeroIdentificacion: '1234567890',
-    nombres: 'JUAN',
-    apellidos: 'PÉREZ',
+    nombres: 'Juan Carlos',
+    apellidos: 'Pérez López',
     email: 'juan.perez@email.com',
-    fechaNacimiento: '1990-05-15', // 34 años - PUEDE COMPRAR
-    provincia: 'Pichincha',
-    canton: 'Quito',
-    direccion: 'CALLE PRINCIPAL 123',
+    fechaNacimiento: '1985-03-15',
+    direccion: 'Av. 9 de Octubre N123-456',
     telefonoPrincipal: '0987654321',
-    telefonoSecundario: '022345678',
+    telefonoSecundario: '0987654322',
     tipoCliente: 'Civil',
-    tipoIdentificacion: 'Cedula',
-    vendedorId: 'vendedor-1'
+    tipoIdentificacion: 'Cédula',
+    provincia: 'Guayas',
+    canton: 'Guayaquil',
+    vendedorId: '2',
+    documentos: [],
+    respuestas: [
+      {
+        id: '1',
+        pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+        respuesta: 'NO',
+        tipo: 'TEXTO'
+      }
+    ]
   },
   {
     id: '2',
     numeroIdentificacion: '1712345678',
-    nombres: 'MARÍA ELENA',
-    apellidos: 'GONZÁLEZ RODRÍGUEZ',
+    nombres: 'María Elena',
+    apellidos: 'González Rodríguez',
     email: 'maria.gonzalez@email.com',
-    fechaNacimiento: '1982-11-15', // 42 años - PUEDE COMPRAR (representante legal)
-    provincia: 'Guayas',
-    canton: 'Guayaquil',
+    fechaNacimiento: '1982-11-15',
     direccion: 'AV. 9 DE OCTUBRE N123-456',
     telefonoPrincipal: '0987654324',
     telefonoSecundario: '0987654326',
     tipoCliente: 'Compañía de Seguridad',
-    tipoIdentificacion: 'Cedula',
+    tipoIdentificacion: 'Cédula',
     representanteLegal: 'MARÍA ELENA GONZÁLEZ RODRÍGUEZ',
     ruc: '0991234567001',
     nombreEmpresa: 'SEGURIDAD INTEGRAL S.A.',
@@ -39,134 +53,252 @@ export const clientes: Client[] = [
     correoEmpresa: 'info@seguridadintegral.com',
     provinciaEmpresa: 'Guayas',
     cantonEmpresa: 'Guayaquil',
-    vendedorId: 'vendedor-1'
+    provincia: 'Guayas',
+    canton: 'Guayaquil',
+    vendedorId: '2',
+    documentos: [],
+    respuestas: []
   },
   {
     id: '3',
-    numeroIdentificacion: '1723456789',
-    nombres: 'ROBERTO ANTONIO',
-    apellidos: 'HERRERA CASTILLO',
+    numeroIdentificacion: '1100110011',
+    nombres: 'Roberto Antonio',
+    apellidos: 'Herrera Castillo',
     email: 'roberto.herrera@email.com',
-    fechaNacimiento: '1978-05-20', // 46 años - PUEDE COMPRAR (representante legal)
-    provincia: 'Pichincha',
-    canton: 'Quito',
+    fechaNacimiento: '1978-05-20',
     direccion: 'AV. PRINCIPAL N789-012',
     telefonoPrincipal: '0987654327',
     telefonoSecundario: '0987654328',
-    tipoCliente: 'Compañía de Seguridad',
-    tipoIdentificacion: 'Cedula',
-    representanteLegal: 'ROBERTO ANTONIO HERRERA CASTILLO',
-    ruc: '0999876543001',
-    nombreEmpresa: 'PROTECCIÓN TOTAL S.A.',
-    direccionFiscal: 'AV. PRINCIPAL N789-012, EDIFICIO CORPORATIVO',
-    telefonoReferencia: '0987654329',
-    correoEmpresa: 'contacto@protecciontotal.com',
-    provinciaEmpresa: 'Pichincha',
-    cantonEmpresa: 'Quito',
-    vendedorId: 'vendedor-2'
+    tipoCliente: 'Uniformado',
+    tipoIdentificacion: 'Cédula',
+    estadoMilitar: 'ACTIVO',
+    provincia: 'Pichincha',
+    canton: 'Quito',
+    vendedorId: '2',
+    documentos: [],
+    respuestas: [
+      {
+        id: '1',
+        pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+        respuesta: 'NO',
+        tipo: 'TEXTO'
+      }
+    ]
   },
   {
     id: '4',
-    numeroIdentificacion: '1100110011',
-    nombres: 'CARLOS',
-    apellidos: 'RAMÍREZ',
-    email: 'c.ramirez@militar.com',
-    fechaNacimiento: '1992-08-10', // 32 años - PUEDE COMPRAR
+    numeroIdentificacion: '1200120012',
+    nombres: 'María Elena',
+    apellidos: 'Vásquez Morales',
+    email: 'maria.vasquez@email.com',
+    fechaNacimiento: '1985-08-15',
+    direccion: 'CALLE 15 DE AGOSTO N456-789',
+    telefonoPrincipal: '0987654329',
+    telefonoSecundario: '0987654330',
+    tipoCliente: 'Civil',
+    tipoIdentificacion: 'Cédula',
     provincia: 'Azuay',
     canton: 'Cuenca',
-    direccion: 'BASE MILITAR',
-    telefonoPrincipal: '099888777',
-    telefonoSecundario: '072345678',
-    tipoCliente: 'Uniformado',
-    tipoIdentificacion: 'Cedula',
-    estadoMilitar: 'ACTIVO',
-    vendedorId: 'vendedor-2'
+    vendedorId: '2',
+    documentos: [],
+    respuestas: []
   },
   {
     id: '5',
-    numeroIdentificacion: '0808080808',
-    nombres: 'ANA',
-    apellidos: 'GÓMEZ',
-    email: 'ana.gomez@deporte.com',
-    fechaNacimiento: '2002-12-03', // 22 años - NO PUEDE COMPRAR (menor de 25)
+    numeroIdentificacion: '1300130013',
+    nombres: 'Carlos Alberto',
+    apellidos: 'Mendoza Silva',
+    email: 'carlos.mendoza@email.com',
+    fechaNacimiento: '1990-12-10',
+    direccion: 'AV. LIBERTAD N321-654',
+    telefonoPrincipal: '0987654331',
+    telefonoSecundario: '0987654332',
+    tipoCliente: 'Deportista',
+    tipoIdentificacion: 'Cédula',
     provincia: 'Manabí',
     canton: 'Manta',
-    direccion: 'CLUB DEPORTIVO',
-    telefonoPrincipal: '098123456',
-    telefonoSecundario: '052345678',
-    tipoCliente: 'Deportista',
-    tipoIdentificacion: 'Cedula',
-    vendedorId: 'vendedor-2'
-  },
-  {
-    id: '6',
-    numeroIdentificacion: '0505050505',
-    nombres: 'LUIS',
-    apellidos: 'MARTÍNEZ',
-    email: 'luis.martinez@email.com',
-    fechaNacimiento: '2005-06-15', // 19 años - NO PUEDE COMPRAR (menor de 25)
-    provincia: 'Pichincha',
-    canton: 'Quito',
-    direccion: 'AV. JUVENTUD 789',
-    telefonoPrincipal: '099555444',
-    telefonoSecundario: '022123456',
-    tipoCliente: 'Civil',
-    tipoIdentificacion: 'Cedula',
-    vendedorId: 'vendedor-1'
+    vendedorId: '2',
+    documentos: [],
+    respuestas: []
   }
 ];
+*/
 
-export const weapons: Weapon[] = [
+// Array vacío para forzar uso de API real
+export const mockClients: Client[] = [];
+
+// Armas mock - Actualizadas para usar la interfaz Weapon correcta
+export const mockWeapons: Weapon[] = [
   {
     id: '1',
-    modelo: 'Modelo A',
-    calibre: '55',
-    capacidad: 12,
-    precio: 1000,
-    imagen: '/weapon1.png',
+    nombre: 'Glock 17',
+    codigo: 'GLOCK-17',
+    calibre: '9mm',
+    categoriaNombre: 'PISTOLA',
+    precioReferencia: 1200.00,
+    urlImagen: '/images/glock17.jpg',
     disponible: true
   },
   {
     id: '2',
-    modelo: 'Modelo B',
-    calibre: '45',
-    capacidad: 15,
-    precio: 1200,
-    imagen: '/weapon2.png',
+    nombre: 'Beretta 92FS',
+    codigo: 'BERETTA-92FS',
+    calibre: '9mm',
+    categoriaNombre: 'PISTOLA',
+    precioReferencia: 1100.00,
+    urlImagen: '/images/beretta92fs.jpg',
+    disponible: true
+  },
+  {
+    id: '3',
+    nombre: 'Sig Sauer P226',
+    codigo: 'SIG-P226',
+    calibre: '9mm',
+    categoriaNombre: 'PISTOLA',
+    precioReferencia: 1300.00,
+    urlImagen: '/images/sigsauerp226.jpg',
+    disponible: true
+  },
+  {
+    id: '4',
+    nombre: 'Colt 1911',
+    codigo: 'COLT-1911',
+    calibre: '.45 ACP',
+    categoriaNombre: 'PISTOLA',
+    precioReferencia: 1400.00,
+    urlImagen: '/images/colt1911.jpg',
+    disponible: true
+  },
+  {
+    id: '5',
+    nombre: 'Smith & Wesson M&P',
+    codigo: 'SW-MP',
+    calibre: '9mm',
+    categoriaNombre: 'PISTOLA',
+    precioReferencia: 1000.00,
+    urlImagen: '/images/smithwessonmp.jpg',
     disponible: true
   }
 ];
 
-export const clientTypeLabels: Record<string, string> = {
-  Civil: 'Civiles',
-  'Compañía de Seguridad': 'Compañías de seguridad',
-  Uniformado: 'Uniformados',
-  Deportista: 'Deportistas'
-};
-export const clientTypeOrder = ['Civil', 'Compañía de Seguridad', 'Uniformado', 'Deportista'];
+// Tipos de cliente
+export const clientTypes = [
+  { id: 1, nombre: 'Civil', codigo: 'CIVIL' },
+  { id: 2, nombre: 'Uniformado', codigo: 'UNIFORMADO' },
+  { id: 3, nombre: 'Compañía de Seguridad', codigo: 'COMPANIA_SEGURIDAD' },
+  { id: 4, nombre: 'Deportista', codigo: 'DEPORTISTA' }
+];
 
-// Catálogos para endpoints
-export const tiposDeCliente = ['Civil', 'Compañía de Seguridad', 'Uniformado', 'Deportista'];
-export const tiposDeIdentificacion = ['Cedula', 'RUC'];
+// Tipos de identificación
+export const identificationTypes = [
+  { id: 1, nombre: 'Cédula', codigo: 'CEDULA' },
+  { id: 2, nombre: 'RUC', codigo: 'RUC' },
+  { id: 3, nombre: 'Pasaporte', codigo: 'PASAPORTE' }
+];
 
-export const docsByTipo: Record<string, string[]> = {
-  Civil: ['Cédula', 'Antecedentes Penales'],
-  'Compañía de Seguridad': ['RUC', 'Permiso de funcionamiento', 'Representante legal'],
-  Uniformado: ['Cédula', 'Credencial policial'],
-  Deportista: ['Cédula', 'Credencial club', 'Permiso deportivo']
-};
-export const preguntasByTipo: Record<string, string[]> = {
-  Civil: ['¿Ha tenido antecedentes?', '¿Motivo de compra?'],
-  'Compañía de Seguridad': ['¿Tipo de empresa?', '¿Cantidad de armas requeridas?'],
-  Uniformado: ['¿Rango?', '¿Unidad?'],
-  Deportista: ['¿Disciplina?', '¿Participa en competencias?']
-};
+// Provincias de Ecuador
+export const ecuadorProvinces = [
+  {
+    nombre: 'Guayas',
+    cantones: [
+      { canton: 'Guayaquil', ciudades: ['Guayaquil', 'Durán', 'Samborondón'] },
+      { canton: 'Daule', ciudades: ['Daule', 'La Aurora'] },
+      { canton: 'Salitre', ciudades: ['Salitre', 'El Retiro'] }
+    ]
+  },
+  {
+    nombre: 'Pichincha',
+    cantones: [
+      { canton: 'Quito', ciudades: ['Quito', 'Cumbayá', 'Tumbaco'] },
+      { canton: 'Cayambe', ciudades: ['Cayambe', 'Olmedo'] },
+      { canton: 'Mejía', ciudades: ['Machachi', 'Aloasí'] }
+    ]
+  },
+  {
+    nombre: 'Azuay',
+    cantones: [
+      { canton: 'Cuenca', ciudades: ['Cuenca', 'Baños', 'San Joaquín'] },
+      { canton: 'Gualaceo', ciudades: ['Gualaceo', 'Jadan'] },
+      { canton: 'Paute', ciudades: ['Paute', 'El Valle'] }
+    ]
+  },
+  {
+    nombre: 'Manabí',
+    cantones: [
+      { canton: 'Manta', ciudades: ['Manta', 'San Mateo', 'Tarqui'] },
+      { canton: 'Portoviejo', ciudades: ['Portoviejo', 'San Plácido'] },
+      { canton: 'Jipijapa', ciudades: ['Jipijapa', 'La América'] }
+    ]
+  }
+];
 
-export const armasPorCliente: Record<string, Weapon | null> = {
-  '1': weapons[0], // Juan tiene arma 1
-  '2': null,       // María Elena (Seguridad Integral) sin arma
-  '3': null,       // Roberto (Protección Total) sin arma
-  '4': weapons[1], // Carlos tiene arma 2
-  '5': null,       // Ana sin arma
-  '6': null        // Luis sin arma
-}; 
+// Preguntas para clientes
+export const clientQuestions = [
+  {
+    id: '1',
+    pregunta: '¿Tiene denuncias de violencia de género o intrafamiliar?',
+    tipo: 'TEXTO',
+    obligatoria: true,
+    orden: 1
+  },
+  {
+    id: '2',
+    pregunta: '¿Ha sido condenado por algún delito?',
+    tipo: 'TEXTO',
+    obligatoria: true,
+    orden: 2
+  },
+  {
+    id: '3',
+    pregunta: '¿Tiene antecedentes penales?',
+    tipo: 'TEXTO',
+    obligatoria: true,
+    orden: 3
+  },
+  {
+    id: '4',
+    pregunta: '¿Está bajo alguna medida cautelar?',
+    tipo: 'TEXTO',
+    obligatoria: false,
+    orden: 4
+  }
+];
+
+// Documentos requeridos por tipo de cliente
+export const requiredDocuments = [
+  {
+    id: '1',
+    nombre: 'Cédula de Identidad',
+    tipo: 'IDENTIFICACION',
+    requerido: true,
+    subido: false
+  },
+  {
+    id: '2',
+    nombre: 'Certificado de Antecedentes Penales',
+    tipo: 'ANTECEDENTES',
+    requerido: true,
+    subido: false
+  },
+  {
+    id: '3',
+    nombre: 'Certificado de Registro de Armas',
+    tipo: 'REGISTRO',
+    requerido: true,
+    subido: false
+  },
+  {
+    id: '4',
+    nombre: 'Certificado Psicológico',
+    tipo: 'PSICOLOGICO',
+    requerido: true,
+    subido: false
+  },
+  {
+    id: '5',
+    nombre: 'Certificado de Capacitación',
+    tipo: 'CAPACITACION',
+    requerido: false,
+    subido: false
+  }
+]; 

@@ -8,12 +8,17 @@ interface ProtectedRouteProps {
   anyRole?: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = React.memo(({ 
   children, 
   requiredRole, 
   anyRole 
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  
+  console.log('🔒 ProtectedRoute - Renderizando - TIMESTAMP:', new Date().toISOString());
+  console.log('🔒 ProtectedRoute - isAuthenticated:', isAuthenticated);
+  console.log('🔒 ProtectedRoute - isLoading:', isLoading);
+  console.log('🔒 ProtectedRoute - user:', user);
 
   if (isLoading) {
     return <div>Cargando...</div>;
@@ -23,15 +28,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Verificar roles directamente del usuario
-  const userRoles = user?.roles?.map(role => role.rol?.nombre?.toLowerCase()).filter(Boolean) || [];
+  // Verificar roles del usuario - extraer los códigos de los roles
+  const userRoleCodes = (user as any)?.roles?.map((role: any) => role.codigo) || [];
 
   let hasAccess = true;
 
   if (requiredRole) {
-    hasAccess = userRoles.includes(requiredRole.toLowerCase());
+    hasAccess = userRoleCodes.includes(requiredRole.toUpperCase());
   } else if (anyRole && anyRole.length > 0) {
-    hasAccess = anyRole.some(role => userRoles.includes(role.toLowerCase()));
+    hasAccess = anyRole.some(role => userRoleCodes.includes(role.toUpperCase()));
   }
 
   if (!hasAccess) {
@@ -39,6 +44,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   return <>{children}</>;
-};
+});
 
 export default ProtectedRoute; 

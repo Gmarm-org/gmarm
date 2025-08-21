@@ -39,6 +39,9 @@ public class Rol {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "codigo", unique = true, nullable = false, length = 20)
+    private String codigo;
+
     @Column(name = "nombre", unique = true, nullable = false, length = 50)
     private String nombre;
 
@@ -68,11 +71,23 @@ public class Rol {
 
     // Métodos de utilidad
     public boolean esVendedor() {
-        return "Vendedor".equals(nombre);
+        return "VENDOR".equals(codigo);
     }
 
     public boolean esAdmin() {
-        return "Administrador".equals(nombre);
+        return "ADMIN".equals(codigo);
+    }
+
+    public boolean esSalesChief() {
+        return "SALES_CHIEF".equals(codigo);
+    }
+
+    public boolean esOperations() {
+        return "OPERATIONS".equals(codigo);
+    }
+
+    public boolean esFinance() {
+        return "FINANCE".equals(codigo);
     }
 
     public boolean esActivo() {

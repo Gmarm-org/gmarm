@@ -7,7 +7,6 @@ import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.service.GrupoImportacionService;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+// import org.springframework.security.access.prepost.PreAuthorize; // Removido - no más Spring Security
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,7 +42,6 @@ public class GrupoImportacionController {
     
     @PostMapping
     @Operation(summary = "Crear nuevo grupo de importación", description = "Crea un nuevo grupo de importación")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<GrupoImportacion> crearGrupoImportacion(
             @Valid @RequestBody GrupoImportacion grupo,
             @RequestParam Long usuarioId) {
@@ -58,7 +56,6 @@ public class GrupoImportacionController {
     
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar grupo de importación", description = "Actualiza un grupo de importación existente")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<GrupoImportacion> actualizarGrupoImportacion(
             @PathVariable Long id,
             @Valid @RequestBody GrupoImportacion grupo,
@@ -93,7 +90,6 @@ public class GrupoImportacionController {
     
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar grupo de importación", description = "Elimina un grupo por su ID")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarGrupoImportacion(@PathVariable Long id) {
         try {
             grupoImportacionService.eliminarGrupoImportacion(id);
@@ -127,7 +123,6 @@ public class GrupoImportacionController {
     
     @PutMapping("/{id}/estado")
     @Operation(summary = "Cambiar estado de grupo", description = "Cambia el estado de un grupo")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> cambiarEstado(
             @PathVariable Long id,
             @RequestParam EstadoGrupoImportacion nuevoEstado) {
@@ -143,7 +138,6 @@ public class GrupoImportacionController {
     // Gestión de Clientes
     @PostMapping("/{id}/clientes/{clienteId}")
     @Operation(summary = "Agregar cliente al grupo", description = "Agrega un cliente a un grupo de importación")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> agregarCliente(
             @PathVariable Long id,
             @PathVariable Long clienteId) {
@@ -158,7 +152,6 @@ public class GrupoImportacionController {
     
     @DeleteMapping("/{id}/clientes/{clienteId}")
     @Operation(summary = "Remover cliente del grupo", description = "Remueve un cliente de un grupo de importación")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> removerCliente(
             @PathVariable Long id,
             @PathVariable Long clienteId) {
@@ -186,7 +179,6 @@ public class GrupoImportacionController {
     // Gestión de Cupos
     @PostMapping("/{id}/cupos")
     @Operation(summary = "Configurar cupo", description = "Configura el cupo para un tipo de cliente")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> configurarCupo(
             @PathVariable Long id,
             @RequestParam String tipoCliente,
@@ -221,7 +213,6 @@ public class GrupoImportacionController {
     
     @PostMapping("/{id}/cupos/{tipoCliente}/decrementar")
     @Operation(summary = "Decrementar cupo", description = "Decrementa el cupo disponible para un tipo de cliente")
-    @PreAuthorize("hasRole('JEFE_VENTAS') or hasRole('ADMIN')")
     public ResponseEntity<Void> decrementarCupo(
             @PathVariable Long id,
             @PathVariable String tipoCliente) {

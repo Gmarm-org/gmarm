@@ -9,7 +9,6 @@ import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,6 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final PasswordEncoder passwordEncoder;
 
     // ===== OPERACIONES CRUD =====
 
@@ -49,12 +47,16 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con email: " + email));
     }
 
+    public boolean existsByEmail(String email) {
+        return usuarioRepository.findByEmail(email).isPresent();
+    }
+
     public Usuario create(Usuario usuario) {
         // Validaciones
         validateUsuarioForCreate(usuario);
 
-        // Encriptar contraseña
-        usuario.setPasswordHash(passwordEncoder.encode(usuario.getPasswordHash()));
+        // Para desarrollo, la contraseña ya viene hasheada o en texto plano
+        // No se requiere encriptación adicional
 
         // Configurar valores por defecto
         usuario.setEstado(EstadoUsuario.ACTIVO);

@@ -1,5 +1,6 @@
 package com.armasimportacion.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@JsonIgnoreProperties({"cliente", "pregunta"})
 public class RespuestaCliente {
 
     @Id
@@ -36,10 +38,12 @@ public class RespuestaCliente {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", nullable = false)
+    @JsonIgnoreProperties({"respuestas", "documentos", "asignacionesArma", "asignacionesAccesorio", "armasFisicas", "pagos", "documentosGenerados", "gruposImportacion"})
     private Cliente cliente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pregunta_id", nullable = false)
+    @JsonIgnoreProperties({"respuestas", "tipoProceso"})
     private PreguntaCliente pregunta;
 
     @Column(name = "respuesta", nullable = false, columnDefinition = "TEXT")
