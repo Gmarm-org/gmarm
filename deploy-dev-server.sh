@@ -103,6 +103,24 @@ sleep 10
 echo "📊 Estado de los contenedores:"
 docker-compose -f docker-compose.dev.yml ps
 
+# Verificar que los servicios estén corriendo
+echo "🔍 Verificando servicios..."
+if ! docker-compose -f docker-compose.dev.yml ps | grep -q "backend_dev.*Up"; then
+    echo "❌ Backend no está corriendo"
+    echo "📋 Logs del backend:"
+    docker-compose -f docker-compose.dev.yml logs --tail=50 backend_dev
+    exit 1
+fi
+
+if ! docker-compose -f docker-compose.dev.yml ps | grep -q "frontend_dev.*Up"; then
+    echo "❌ Frontend no está corriendo"
+    echo "📋 Logs del frontend:"
+    docker-compose -f docker-compose.dev.yml logs --tail=50 frontend_dev
+    exit 1
+fi
+
+echo "✅ Todos los servicios están corriendo"
+
 # Verificar logs del backend
 echo "📋 Logs del backend:"
 docker-compose -f docker-compose.dev.yml logs --tail=20 backend_dev
