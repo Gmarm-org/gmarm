@@ -74,9 +74,39 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        
+        // Obtener orígenes permitidos desde variables de entorno
+        String allowedOrigins = System.getenv("SPRING_CORS_ALLOWED_ORIGINS");
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+            configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+        } else {
+            // Valores por defecto para desarrollo local
+            configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:5173", 
+                "http://localhost:3000", 
+                "http://127.0.0.1:5173", 
+                "http://127.0.0.1:3000",
+                "http://72.167.52.14:5173",  // IP del servidor de desarrollo
+                "http://72.167.52.14:80"     // Puerto 80 del servidor
+            ));
+        }
+        
+        // Obtener métodos permitidos desde variables de entorno
+        String allowedMethods = System.getenv("SPRING_CORS_ALLOWED_METHODS");
+        if (allowedMethods != null && !allowedMethods.trim().isEmpty()) {
+            configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
+        } else {
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
+        }
+        
+        // Obtener headers permitidos desde variables de entorno
+        String allowedHeaders = System.getenv("SPRING_CORS_ALLOWED_HEADERS");
+        if (allowedHeaders != null && !allowedHeaders.trim().isEmpty()) {
+            configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+        } else {
+            configuration.setAllowedHeaders(Arrays.asList("*"));
+        }
+        
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);

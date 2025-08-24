@@ -221,15 +221,14 @@ public class GrupoImportacionService {
         GrupoImportacionCupo cupo;
         if (cupoExistente.isPresent()) {
             cupo = cupoExistente.get();
-            cupo.setCupoAsignado(cupoAsignado);
-            cupo.setCupoDisponible(cupoAsignado - cupo.getCupoUtilizado());
+            cupo.setCupoConsumido(cupoAsignado);
+            cupo.setCupoDisponibleLicencia(cupoAsignado);
         } else {
             cupo = new GrupoImportacionCupo();
             cupo.setGrupoImportacion(grupo);
             cupo.setTipoCliente(tipoCliente);
-            cupo.setCupoAsignado(cupoAsignado);
-            cupo.setCupoUtilizado(0);
-            cupo.setCupoDisponible(cupoAsignado);
+            cupo.setCupoConsumido(cupoAsignado);
+            cupo.setCupoDisponibleLicencia(cupoAsignado);
             cupo.setFechaCreacion(LocalDateTime.now());
         }
         
@@ -249,7 +248,7 @@ public class GrupoImportacionService {
             throw new BadRequestException("No hay cupo disponible para el tipo: " + tipoCliente);
         }
         
-        cupo.incrementarCupoUtilizado();
+        cupo.incrementarCupoConsumido();
         cupoRepository.save(cupo);
     }
     

@@ -39,8 +39,8 @@ public class CuotaPago {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "plan_pago_id", nullable = false)
-    private PlanPago planPago;
+    @JoinColumn(name = "pago_id", nullable = false)
+    private Pago pago;
 
     @Column(name = "numero_cuota", nullable = false)
     private Integer numeroCuota;
@@ -58,8 +58,12 @@ public class CuotaPago {
     @Column(name = "fecha_pago")
     private LocalDateTime fechaPago;
 
-    @Column(name = "monto_pagado", columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal montoPagado;
+    @Column(name = "referencia_pago", length = 100)
+    private String referenciaPago;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_confirmador_id")
+    private Usuario usuarioConfirmador;
 
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)

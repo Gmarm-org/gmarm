@@ -36,18 +36,19 @@ public class GrupoImportacionCupo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "grupo_importacion_id", nullable = false)
     private GrupoImportacion grupoImportacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "licencia_id", nullable = false)
+    private Licencia licencia;
     
     @Column(name = "tipo_cliente", nullable = false)
     private String tipoCliente; // CIVIL, MILITAR, EMPRESA, DEPORTISTA
     
-    @Column(name = "cupo_asignado", nullable = false)
-    private Integer cupoAsignado;
+    @Column(name = "cupo_consumido", nullable = false)
+    private Integer cupoConsumido; // Cuánto consume este grupo
     
-    @Column(name = "cupo_utilizado", nullable = false)
-    private Integer cupoUtilizado = 0;
-    
-    @Column(name = "cupo_disponible", nullable = false)
-    private Integer cupoDisponible;
+    @Column(name = "cupo_disponible_licencia", nullable = false)
+    private Integer cupoDisponibleLicencia; // Cuánto queda disponible en la licencia
     
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
@@ -59,18 +60,18 @@ public class GrupoImportacionCupo {
     
     // Métodos de utilidad
     public boolean tieneCupoDisponible() {
-        return cupoDisponible > 0;
+        return cupoDisponibleLicencia > 0;
     }
     
-    public void incrementarCupoUtilizado() {
-        this.cupoUtilizado++;
-        this.cupoDisponible = this.cupoAsignado - this.cupoUtilizado;
+    public void incrementarCupoConsumido() {
+        this.cupoConsumido++;
+        this.cupoDisponibleLicencia = this.cupoDisponibleLicencia - 1;
     }
     
-    public void decrementarCupoUtilizado() {
-        if (this.cupoUtilizado > 0) {
-            this.cupoUtilizado--;
-            this.cupoDisponible = this.cupoAsignado - this.cupoUtilizado;
+    public void decrementarCupoConsumido() {
+        if (this.cupoConsumido > 0) {
+            this.cupoConsumido--;
+            this.cupoDisponibleLicencia = this.cupoDisponibleLicencia + 1;
         }
     }
 } 

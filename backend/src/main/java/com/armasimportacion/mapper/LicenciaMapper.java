@@ -27,7 +27,7 @@ public class LicenciaMapper {
                 .email(licencia.getEmail())
                 .telefono(licencia.getTelefono())
                 .descripcion(licencia.getDescripcion())
-                .tipoLicencia(licencia.getTipoLicencia())
+                .tipoLicencia("IMPORTACION_ARMAS")
                 .cupoTotal(licencia.getCupoTotal())
                 .cupoDisponible(licencia.getCupoDisponible())
                 .cupoCivil(licencia.getCupoCivil())
@@ -66,7 +66,7 @@ public class LicenciaMapper {
         licencia.setEmail(dto.getEmail());
         licencia.setTelefono(dto.getTelefono());
         licencia.setDescripcion(dto.getDescripcion());
-        licencia.setTipoLicencia(dto.getTipoLicencia());
+        // tipoLicencia siempre es IMPORTACION_ARMAS
         licencia.setCupoTotal(dto.getCupoTotal());
         licencia.setCupoDisponible(dto.getCupoDisponible());
         licencia.setCupoCivil(dto.getCupoCivil());

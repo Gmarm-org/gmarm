@@ -28,22 +28,25 @@ public interface GrupoImportacionCupoRepository extends JpaRepository<GrupoImpor
             @Param("tipoCliente") String tipoCliente);
     
     // Cupos con disponibilidad
-    @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.cupoDisponible > 0")
+    @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.cupoDisponibleLicencia > 0")
     List<GrupoImportacionCupo> findCuposDisponibles();
     
     // Cupos por grupo con disponibilidad
-    @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId AND gic.cupoDisponible > 0")
+    @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId AND gic.cupoDisponibleLicencia > 0")
     List<GrupoImportacionCupo> findCuposDisponiblesByGrupo(@Param("grupoId") Long grupoId);
     
     // Verificar disponibilidad
-    @Query("SELECT COUNT(gic) > 0 FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId AND gic.tipoCliente = :tipoCliente AND gic.cupoDisponible > 0")
+    @Query("SELECT COUNT(gic) > 0 FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId AND gic.tipoCliente = :tipoCliente AND gic.cupoDisponibleLicencia > 0")
     boolean tieneCupoDisponible(@Param("grupoId") Long grupoId, @Param("tipoCliente") String tipoCliente);
     
     // Total de cupos por grupo
-    @Query("SELECT SUM(gic.cupoAsignado) FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId")
+    @Query("SELECT SUM(gic.cupoConsumido) FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId")
     Integer getTotalCuposAsignados(@Param("grupoId") Long grupoId);
     
     // Total de cupos utilizados por grupo
-    @Query("SELECT SUM(gic.cupoUtilizado) FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId")
+    @Query("SELECT SUM(gic.cupoConsumido) FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId")
     Integer getTotalCuposUtilizados(@Param("grupoId") Long grupoId);
+
+    // Eliminar cupos por grupo de importación
+    void deleteByGrupoImportacionId(Long grupoImportacionId);
 } 

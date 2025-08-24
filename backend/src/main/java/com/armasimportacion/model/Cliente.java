@@ -171,7 +171,7 @@ public class Cliente {
         return armas;
     }
 
-    public List<AsignacionAccesorio> getAsignacionesAccesorio() {
+    public List<ClienteAccesorio> getAsignacionesAccesorio() {
         // Por ahora retornamos una lista vacía, se puede implementar después
         return new ArrayList<>();
     }

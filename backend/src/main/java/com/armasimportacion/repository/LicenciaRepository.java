@@ -2,6 +2,7 @@ package com.armasimportacion.repository;
 
 import com.armasimportacion.model.Licencia;
 import com.armasimportacion.enums.EstadoLicencia;
+import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,7 +21,6 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     // Búsquedas básicas
     Optional<Licencia> findByNumero(String numero);
     List<Licencia> findByEstado(EstadoLicencia estado);
-    List<Licencia> findByTipoLicencia(String tipoLicencia);
     
     // Búsquedas por fecha
     List<Licencia> findByFechaVencimientoBefore(LocalDate fecha);
@@ -47,13 +47,11 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     @Query("SELECT l FROM Licencia l WHERE " +
            "(:numero IS NULL OR l.numero LIKE %:numero%) AND " +
            "(:nombre IS NULL OR l.nombre LIKE %:nombre%) AND " +
-           "(:tipoLicencia IS NULL OR l.tipoLicencia = :tipoLicencia) AND " +
            "(:estado IS NULL OR l.estado = :estado) AND " +
            "(:ruc IS NULL OR l.ruc LIKE %:ruc%)")
     Page<Licencia> findWithFilters(
             @Param("numero") String numero,
             @Param("nombre") String nombre,
-            @Param("tipoLicencia") String tipoLicencia,
             @Param("estado") EstadoLicencia estado,
             @Param("ruc") String ruc,
             Pageable pageable);
@@ -86,18 +84,29 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     List<Licencia> findLicenciasConCupoDisponible();
     
     // Estadísticas de cupos
-    @Query("SELECT l.tipoLicencia, " +
+    @Query("SELECT 'IMPORTACION_ARMAS' as tipo, " +
            "SUM(l.cupoTotal) as total, " +
            "SUM(l.cupoDisponible) as disponible, " +
            "SUM(l.cupoCivil) as civil, " +
            "SUM(l.cupoMilitar) as militar, " +
            "SUM(l.cupoEmpresa) as empresa, " +
            "SUM(l.cupoDeportista) as deportista " +
-           "FROM Licencia l WHERE l.estado = 'ACTIVA' GROUP BY l.tipoLicencia")
+           "FROM Licencia l WHERE l.estado = 'ACTIVA'")
     List<Object[]> getEstadisticasCupos();
     
-    // Licencias por tipo con cupo disponible
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.tipoLicencia = :tipo AND " +
+    // Licencias con cupo disponible (todas son del mismo tipo: IMPORTACION_ARMAS)
+    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND " +
            "(l.cupoDisponible > 0 OR l.cupoCivil > 0 OR l.cupoMilitar > 0 OR l.cupoEmpresa > 0 OR l.cupoDeportista > 0)")
-    List<Licencia> findLicenciasDisponiblesPorTipo(@Param("tipo") String tipo);
+    List<Licencia> findLicenciasDisponibles();
+
+    // Licencias disponibles por estado de ocupación y tipo de cliente
+    @Query("SELECT l FROM Licencia l WHERE l.estadoOcupacion = :estadoOcupacion AND " +
+           "l.estado = 'ACTIVA' AND " +
+           "(:tipoCliente = 'CIVIL' AND l.cupoCivil > 0 OR " +
+           ":tipoCliente = 'MILITAR' AND l.cupoMilitar > 0 OR " +
+           ":tipoCliente = 'EMPRESA' AND l.cupoEmpresa > 0 OR " +
+           ":tipoCliente = 'DEPORTISTA' AND l.cupoDeportista > 0)")
+    List<Licencia> findByEstadoOcupacionAndTipoClienteDisponible(
+            @Param("estadoOcupacion") EstadoOcupacionLicencia estadoOcupacion,
+            @Param("tipoCliente") String tipoCliente);
 } 

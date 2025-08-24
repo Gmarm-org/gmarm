@@ -41,31 +41,30 @@ public class Pago {
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "plan_pago_id")
-    private PlanPago planPago;
-
-    @Column(name = "numero_comprobante", nullable = false, length = 50, unique = true)
-    private String numeroComprobante;
-
     @Column(name = "monto_total", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal montoTotal;
 
-    @Column(name = "saldo_pendiente", nullable = false, columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal saldoPendiente;
+    @Column(name = "tipo_pago", nullable = false, length = 20)
+    private String tipoPago;
 
-    @Column(name = "metodo_pago", nullable = false, length = 50)
-    private String metodoPago;
+    @Column(name = "numero_cuotas", nullable = false)
+    private Integer numeroCuotas = 1;
 
-    @Column(name = "fecha_pago")
-    private LocalDateTime fechaPago;
+    @Column(name = "monto_cuota", columnDefinition = "DECIMAL(10,2)")
+    private BigDecimal montoCuota;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
     private EstadoPago estado = EstadoPago.PENDIENTE;
 
-    @Column(name = "observaciones", columnDefinition = "TEXT")
-    private String observaciones;
+    @Column(name = "monto_pagado", nullable = false, columnDefinition = "DECIMAL(10,2)")
+    private BigDecimal montoPagado = BigDecimal.ZERO;
+
+    @Column(name = "monto_pendiente", columnDefinition = "DECIMAL(10,2)")
+    private BigDecimal montoPendiente;
+
+    @Column(name = "cuota_actual", nullable = false)
+    private Integer cuotaActual = 1;
 
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)

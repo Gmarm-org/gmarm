@@ -9,25 +9,53 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio para la relación cliente-arma
+ * Reemplaza a AsignacionArmaRepository para mantener consistencia
+ */
 @Repository
 public interface ClienteArmaRepository extends JpaRepository<ClienteArma, Long> {
-    
+
     // Buscar por cliente
     List<ClienteArma> findByClienteId(Long clienteId);
     
     // Buscar por arma
     List<ClienteArma> findByArmaId(Long armaId);
     
+    // Buscar por estado
+    List<ClienteArma> findByEstado(ClienteArma.EstadoClienteArma estado);
+    
+    // Buscar por cliente y estado
+    List<ClienteArma> findByClienteIdAndEstado(Long clienteId, ClienteArma.EstadoClienteArma estado);
+    
+    // Buscar por arma y estado
+    List<ClienteArma> findByArmaIdAndEstado(Long armaId, ClienteArma.EstadoClienteArma estado);
+    
     // Buscar por cliente y arma
     Optional<ClienteArma> findByClienteIdAndArmaId(Long clienteId, Long armaId);
     
-    // Buscar por estado
-    List<ClienteArma> findByEstado(String estado);
+    // Verificar si existe una relación cliente-arma
+    boolean existsByClienteIdAndArmaId(Long clienteId, Long armaId);
     
-    // Buscar por cliente y estado
-    List<ClienteArma> findByClienteIdAndEstado(Long clienteId, String estado);
+    // Contar por cliente
+    long countByClienteId(Long clienteId);
     
-    // Contar armas por cliente
-    @Query("SELECT COUNT(ca) FROM ClienteArma ca WHERE ca.cliente.id = :clienteId")
-    Long countByClienteId(@Param("clienteId") Long clienteId);
+    // Contar por arma
+    long countByArmaId(Long armaId);
+    
+    // Contar por estado
+    long countByEstado(ClienteArma.EstadoClienteArma estado);
+    
+    // Buscar reservas activas por cliente
+    @Query("SELECT ca FROM ClienteArma ca WHERE ca.cliente.id = :clienteId AND ca.estado IN ('RESERVADO', 'CONFIRMADO')")
+    List<ClienteArma> findReservasActivasByClienteId(@Param("clienteId") Long clienteId);
+    
+    // Buscar reservas activas por arma
+    @Query("SELECT ca FROM ClienteArma ca WHERE ca.arma.id = :armaId AND ca.estado IN ('RESERVADO', 'CONFIRMADO')")
+    List<ClienteArma> findReservasActivasByArmaId(@Param("armaId") Long armaId);
+    
+    // Buscar por rango de fechas
+    @Query("SELECT ca FROM ClienteArma ca WHERE ca.fechaCreacion BETWEEN :fechaInicio AND :fechaFin")
+    List<ClienteArma> findByFechaCreacionBetween(@Param("fechaInicio") java.time.LocalDateTime fechaInicio, 
+                                                @Param("fechaFin") java.time.LocalDateTime fechaFin);
 }

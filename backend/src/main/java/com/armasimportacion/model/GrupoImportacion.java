@@ -113,12 +113,7 @@ public class GrupoImportacion {
     @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<AccesorioFisico> accesoriosFisicos = new ArrayList<>();
 
-    @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<AsignacionArma> asignacionesArma = new ArrayList<>();
-
-    @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<AsignacionAccesorio> asignacionesAccesorio = new ArrayList<>();
-
+    // Relaciones corregidas - solo mantener las que tienen mapeo correcto
     @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DocumentoGrupoImportacion> documentos = new ArrayList<>();
 

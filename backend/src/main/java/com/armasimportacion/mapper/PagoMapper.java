@@ -15,17 +15,25 @@ public class PagoMapper {
             return null;
         }
 
-        return PagoDTO.builder()
-                .id(pago.getId())
-                .monto(pago.getMontoTotal())
-                .fechaPago(pago.getFechaPago())
-                .fechaCreacion(pago.getFechaCreacion())
-                .fechaActualizacion(pago.getFechaActualizacion())
-                .clienteId(pago.getCliente() != null ? pago.getCliente().getId() : null)
-                .clienteNombreCompleto(pago.getCliente() != null ? 
-                    pago.getCliente().getNombres() + " " + pago.getCliente().getApellidos() : null)
-                .estado(pago.getEstado())
-                .build();
+        PagoDTO dto = new PagoDTO();
+        dto.setId(pago.getId());
+        dto.setClienteId(pago.getCliente() != null ? pago.getCliente().getId() : null);
+        dto.setClienteNombre(pago.getCliente() != null ? 
+            pago.getCliente().getNombres() + " " + pago.getCliente().getApellidos() : null);
+        dto.setClienteIdentificacion(pago.getCliente() != null ? 
+            pago.getCliente().getNumeroIdentificacion() : null);
+        dto.setMontoTotal(pago.getMontoTotal());
+        dto.setTipoPago(pago.getTipoPago());
+        dto.setNumeroCuotas(pago.getNumeroCuotas());
+        dto.setMontoCuota(pago.getMontoCuota());
+        dto.setEstado(pago.getEstado());
+        dto.setMontoPagado(pago.getMontoPagado());
+        dto.setMontoPendiente(pago.getMontoPendiente());
+        dto.setCuotaActual(pago.getCuotaActual());
+        dto.setFechaCreacion(pago.getFechaCreacion());
+        dto.setFechaActualizacion(pago.getFechaActualizacion());
+        
+        return dto;
     }
 
     public List<PagoDTO> toDTOList(List<Pago> pagos) {
@@ -45,9 +53,17 @@ public class PagoMapper {
 
         Pago pago = new Pago();
         pago.setId(dto.getId());
-        pago.setMontoTotal(dto.getMonto());
-        pago.setFechaPago(dto.getFechaPago());
+        pago.setMontoTotal(dto.getMontoTotal());
+        pago.setTipoPago(dto.getTipoPago());
+        pago.setNumeroCuotas(dto.getNumeroCuotas());
+        pago.setMontoCuota(dto.getMontoCuota());
         pago.setEstado(dto.getEstado());
+        pago.setMontoPagado(dto.getMontoPagado());
+        pago.setMontoPendiente(dto.getMontoPendiente());
+        pago.setCuotaActual(dto.getCuotaActual());
+        pago.setFechaCreacion(dto.getFechaCreacion());
+        pago.setFechaActualizacion(dto.getFechaActualizacion());
+        
         return pago;
     }
 }

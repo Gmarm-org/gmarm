@@ -1,6 +1,7 @@
 package com.armasimportacion.model;
 
 import com.armasimportacion.enums.EstadoLicencia;
+import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -72,9 +73,6 @@ public class Licencia {
     private LocalDate fechaVencimiento;
 
     // Campos adicionales para el sistema de gestión
-    @Column(name = "tipo_licencia", length = 50)
-    private String tipoLicencia;
-
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
@@ -109,6 +107,10 @@ public class Licencia {
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", length = 20)
     private EstadoLicencia estado = EstadoLicencia.ACTIVA;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_ocupacion", length = 20)
+    private EstadoOcupacionLicencia estadoOcupacion = EstadoOcupacionLicencia.DISPONIBLE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_creador_id")
@@ -179,21 +181,30 @@ public class Licencia {
         return LocalDate.now().until(fechaVencimiento).getDays();
     }
 
-    // Método para obtener el tipo de licencia basado en los datos existentes
-    public String getTipoLicenciaInferido() {
-        if (tipoLicencia != null && !tipoLicencia.isEmpty()) {
-            return tipoLicencia;
-        }
-        
-        // Inferir tipo basado en el RUC o nombre
-        if (ruc != null && ruc.length() == 13) {
-            return "IMPORTACION_EMPRESA";
-        } else if (nombre != null && nombre.toLowerCase().contains("militar")) {
-            return "IMPORTACION_MILITAR";
-        } else if (nombre != null && nombre.toLowerCase().contains("deportista")) {
-            return "IMPORTACION_DEPORTISTA";
-        } else {
-            return "IMPORTACION_CIVIL";
-        }
+    // Método para obtener el tipo de licencia (siempre es IMPORTACION_ARMAS)
+    public String getTipoLicencia() {
+        return "IMPORTACION_ARMAS";
+    }
+
+    // Métodos para el estado de ocupación
+    public boolean isDisponible() {
+        return EstadoOcupacionLicencia.DISPONIBLE.equals(estadoOcupacion);
+    }
+
+    public boolean isBloqueada() {
+        return EstadoOcupacionLicencia.BLOQUEADA.equals(estadoOcupacion);
+    }
+
+    public void bloquear() {
+        this.estadoOcupacion = EstadoOcupacionLicencia.BLOQUEADA;
+    }
+
+    public void liberar() {
+        this.estadoOcupacion = EstadoOcupacionLicencia.DISPONIBLE;
+    }
+
+    // Método para verificar si la licencia puede ser asignada a un nuevo grupo
+    public boolean puedeSerAsignada() {
+        return isDisponible() && !isVencida() && estado == EstadoLicencia.ACTIVA;
     }
 } 

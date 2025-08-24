@@ -1,56 +1,74 @@
 package com.armasimportacion.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Accesorio - Representa los accesorios disponibles para los clientes
+ * Ejemplos: cargadores, miras, fundas, etc.
+ */
 @Entity
 @Table(name = "accesorio")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = false)
-@EntityListeners(AuditingEntityListener.class)
 public class Accesorio {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name = "codigo", nullable = false, unique = true)
-    private String codigo;
-    
-    @Column(name = "nombre", nullable = false)
+
+    @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
-    
-    @Column(name = "descripcion")
+
+    @Column(name = "codigo", nullable = false, unique = true, length = 50)
+    private String codigo;
+
+    @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
-    
-    @Column(name = "precio_referencia", columnDefinition = "DECIMAL(10,2)")
+
+    @Column(name = "categoria", length = 50)
+    private String categoria;
+
+    @Column(name = "precio_referencia", precision = 10, scale = 2)
     private BigDecimal precioReferencia;
-    
-    @Column(name = "estado", nullable = false)
+
+    @Column(name = "estado")
     private Boolean estado = true;
-    
-    @CreatedDate
+
+    @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
-    
-    @LastModifiedDate
+
+    @UpdateTimestamp
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
+
+    // Métodos de negocio
+    public boolean estaActivo() {
+        return Boolean.TRUE.equals(this.estado);
+    }
+
+    public void activar() {
+        this.estado = true;
+    }
+
+    public void desactivar() {
+        this.estado = false;
+    }
+
+    public boolean tienePrecio() {
+        return this.precioReferencia != null && this.precioReferencia.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public String getNombreCompleto() {
+        return String.format("%s (%s)", this.nombre, this.codigo);
+    }
 } 

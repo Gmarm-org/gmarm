@@ -1,257 +1,222 @@
 package com.armasimportacion.service;
 
-import com.armasimportacion.exception.BadRequestException;
-import com.armasimportacion.exception.ResourceNotFoundException;
+import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import com.armasimportacion.model.Licencia;
-import com.armasimportacion.model.Usuario;
+import com.armasimportacion.model.GrupoImportacion;
+import com.armasimportacion.model.GrupoImportacionCupo;
 import com.armasimportacion.repository.LicenciaRepository;
-import com.armasimportacion.repository.UsuarioRepository;
-import com.armasimportacion.enums.EstadoLicencia;
+import com.armasimportacion.repository.GrupoImportacionCupoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import com.armasimportacion.model.Cliente;
-import com.armasimportacion.repository.ClienteRepository;
-import com.armasimportacion.enums.EstadoCliente;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class LicenciaService {
-    
+
     private final LicenciaRepository licenciaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final ClienteRepository clienteRepository;
-    
-    // CRUD Operations
+    private final GrupoImportacionCupoRepository grupoImportacionCupoRepository;
+
+    // Métodos CRUD básicos
     public Licencia crearLicencia(Licencia licencia, Long usuarioId) {
-        log.info("Creando nueva licencia: {}", licencia.getNumero());
-        
-        // Validaciones
+        // Validar que el número de licencia sea único
         if (licenciaRepository.existsByNumero(licencia.getNumero())) {
-            throw new BadRequestException("Ya existe una licencia con el número: " + licencia.getNumero());
+            throw new RuntimeException("Ya existe una licencia con el número: " + licencia.getNumero());
         }
         
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        
-        licencia.setUsuarioCreador(usuario);
-        licencia.setEstado(EstadoLicencia.ACTIVA);
-        licencia.setFechaCreacion(LocalDateTime.now());
-        
-        // Inferir tipo de licencia si no se especifica
-        if (licencia.getTipoLicencia() == null || licencia.getTipoLicencia().isEmpty()) {
-            licencia.setTipoLicencia(licencia.getTipoLicenciaInferido());
-        }
-        
+        licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);
         return licenciaRepository.save(licencia);
     }
-    
-    public Licencia actualizarLicencia(Long id, Licencia licenciaActualizada, Long usuarioId) {
-        log.info("Actualizando licencia con ID: {}", id);
+
+    public Licencia actualizarLicencia(Long id, Licencia licencia, Long usuarioId) {
+        Licencia licenciaExistente = licenciaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + id));
         
-        Licencia licencia = licenciaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + id));
+        // Actualizar campos permitidos
+        licenciaExistente.setNombre(licencia.getNombre());
+        licenciaExistente.setRuc(licencia.getRuc());
+        licenciaExistente.setCuentaBancaria(licencia.getCuentaBancaria());
+        licenciaExistente.setNombreBanco(licencia.getNombreBanco());
+        licenciaExistente.setTipoCuenta(licencia.getTipoCuenta());
+        licenciaExistente.setCedulaCuenta(licencia.getCedulaCuenta());
+        licenciaExistente.setEmail(licencia.getEmail());
+        licenciaExistente.setTelefono(licencia.getTelefono());
+        licenciaExistente.setCupoCivil(licencia.getCupoCivil());
+        licenciaExistente.setCupoMilitar(licencia.getCupoMilitar());
+        licenciaExistente.setCupoEmpresa(licencia.getCupoEmpresa());
+        licenciaExistente.setCupoDeportista(licencia.getCupoDeportista());
+        licenciaExistente.setFechaVencimiento(licencia.getFechaVencimiento());
         
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        
-        // Validar número de licencia único si cambió
-        if (!licencia.getNumero().equals(licenciaActualizada.getNumero()) &&
-            licenciaRepository.existsByNumero(licenciaActualizada.getNumero())) {
-            throw new BadRequestException("Ya existe una licencia con el número: " + licenciaActualizada.getNumero());
-        }
-        
-        // Actualizar campos
-        licencia.setNumero(licenciaActualizada.getNumero());
-        licencia.setNombre(licenciaActualizada.getNombre());
-        licencia.setRuc(licenciaActualizada.getRuc());
-        licencia.setCuentaBancaria(licenciaActualizada.getCuentaBancaria());
-        licencia.setNombreBanco(licenciaActualizada.getNombreBanco());
-        licencia.setTipoCuenta(licenciaActualizada.getTipoCuenta());
-        licencia.setCedulaCuenta(licenciaActualizada.getCedulaCuenta());
-        licencia.setEmail(licenciaActualizada.getEmail());
-        licencia.setTelefono(licenciaActualizada.getTelefono());
-        licencia.setTipoLicencia(licenciaActualizada.getTipoLicencia());
-        licencia.setDescripcion(licenciaActualizada.getDescripcion());
-        licencia.setFechaEmision(licenciaActualizada.getFechaEmision());
-        licencia.setFechaVencimiento(licenciaActualizada.getFechaVencimiento());
-        licencia.setCupoTotal(licenciaActualizada.getCupoTotal());
-        licencia.setCupoDisponible(licenciaActualizada.getCupoDisponible());
-        licencia.setCupoCivil(licenciaActualizada.getCupoCivil());
-        licencia.setCupoEmpresa(licenciaActualizada.getCupoEmpresa());
-        licencia.setCupoMilitar(licenciaActualizada.getCupoMilitar());
-        licencia.setCupoDeportista(licenciaActualizada.getCupoDeportista());
-        licencia.setObservaciones(licenciaActualizada.getObservaciones());
-        licencia.setUsuarioActualizador(usuario);
-        licencia.setFechaActualizacion(LocalDateTime.now());
-        
-        return licenciaRepository.save(licencia);
+        return licenciaRepository.save(licenciaExistente);
     }
-    
+
     public Licencia obtenerLicencia(Long id) {
         return licenciaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + id));
+            .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + id));
     }
-    
+
     public Page<Licencia> obtenerLicencias(Pageable pageable) {
         return licenciaRepository.findAll(pageable);
     }
-    
+
     public void eliminarLicencia(Long id) {
         if (!licenciaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Licencia no encontrada con ID: " + id);
+            throw new RuntimeException("Licencia no encontrada con ID: " + id);
         }
         licenciaRepository.deleteById(id);
     }
-    
-    // Business Logic
+
     public List<Licencia> obtenerLicenciasActivas() {
-        return licenciaRepository.findLicenciasActivas(LocalDate.now());
+        return licenciaRepository.findByEstado(com.armasimportacion.enums.EstadoLicencia.ACTIVA);
     }
-    
+
     public List<Licencia> obtenerLicenciasConCupoCivilDisponible() {
         return licenciaRepository.findLicenciasConCupoCivilDisponible();
     }
-    
-    public List<Licencia> obtenerLicenciasConCupoMilitarDisponible() {
-        return licenciaRepository.findLicenciasConCupoMilitarDisponible();
-    }
-    
-    public List<Licencia> obtenerLicenciasConCupoEmpresaDisponible() {
-        return licenciaRepository.findLicenciasConCupoEmpresaDisponible();
-    }
-    
-    public List<Licencia> obtenerLicenciasConCupoDeportistaDisponible() {
-        return licenciaRepository.findLicenciasConCupoDeportistaDisponible();
-    }
-    
+
     public boolean tieneCupoDisponible(Long licenciaId, String tipoCliente) {
         Licencia licencia = obtenerLicencia(licenciaId);
         return licencia.tieneCupoDisponible(tipoCliente);
     }
-    
+
     public void decrementarCupo(Long licenciaId, String tipoCliente) {
         Licencia licencia = obtenerLicencia(licenciaId);
         licencia.decrementarCupo(tipoCliente);
         licenciaRepository.save(licencia);
     }
-    
+
     public List<Licencia> obtenerLicenciasProximasAVencer(int dias) {
-        LocalDate fechaInicio = LocalDate.now();
-        LocalDate fechaFin = fechaInicio.plusDays(dias);
+        java.time.LocalDate fechaInicio = java.time.LocalDate.now();
+        java.time.LocalDate fechaFin = fechaInicio.plusDays(dias);
         return licenciaRepository.findLicenciasProximasAVencer(fechaInicio, fechaFin);
     }
-    
-    public Page<Licencia> buscarLicencias(String numero, String nombre, String tipoLicencia, EstadoLicencia estado, String ruc, Pageable pageable) {
-        return licenciaRepository.findWithFilters(numero, nombre, tipoLicencia, estado, ruc, pageable);
+
+    public Page<Licencia> buscarLicencias(String numero, String nombre, String ruc, 
+                                        com.armasimportacion.enums.EstadoLicencia estado, 
+                                        String tipoCliente, org.springframework.data.domain.Pageable pageable) {
+        return licenciaRepository.findWithFilters(numero, nombre, estado, ruc, pageable);
     }
-    
+
     public List<Object[]> obtenerEstadisticasPorEstado() {
         return licenciaRepository.countByEstado();
     }
-    
-    public void cambiarEstado(Long id, EstadoLicencia nuevoEstado) {
+
+    public void cambiarEstado(Long id, com.armasimportacion.enums.EstadoLicencia nuevoEstado) {
         Licencia licencia = obtenerLicencia(id);
         licencia.setEstado(nuevoEstado);
-        licencia.setFechaActualizacion(LocalDateTime.now());
         licenciaRepository.save(licencia);
     }
-    
-    // Métodos adicionales para la nueva estructura
-    public List<Licencia> obtenerLicenciasPorRuc(String ruc) {
-        return licenciaRepository.findByRuc(ruc);
+
+    /**
+     * Busca licencias disponibles para un tipo de cliente específico
+     */
+    public List<Licencia> findLicenciasDisponibles(String tipoCliente) {
+        return licenciaRepository.findByEstadoOcupacionAndTipoClienteDisponible(
+            EstadoOcupacionLicencia.DISPONIBLE, tipoCliente);
     }
-    
-    public List<Licencia> obtenerLicenciasPorEmail(String email) {
-        return licenciaRepository.findByEmail(email);
-    }
-    
-    public List<Licencia> obtenerLicenciasVencidas() {
-        return licenciaRepository.findLicenciasVencidas(LocalDate.now());
-    }
-    
-    public List<Licencia> obtenerLicenciasConCupoDisponible() {
-        return licenciaRepository.findLicenciasConCupoDisponible();
-    }
-    
-    public List<Object[]> obtenerEstadisticasCupos() {
-        return licenciaRepository.getEstadisticasCupos();
-    }
-    
-    public List<Licencia> obtenerLicenciasDisponiblesPorTipo(String tipo) {
-        return licenciaRepository.findLicenciasDisponiblesPorTipo(tipo);
-    }
-    
-    // ===== MÉTODOS PARA JEFE DE VENTAS =====
-    
-    public List<Licencia> findLicenciasDisponibles() {
-        return licenciaRepository.findLicenciasConCupoDisponible();
-    }
-    
-    public Map<String, Object> getCuposDetallados(Long licenciaId) {
-        Licencia licencia = obtenerLicencia(licenciaId);
-        Map<String, Object> cupos = new java.util.HashMap<>();
+
+    /**
+     * Asigna cupos de una licencia a un grupo de importación
+     */
+    @Transactional
+    public boolean asignarCuposAGrupo(GrupoImportacion grupo, String tipoCliente, Integer cupoSolicitado) {
+        // Buscar licencia disponible para este tipo de cliente
+        List<Licencia> licenciasDisponibles = findLicenciasDisponibles(tipoCliente);
         
-        cupos.put("licencia", licencia);
-        cupos.put("cupoCivil", licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0);
-        cupos.put("cupoEmpresa", licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0);
-        cupos.put("cupoMilitar", licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0);
-        cupos.put("cupoDeportista", licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0);
-        cupos.put("totalCupos", (licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0) + 
-                                 (licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0) + 
-                                 (licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0) + 
-                                 (licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0));
-        cupos.put("diasRestantes", licencia.getDiasRestantes());
-        cupos.put("vencida", licencia.isVencida());
+        if (licenciasDisponibles.isEmpty()) {
+            log.warn("No hay licencias disponibles para el tipo de cliente: {}", tipoCliente);
+            return false;
+        }
+
+        // Buscar la licencia con más cupos disponibles
+        Licencia licenciaSeleccionada = licenciasDisponibles.stream()
+            .filter(l -> l.getCupoDisponible(tipoCliente) >= cupoSolicitado)
+            .findFirst()
+            .orElse(null);
+
+        if (licenciaSeleccionada == null) {
+            log.warn("No hay licencia con suficientes cupos para {}: solicitado {}, disponible {}", 
+                tipoCliente, cupoSolicitado, licenciasDisponibles.get(0).getCupoDisponible(tipoCliente));
+            return false;
+        }
+
+        // Crear el registro de consumo de cupos
+        GrupoImportacionCupo cupoConsumo = new GrupoImportacionCupo();
+        cupoConsumo.setGrupoImportacion(grupo);
+        cupoConsumo.setLicencia(licenciaSeleccionada);
+        cupoConsumo.setTipoCliente(tipoCliente);
+        cupoConsumo.setCupoConsumido(cupoSolicitado);
+        cupoConsumo.setCupoDisponibleLicencia(
+            licenciaSeleccionada.getCupoDisponible(tipoCliente) - cupoSolicitado);
+
+        // Guardar el consumo
+        grupoImportacionCupoRepository.save(cupoConsumo);
+
+        // Si es la primera vez que se usa esta licencia en este grupo, bloquearla
+        if (grupo.getLicencia() == null) {
+            grupo.setLicencia(licenciaSeleccionada);
+            licenciaSeleccionada.bloquear();
+            licenciaRepository.save(licenciaSeleccionada);
+        }
+
+        log.info("Cupos asignados exitosamente: {} {} a grupo {} usando licencia {}", 
+            cupoSolicitado, tipoCliente, grupo.getId(), licenciaSeleccionada.getNumero());
         
-        return cupos;
+        return true;
     }
-    
-    public Map<String, Object> asignarCliente(Long licenciaId, Long clienteId) {
-        Map<String, Object> resultado = new java.util.HashMap<>();
-        resultado.put("licenciaId", licenciaId);
-        resultado.put("clienteId", clienteId);
-        resultado.put("asignado", true);
-        resultado.put("fechaAsignacion", LocalDateTime.now());
+
+    /**
+     * Libera una licencia cuando se completa un grupo de importación
+     */
+    @Transactional
+    public void liberarLicencia(Long grupoImportacionId) {
+        List<GrupoImportacionCupo> cupos = grupoImportacionCupoRepository.findByGrupoImportacionId(grupoImportacionId);
         
-        return resultado;
+        if (!cupos.isEmpty()) {
+            Licencia licencia = cupos.get(0).getLicencia();
+            
+            // Eliminar todos los registros de consumo
+            grupoImportacionCupoRepository.deleteByGrupoImportacionId(grupoImportacionId);
+            
+            // Liberar la licencia
+            licencia.liberar();
+            licenciaRepository.save(licencia);
+            
+            log.info("Licencia {} liberada exitosamente del grupo {}", 
+                licencia.getNumero(), grupoImportacionId);
+        }
     }
-    
-    public void removerCliente(Long licenciaId, Long clienteId) {
-        // Obtener el cliente para cambiar su estado
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + clienteId));
-        
-        // Cambiar el estado del cliente a INACTIVO en lugar de eliminarlo físicamente
-        // Esto mantiene el historial y control de clientes creados
-        cliente.setEstado(EstadoCliente.INACTIVO);
-        cliente.setFechaActualizacion(LocalDateTime.now());
-        
-        // Guardar los cambios
-        clienteRepository.save(cliente);
-        
-        log.info("Cliente {} removido de licencia {} - Estado cambiado a INACTIVO", clienteId, licenciaId);
+
+    /**
+     * Verifica si una licencia puede ser asignada a un nuevo grupo
+     */
+    public boolean puedeSerAsignada(Long licenciaId) {
+        Optional<Licencia> licenciaOpt = licenciaRepository.findById(licenciaId);
+        return licenciaOpt.map(Licencia::puedeSerAsignada).orElse(false);
     }
-    
-    public Map<String, Object> getEstadisticasJefeVentas() {
-        Map<String, Object> estadisticas = new java.util.HashMap<>();
-        
-        estadisticas.put("totalLicencias", licenciaRepository.count());
-        estadisticas.put("licenciasActivas", licenciaRepository.findByEstado(EstadoLicencia.ACTIVA).size());
-        estadisticas.put("licenciasVencidas", licenciaRepository.findLicenciasVencidas(LocalDate.now()).size());
-        estadisticas.put("estadisticasPorEstado", licenciaRepository.countByEstado());
-        estadisticas.put("estadisticasCupos", licenciaRepository.getEstadisticasCupos());
-        
-        return estadisticas;
+
+    /**
+     * Obtiene el resumen de cupos de una licencia
+     */
+    public String getResumenCupos(Long licenciaId) {
+        Optional<Licencia> licenciaOpt = licenciaRepository.findById(licenciaId);
+        if (licenciaOpt.isPresent()) {
+            Licencia licencia = licenciaOpt.get();
+            return String.format("Licencia %s: Civiles=%d, Militares=%d, Empresas=%d, Deportistas=%d, Estado=%s", 
+                licencia.getNumero(),
+                licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0,
+                licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0,
+                licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0,
+                licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0,
+                licencia.getEstadoOcupacion());
+        }
+        return "Licencia no encontrada";
     }
 } 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Client } from '../types';
 import type { Arma } from '../hooks/useArmas';
 import { validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
@@ -128,12 +128,60 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
     // Si la arma tiene URL de imagen en la base de datos, usarla
     if (weapon.urlImagen && weapon.urlImagen.trim() !== '') {
       console.log(`🔍 Usando imagen de BD para ${weapon.codigo}: ${weapon.urlImagen}`);
-      return weapon.urlImagen;
+      // En desarrollo, Vite necesita rutas relativas sin la barra inicial
+      const imagePath = weapon.urlImagen.startsWith('/') ? weapon.urlImagen.substring(1) : weapon.urlImagen;
+      return imagePath;
     }
     
     // Si no hay URL en BD, usar imagen por defecto
     console.log(`🔍 No hay imagen en BD para ${weapon.codigo}, usando imagen por defecto`);
-    return '/images/weapons/default-weapon.jpg';
+    return 'images/weapons/default-weapon.jpg';
+  };
+
+  // Componente de imagen con placeholder
+  const WeaponImage = ({ weapon }: { weapon: Arma }) => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    
+    const handleImageLoad = () => {
+      console.log(`✅ Imagen cargada exitosamente: ${weapon.codigo} -> ${getWeaponImage(weapon)}`);
+      setImageLoaded(true);
+      setImageError(false);
+    };
+    
+    const handleImageError = () => {
+      console.log(`❌ Error cargando imagen para ${weapon.codigo}: ${getWeaponImage(weapon)}`);
+      setImageError(true);
+      setImageLoaded(false);
+    };
+    
+    return (
+      <div className="relative">
+        {/* Imagen del arma */}
+        {!imageError && (
+          <img 
+            src={getWeaponImage(weapon)}
+            alt={weapon.nombre} 
+            className="w-full h-48 object-cover rounded-t-2xl"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            style={{ display: imageLoaded ? 'block' : 'none' }}
+          />
+        )}
+        
+        {/* Placeholder SVG cuando no hay imagen o hay error */}
+        {(!imageLoaded || imageError) && (
+          <div className="w-full h-48 bg-gray-200 rounded-t-2xl flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <svg className="w-16 h-16 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm font-medium">Imagen no disponible</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
 
@@ -333,6 +381,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                   return (
                     <div 
                       key={weapon.id} 
+                      data-weapon-id={weapon.id}
                       className={`bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${
                         isSelected 
                           ? 'border-red-500 shadow-lg ring-4 ring-red-100' 
@@ -341,78 +390,13 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                     >
                                                {/* Imagen del arma */}
                          <div className="relative">
-                                                       {/* Imagen del arma desde la base de datos */}
-                                                         {/* Imagen del arma con múltiples formatos */}
-                                                         <picture>
-                                                           {/* Fuentes de imagen en orden de prioridad */}
-                                                           <source srcSet={`${getWeaponImage(weapon)}.webp`} type="image/webp" />
-                                                           <source srcSet={`${getWeaponImage(weapon)}.png`} type="image/png" />
-                                                           <source srcSet={`${getWeaponImage(weapon)}.jpg`} type="image/jpeg" />
-                                                           <source srcSet={`${getWeaponImage(weapon)}.jpeg`} type="image/jpeg" />
-                                                           <source srcSet={`${getWeaponImage(weapon)}.svg`} type="image/svg+xml" />
-                                                           <source srcSet={`${getWeaponImage(weapon)}.gif`} type="image/gif" />
-                                                           
-                                                           {/* Imagen principal con fallback */}
-                                                           <img 
-                                                             src={`${getWeaponImage(weapon)}.jpg`}
-                                                             alt={weapon.nombre} 
-                                                             className="w-full h-48 object-cover rounded-t-2xl"
-                                                             onLoad={() => console.log(`✅ Imagen cargada exitosamente: ${weapon.codigo} -> ${getWeaponImage(weapon)}`)}
-                                                             onError={(e) => {
-                                                               console.log(`❌ Error cargando imagen para ${weapon.codigo}:`, e);
-                                                               console.log(`❌ Ruta intentada: ${getWeaponImage(weapon)}`);
-                                                               
-                                                               // Intentar con otros formatos
-                                                               const target = e.target as HTMLImageElement;
-                                                               const currentSrc = target.src;
-                                                               const baseUrl = currentSrc.substring(0, currentSrc.lastIndexOf('.'));
-                                                               
-                                                               // Si falla JPG, intentar PNG
-                                                               if (currentSrc.endsWith('.jpg')) {
-                                                                 target.src = `${baseUrl}.png`;
-                                                                 return;
-                                                               }
-                                                               
-                                                               // Si falla PNG, intentar WebP
-                                                               if (currentSrc.endsWith('.png')) {
-                                                                 target.src = `${baseUrl}.webp`;
-                                                                 return;
-                                                               }
-                                                               
-                                                               // Si falla WebP, intentar SVG
-                                                               if (currentSrc.endsWith('.webp')) {
-                                                                 target.src = `${baseUrl}.svg`;
-                                                                 return;
-                                                               }
-                                                               
-                                                               // Si falla SVG, intentar GIF
-                                                               if (currentSrc.endsWith('.svg')) {
-                                                                 target.src = `${baseUrl}.gif`;
-                                                                 return;
-                                                               }
-                                                               
-                                                               // Si fallan todos, mostrar placeholder
-                                                               console.log(`❌ Todos los formatos fallaron para ${weapon.codigo}`);
-                                                               target.style.display = 'none';
-                                                               target.nextElementSibling?.classList.remove('hidden');
-                                                             }}
-                                                           />
-                                                         </picture>
-                           {/* Placeholder SVG cuando no hay imagen */}
-                           <div className="w-full h-48 bg-gray-200 rounded-t-2xl flex items-center justify-center hidden">
-                             <div className="text-center text-gray-500">
-                               <svg className="w-16 h-16 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                               </svg>
-                               <p className="text-sm font-medium">Imagen no disponible</p>
+                           <WeaponImage weapon={weapon} />
+                           {isSelected && (
+                             <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                               Seleccionado
                              </div>
-                           </div>
-                        {isSelected && (
-                          <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            Seleccionado
-                          </div>
-                        )}
-                      </div>
+                           )}
+                         </div>
 
                       {/* Información del arma */}
                       <div className="p-6">
