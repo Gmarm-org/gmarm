@@ -114,7 +114,7 @@ done
 if ! curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
     echo "⚠️  Backend puede estar aún iniciando..."
     echo "📋 Logs del backend:"
-    docker-compose -f $COMPOSE_FILE logs backend
+    docker-compose -f $COMPOSE_FILE logs backend_dev
 fi
 
 # Verificar que el frontend esté funcionando
@@ -131,7 +131,7 @@ done
 if ! curl -f http://localhost:5173 > /dev/null 2>&1; then
     echo "⚠️  Frontend puede estar aún iniciando..."
     echo "📋 Logs del frontend:"
-    docker-compose -f $COMPOSE_FILE logs frontend
+    docker-compose -f $COMPOSE_FILE logs frontend_dev
 fi
 
 # Mostrar estado final
