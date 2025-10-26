@@ -868,9 +868,9 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 1) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-        (1, 'Â¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-        (1, 'Â¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
-        (1, 'Â¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO');
+        (1, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
+        (1, '¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
+        (1, '¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO');
     END IF;
 END $$;
 
@@ -879,11 +879,11 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 2) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-        (2, 'Â¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-        (2, 'Â¿Tiene credencial Ispol o IsFA vigente?', true, 2, true, 'SI_NO'),
-        (2, 'Â¿Ya tiene firma electrónica habilitada?', true, 3, true, 'SI_NO'),
-        (2, 'Â¿Tiene certificado de servicio activo?', false, 4, true, 'SI_NO'),
-        (2, 'Â¿Ha tenido o tiene armas registradas?', true, 5, true, 'SI_NO');
+        (2, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
+        (2, '¿Tiene credencial Ispol o IsFA vigente?', true, 2, true, 'SI_NO'),
+        (2, '¿Ya tiene firma electrónica habilitada?', true, 3, true, 'SI_NO'),
+        (2, '¿Tiene certificado de servicio activo?', false, 4, true, 'SI_NO'),
+        (2, '¿Ha tenido o tiene armas registradas?', true, 5, true, 'SI_NO');
     END IF;
 END $$;
 
@@ -892,11 +892,11 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 3) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-        (3, 'Â¿Tiene nombramiento del representante legal vigente?', true, 1, true, 'SI_NO'),
-        (3, 'Â¿Tiene permiso de operaciones vigente?', true, 2, true, 'SI_NO'),
-        (3, 'Â¿Tiene autorización de tenencia de armas?', true, 3, true, 'SI_NO'),
-        (3, 'Â¿La empresa está registrada en el SRI?', true, 4, true, 'SI_NO'),
-        (3, 'Â¿Tiene RUC activo?', true, 5, true, 'SI_NO');
+        (3, '¿Tiene nombramiento del representante legal vigente?', true, 1, true, 'SI_NO'),
+        (3, '¿Tiene permiso de operaciones vigente?', true, 2, true, 'SI_NO'),
+        (3, '¿Tiene autorización de tenencia de armas?', true, 3, true, 'SI_NO'),
+        (3, '¿La empresa está registrada en el SRI?', true, 4, true, 'SI_NO'),
+        (3, '¿Tiene RUC activo?', true, 5, true, 'SI_NO');
     END IF;
 END $$;
 
@@ -905,9 +905,9 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 4) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-        (4, 'Â¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-        (4, 'Â¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
-        (4, 'Â¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO'),
+        (4, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
+        (4, '¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
+        (4, '¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO'),
         (4, 'Credencial de club deportivo vigente', true, 4, true, 'SI_NO'),
         (4, 'Credencial de tenencia de armas', true, 5, true, 'SI_NO');
     END IF;
