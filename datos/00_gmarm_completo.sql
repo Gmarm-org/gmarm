@@ -2,18 +2,18 @@
 -- GMARM - SCRIPT MAESTRO COMPLETO
 -- =====================================================
 -- Este script contiene TODO: esquema, datos y configuraciones
--- Es IDEMPOTENTE: se puede ejecutar mÃºltiples veces sin errores
+-- Es IDEMPOTENTE: se puede ejecutar múltiples veces sin errores
 -- Reemplaza todos los scripts individuales anteriores
 -- =====================================================
 
--- Configurar codificaciÃ³n UTF-8 para caracteres especiales
+-- Configurar codificación UTF-8 para caracteres especiales
 SET client_encoding = 'UTF8';
 
--- Corregir caracteres especiales que pueden corromperse durante la inserciÃ³n
+-- Corregir caracteres especiales que pueden corromperse durante la inserción
 -- (Esto asegura que los caracteres se muestren correctamente)
 
 -- =====================================================
--- 1. CREACIÃ“N DE TABLAS (si no existen)
+-- 1. CREACIÑ“N DE TABLAS (si no existen)
 -- =====================================================
 
 -- Tabla de roles
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de relaciÃ³n usuario-rol
+-- Tabla de relación usuario-rol
 CREATE TABLE IF NOT EXISTS usuario_rol (
     id BIGSERIAL PRIMARY KEY,
     usuario_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS tipo_cliente (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de tipos de identificaciÃ³n
+-- Tabla de tipos de identificación
 CREATE TABLE IF NOT EXISTS tipo_identificacion (
     id BIGSERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS tipo_proceso (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Agregar constraint de foreign key despuÃ©s de crear tipo_proceso (si no existe)
+-- Agregar constraint de foreign key después de crear tipo_proceso (si no existe)
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -110,7 +110,7 @@ BEGIN
     END IF;
 END $$;
 
--- Tabla de tipos de importaciÃ³n
+-- Tabla de tipos de importación
 CREATE TABLE IF NOT EXISTS tipo_importacion (
     id BIGSERIAL PRIMARY KEY,
     codigo VARCHAR(50),
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS tipo_importacion (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de relaciÃ³n tipo_cliente-importacion
+-- Tabla de relación tipo_cliente-importacion
 CREATE TABLE IF NOT EXISTS tipo_cliente_importacion (
     id BIGSERIAL PRIMARY KEY,
     tipo_cliente_id BIGINT NOT NULL REFERENCES tipo_cliente(id),
@@ -151,17 +151,17 @@ CREATE TABLE IF NOT EXISTS cliente (
     usuario_actualizador_id BIGINT REFERENCES usuario(id),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Campos para proceso de aprobaciÃ³n del jefe de ventas
+    -- Campos para proceso de aprobación del jefe de ventas
     proceso_completado BOOLEAN DEFAULT false,
     aprobado_por_jefe_ventas BOOLEAN DEFAULT NULL,
     motivo_rechazo VARCHAR(500) DEFAULT NULL,
     fecha_rechazo TIMESTAMP DEFAULT NULL,
-    -- Campos de ubicaciÃ³n
+    -- Campos de ubicación
     provincia VARCHAR(100),
     canton VARCHAR(100),
-    -- InformaciÃ³n de representante legal (para empresas)
+    -- Información de representante legal (para empresas)
     representante_legal VARCHAR(100),
-    -- InformaciÃ³n de empresa (solo para tipo empresa)
+    -- Información de empresa (solo para tipo empresa)
     ruc VARCHAR(13),
     nombre_empresa VARCHAR(255),
     direccion_fiscal VARCHAR(255),
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS cliente (
     correo_empresa VARCHAR(100),
     provincia_empresa VARCHAR(100),
     canton_empresa VARCHAR(100),
-    -- InformaciÃ³n militar (solo para uniformados - militares y policÃ­as, NULL para otros tipos)
+    -- Información militar (solo para uniformados - militares y policías, NULL para otros tipos)
     estado_militar VARCHAR(20) DEFAULT NULL,
     codigo_issfa VARCHAR(50) DEFAULT NULL,
     rango VARCHAR(100) DEFAULT NULL -- Rango militar/policial (opcional)
@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS documento_cliente (
     observaciones TEXT
 );
 
--- Tabla de categorÃ­as de armas (estructura simplificada)
+-- Tabla de categorías de armas (estructura simplificada)
 CREATE TABLE IF NOT EXISTS categoria_arma (
     id BIGSERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE,
@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS arma (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de imÃ¡genes de armas (mÃºltiples imÃ¡genes por arma)
+-- Tabla de imágenes de armas (múltiples imágenes por arma)
 CREATE TABLE IF NOT EXISTS arma_imagen (
     id BIGSERIAL PRIMARY KEY,
     arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,
@@ -277,7 +277,7 @@ CREATE TABLE IF NOT EXISTS arma_imagen (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ãndice para mejorar consultas de imÃ¡genes por arma
+-- Ñndice para mejorar consultas de imágenes por arma
 CREATE INDEX IF NOT EXISTS idx_arma_imagen_arma_id ON arma_imagen(arma_id);
 CREATE INDEX IF NOT EXISTS idx_arma_imagen_orden ON arma_imagen(arma_id, orden);
 
@@ -299,20 +299,20 @@ CREATE TABLE IF NOT EXISTS arma_stock (
     CONSTRAINT chk_arma_stock_precio_venta CHECK (precio_venta > 0)
 );
 
--- Tabla de nÃºmeros de serie de armas
--- Esta tabla almacena todos los nÃºmeros de serie Ãºnicos de armas fÃ­sicas
--- Se carga desde Excel y se asigna a clientes a travÃ©s de cliente_arma
--- NOTA: La foreign key a cliente_arma se agrega despuÃ©s de crear esa tabla
+-- Tabla de números de serie de armas
+-- Esta tabla almacena todos los números de serie únicos de armas físicas
+-- Se carga desde Excel y se asigna a clientes a través de cliente_arma
+-- NOTA: La foreign key a cliente_arma se agrega después de crear esa tabla
 CREATE TABLE IF NOT EXISTS arma_serie (
     id BIGSERIAL PRIMARY KEY,
-    numero_serie VARCHAR(100) UNIQUE NOT NULL,  -- NÃºmero de serie Ãºnico del arma fÃ­sica
-    arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,  -- Arma del catÃ¡logo
+    numero_serie VARCHAR(100) UNIQUE NOT NULL,  -- Número de serie único del arma física
+    arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,  -- Arma del catálogo
     estado VARCHAR(20) DEFAULT 'DISPONIBLE',  -- DISPONIBLE, ASIGNADO, VENDIDO, BAJA
-    fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- CuÃ¡ndo se cargÃ³ desde Excel
-    fecha_asignacion TIMESTAMP,  -- CuÃ¡ndo se asignÃ³ a un cliente
-    cliente_arma_id BIGINT,  -- RelaciÃ³n con la reserva del cliente (FK se agrega despuÃ©s)
-    usuario_asignador_id BIGINT REFERENCES usuario(id),  -- Usuario que asignÃ³ la serie
-    lote VARCHAR(50),  -- Lote o grupo de importaciÃ³n (opcional)
+    fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Cuándo se cargó desde Excel
+    fecha_asignacion TIMESTAMP,  -- Cuándo se asignó a un cliente
+    cliente_arma_id BIGINT,  -- Relación con la reserva del cliente (FK se agrega después)
+    usuario_asignador_id BIGINT REFERENCES usuario(id),  -- Usuario que asignó la serie
+    lote VARCHAR(50),  -- Lote o grupo de importación (opcional)
     observaciones TEXT,  -- Observaciones adicionales
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -321,11 +321,11 @@ CREATE TABLE IF NOT EXISTS arma_serie (
     CONSTRAINT chk_arma_serie_estado CHECK (estado IN ('DISPONIBLE', 'ASIGNADO', 'VENDIDO', 'BAJA'))
 );
 
--- Ãndices para optimizar bÃºsquedas (sin cliente_arma_id por ahora)
+-- Ñndices para optimizar búsquedas (sin cliente_arma_id por ahora)
 CREATE INDEX IF NOT EXISTS idx_arma_serie_arma_id ON arma_serie(arma_id);
 CREATE INDEX IF NOT EXISTS idx_arma_serie_estado ON arma_serie(estado);
 
--- Tabla de armas fÃ­sicas (referencia a arma simplificada)
+-- Tabla de armas físicas (referencia a arma simplificada)
 CREATE TABLE IF NOT EXISTS arma_fisica (
     id BIGSERIAL PRIMARY KEY,
     numero_serie VARCHAR(100) UNIQUE NOT NULL,
@@ -352,7 +352,7 @@ CREATE TABLE IF NOT EXISTS accesorio (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de accesorios fÃ­sicos
+-- Tabla de accesorios físicos
 CREATE TABLE IF NOT EXISTS accesorio_fisico (
     id BIGSERIAL PRIMARY KEY,
     numero_serie VARCHAR(100) UNIQUE NOT NULL,
@@ -368,7 +368,7 @@ CREATE TABLE IF NOT EXISTS accesorio_fisico (
 
 
 
--- Tabla de relaciÃ³n cliente-arma (cuando un cliente elige)
+-- Tabla de relación cliente-arma (cuando un cliente elige)
 CREATE TABLE IF NOT EXISTS cliente_arma (
     id BIGSERIAL PRIMARY KEY,
     cliente_id BIGINT NOT NULL REFERENCES cliente(id) ON DELETE CASCADE,
@@ -381,11 +381,11 @@ CREATE TABLE IF NOT EXISTS cliente_arma (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    -- Constraint para estados vÃ¡lidos
+    -- Constraint para estados válidos
     CONSTRAINT chk_cliente_arma_estado CHECK (estado IN ('DISPONIBLE', 'RESERVADA', 'ASIGNADA', 'CANCELADA', 'COMPLETADA'))
 );
 
--- Tabla de relaciÃ³n cliente-accesorio (cuando un cliente elige)
+-- Tabla de relación cliente-accesorio (cuando un cliente elige)
 CREATE TABLE IF NOT EXISTS cliente_accesorio (
     id BIGSERIAL PRIMARY KEY,
     cliente_id BIGINT NOT NULL REFERENCES cliente(id) ON DELETE CASCADE,
@@ -465,7 +465,7 @@ CREATE TABLE IF NOT EXISTS licencia (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de relaciÃ³n tipo_cliente_tipo_importacion
+-- Tabla de relación tipo_cliente_tipo_importacion
 CREATE TABLE IF NOT EXISTS tipo_cliente_tipo_importacion (
     tipo_cliente_id BIGINT NOT NULL REFERENCES tipo_cliente(id) ON DELETE CASCADE,
     tipo_importacion_id BIGINT NOT NULL REFERENCES tipo_importacion(id) ON DELETE CASCADE,
@@ -487,7 +487,7 @@ CREATE TABLE IF NOT EXISTS notificacion (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de configuraciÃ³n del sistema
+-- Tabla de configuración del sistema
 CREATE TABLE IF NOT EXISTS configuracion_sistema (
     id BIGSERIAL PRIMARY KEY,
     clave VARCHAR(100) UNIQUE NOT NULL,
@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS canton (
     provincia_id BIGINT NOT NULL REFERENCES provincia(id) ON DELETE CASCADE
 );
 
--- Tabla de grupos de importaciÃ³n
+-- Tabla de grupos de importación
 CREATE TABLE IF NOT EXISTS grupo_importacion (
     id BIGSERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
@@ -537,7 +537,7 @@ CREATE TABLE IF NOT EXISTS grupo_importacion (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de relaciÃ³n cliente-grupo de importaciÃ³n
+-- Tabla de relación cliente-grupo de importación
 CREATE TABLE IF NOT EXISTS cliente_grupo_importacion (
     id BIGSERIAL PRIMARY KEY,
     cliente_id BIGINT NOT NULL REFERENCES cliente(id) ON DELETE CASCADE,
@@ -549,19 +549,19 @@ CREATE TABLE IF NOT EXISTS cliente_grupo_importacion (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de cupos por tipo de cliente en grupo de importaciÃ³n
+-- Tabla de cupos por tipo de cliente en grupo de importación
 CREATE TABLE IF NOT EXISTS grupo_importacion_cupo (
     id BIGSERIAL PRIMARY KEY,
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
     licencia_id BIGINT NOT NULL REFERENCES licencia(id),
     tipo_cliente VARCHAR(20) NOT NULL, -- CIVIL, MILITAR, EMPRESA, DEPORTISTA
-    cupo_consumido INTEGER NOT NULL, -- CuÃ¡nto consume este grupo (25 civiles, 28 uniformados, etc.)
-    cupo_disponible_licencia INTEGER NOT NULL, -- CuÃ¡nto queda disponible en la licencia
+    cupo_consumido INTEGER NOT NULL, -- Cuánto consume este grupo (25 civiles, 28 uniformados, etc.)
+    cupo_disponible_licencia INTEGER NOT NULL, -- Cuánto queda disponible en la licencia
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de documentos del grupo de importaciÃ³n
+-- Tabla de documentos del grupo de importación
 CREATE TABLE IF NOT EXISTS documento_grupo_importacion (
     id BIGSERIAL PRIMARY KEY,
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
@@ -601,10 +601,10 @@ CREATE TABLE IF NOT EXISTS documento_generado (
 );
 
 -- =====================================================
--- 2. CREACIÃ“N DE ÃNDICES
+-- 2. CREACIÑ“N DE ÑNDICES
 -- =====================================================
 
--- Ãndices para mejorar rendimiento
+-- Ñndices para mejorar rendimiento
 CREATE INDEX IF NOT EXISTS idx_usuario_username ON usuario(username);
 CREATE INDEX IF NOT EXISTS idx_usuario_email ON usuario(email);
 CREATE INDEX IF NOT EXISTS idx_cliente_identificacion ON cliente(numero_identificacion);
@@ -617,7 +617,7 @@ CREATE INDEX IF NOT EXISTS idx_documento_grupo_importacion_grupo ON documento_gr
 CREATE INDEX IF NOT EXISTS idx_arma_fisica_numero_serie ON arma_fisica(numero_serie);
 CREATE INDEX IF NOT EXISTS idx_arma_fisica_estado ON arma_fisica(estado);
 
--- Ãndices para sistema de pagos
+-- Ñndices para sistema de pagos
 CREATE INDEX IF NOT EXISTS idx_pago_cliente ON pago(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_pago_estado ON pago(estado);
 CREATE INDEX IF NOT EXISTS idx_pago_tipo ON pago(tipo_pago);
@@ -630,7 +630,7 @@ CREATE INDEX IF NOT EXISTS idx_canton_provincia ON canton(provincia_id);
 CREATE INDEX IF NOT EXISTS idx_canton_codigo ON canton(codigo);
 
 -- =====================================================
--- 2. CONSTRAINTS ADICIONALES (despuÃ©s de crear todas las tablas)
+-- 2. CONSTRAINTS ADICIONALES (después de crear todas las tablas)
 -- =====================================================
 
 -- Agregar foreign key de arma_serie a cliente_arma (ahora que ya existe)
@@ -646,24 +646,24 @@ BEGIN
 END $$;
 
 -- =====================================================
--- 3. INSERCIÃ“N DE DATOS BASE (solo si no existen)
+-- 3. INSERCIÑ“N DE DATOS BASE (solo si no existen)
 -- =====================================================
 
 -- Insertar roles del sistema
 INSERT INTO rol (codigo, nombre, descripcion, tipo_rol_vendedor, estado) VALUES
 ('ADMIN', 'Administrador', 'Acceso completo al sistema', NULL, true),
-('VENDOR', 'Vendedor', 'Registro de clientes y selecciÃ³n de armas catÃ¡logo', 'LIBRE', true),
-('SALES_CHIEF', 'Jefe de Ventas', 'AprobaciÃ³n de solicitudes y creaciÃ³n de grupos de importaciÃ³n', 'FIJO', true),
-('FINANCE', 'Finanzas', 'GestiÃ³n de pagos y facturaciÃ³n', NULL, true),
-('OPERATIONS', 'Operaciones', 'GestiÃ³n de importaciÃ³n y documentaciÃ³n', NULL, true)
+('VENDOR', 'Vendedor', 'Registro de clientes y selección de armas catálogo', 'LIBRE', true),
+('SALES_CHIEF', 'Jefe de Ventas', 'Aprobación de solicitudes y creación de grupos de importación', 'FIJO', true),
+('FINANCE', 'Finanzas', 'Gestión de pagos y facturación', NULL, true),
+('OPERATIONS', 'Operaciones', 'Gestión de importación y documentación', NULL, true)
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar tipos de proceso PRIMERO (para las foreign keys)
 INSERT INTO tipo_proceso (nombre, codigo, descripcion, estado) VALUES
-('Cupo Civil', 'CUPO_CIV', 'Proceso para importaciÃ³n por cupo civil', true),
-('Extracupo Uniformado', 'EXC_MIL', 'Proceso para importaciÃ³n por extracupo militar/policial', true),
-('Extracupo Empresa', 'EXC_EMP', 'Proceso para importaciÃ³n por extracupo compaÃ±Ã­a de seguridad', true),
-('Cupo Deportista', 'CUPO_DEP', 'Proceso para importaciÃ³n por cupo civil deportista', true)
+('Cupo Civil', 'CUPO_CIV', 'Proceso para importación por cupo civil', true),
+('Extracupo Uniformado', 'EXC_MIL', 'Proceso para importación por extracupo militar/policial', true),
+('Extracupo Empresa', 'EXC_EMP', 'Proceso para importación por extracupo compañía de seguridad', true),
+('Cupo Deportista', 'CUPO_DEP', 'Proceso para importación por cupo civil deportista', true)
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar tipos de cliente
@@ -671,32 +671,32 @@ INSERT INTO tipo_cliente (nombre, codigo, descripcion, estado, es_militar, es_po
 ('Civil', 'CIV', 'Persona natural civil', true, false, false, false, false, true, false, 1),
 ('Militar Fuerza Terrestre', 'MIL', 'Personal activo de fuerzas armadas terrestre', true, true, false, false, false, false, true, 2),
 ('Militar Fuerza Naval', 'NAV', 'Personal activo de fuerzas armadas naval', true, true, false, false, false, false, true, 2),
-('Militar Fuerza AÃ©rea', 'AER', 'Personal activo de fuerzas armadas aÃ©reas', true, true, false, false, false, false, true, 2),
+('Militar Fuerza Aérea', 'AER', 'Personal activo de fuerzas armadas aéreas', true, true, false, false, false, false, true, 2),
 ('Uniformado Policial', 'POL', 'Personal activo de fuerza policial', true, false, true, false, false, false, false, 2),
-('CompaÃ±Ã­a de Seguridad', 'EMP', 'CompaÃ±Ã­a de seguridad privada', true, false, false, true, false, false, false, 3),
+('Compañía de Seguridad', 'EMP', 'Compañía de seguridad privada', true, false, false, true, false, false, false, 3),
 ('Deportista', 'DEP', 'Deportista', true, false, false, false, true, false, false, 4),
-('Militar Expoferia', 'EXP', 'Personal militar para expoferia con catÃ¡logo especial', true, true, false, false, false, false, true, 2)
+('Militar Expoferia', 'EXP', 'Personal militar para expoferia con catálogo especial', true, true, false, false, false, false, true, 2)
 ON CONFLICT (codigo) DO NOTHING;
 
--- Insertar tipos de identificaciÃ³n
+-- Insertar tipos de identificación
 INSERT INTO tipo_identificacion (nombre, codigo, descripcion, estado) VALUES
-('CÃ©dula de Identidad', 'CED', 'Documento de identificaciÃ³n personal', true),
-('RUC', 'RUC', 'Registro Ãšnico de Contribuyentes', true)
+('Cédula de Identidad', 'CED', 'Documento de identificación personal', true),
+('RUC', 'RUC', 'Registro Único de Contribuyentes', true)
 ON CONFLICT (codigo) DO NOTHING;
 
--- Insertar tipos de importaciÃ³n evitando duplicados
+-- Insertar tipos de importación evitando duplicados
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM tipo_importacion) THEN
         INSERT INTO tipo_importacion (nombre, cupo_maximo, descripcion, estado) VALUES
-        ('Cupo Civil', 25, 'ImportaciÃ³n regular para personas naturales civiles', true),
-        ('Extracupo Uniformado', 1000, 'ImportaciÃ³n especial para personal uniformado militar y policial', true),
-        ('Extracupo Compania', 1000, 'ImportaciÃ³n especial para empresas de seguridad', true),
-        ('Cupo Deportista', 1000, 'ImportaciÃ³n regular para deportistas', true);
+        ('Cupo Civil', 25, 'Importación regular para personas naturales civiles', true),
+        ('Extracupo Uniformado', 1000, 'Importación especial para personal uniformado militar y policial', true),
+        ('Extracupo Compania', 1000, 'Importación especial para empresas de seguridad', true),
+        ('Cupo Deportista', 1000, 'Importación regular para deportistas', true);
     END IF;
 END $$;
 
--- Insertar relaciÃ³n tipos de importacion con tipo de cliente
+-- Insertar relación tipos de importacion con tipo de cliente
 INSERT INTO tipo_cliente_importacion (tipo_cliente_id, tipo_importacion_id) VALUES
 (1, 1), (2, 2), (3, 2), (4, 2), (5, 2), (6, 3), (7, 1), (8, 2)
 ON CONFLICT DO NOTHING;
@@ -708,62 +708,62 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 1) THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento) VALUES
         -- Documentos para Cupo Civil
-        ('Copia de cÃ©dula', 'Copia legible de la cÃ©dula de identidad', true, 1, true, NULL),
-        ('Formulario de solicitud', 'Formulario completo de solicitud de importaciÃ³n', true, 1, true, NULL),
+        ('Copia de cédula', 'Copia legible de la cédula de identidad', true, 1, true, NULL),
+        ('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 1, true, NULL),
         -- Documentos universales para Cupo Civil
         ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 1, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/'),
         ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 1, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/'),
-        ('FiscalÃ­a', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 1, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
+        ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 1, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
         ('SATJE', 'Certificado de procesos judiciales', true, 1, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros');
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 2) THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento) VALUES
         -- Documentos para Extracupo Uniformado
-        ('Credencial militar/policial', 'Credencial vigente de instituciÃ³n armada o policial', true, 2, true, NULL),
+        ('Credencial militar/policial', 'Credencial vigente de institución armada o policial', true, 2, true, NULL),
         ('Certificado de servicio activo', 'Certificado de servicio activo vigente', true, 2, true, NULL),
-        ('Copia de cÃ©dula', 'Copia legible de la cÃ©dula de identidad', true, 2, true, NULL),
-        ('Formulario de solicitud', 'Formulario completo de solicitud de importaciÃ³n', true, 2, true, NULL),
+        ('Copia de cédula', 'Copia legible de la cédula de identidad', true, 2, true, NULL),
+        ('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 2, true, NULL),
         -- Documentos universales para Extracupo Uniformado
         ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 2, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/'),
         ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 2, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/'),
-        ('FiscalÃ­a', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 2, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
+        ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 2, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
         ('SATJE', 'Certificado de procesos judiciales', true, 2, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros');
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 3) THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento) VALUES
-        -- Documentos para Extracupo Empresa (solo especÃ­ficos, no universales)
-        ('CÃ©dula del representante legal', 'CÃ©dula del representante legal', true, 3, true, NULL),
-        ('Nombramiento representante legal', 'Documento que acredita representaciÃ³n legal', true, 3, true, NULL),
+        -- Documentos para Extracupo Empresa (solo específicos, no universales)
+        ('Cédula del representante legal', 'Cédula del representante legal', true, 3, true, NULL),
+        ('Nombramiento representante legal', 'Documento que acredita representación legal', true, 3, true, NULL),
         ('Permiso de funcionamiento', 'Permiso de funcionamiento vigente', true, 3, true, NULL),
         ('RUC de la empresa', 'RUC activo de la empresa', true, 3, true, NULL),
-        ('Formulario de solicitud', 'Formulario completo de solicitud de importaciÃ³n', true, 3, true, NULL);
+        ('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 3, true, NULL);
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 4) THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento) VALUES
         -- Documentos para Cupo Deportista
-        ('Copia de cÃ©dula', 'Copia legible de la cÃ©dula de identidad', true, 4, true, NULL),
-        ('Formulario de solicitud', 'Formulario completo de solicitud de importaciÃ³n', true, 4, true, NULL),
+        ('Copia de cédula', 'Copia legible de la cédula de identidad', true, 4, true, NULL),
+        ('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 4, true, NULL),
         ('Credencial de club deportivo', 'Credencial de club deportivo vigente', true, 4, true, NULL),
         ('Credencial de tenencia de armas', 'Credencial de tenencia de armas vigente', true, 4, true, NULL),
         -- Documentos universales para Cupo Deportista
         ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 4, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/'),
         ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 4, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/'),
-        ('FiscalÃ­a', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 4, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
+        ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 4, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
         ('SATJE', 'Certificado de procesos judiciales', true, 4, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros');
     END IF;
 END $$;
 
--- Insertar categorÃ­as de armas
+-- Insertar categorías de armas
 INSERT INTO categoria_arma (nombre, descripcion, codigo, estado, fecha_creacion) VALUES
-('PISTOLA', 'Armas cortas de puÃ±o', 'PIST', true, NOW()),
+('PISTOLA', 'Armas cortas de puño', 'PIST', true, NOW()),
 ('ESCOPETA', 'Armas largas para perdigones', 'ESCO', true, NOW()),
-('RIFLE', 'Armas largas de precisiÃ³n', 'RIFL', true, NOW())
+('RIFLE', 'Armas largas de precisión', 'RIFL', true, NOW())
 ON CONFLICT (codigo) DO NOTHING;
 
--- Insertar armas (CatÃ¡logo CZ real - basado en archivos existentes)
+-- Insertar armas (Catálogo CZ real - basado en archivos existentes)
 INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado) VALUES
 -- Pistolas CZ P09 (basadas en archivos reales)
 ('CZ-P09-C-NOCTURNE', 'CZ P09 C NOCTURNE', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
@@ -809,7 +809,7 @@ ON CONFLICT (codigo) DO NOTHING;
 -- =====================================================
 -- ARMAS DEL PLAN PILOTO EXPOFERIA 2025
 -- =====================================================
--- Insertar armas especÃ­ficas del plan piloto con campo expoferia
+-- Insertar armas específicas del plan piloto con campo expoferia
 INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado, expoferia) VALUES
 -- Arm as CZ P-10 Serie (Plan Piloto)
 ('CZ-P10-C-PLAN-PILOTO', 'CZ P-10 C', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true, 'EXPOFERIA_2025'),
@@ -869,19 +869,19 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 1) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
         (1, 'Â¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-        (1, 'Â¿La direcciÃ³n en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
+        (1, 'Â¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
         (1, 'Â¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO');
     END IF;
 END $$;
 
--- Preguntas para militares/policÃ­as (tipo_proceso_id = 2)
+-- Preguntas para militares/policías (tipo_proceso_id = 2)
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 2) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
         (2, 'Â¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
         (2, 'Â¿Tiene credencial Ispol o IsFA vigente?', true, 2, true, 'SI_NO'),
-        (2, 'Â¿Ya tiene firma electrÃ³nica habilitada?', true, 3, true, 'SI_NO'),
+        (2, 'Â¿Ya tiene firma electrónica habilitada?', true, 3, true, 'SI_NO'),
         (2, 'Â¿Tiene certificado de servicio activo?', false, 4, true, 'SI_NO'),
         (2, 'Â¿Ha tenido o tiene armas registradas?', true, 5, true, 'SI_NO');
     END IF;
@@ -894,8 +894,8 @@ BEGIN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
         (3, 'Â¿Tiene nombramiento del representante legal vigente?', true, 1, true, 'SI_NO'),
         (3, 'Â¿Tiene permiso de operaciones vigente?', true, 2, true, 'SI_NO'),
-        (3, 'Â¿Tiene autorizaciÃ³n de tenencia de armas?', true, 3, true, 'SI_NO'),
-        (3, 'Â¿La empresa estÃ¡ registrada en el SRI?', true, 4, true, 'SI_NO'),
+        (3, 'Â¿Tiene autorización de tenencia de armas?', true, 3, true, 'SI_NO'),
+        (3, 'Â¿La empresa está registrada en el SRI?', true, 4, true, 'SI_NO'),
         (3, 'Â¿Tiene RUC activo?', true, 5, true, 'SI_NO');
     END IF;
 END $$;
@@ -906,7 +906,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 4) THEN
         INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
         (4, 'Â¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-        (4, 'Â¿La direcciÃ³n en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
+        (4, 'Â¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
         (4, 'Â¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO'),
         (4, 'Credencial de club deportivo vigente', true, 4, true, 'SI_NO'),
         (4, 'Credencial de tenencia de armas', true, 5, true, 'SI_NO');
@@ -925,48 +925,48 @@ INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_c
 ('LIC006', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
--- Insertar configuraciÃ³n del sistema
+-- Insertar configuración del sistema
 INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ('EMAIL_NOTIFICACIONES', 'notificaciones@gmarm.com', 'Email para enviar notificaciones', true),
-('DIAS_VALIDEZ_DOCUMENTOS', '30', 'DÃ­as de validez para documentos subidos', true),
+('DIAS_VALIDEZ_DOCUMENTOS', '30', 'Días de validez para documentos subidos', true),
 ('PORCENTAJE_ANTICIPO', '40', 'Porcentaje de anticipo requerido', true),
 ('IVA', '15', 'Porcentaje de IVA aplicable', false),
-('EDAD_MINIMA_CLIENTE', '25', 'Edad mÃ­nima para clientes', false),
-('MAX_INTENTOS_LOGIN', '3', 'MÃ¡ximo intentos de login antes de bloquear', false),
-('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago vÃ¡lidos en el sistema', false),
-('MAX_CUOTAS_PERMITIDAS', '6', 'MÃ¡ximo nÃºmero de cuotas permitidas', false),
-('MIN_MONTO_CUOTA', '100.00', 'Monto mÃ­nimo por cuota', false),
-('EXPOFERIA_ACTIVA', 'true', 'Indica si la expoferia estÃ¡ activa y se deben mostrar solo armas de expoferia', true),
+('EDAD_MINIMA_CLIENTE', '25', 'Edad mínima para clientes', false),
+('MAX_INTENTOS_LOGIN', '3', 'Máximo intentos de login antes de bloquear', false),
+('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago válidos en el sistema', false),
+('MAX_CUOTAS_PERMITIDAS', '6', 'Máximo número de cuotas permitidas', false),
+('MIN_MONTO_CUOTA', '100.00', 'Monto mínimo por cuota', false),
+('EXPOFERIA_ACTIVA', 'true', 'Indica si la expoferia está activa y se deben mostrar solo armas de expoferia', true),
 ('EXPOFERIA_NOMBRE', 'EXPOFERIA_2025', 'Nombre de la expoferia actual', true)
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================
--- 4. INSERCIÃ“N DE DATOS DE LOCALIZACIÃ“N
+-- 4. INSERCIÑ“N DE DATOS DE LOCALIZACIÑ“N
 -- =====================================================
 
 -- =====================================================
--- SISTEMA DE PAGOS - EXPLICACIÃ“N
+-- SISTEMA DE PAGOS - EXPLICACIÑ“N
 -- =====================================================
 -- El sistema de pagos funciona de la siguiente manera:
 -- 
 -- 1. TABLA 'pago': Resumen del plan de pago del cliente
---    - monto_total: CuÃ¡nto debe pagar en total
+--    - monto_total: Cuánto debe pagar en total
 --    - tipo_pago: 'CONTADO' o 'CUOTAS'
---    - numero_cuotas: CuÃ¡ntas cuotas tiene (1 para contado)
+--    - numero_cuotas: Cuántas cuotas tiene (1 para contado)
 --    - monto_cuota: Monto de cada cuota
---    - monto_pagado: CuÃ¡nto ya pagÃ³
---    - monto_pendiente: CuÃ¡nto le falta (calculado automÃ¡ticamente)
---    - cuota_actual: En quÃ© cuota va el cliente
+--    - monto_pagado: Cuánto ya pagó
+--    - monto_pendiente: Cuánto le falta (calculado automáticamente)
+--    - cuota_actual: En qué cuota va el cliente
 -- 
 -- 2. TABLA 'cuota_pago': Detalle de cada cuota individual
 --    - pago_id: Referencia al plan de pago
---    - numero_cuota: NÃºmero de la cuota (1, 2, 3, 4, 5, 6)
---    - monto: Monto especÃ­fico de esta cuota
---    - fecha_vencimiento: CuÃ¡ndo vence
+--    - numero_cuota: Número de la cuota (1, 2, 3, 4, 5, 6)
+--    - monto: Monto específico de esta cuota
+--    - fecha_vencimiento: Cuándo vence
 --    - estado: 'PENDIENTE', 'PAGADA', 'VENCIDA'
---    - fecha_pago: CuÃ¡ndo se pagÃ³ (NULL si no se ha pagado)
+--    - fecha_pago: Cuándo se pagó (NULL si no se ha pagado)
 --    - referencia_pago: Referencia del pago (transferencia, etc.)
---    - usuario_confirmador_id: QuiÃ©n confirmÃ³ el pago
+--    - usuario_confirmador_id: Quién confirmó el pago
 -- 
 -- EJEMPLO DE USO:
 -- Cliente compra arma por $1200 en 3 cuotas:
@@ -976,26 +976,26 @@ ON CONFLICT (clave) DO NOTHING;
 -- =====================================================
 
 -- =====================================================
--- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACIÃ“N
+-- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACIÑ“N
 -- =====================================================
 -- El sistema de cupos funciona de la siguiente manera:
 -- 
 -- 1. TABLA 'licencia': Define los cupos disponibles por tipo de cliente
 --    - Todas las licencias son del mismo tipo: IMPORTACION_ARMAS
---    - cupo_civil: MÃ¡ximo 25 armas para clientes civiles
---    - cupo_militar: MÃ¡ximo 1000 armas para uniformados
---    - cupo_empresa: MÃ¡ximo 1000 armas para empresas de seguridad
---    - cupo_deportista: MÃ¡ximo 1000 armas para deportistas
+--    - cupo_civil: Máximo 25 armas para clientes civiles
+--    - cupo_militar: Máximo 1000 armas para uniformados
+--    - cupo_empresa: Máximo 1000 armas para empresas de seguridad
+--    - cupo_deportista: Máximo 1000 armas para deportistas
 --    - estado_ocupacion: 'DISPONIBLE' o 'BLOQUEADA'
 -- 
 -- 2. TABLA 'grupo_importacion_cupo': Controla el consumo de cupos por grupo
---    - licencia_id: QuÃ© licencia se estÃ¡ usando
---    - tipo_cliente: Para quÃ© tipo de cliente se consume
---    - cupo_consumido: CuÃ¡nto consume este grupo especÃ­fico
---    - cupo_disponible_licencia: CuÃ¡nto queda disponible en la licencia
+--    - licencia_id: Qué licencia se está usando
+--    - tipo_cliente: Para qué tipo de cliente se consume
+--    - cupo_consumido: Cuánto consume este grupo específico
+--    - cupo_disponible_licencia: Cuánto queda disponible en la licencia
 -- 
 -- FLUJO DE TRABAJO:
--- 1. Se crea un grupo de importaciÃ³n
+-- 1. Se crea un grupo de importación
 -- 2. Se asigna una licencia disponible (estado = 'DISPONIBLE')
 -- 3. La licencia pasa a estado 'BLOQUEADA'
 -- 4. Se registran los cupos consumidos por tipo de cliente
@@ -1013,27 +1013,27 @@ ON CONFLICT (clave) DO NOTHING;
 -- Insertar provincias de Ecuador
 INSERT INTO provincia (nombre, codigo, estado) VALUES
 ('Azuay', 'AZU', true),
-('BolÃ­var', 'BOL', true),
-('CaÃ±ar', 'CAN', true),
+('Bolívar', 'BOL', true),
+('Cañar', 'CAN', true),
 ('Carchi', 'CAR', true),
 ('Chimborazo', 'CHI', true),
 ('Cotopaxi', 'COT', true),
 ('El Oro', 'ORE', true),
 ('Esmeraldas', 'ESM', true),
-('GalÃ¡pagos', 'GAL', true),
+('Galápagos', 'GAL', true),
 ('Guayas', 'GUA', true),
 ('Imbabura', 'IMB', true),
 ('Loja', 'LOJ', true),
-('Los RÃ­os', 'LRI', true),
-('ManabÃ­', 'MAN', true),
+('Los Ríos', 'LRI', true),
+('Manabí', 'MAN', true),
 ('Morona Santiago', 'MSA', true),
 ('Napo', 'NAP', true),
 ('Orellana', 'ORE', true),
 ('Pastaza', 'PAS', true),
 ('Pichincha', 'PIC', true),
 ('Santa Elena', 'SEL', true),
-('Santo Domingo de los TsÃ¡chilas', 'SDT', true),
-('SucumbÃ­os', 'SUC', true),
+('Santo Domingo de los Tsáchilas', 'SDT', true),
+('Sucumbíos', 'SUC', true),
 ('Tungurahua', 'TUN', true),
 ('Zamora Chinchipe', 'ZCH', true)
 ON CONFLICT (codigo) DO NOTHING;
@@ -1046,54 +1046,54 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Paute', 'PAUT', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Chordeleg', 'CHOR', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Sigsig', 'SIGS', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
-('GirÃ³n', 'GIRON', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
+('Girón', 'GIRON', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('San Fernando', 'SFER', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Santa Isabel', 'SISA', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
-('NabÃ³n', 'NABO', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
-('OÃ±a', 'ONA', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
+('Nabón', 'NABO', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
+('Oña', 'ONA', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('El Pan', 'ELPA', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Sevilla de Oro', 'SEOR', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Guachapala', 'GUAC', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
-('Camilo Ponce EnrÃ­quez', 'CPEN', true, (SELECT id FROM provincia WHERE codigo = 'AZU'))
+('Camilo Ponce Enríquez', 'CPEN', true, (SELECT id FROM provincia WHERE codigo = 'AZU'))
 ON CONFLICT DO NOTHING;
 
--- BOLÃVAR
+-- BOLÑVAR
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Guaranda', 'GUAR', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('Chillanes', 'CHIL', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('Chimbo', 'CHIM', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
-('EcheandÃ­a', 'ECHE', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
+('Echeandía', 'ECHE', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('San Miguel', 'SMIG', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('Caluma', 'CALU', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('Las Naves', 'LNAV', true, (SELECT id FROM provincia WHERE codigo = 'BOL'))
 ON CONFLICT DO NOTHING;
 
--- CAÃ‘AR
+-- CAÑ‘AR
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Azogues', 'AZOG', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
-('CaÃ±ar', 'CAN', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
+('Cañar', 'CAN', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('La Troncal', 'LTRO', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('El Tambo', 'ETAM', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
-('DÃ©leg', 'DELE', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
+('Déleg', 'DELE', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('Suscal', 'SUSC', true, (SELECT id FROM provincia WHERE codigo = 'CAN'))
 ON CONFLICT DO NOTHING;
 
 -- CARCHI
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
-('TulcÃ¡n', 'TULC', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
-('MontÃºfar', 'MONT', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
+('Tulcán', 'TULC', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
+('Montúfar', 'MONT', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
 ('Espejo', 'ESPE', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
 ('Mira', 'MIRA', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
 ('San Pedro de Huaca', 'SPHU', true, (SELECT id FROM provincia WHERE codigo = 'CAR')),
-('BolÃ­var', 'BOLI', true, (SELECT id FROM provincia WHERE codigo = 'CAR'))
+('Bolívar', 'BOLI', true, (SELECT id FROM provincia WHERE codigo = 'CAR'))
 ON CONFLICT DO NOTHING;
 
 -- CHIMBORAZO
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Riobamba', 'RIOB', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
-('AlausÃ­', 'ALAU', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
+('Alausí', 'ALAU', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
 ('Colta', 'COLT', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
-('CumandÃ¡', 'CUMA', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
+('Cumandá', 'CUMA', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
 ('Guamote', 'GUAM', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
 ('Guano', 'GUAN', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
 ('Pallatanga', 'PALL', true, (SELECT id FROM provincia WHERE codigo = 'CHI')),
@@ -1104,11 +1104,11 @@ ON CONFLICT DO NOTHING;
 -- COTOPAXI
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Latacunga', 'LATA', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
-('La ManÃ¡', 'LMAN', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
+('La Maná', 'LMAN', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
 ('Pangua', 'PANG', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
-('PujilÃ­', 'PUJI', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
+('Pujilí', 'PUJI', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
 ('Salcedo', 'SALC', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
-('SaquisilÃ­', 'SAQU', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
+('Saquisilí', 'SAQU', true, (SELECT id FROM provincia WHERE codigo = 'COT')),
 ('Sigchos', 'SIGC', true, (SELECT id FROM provincia WHERE codigo = 'COT'))
 ON CONFLICT DO NOTHING;
 
@@ -1121,9 +1121,9 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Chilla', 'CHIL', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
 ('El Guabo', 'EGUA', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
 ('Huaquillas', 'HUAQ', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
-('MarcabelÃ­', 'MARC', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
+('Marcabelí', 'MARC', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
 ('Pasaje', 'PASA', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
-('PiÃ±as', 'PINAS', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
+('Piñas', 'PINAS', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
 ('Portovelo', 'PORTO', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
 ('Santa Rosa', 'SROS', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
 ('Zaruma', 'ZARU', true, (SELECT id FROM provincia WHERE codigo = 'ORE')),
@@ -1135,15 +1135,15 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Esmeraldas', 'ESME', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
 ('Eloy Alfaro', 'EALF', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
 ('Muisne', 'MUIS', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
-('QuinindÃ©', 'QUIN', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
+('Quinindé', 'QUIN', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
 ('San Lorenzo', 'SLOR', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
 ('Atacames', 'ATAC', true, (SELECT id FROM provincia WHERE codigo = 'ESM')),
 ('Rioverde', 'RIOV', true, (SELECT id FROM provincia WHERE codigo = 'ESM'))
 ON CONFLICT DO NOTHING;
 
--- GALÃPAGOS
+-- GALÑPAGOS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
-('San CristÃ³bal', 'SCRI', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
+('San Cristóbal', 'SCRI', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
 ('Isabela', 'ISAB', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
 ('Santa Cruz', 'SCRU', true, (SELECT id FROM provincia WHERE codigo = 'GAL'))
 ON CONFLICT DO NOTHING;
@@ -1156,7 +1156,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Balzar', 'BALZ', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Colimes', 'COLI', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Daule', 'DAUL', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
-('DurÃ¡n', 'DURA', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
+('Durán', 'DURA', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('El Triunfo', 'ETRI', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Empalme', 'EMPA', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('El Empalme', 'EEMP', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
@@ -1169,14 +1169,14 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Pedro Carbo', 'PCAR', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Playas', 'PLAY', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Salitre', 'SALI', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
-('SamborondÃ³n', 'SAMB', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
-('Santa LucÃ­a', 'SLUC', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
-('SimÃ³n BolÃ­var', 'SBOL', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
+('Samborondón', 'SAMB', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
+('Santa Lucía', 'SLUC', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
+('Simón Bolívar', 'SBOL', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Yaguachi', 'YAGU', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('General Antonio Elizalde', 'GAEL', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Isidro Ayora', 'IAYO', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
 ('Lomas de Sargentillo', 'LSAR', true, (SELECT id FROM provincia WHERE codigo = 'GUA')),
-('Marcelo MaridueÃ±a', 'MMAR', true, (SELECT id FROM provincia WHERE codigo = 'GUA'))
+('Marcelo Maridueña', 'MMAR', true, (SELECT id FROM provincia WHERE codigo = 'GUA'))
 ON CONFLICT DO NOTHING;
 
 -- IMBABURA
@@ -1186,7 +1186,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Cotacachi', 'COTA', true, (SELECT id FROM provincia WHERE codigo = 'IMB')),
 ('Otavalo', 'OTAV', true, (SELECT id FROM provincia WHERE codigo = 'IMB')),
 ('Pimampiro', 'PIMA', true, (SELECT id FROM provincia WHERE codigo = 'IMB')),
-('San Miguel de UrcuquÃ­', 'SMUR', true, (SELECT id FROM provincia WHERE codigo = 'IMB'))
+('San Miguel de Urcuquí', 'SMUR', true, (SELECT id FROM provincia WHERE codigo = 'IMB'))
 ON CONFLICT DO NOTHING;
 
 -- LOJA
@@ -1196,9 +1196,9 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Catamayo', 'CATA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Celica', 'CELI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Chaguarpamba', 'CHAG', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
-('EspÃ­ndola', 'ESPI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
-('GonzanamÃ¡', 'GONZ', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
-('MacarÃ¡', 'MACA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
+('Espíndola', 'ESPI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
+('Gonzanamá', 'GONZ', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
+('Macará', 'MACA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Paltas', 'PALT', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Puyango', 'PUYA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Saraguro', 'SARA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
@@ -1209,7 +1209,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Olmedo', 'OLME', true, (SELECT id FROM provincia WHERE codigo = 'LOJ'))
 ON CONFLICT DO NOTHING;
 
--- LOS RÃOS
+-- LOS RÑOS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Babahoyo', 'BABA', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Baba', 'BAB', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
@@ -1218,7 +1218,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Quevedo', 'QUEV', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Urdaneta', 'URDA', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Ventanas', 'VENT', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
-('VÃ­nces', 'VINC', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
+('Vínces', 'VINC', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Palenque', 'PALE', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Buena Fe', 'BFEE', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Valencia', 'VALE', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
@@ -1226,18 +1226,18 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Quinsaloma', 'QUIN', true, (SELECT id FROM provincia WHERE codigo = 'LRI'))
 ON CONFLICT DO NOTHING;
 
--- MANABÃ
+-- MANABÑ
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Portoviejo', 'PORTO', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
-('BolÃ­var', 'BOLI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
+('Bolívar', 'BOLI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Chone', 'CHON', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('El Carmen', 'ECAR', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Flavio Alfaro', 'FALF', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Jipijapa', 'JIPI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
-('JunÃ­n', 'JUNI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
+('Junín', 'JUNI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Manta', 'MANT', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Montecristi', 'MONC', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
-('PajÃ¡n', 'PAJA', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
+('Paján', 'PAJA', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Pichincha', 'PICH', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Rocafuerte', 'ROCA', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Santa Ana', 'SANA', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
@@ -1246,9 +1246,9 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('24 de Mayo', '24MA', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Pedernales', 'PEDE', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Olmedo', 'OLME', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
-('Puerto LÃ³pez', 'PLOP', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
+('Puerto López', 'PLOP', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Jama', 'JAMA', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
-('JaramijÃ³', 'JARJ', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
+('Jaramijó', 'JARJ', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('San Vicente', 'SVIC', true, (SELECT id FROM provincia WHERE codigo = 'MAN'))
 ON CONFLICT DO NOTHING;
 
@@ -1259,11 +1259,11 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Limon Indanza', 'LIND', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('Palora', 'PALO', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('Santiago', 'SANT', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
-('SucÃºa', 'SUCU', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
+('Sucúa', 'SUCU', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('Huamboya', 'HUAM', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('San Juan Bosco', 'SJBO', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('Taisha', 'TAIS', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
-('LogroÃ±o', 'LOGR', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
+('Logroño', 'LOGR', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('Pablo Sexto', 'PSEX', true, (SELECT id FROM provincia WHERE codigo = 'MSA')),
 ('Tiwintza', 'TIWI', true, (SELECT id FROM provincia WHERE codigo = 'MSA'))
 ON CONFLICT DO NOTHING;
@@ -1297,9 +1297,9 @@ ON CONFLICT DO NOTHING;
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Quito', 'QUIT', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
 ('Cayambe', 'CAYA', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
-('MejÃ­a', 'MEJI', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
+('Mejía', 'MEJI', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
 ('Pedro Moncayo', 'PMON', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
-('RumiÃ±ahui', 'RUMI', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
+('Rumiñahui', 'RUMI', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
 ('San Miguel de los Bancos', 'SMB', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
 ('Pedro Vicente Maldonado', 'PVMA', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
 ('Puerto Quito', 'PQUI', true, (SELECT id FROM provincia WHERE codigo = 'PIC'))
@@ -1312,13 +1312,13 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Salinas', 'SALI', true, (SELECT id FROM provincia WHERE codigo = 'SEL'))
 ON CONFLICT DO NOTHING;
 
--- SANTO DOMINGO DE LOS TSÃCHILAS
+-- SANTO DOMINGO DE LOS TSÑCHILAS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Santo Domingo', 'SDOM', true, (SELECT id FROM provincia WHERE codigo = 'SDT')),
 ('La Concordia', 'LCON', true, (SELECT id FROM provincia WHERE codigo = 'SDT'))
 ON CONFLICT DO NOTHING;
 
--- SUCUMBÃOS
+-- SUCUMBÑOS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Nueva Loja', 'NLOJ', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
 ('Cascales', 'CASC', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
@@ -1327,19 +1327,19 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Lago Agrio', 'LAGO', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
 ('Putumayo', 'PUTU', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
 ('Shushufindi', 'SHUS', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
-('SucumbÃ­os', 'SUCU', true, (SELECT id FROM provincia WHERE codigo = 'SUC'))
+('Sucumbíos', 'SUCU', true, (SELECT id FROM provincia WHERE codigo = 'SUC'))
 ON CONFLICT DO NOTHING;
 
 -- TUNGURAHUA
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Ambato', 'AMBA', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
-('BaÃ±os de Agua Santa', 'BANO', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
+('Baños de Agua Santa', 'BANO', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('Cevallos', 'CEVA', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('Mocha', 'MOCH', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('Patate', 'PATA', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('Quero', 'QUER', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('San Pedro de Pelileo', 'SPPE', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
-('Santiago de PÃ­llaro', 'SDPI', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
+('Santiago de Píllaro', 'SDPI', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('Tisaleo', 'TISA', true, (SELECT id FROM provincia WHERE codigo = 'TUN')),
 ('Pelileo', 'PELI', true, (SELECT id FROM provincia WHERE codigo = 'TUN'))
 ON CONFLICT DO NOTHING;
@@ -1352,12 +1352,12 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Yacuambi', 'YACU', true, (SELECT id FROM provincia WHERE codigo = 'ZCH')),
 ('Yantzaza', 'YANT', true, (SELECT id FROM provincia WHERE codigo = 'ZCH')),
 ('El Pangui', 'EPAN', true, (SELECT id FROM provincia WHERE codigo = 'ZCH')),
-('Centinela del CÃ³ndor', 'CCON', true, (SELECT id FROM provincia WHERE codigo = 'ZCH')),
+('Centinela del Cóndor', 'CCON', true, (SELECT id FROM provincia WHERE codigo = 'ZCH')),
 ('Palanda', 'PALA', true, (SELECT id FROM provincia WHERE codigo = 'ZCH'))
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
--- 5. INSERCIÃ“N DE USUARIOS (solo si no existen)
+-- 5. INSERCIÑ“N DE USUARIOS (solo si no existen)
 -- =====================================================
 
 -- Usuario administrador (password: admin123)
@@ -1368,7 +1368,7 @@ ON CONFLICT (username) DO NOTHING;
 -- Usuarios de prueba (password: admin123)
 INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, username, apellidos, email, nombres, direccion, password_hash) VALUES
 (false, 0, NOW(), '0987654321', 'ACTIVO', 'vendedor', 'Vendedor', 'vendedor@test.com', 'Juan', 'Guayaquil, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654322', 'ACTIVO', 'jefe', 'Jefe Ventas', 'jefe@test.com', 'MarÃ­a', 'Quito, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654322', 'ACTIVO', 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
 (false, 0, NOW(), '0987654323', 'ACTIVO', 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
 (false, 0, NOW(), '0987654324', 'ACTIVO', 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123')
 ON CONFLICT (username) DO NOTHING;
@@ -1384,7 +1384,7 @@ ON CONFLICT (usuario_id, rol_id) DO NOTHING;
 
 
 -- =====================================================
--- 5.5. MIGRACIÃ“N DE IMÃGENES (url_imagen â†’ arma_imagen)
+-- 5.5. MIGRACIÑ“N DE IMÑGENES (url_imagen â†’ arma_imagen)
 -- =====================================================
 
 -- Migrar todas las url_imagen existentes a la tabla arma_imagen
@@ -1423,16 +1423,16 @@ WHERE NOT EXISTS (
 
 
 -- =====================================================
--- 6. VERIFICACIÃ“N FINAL
+-- 6. VERIFICACIÑ“N FINAL
 -- =====================================================
 
 -- Mostrar resumen de lo creado
-SELECT '=== RESUMEN DE INSTALACIÃ“N ===' as info;
+SELECT '=== RESUMEN DE INSTALACIÑ“N ===' as info;
 SELECT 'Usuarios creados:' as info, COUNT(*) as total FROM usuario;
 SELECT 'Roles creados:' as info, COUNT(*) as total FROM rol;
 SELECT 'Tipos de cliente:' as info, COUNT(*) as total FROM tipo_cliente;
 SELECT 'Tipos de proceso:' as info, COUNT(*) as total FROM tipo_proceso;
-SELECT 'CategorÃ­as de armas:' as info, COUNT(*) as total FROM categoria_arma;
+SELECT 'Categorías de armas:' as info, COUNT(*) as total FROM categoria_arma;
 SELECT 'Armas:' as info, COUNT(*) as total FROM arma;
 SELECT 'Licencias:' as info, COUNT(*) as total FROM licencia;
 SELECT 'Provincias:' as info, COUNT(*) as total FROM provincia;
@@ -1446,8 +1446,8 @@ SELECT 'Jefe Ventas:' as usuario, 'jefe@test.com / admin123' as credenciales;
 SELECT 'Finanzas:' as usuario, 'finanzas@test.com / admin123' as credenciales;
 SELECT 'Operaciones:' as usuario, 'operaciones@test.com / admin123' as credenciales;
 
-SELECT '=== INSTALACIÃ“N COMPLETADA ===' as info;
-SELECT 'La base de datos estÃ¡ lista para usar con el frontend.' as mensaje;
+SELECT '=== INSTALACIÑ“N COMPLETADA ===' as info;
+SELECT 'La base de datos está lista para usar con el frontend.' as mensaje;
 
 -- ========================================
 -- DATOS ADICIONALES PARA DESARROLLO
