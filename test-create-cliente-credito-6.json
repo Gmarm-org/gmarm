@@ -1,0 +1,42 @@
+{
+  "cliente": {
+    "numeroIdentificacion": "1234567912",
+    "nombres": "Carlos Alberto",
+    "apellidos": "Martinez Gonzalez",
+    "tipoIdentificacionCodigo": "CED",
+    "tipoClienteCodigo": "EXP",
+    "fechaNacimiento": "1990-03-15",
+    "direccion": "Avenida Principal 456",
+    "provincia": "Pichincha",
+    "canton": "Quito",
+    "email": "carlos.martinez@email.com",
+    "telefonoPrincipal": "0987654330",
+    "telefonoSecundario": "0987654331",
+    "estadoMilitar": "ACTIVO",
+    "codigoIssfa": "7"
+  },
+  "arma": {
+    "armaId": 1,
+    "cantidad": 1,
+    "precioUnitario": 1200.00
+  },
+  "pago": {
+    "metodoPagoCodigo": "CREDITO",
+    "montoTotal": 1380.00,
+    "montoPagado": 230.00,
+    "numeroCuotas": 6,
+    "montoCuota": 230.00,
+    "observaciones": "Cliente con credito a 6 cuotas"
+  },
+  "respuestas": [
+    {
+      "preguntaId": 1,
+      "respuesta": "SI"
+    },
+    {
+      "preguntaId": 2,
+      "respuesta": "NO"
+    }
+  ]
+}
+

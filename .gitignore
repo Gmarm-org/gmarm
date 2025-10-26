@@ -1,0 +1,17 @@
+# Archivos generados dinámicamente
+documentacion/
+
+# PDFs de prueba
+*.pdf
+!datos/*.pdf
+
+# Carpetas de uploads
+uploads/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+

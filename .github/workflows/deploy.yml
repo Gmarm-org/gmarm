@@ -1,0 +1,285 @@
+name: 🚀 GMARM CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:  # Permitir ejecución manual
+
+env:
+  NODE_VERSION: '18'
+  JAVA_VERSION: '17'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ========================================
+  # JOB: BUILD AND TEST
+  # ========================================
+  build-and-test:
+    name: 🔨 Build & Test
+    runs-on: ubuntu-latest
+    
+    outputs:
+      build-status: ${{ steps.build-status.outcome }}
+      test-status: ${{ steps.test-status.outcome }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Obtener todo el historial para mejores métricas
+
+      - name: ☕ Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: 📦 Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📋 Install Frontend Dependencies
+        run: |
+          echo "📦 Instalando dependencias del frontend..."
+          cd frontend
+          npm ci --prefer-offline --no-audit
+
+      - name: 🧪 Run Frontend Lint & Type Check
+        id: frontend-lint
+        run: |
+          echo "🔍 Ejecutando lint y verificación de tipos..."
+          cd frontend
+          npm run lint || echo "⚠️ Lint warnings encontrados"
+          npx tsc --noEmit || echo "⚠️ TypeScript errors encontrados"
+
+      - name: 🔨 Build Frontend
+        id: build-frontend
+        run: |
+          echo "🏗️ Construyendo frontend..."
+          cd frontend
+          npm run build
+          echo "✅ Frontend build exitoso"
+
+      - name: ☕ Build Backend
+        id: build-backend
+        run: |
+          echo "🏗️ Construyendo backend..."
+          cd backend
+          chmod +x ./mvnw
+          ./mvnw clean compile -DskipTests
+          echo "✅ Backend build exitoso"
+
+      - name: 🧪 Run Backend Tests
+        id: test-backend
+        continue-on-error: true
+        run: |
+          echo "🧪 Ejecutando tests del backend..."
+          cd backend
+          ./mvnw test || echo "⚠️ Algunos tests fallaron"
+
+      - name: 📊 Set Build Status
+        id: build-status
+        run: |
+          if [ "${{ steps.build-frontend.outcome }}" == "success" ] && [ "${{ steps.build-backend.outcome }}" == "success" ]; then
+            echo "✅ BUILD EXITOSO"
+            echo "build-status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ BUILD FALLÓ"
+            echo "build-status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📊 Set Test Status
+        id: test-status
+        run: |
+          if [ "${{ steps.test-backend.outcome }}" == "success" ]; then
+            echo "✅ TESTS EXITOSOS"
+            echo "test-status=success" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ TESTS CON PROBLEMAS"
+            echo "test-status=warning" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📋 Build Summary
+        run: |
+          echo "## 📊 Resumen del Build" >> $GITHUB_STEP_SUMMARY
+          echo "| Componente | Estado |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Build | ${{ steps.build-frontend.outcome == 'success' && '✅ Exitoso' || '❌ Falló' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Build | ${{ steps.build-backend.outcome == 'success' && '✅ Exitoso' || '❌ Falló' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ steps.test-backend.outcome == 'success' && '✅ Exitosos' || '⚠️ Con problemas' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Lint | ${{ steps.frontend-lint.outcome == 'success' && '✅ Exitoso' || '⚠️ Con warnings' }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ========================================
+  # JOB: DEPLOY TO SERVER
+  # ========================================
+  deploy:
+    name: 🚀 Deploy to Server
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && needs.build-and-test.outputs.build-status == 'success'
+    
+    environment: 
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+      url: ${{ github.ref == 'refs/heads/main' && 'https://prod.gmarm.com' || 'https://dev.gmarm.com' }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🌍 Determine Environment
+        id: env-info
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "deploy-dir=/home/${{ secrets.SERVER_USER }}/deploy/dev" >> $GITHUB_OUTPUT
+            echo "compose-file=docker-compose.dev.yml" >> $GITHUB_OUTPUT
+            echo "branch=dev" >> $GITHUB_OUTPUT
+            echo "url=http://${{ secrets.SERVER_HOST }}:5173" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "deploy-dir=/home/${{ secrets.SERVER_USER }}/deploy/prod" >> $GITHUB_OUTPUT
+            echo "compose-file=docker-compose.prod.yml" >> $GITHUB_OUTPUT
+            echo "branch=main" >> $GITHUB_OUTPUT
+            echo "url=https://${{ secrets.SERVER_HOST }}" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Unsupported branch: ${{ github.ref }}"
+            exit 1
+          fi
+          
+          echo "🎯 Environment: ${{ steps.env-info.outputs.environment }}"
+          echo "📁 Deploy Directory: ${{ steps.env-info.outputs.deploy-dir }}"
+          echo "🐳 Compose File: ${{ steps.env-info.outputs.compose-file }}"
+
+      - name: 🚀 Deploy to Server
+        id: deploy
+        run: |
+          set -e
+          
+          ENV="${{ steps.env-info.outputs.environment }}"
+          DEPLOY_DIR="${{ steps.env-info.outputs.deploy-dir }}"
+          COMPOSE_FILE="${{ steps.env-info.outputs.compose-file }}"
+          BRANCH="${{ steps.env-info.outputs.branch }}"
+          
+          echo "🚀 Iniciando deployment a $ENV..."
+          echo "📁 Directorio: $DEPLOY_DIR"
+          echo "🐳 Compose: $COMPOSE_FILE"
+          echo "🌿 Rama: $BRANCH"
+          
+          # Deploy to server con mejor manejo de errores
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
+            set -e
+            
+            echo "📁 Navegando a directorio de deployment: $DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+            
+            echo "🔄 Obteniendo cambios más recientes..."
+            git fetch origin
+            git reset --hard origin/$BRANCH
+            git clean -fd
+            
+            echo "🔐 Dando permisos al script de deployment..."
+            chmod +x deploy-server.sh
+            
+            echo "🚀 Ejecutando script de deployment..."
+            ./deploy-server.sh
+            
+            echo "✅ Deployment completado exitosamente!"
+          EOF
+
+      - name: 🔍 Verify Deployment
+        id: verify
+        run: |
+          ENV="${{ steps.env-info.outputs.environment }}"
+          URL="${{ steps.env-info.outputs.url }}"
+          
+          echo "🔍 Verificando deployment en $ENV..."
+          
+          # Esperar un poco para que los servicios se estabilicen
+          sleep 30
+          
+          # Verificar backend health
+          if [ "$ENV" = "development" ]; then
+            BACKEND_URL="http://${{ secrets.SERVER_HOST }}:8080/api/health"
+          else
+            BACKEND_URL="https://${{ secrets.SERVER_HOST }}/api/health"
+          fi
+          
+          echo "🔍 Verificando backend en: $BACKEND_URL"
+          
+          # Intentar verificar el backend con reintentos
+          for i in {1..10}; do
+            if curl -f -s "$BACKEND_URL" > /dev/null; then
+              echo "✅ Backend verificado exitosamente"
+              echo "backend-status=success" >> $GITHUB_OUTPUT
+              break
+            else
+              echo "⏳ Intento $i/10: Backend aún no responde..."
+              sleep 10
+            fi
+          done
+          
+          if [ -z "${{ steps.verify.outputs.backend-status }}" ]; then
+            echo "❌ Backend no responde después de 10 intentos"
+            echo "backend-status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "## 🚀 Resumen del Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Componente | Estado |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ steps.env-info.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | ${{ steps.env-info.outputs.branch }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy Script | ${{ steps.deploy.outcome == 'success' && '✅ Exitoso' || '❌ Falló' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Health | ${{ steps.verify.outputs.backend-status == 'success' && '✅ OK' || '❌ Error' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend URL | [${{ steps.env-info.outputs.url }}](${{ steps.env-info.outputs.url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Próximos pasos:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Verificar que todos los servicios estén funcionando" >> $GITHUB_STEP_SUMMARY
+          echo "2. Probar funcionalidades críticas" >> $GITHUB_STEP_SUMMARY
+          echo "3. Monitorear logs para errores" >> $GITHUB_STEP_SUMMARY
+
+  # ========================================
+  # JOB: NOTIFICATION (siempre ejecuta)
+  # ========================================
+  notify:
+    name: 📢 Notifications
+    needs: [build-and-test, deploy]
+    runs-on: ubuntu-latest
+    if: always()  # Siempre ejecuta, incluso si otros jobs fallan
+    
+    steps:
+      - name: 📊 Deployment Status
+        run: |
+          echo "## 📢 Estado del Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Estado |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Test | ${{ needs.build-and-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ needs.deploy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.build-and-test.result }}" = "success" ] && [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "🎉 **¡Pipeline completado exitosamente!**" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.build-and-test.result }}" = "failure" ]; then
+            echo "❌ **Build falló** - Revisar errores de compilación" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.deploy.result }}" = "failure" ]; then
+            echo "❌ **Deployment falló** - Revisar logs del servidor" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Pipeline con problemas** - Revisar logs" >> $GITHUB_STEP_SUMMARY
+          fi

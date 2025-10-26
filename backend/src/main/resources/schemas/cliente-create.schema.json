@@ -1,0 +1,254 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClienteCreateRequest",
+  "description": "Esquema para la creación de clientes en el sistema GMARM - BASADO EN EL FRONTEND",
+  "type": "object",
+  "required": [
+    "nombres",
+    "apellidos", 
+    "numeroIdentificacion",
+    "tipoIdentificacion",
+    "tipoCliente",
+    "direccion",
+    "email",
+    "telefonoPrincipal",
+    "provincia",
+    "canton"
+  ],
+  "properties": {
+    "nombres": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100,
+      "pattern": "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$",
+      "description": "Nombres del cliente (solo letras y espacios)"
+    },
+    "apellidos": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100,
+      "pattern": "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$",
+      "description": "Apellidos del cliente (solo letras y espacios)"
+    },
+    "numeroIdentificacion": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 13,
+      "pattern": "^[0-9]+$",
+      "description": "Número de identificación (cédula de 10 dígitos o RUC de 13 dígitos)"
+    },
+    "tipoIdentificacion": {
+      "type": "string",
+      "enum": ["Cédula", "RUC"],
+      "description": "Tipo de identificación del cliente"
+    },
+    "tipoCliente": {
+      "type": "string",
+      "enum": ["Civil", "Militar Fuerza Terrestre", "Militar Fuerza Naval", "Militar Fuerza Aerea", "Militar Expoferia", "Uniformado Policial", "Compañía de Seguridad", "Deportista"],
+      "description": "Tipo de cliente"
+    },
+    "fechaNacimiento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de nacimiento del cliente (formato YYYY-MM-DD)"
+    },
+    "direccion": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Dirección completa del cliente"
+    },
+    "provincia": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Provincia donde reside el cliente"
+    },
+    "canton": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Cantón donde reside el cliente"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 100,
+      "description": "Correo electrónico del cliente"
+    },
+    "telefonoPrincipal": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "description": "Teléfono principal del cliente (10 dígitos)"
+    },
+    "telefonoSecundario": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "description": "Teléfono secundario del cliente (10 dígitos, opcional)"
+    },
+    "representanteLegal": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Nombre del representante legal (solo para empresas)"
+    },
+    "ruc": {
+      "type": "string",
+      "pattern": "^[0-9]{13}$",
+      "description": "RUC de la empresa (13 dígitos, solo para tipo empresa)"
+    },
+    "nombreEmpresa": {
+      "type": "string",
+      "maxLength": 255,
+      "description": "Nombre de la empresa (solo para tipo empresa)"
+    },
+    "direccionFiscal": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Dirección fiscal de la empresa (solo para tipo empresa)"
+    },
+    "telefonoReferencia": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "description": "Teléfono de referencia de la empresa (10 dígitos, solo para tipo empresa)"
+    },
+    "correoEmpresa": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 100,
+      "description": "Correo electrónico de la empresa (solo para tipo empresa)"
+    },
+    "provinciaEmpresa": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Provincia de la empresa (solo para tipo empresa)"
+    },
+    "cantonEmpresa": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Cantón de la empresa (solo para tipo empresa)"
+    },
+    "estadoMilitar": {
+      "type": "string",
+      "enum": ["ACTIVO", "PASIVO"],
+      "description": "Estado militar del cliente (solo para tipos militar y policial)"
+    },
+    "codigoIssfa": {
+      "type": "string",
+      "maxLength": 50,
+      "description": "Código ISSFA del cliente (solo para tipos militar: Fuerza Terrestre, Naval, Aérea)"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "tipoCliente": { "const": "Compañía de Seguridad" } }
+      },
+      "then": {
+        "required": ["ruc", "nombreEmpresa", "direccionFiscal", "telefonoReferencia", "correoEmpresa", "provinciaEmpresa", "cantonEmpresa", "representanteLegal"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipoCliente": { "pattern": ".*[Mm]ilitar.*" } }
+      },
+      "then": {
+        "required": ["estadoMilitar"]
+      }
+    },
+    {
+      "if": {
+        "allOf": [
+          { "properties": { "tipoCliente": { "pattern": ".*[Mm]ilitar.*" } } },
+          { "properties": { "estadoMilitar": { "const": "ACTIVO" } } }
+        ]
+      },
+      "then": {
+        "required": ["codigoIssfa"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipoCliente": { "const": "Uniformado Policial" } }
+      },
+      "then": {
+        "required": ["estadoMilitar"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipoIdentificacion": { "const": "Cédula" } }
+      },
+      "then": {
+        "properties": {
+          "numeroIdentificacion": {
+            "pattern": "^[0-9]{10}$",
+            "description": "Cédula debe tener exactamente 10 dígitos"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipoIdentificacion": { "const": "RUC" } }
+      },
+      "then": {
+        "properties": {
+          "numeroIdentificacion": {
+            "pattern": "^[0-9]{13}$",
+            "description": "RUC debe tener exactamente 13 dígitos"
+          }
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "nombres": "Juan Carlos",
+      "apellidos": "Pérez González",
+      "numeroIdentificacion": "1725781254",
+      "tipoIdentificacion": "Cédula",
+      "tipoCliente": "Civil",
+      "fechaNacimiento": "1990-05-15",
+      "direccion": "Av. Amazonas 123, Quito",
+      "provincia": "Pichincha",
+      "canton": "Quito",
+      "email": "juan.perez@email.com",
+      "telefonoPrincipal": "0987654321"
+    },
+    {
+      "nombres": "María Elena",
+      "apellidos": "García López",
+      "numeroIdentificacion": "1712345678",
+      "tipoIdentificacion": "Cédula",
+      "tipoCliente": "Militar Fuerza Terrestre",
+      "fechaNacimiento": "1985-08-20",
+      "direccion": "Av. 6 de Diciembre 456, Quito",
+      "provincia": "Pichincha",
+      "canton": "Quito",
+      "email": "maria.garcia@email.com",
+      "telefonoPrincipal": "0987654322",
+      "estadoMilitar": "ACTIVO",
+      "codigoIssfa": "ISSFA-001234"
+    },
+    {
+      "nombres": "Carlos",
+      "apellidos": "Rodríguez",
+      "numeroIdentificacion": "0993392212001",
+      "tipoIdentificacion": "RUC",
+      "tipoCliente": "Compañía de Seguridad",
+      "direccion": "Av. República 789, Quito",
+      "provincia": "Pichincha",
+      "canton": "Quito",
+      "email": "carlos.rodriguez@empresa.com",
+      "telefonoPrincipal": "0987654323",
+      "representanteLegal": "Carlos Rodríguez",
+      "ruc": "0993392212001",
+      "nombreEmpresa": "EMPRESA DE SEGURIDAD S.A.",
+      "direccionFiscal": "Av. República 789, Quito",
+      "telefonoReferencia": "0987654324",
+      "correoEmpresa": "info@empresa.com",
+      "provinciaEmpresa": "Pichincha",
+      "cantonEmpresa": "Quito"
+    }
+  ]
+}

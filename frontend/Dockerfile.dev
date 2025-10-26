@@ -1,0 +1,15 @@
+FROM node:20
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Crear directorio para imágenes y copiar archivos estáticos
+RUN mkdir -p /app/public/images/weapons
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

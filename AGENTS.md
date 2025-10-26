@@ -1,0 +1,811 @@
+# AGENTS.md - Guías para Agentes de IA
+
+## 🎯 Propósito
+Este archivo contiene las mejores prácticas y convenciones específicas del proyecto GMARM para agentes de IA que trabajen en este codebase.
+
+## 🏗️ Arquitectura del Proyecto
+
+### Estructura Principal
+```
+gmarm/
+├── backend/          # Spring Boot API (Java 17+)
+├── frontend/         # React + TypeScript + Vite
+├── datos/           # Base de datos y scripts SQL
+├── deploy/          # Scripts de despliegue
+└── docker-compose.*.yml  # Configuraciones Docker
+```
+
+### Tecnologías
+- **Backend**: Spring Boot 3.x, Java 17+, Maven, PostgreSQL
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
+- **Base de Datos**: PostgreSQL con script maestro
+- **Contenedores**: Docker + Docker Compose
+
+## 📋 Principios de Desarrollo
+
+### 0. ⚠️ **NUNCA PUSHEAR SIN PROBAR** ⚠️
+
+**REGLA DE ORO:** El código SIEMPRE se debe probar antes de hacer push a cualquier rama.
+
+**Workflow correcto:**
+1. ✅ Crear/modificar código
+2. ✅ Hacer commit LOCAL (sin push)
+3. ✅ **ESPERAR A QUE EL USUARIO PRUEBE**
+4. ✅ Si funciona → el usuario aprueba el push
+5. ✅ Si falla → corregir y volver al paso 2
+
+**❌ NUNCA hacer esto:**
+```bash
+git add .
+git commit -m "feat: nueva funcionalidad"
+git push origin dev  # ← ❌ SIN PROBAR!
+```
+
+**✅ SIEMPRE hacer esto:**
+```bash
+git add .
+git commit -m "feat: nueva funcionalidad"
+# STOP! Esperar a que el usuario pruebe
+# Usuario: "Funciona, puedes hacer push"
+git push origin dev  # ← ✅ DESPUÉS DE PROBAR
+```
+
+**📦 ANTES DE HACER PUSH A DEV:**
+**SIEMPRE** verificar que el código compile y construya correctamente:
+
+```powershell
+# Windows (PowerShell)
+# 1. Backend: Limpiar y compilar
+cd backend
+mvn clean install -DskipTests
+
+# 2. Frontend: Construir
+cd ../frontend
+npm run build
+
+# 3. Si ambos pasan, entonces hacer push
+cd ..
+git push origin dev
+```
+
+```bash
+# Linux/Mac (Bash)
+# 1. Backend: Limpiar y compilar
+cd backend
+mvn clean install -DskipTests
+
+# 2. Frontend: Construir
+cd ../frontend
+npm run build
+
+# 3. Si ambos pasan, entonces hacer push
+cd ..
+git push origin dev
+```
+
+**Nota:** Si `mvn` no está instalado globalmente, usar `./mvnw` (wrapper de Maven incluido en el proyecto).
+
+**🚨 Si alguno falla:**
+- ❌ NO hacer push
+- ✅ Corregir los errores
+- ✅ Volver a probar
+- ✅ Push solo cuando ambos pasen
+
+**Excepciones (aún así, preguntar):**
+- Correcciones de documentación (.md)
+- Fixes de SQL maestro ya validados
+- Cambios triviales de configuración
+
+**Si el usuario dice "hay que probar":**
+- ❌ NO hacer push automáticamente
+- ✅ Dejar el código commiteado localmente
+- ✅ Esperar feedback del usuario
+- ✅ Hacer push solo cuando se apruebe
+
+### 1. Clean Code
+- **Máximo 500 líneas por clase/archivo**
+- **Nombres descriptivos y fáciles de escribir/leer**
+- **Funciones pequeñas y con una sola responsabilidad**
+- **Comentarios solo cuando sea necesario explicar el "por qué", no el "qué"**
+
+### 2. Estructura de Clases Java
+```java
+// ✅ BUENO
+public class ClienteService {
+    // Campos privados primero
+    private final ClienteRepository clienteRepository;
+    
+    // Constructor
+    public ClienteService(ClienteRepository clienteRepository) {
+        this.clienteRepository = clienteRepository;
+    }
+    
+    // Métodos públicos
+    // Métodos privados al final
+}
+
+// ❌ MALO
+public class ClienteService { /* 800+ líneas */ }
+```
+
+### 3. Imports en Java
+```java
+// ✅ BUENO - Imports específicos
+import com.armasimportacion.model.Cliente;
+import com.armasimportacion.dto.ClienteDTO;
+import org.springframework.stereotype.Service;
+
+// ❌ MALO - Wildcard imports
+import com.armasimportacion.model.*;
+import org.springframework.*;
+```
+
+### 4. Manejo de PowerShell
+```powershell
+# ✅ BUENO - Comandos separados
+cd backend
+./mvnw clean compile
+
+# ✅ BUENO - Usando ; para separar comandos
+cd backend; ./mvnw clean compile
+
+# ❌ MALO - && no funciona en PowerShell
+cd backend && ./mvnw clean compile
+```
+
+### 5. Base de Datos
+- **SIEMPRE actualizar `datos/00_gmarm_completo.sql`**
+- **NO crear scripts de migración adicionales**
+- **El SQL maestro es la fuente única de verdad**
+- **Usar comentarios descriptivos en las columnas**
+
+```sql
+-- ✅ BUENO
+CREATE TABLE IF NOT EXISTS cliente (
+    id BIGSERIAL PRIMARY KEY,
+    numero_identificacion VARCHAR(20) NOT NULL UNIQUE,
+    -- Información militar (solo para uniformados)
+    codigo_issfa VARCHAR(50) DEFAULT NULL
+);
+```
+
+## 🔄 Flujo de Trabajo con Docker
+
+### 1. ⚠️ CONFIGURACIÓN CRÍTICA POR AMBIENTE ⚠️
+
+**🚨 REGLA DE ORO**: Cada archivo `docker-compose.*.yml` tiene su propio conjunto de configuraciones que DEBEN coincidir:
+
+#### **📂 Archivos de Configuración por Ambiente:**
+
+| Ambiente | Docker Compose | Env Backend | Env Frontend | URLs |
+|----------|---------------|-------------|--------------|------|
+| **LOCAL** | `docker-compose.local.yml` | `backend/src/main/resources/application-local.properties` | `frontend/env.local` | `localhost` |
+| **DEV** | `docker-compose.dev.yml` | `backend/src/main/resources/application-docker.properties` | `frontend/env.development` | Variables de entorno |
+| **PROD** | `docker-compose.prod.yml` | `backend/src/main/resources/application-prod.properties` | `frontend/.env.prod` | Producción |
+
+#### **🎯 Coherencia Entre Archivos:**
+
+**TODOS los archivos de configuración de un mismo ambiente DEBEN apuntar a las MISMAS URLs:**
+
+**Ejemplo - Ambiente LOCAL:**
+```
+✅ docker-compose.local.yml → localhost
+✅ backend/application-local.properties → localhost
+✅ frontend/env.local → localhost
+```
+
+**Ejemplo - Ambiente DEV (Servidor):**
+```
+✅ docker-compose.dev.yml → Variables de entorno
+✅ backend/application-docker.properties → Variables de entorno
+✅ frontend/env.development → IP del servidor (72.167.52.14)
+```
+
+**❌ ERROR COMÚN:**
+```
+❌ docker-compose.local.yml → localhost
+❌ frontend/env.development → 72.167.52.14  (← INCORRECTO!)
+```
+**Resultado**: Error 400 en login, endpoints no accesibles, CORS errors.
+
+#### **🔧 Configuración de URLs por Entorno**
+
+**Para desarrollo LOCAL:**
+```powershell
+# NO necesitas configurar variables de entorno
+# Solo ejecutar:
+docker-compose -f docker-compose.local.yml up -d --build
+```
+
+**Para desarrollo en SERVIDOR REMOTO:**
+```powershell
+# Configurar variables de entorno ANTES de levantar servicios
+$env:BACKEND_URL="http://72.167.52.14:8080"
+$env:FRONTEND_URL="http://72.167.52.14:5173"
+$env:WS_HOST="72.167.52.14"
+$env:WS_PORT="5173"
+
+# Luego levantar servicios
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+### 2. Antes de Probar Cambios
+```powershell
+# SIEMPRE reiniciar servicios después de cambios
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+### 3. Volúmenes Importantes
+```yaml
+# Todos los entornos deben incluir estos volúmenes en el backend:
+volumes:
+  - ./uploads:/app/uploads           # Archivos subidos por usuarios
+  - ./documentacion:/app/documentacion  # Documentos generados (contratos, etc.)
+```
+
+### 4. Configuración de PostgreSQL para UTF-8
+```yaml
+# Configuración requerida para caracteres especiales (tildes, acentos)
+environment:
+  POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C.UTF-8 --lc-ctype=C.UTF-8"
+```
+
+**⚠️ IMPORTANTE**: 
+- El SQL maestro incluye correcciones automáticas para caracteres especiales que pueden corromperse durante la inserción (especialmente en PowerShell)
+- **Problema conocido**: PowerShell puede mostrar caracteres especiales como `??` en la terminal, pero los datos están correctos en la base de datos
+- Los caracteres especiales se mostrarán correctamente en la aplicación web
+
+### 2. Verificar Build
+```powershell
+# Backend
+cd backend
+./mvnw clean compile
+./mvnw test
+
+# Frontend
+cd frontend
+npm run build
+npm run lint
+```
+
+### 3. Archivos Docker Compose
+- `docker-compose.dev.yml` - Desarrollo (usa variables de entorno)
+- `docker-compose.local.yml` - Local
+- `docker-compose.prod.yml` - Producción
+
+### 4. Configuración de Entornos
+```powershell
+# LOCAL - Todo en localhost (configuración fija en env.local)
+docker-compose -f docker-compose.local.yml up -d
+
+# DESARROLLO - Variables de entorno configurables
+$env:BACKEND_URL="http://localhost:8080"      # Para desarrollo local
+$env:FRONTEND_URL="http://localhost:5173"     # Para desarrollo local
+$env:WS_HOST="localhost"
+$env:WS_PORT="5173"
+docker-compose -f docker-compose.dev.yml up -d
+
+# DESARROLLO EN SERVIDOR - Usar env.dev.server
+$env:BACKEND_URL="http://72.167.52.14:8080"   # Para servidor remoto
+$env:FRONTEND_URL="http://72.167.52.14:5173"  # Para servidor remoto
+$env:WS_HOST="72.167.52.14"
+$env:WS_PORT="5173"
+docker-compose -f docker-compose.dev.yml up -d
+
+# PRODUCCIÓN - Usar .env.prod (crear desde env.prod.example)
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 5. Solución de Problemas Comunes
+
+#### Base de Datos Vacía Después de Reinicio
+**Problema**: La base de datos se crea pero está vacía, sin datos del script maestro.
+
+**Causas**:
+- Hibernate recrea las tablas pero no ejecuta el script de inicialización
+- El volumen de PostgreSQL persiste pero sin datos iniciales
+
+**Solución**:
+```powershell
+# Opción 1: Reinicio completo con volumen limpio (RECOMENDADO)
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up -d
+
+# Opción 2: Ejecutar script maestro manualmente
+Get-Content datos/00_gmarm_completo.sql | docker exec -i gmarm-postgres-dev psql -U postgres -d gmarm_dev
+
+# Verificar que los datos se cargaron
+docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -c "SELECT COUNT(*) FROM usuario;"
+```
+
+#### Error de Login 400 - Variables de Entorno Incorrectas
+**Problema**: El frontend no puede conectarse al backend porque las URLs están mal configuradas.
+
+**Solución**:
+```powershell
+# Verificar variables de entorno actuales
+echo $env:BACKEND_URL
+echo $env:FRONTEND_URL
+
+# Configurar correctamente para desarrollo local
+$env:BACKEND_URL="http://localhost:8080"
+$env:FRONTEND_URL="http://localhost:5173"
+$env:WS_HOST="localhost"
+$env:WS_PORT="5173"
+
+# Reiniciar servicios
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+#### Base de Datos Vacía - Hibernate DDL Auto
+**Problema**: Las tablas se crean pero no tienen datos del script maestro.
+
+**Solución**:
+```properties
+# En backend/src/main/resources/application-docker.properties
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.hibernate.hbm2ddl.auto=validate
+```
+
+**Si la base ya está vacía**:
+```powershell
+# Opción 1: Eliminar volumen y recrear (recomendado)
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up -d
+
+# Opción 2: Ejecutar script maestro manualmente (si Opción 1 no funciona)
+# PowerShell NO soporta redirección <, usar Get-Content
+Get-Content datos/00_gmarm_completo.sql | docker exec -i gmarm-postgres-dev psql -U postgres -d gmarm_dev
+```
+
+#### Error de Schema Validation - Columna Faltante
+**Problema**: Error `Schema-validation: missing column [nombre_columna] in table [nombre_tabla]`
+
+**Causa**: 
+- Has actualizado el modelo Java (entidad) agregando un nuevo campo
+- El volumen de PostgreSQL tiene el esquema viejo sin la nueva columna
+- Hibernate está configurado en modo `validate` y detecta la diferencia
+
+**Solución**:
+```powershell
+# SIEMPRE eliminar volumen y recrear cuando cambies el esquema
+docker-compose -f docker-compose.local.yml down -v
+docker-compose -f docker-compose.local.yml up -d --build
+
+# Para DEV
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+**⚠️ IMPORTANTE**: El flag `-v` elimina los volúmenes, lo que fuerza la recreación de la base de datos con el script maestro actualizado.
+
+## 🎨 Convenciones de Frontend
+
+### 1. Componentes React
+```typescript
+// ✅ BUENO - Máximo 500 líneas
+interface ClientFormProps {
+  mode: 'create' | 'edit' | 'view';
+  client?: Client | null;
+  onSave: (client: Client) => void;
+}
+
+const ClientForm: React.FC<ClientFormProps> = ({ mode, client, onSave }) => {
+  // Estado local
+  const [formData, setFormData] = useState<ClientFormData>({});
+  
+  // Efectos
+  useEffect(() => {
+    // Lógica de efectos
+  }, []);
+  
+  // Funciones helper
+  const handleInputChange = (field: keyof ClientFormData, value: string) => {
+    // Lógica de cambio
+  };
+  
+  // Render
+  return (
+    <div>
+      {/* JSX */}
+    </div>
+  );
+};
+```
+
+### 2. Tipos TypeScript
+```typescript
+// ✅ BUENO - Tipos específicos
+interface Client {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  codigoIssfa?: string;
+  estadoMilitar?: 'ACTIVO' | 'PASIVO';
+}
+
+// ✅ BUENO - Enums para valores fijos
+enum TipoCliente {
+  CIVIL = 'Civil',
+  MILITAR = 'Militar',
+  EMPRESA = 'Compañía de Seguridad'
+}
+```
+
+### 3. Manejo de Estados
+```typescript
+// ✅ BUENO - Estados específicos
+const [isLoading, setIsLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+const [formData, setFormData] = useState<ClientFormData>({});
+
+// ❌ MALO - Estado genérico
+const [state, setState] = useState<any>({});
+```
+
+## 🔧 Backend - Spring Boot
+
+### 1. Estructura de Servicios
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ClienteService {
+    
+    private final ClienteRepository clienteRepository;
+    private final ClienteMapper clienteMapper;
+    
+    public ClienteDTO create(ClienteCreateDTO dto) {
+        // Validaciones
+        validateClienteForCreate(dto);
+        
+        // Lógica de negocio
+        Cliente cliente = clienteMapper.toEntity(dto);
+        Cliente saved = clienteRepository.save(cliente);
+        
+        return clienteMapper.toDTO(saved);
+    }
+    
+    private void validateClienteForCreate(ClienteCreateDTO dto) {
+        // Validaciones privadas
+    }
+}
+```
+
+### 2. DTOs y Mappers
+```java
+// ✅ BUENO - DTOs con Builder
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ClienteDTO {
+    private Long id;
+    private String nombres;
+    private String apellidos;
+    private String codigoIssfa;
+}
+
+// ✅ BUENO - Mappers específicos
+@Component
+public class ClienteMapper {
+    
+    public ClienteDTO toDTO(Cliente cliente) {
+        if (cliente == null) return null;
+        
+        ClienteDTO dto = ClienteDTO.builder()
+            .id(cliente.getId())
+            .nombres(cliente.getNombres())
+            .apellidos(cliente.getApellidos())
+            .codigoIssfa(cliente.getCodigoIssfa())
+            .build();
+            
+        return dto;
+    }
+}
+```
+
+### 3. Validaciones
+```java
+// ✅ BUENO - Validaciones en esquemas JSON
+// backend/src/main/resources/schemas/cliente-create.schema.json
+{
+  "if": {
+    "properties": { "tipoCliente": { "enum": ["Militar Fuerza Terrestre", "Militar Fuerza Naval", "Militar Fuerza Aérea"] } }
+  },
+  "then": {
+    "required": ["estadoMilitar", "codigoIssfa"]
+  }
+}
+```
+
+## 🗄️ Base de Datos
+
+### 1. Convenciones de Naming
+```sql
+-- ✅ BUENO - Snake_case para columnas
+CREATE TABLE cliente (
+    id BIGSERIAL PRIMARY KEY,
+    numero_identificacion VARCHAR(20) NOT NULL,
+    codigo_issfa VARCHAR(50) DEFAULT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ✅ BUENO - Comentarios descriptivos
+-- Información militar (solo para uniformados - militares y policías)
+estado_militar VARCHAR(20) DEFAULT NULL,
+codigo_issfa VARCHAR(50) DEFAULT NULL
+```
+
+### 2. Tipos de Datos
+```sql
+-- ✅ BUENO - Tipos apropiados
+BIGSERIAL PRIMARY KEY           -- Para IDs
+VARCHAR(50)                     -- Para códigos
+VARCHAR(100)                    -- Para nombres
+TEXT                           -- Para descripciones largas
+BOOLEAN DEFAULT false          -- Para flags
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Para fechas
+```
+
+## 🚀 Comandos de Desarrollo
+
+### 1. Desarrollo Local
+```powershell
+# Backend
+cd backend
+./mvnw clean compile
+./mvnw spring-boot:run
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+### 2. Docker Development
+```powershell
+# Desarrollo
+docker-compose -f docker-compose.dev.yml up --build
+
+# Local
+docker-compose -f docker-compose.local.yml up --build
+
+# Limpiar
+docker-compose -f docker-compose.dev.yml down -v
+docker system prune -f
+```
+
+### 3. Testing
+```powershell
+# Backend tests
+cd backend
+./mvnw test
+
+# Frontend tests
+cd frontend
+npm run test
+
+# Build verification
+cd backend; ./mvnw clean compile
+cd ../frontend; npm run build
+```
+
+## 📝 Convenciones de Commits
+
+### 1. Formato de Mensajes
+```
+feat: agregar campo código ISSFA para tipos militares
+fix: corregir visualización de provincias en formulario
+docs: actualizar documentación de API
+refactor: simplificar lógica de validación de clientes
+test: agregar tests para servicio de clientes
+```
+
+### 2. Antes de Commit
+```powershell
+# Verificar que todo compile
+cd backend; ./mvnw clean compile
+cd ../frontend; npm run build
+
+# Verificar linting
+cd frontend; npm run lint
+
+# Verificar tests
+cd ../backend; ./mvnw test
+```
+
+## 🐛 Debugging
+
+### 1. Logs Importantes
+```java
+// ✅ BUENO - Logs informativos
+log.info("✅ Cliente creado: ID={}, nombres={}", cliente.getId(), cliente.getNombres());
+log.error("❌ Error creando cliente: {}", error.getMessage());
+log.debug("🔍 DEBUG: Datos recibidos: {}", requestData);
+```
+
+### 2. Frontend Debugging
+```typescript
+// ✅ BUENO - Console logs descriptivos
+console.log('🔄 Cargando datos del cliente:', clienteId);
+console.log('✅ Datos cargados exitosamente:', data);
+console.error('❌ Error cargando datos:', error);
+```
+
+## 🔒 Seguridad
+
+### 1. Validaciones
+- **SIEMPRE validar datos de entrada**
+- **Usar esquemas JSON para validación**
+- **Sanitizar inputs del usuario**
+- **Validar tipos de datos**
+
+### 2. Base de Datos
+- **Usar parámetros preparados**
+- **Validar longitud de campos**
+- **Usar constraints de base de datos**
+
+## 📚 Recursos Útiles
+
+### 1. Archivos Importantes
+- `datos/00_gmarm_completo.sql` - Script maestro de BD
+- `CHANGELOG_CODIGO_ISSFA.md` - Ejemplo de documentación
+- `docker-compose.dev.yml` - Configuración de desarrollo
+
+### 2. Patrones Comunes
+- **CRUD Services** con Repository pattern
+- **DTOs** para transferencia de datos
+- **Mappers** para conversión entre entidades y DTOs
+- **Validaciones** con esquemas JSON
+- **Logging** con SLF4J
+
+---
+
+## 🚫 **ANTI-PATRÓN: Valores Hardcodeados**
+
+### ❌ **NUNCA Hardcodear Estos Valores:**
+
+#### **1. IVA (Impuesto)**
+```java
+// ❌ MAL - Hardcodeado
+double iva = 0.15; // 15%
+double precioConIva = precio * 1.15;
+```
+
+```java
+// ✅ BIEN - Desde configuracion_sistema
+ConfiguracionSistema configIva = configuracionService.getConfiguracion("IVA");
+double iva = Double.parseDouble(configIva.getValor()) / 100;
+double precioConIva = precio * (1 + iva);
+```
+
+#### **2. Tipos de Cliente**
+```java
+// ❌ MAL - Comparación hardcodeada
+if (tipoCliente.equals("Civil")) { ... }
+if (tipoCliente.equals("Militar Expoferia")) { ... }
+```
+
+```java
+// ✅ BIEN - Usar banderas dinámicas desde BD
+if (tipoCliente.esCivil()) { ... }
+if (tipoCliente.esMilitar()) { ... }
+if (tipoCliente.requiereIssfa()) { ... }
+```
+
+#### **3. Estados y Enum Values**
+```java
+// ❌ MAL - Strings hardcodeados
+if (estado.equals("COMPLETADO")) { ... }
+```
+
+```java
+// ✅ BIEN - Usar ENUMs
+if (estado == EstadoPago.COMPLETADO) { ... }
+```
+
+### 📊 **Tabla `configuracion_sistema`**
+
+**Valores que DEBEN estar en BD:**
+- `IVA`: Porcentaje de impuesto (actualmente 15%)
+- `EDAD_MINIMA_COMPRA`: Edad mínima para comprar armas (25 años)
+- `TASA_INTERES_CREDITO`: Tasa de interés para créditos
+- `MAX_CUOTAS`: Máximo de cuotas permitidas
+- `DIAS_VENCIMIENTO_CUOTA`: Días para vencimiento de cuota
+
+**Estructura:**
+```sql
+CREATE TABLE configuracion_sistema (
+    id BIGSERIAL PRIMARY KEY,
+    clave VARCHAR(100) UNIQUE NOT NULL,
+    valor TEXT NOT NULL,
+    descripcion TEXT,
+    editable BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Ejemplo de uso:**
+```java
+// Backend
+@Service
+public class ConfiguracionSistemaService {
+    public String getValor(String clave) {
+        return repository.findByClave(clave)
+            .orElseThrow(() -> new NotFoundException("Config: " + clave))
+            .getValor();
+    }
+    
+    public double getIVA() {
+        return Double.parseDouble(getValor("IVA")) / 100;
+    }
+}
+
+// En servicios
+double iva = configuracionService.getIVA();
+double precioFinal = precioBase * (1 + iva);
+```
+
+```typescript
+// Frontend
+const { data: iva } = useQuery('config-iva', () => 
+  apiService.getConfiguracion('IVA')
+);
+
+const ivaDecimal = parseFloat(iva.valor) / 100;
+const precioConIva = precioBase * (1 + ivaDecimal);
+```
+
+### 🎯 **Checklist Anti-Hardcodeo:**
+
+Antes de implementar, pregúntate:
+- [ ] ¿Este valor puede cambiar en el futuro?
+- [ ] ¿Es una configuración del negocio?
+- [ ] ¿Depende de regulaciones externas?
+- [ ] ¿Varía por contexto o país?
+
+**Si respondiste SÍ a alguna:** ➡️ **Usar `configuracion_sistema`**
+
+### 📝 **Valores Actuales Hardcodeados (PENDIENTES DE REFACTORIZAR):**
+
+**Frontend:**
+- `ClientSummary.tsx:71` - IVA hardcodeado (0.15)
+- `ClientForm.tsx:2004` - IVA hardcodeado (0.15)
+- `PaymentForm.tsx:42` - IVA hardcodeado (IVA_SISTEMA = 0.15)
+- `WeaponReserve.tsx:302` - IVA hardcodeado (0.15)
+
+**Backend:**
+- `GestionPagosServiceHelper.java` - Posible IVA hardcodeado
+- Template HTML de contratos - IVA potencialmente hardcodeado
+
+**ACCIÓN REQUERIDA:** Refactorizar todos estos para usar `configuracion_sistema`.
+
+## ⚠️ Recordatorios Importantes
+
+1. **SIEMPRE reiniciar Docker después de cambios**
+2. **NO usar && en PowerShell, usar ; en su lugar**
+3. **Máximo 500 líneas por archivo/clase**
+4. **Actualizar SQL maestro, NO crear migraciones**
+5. **Verificar build antes de commit**
+6. **Usar imports específicos, NO wildcards**
+7. **Mantener clean code y nombres descriptivos**
+8. **🚨 CRÍTICO: Usar el docker-compose correcto para cada ambiente:**
+   - **LOCAL**: `docker-compose.local.yml` con `frontend/env.local` → localhost
+   - **DEV**: `docker-compose.dev.yml` con `frontend/env.development` → servidor remoto
+   - **PROD**: `docker-compose.prod.yml` con `frontend/.env.prod` → producción
+9. **🚨 TODOS los archivos de configuración de un ambiente DEBEN coincidir (URLs, IPs, puertos)**
+10. **Configurar variables de entorno ANTES de levantar servicios dev**
+11. **docker-compose.dev.yml usa variables de entorno, NO URLs fijas**
+12. **Hibernate DDL debe ser 'validate' en Docker, NO 'create-drop'**
+13. **NO hardcodear valores de negocio - usar `configuracion_sistema`**
+14. **NO hardcodear comparaciones de tipos - usar banderas dinámicas**
+15. **🚨 Si cambias el esquema de BD (agregar columna), SIEMPRE usar `down -v` para recrear volumen**
+16. **El archivo `env.development` del frontend se usa en DEV (servidor remoto), NO en local**
+
+---
+
+*Este documento debe actualizarse cuando se agreguen nuevas convenciones o patrones al proyecto.*

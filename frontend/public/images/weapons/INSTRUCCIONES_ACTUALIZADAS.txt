@@ -1,0 +1,112 @@
+🎯 SISTEMA DE IMÁGENES FLEXIBLE - ACTUALIZADO
+
+✅ ¿CÓMO FUNCIONA AHORA?
+
+1. **BASE DE DATOS**: El campo `url_imagen` NO especifica extensión (ej: `/images/weapons/CZ-P09-NOCTURNE`)
+2. **FRONTEND**: El sistema detecta automáticamente el formato de imagen disponible
+3. **FORMATOS SOPORTADOS**: PNG, JPG, JPEG, WebP, SVG, GIF
+4. **FALLBACK AUTOMÁTICO**: Si un formato falla, intenta con el siguiente
+
+🔧 ¿QUÉ SE ACTUALIZÓ?
+
+- ❌ URLs con extensiones fijas (/images/weapons/CZ-P09-NOCTURNE.png) → ❌ NO MÁS
+- ✅ URLs sin extensiones (/images/weapons/CZ-P09-NOCTURNE) → ✅ FLEXIBLE
+- ✅ Detección automática de formato → ✅ INTELIGENTE
+- ✅ Fallback automático → ✅ ROBUSTO
+
+📋 LISTA EXACTA DE ARCHIVOS NECESARIOS:
+
+=== CZ P09 SERIES ===
+1. CZ-P09-NOCTURNE (cualquier formato: .png, .jpg, .webp, .svg, .gif)
+2. CZ-P09-OR (cualquier formato)
+3. CZ-P09-PORTADO (cualquier formato)
+4. CZ-P09-URBAN (cualquier formato)
+5. CZ-P09-COMPACT (cualquier formato)
+6. CZ-P09-SUBCOMPACT (cualquier formato)
+7. CZ-P09-TACTICAL (cualquier formato)
+8. CZ-P09-SPORT (cualquier formato)
+9. CZ-P09-COMPETITION (cualquier formato)
+
+=== CZ P10 SERIES ===
+10. CZ-P10-M (cualquier formato)
+11. CZ-P10-FDE (cualquier formato)
+12. CZ-P10-TARGET (cualquier formato)
+13. CZ-P10-C (cualquier formato)
+14. CZ-P10-F (cualquier formato)
+15. CZ-P10-S (cualquier formato)
+16. CZ-P10-COMPACT (cualquier formato)
+17. CZ-P10-TACTICAL (cualquier formato)
+18. CZ-P10-SPORT (cualquier formato)
+19. CZ-P10-COMPETITION (cualquier formato)
+
+=== CZ SHADOW 2 SERIES ===
+20. CZ-SHADOW-2 (cualquier formato)
+21. CZ-SHADOW-2-URBAN (cualquier formato)
+22. CZ-SHADOW-2-COMPACT (cualquier formato)
+23. CZ-SHADOW-2-ORANGE (cualquier formato)
+24. CZ-SHADOW-2-BLUE (cualquier formato)
+25. CZ-SHADOW-2-GREEN (cualquier formato)
+26. CZ-SHADOW-2-RED (cualquier formato)
+27. CZ-SHADOW-2-BLACK (cualquier formato)
+28. CZ-SHADOW-2-COMPETITION (cualquier formato)
+
+=== CZ TS2 SERIES ===
+29. CZ-TS2-RACING (cualquier formato)
+
+=== IMAGEN POR DEFECTO ===
+30. default-weapon (cualquier formato)
+
+🚀 PASOS PARA AGREGAR IMÁGENES:
+
+1. **Busca en Google**: "CZ P09 OR pistol image"
+2. **Descarga la imagen** (cualquier formato: PNG, JPG, WebP, SVG, GIF)
+3. **Renómbrala EXACTAMENTE**: CZ-P09-OR (SIN extensión)
+4. **Colócala en esta carpeta**: frontend/public/images/weapons/
+5. **El sistema detectará automáticamente el formato**
+
+💡 VENTAJAS DEL NUEVO SISTEMA:
+
+✅ **Flexible**: Acepta cualquier formato de imagen
+✅ **Inteligente**: Detecta automáticamente el formato disponible
+✅ **Robusto**: Fallback automático si un formato falla
+✅ **Mantenible**: Solo actualizas la BD cuando agregues/quites armas
+✅ **Escalable**: Funciona con cualquier formato futuro
+
+🔍 ORDEN DE PRIORIDAD DE FORMATOS:
+
+1. **WebP** (mejor compresión, moderno)
+2. **PNG** (sin pérdida, transparencia)
+3. **JPG/JPEG** (compatible universalmente)
+4. **SVG** (vectorial, escalable)
+5. **GIF** (animaciones, compatible)
+
+📱 COMPATIBILIDAD:
+
+- **WebP**: Chrome, Firefox, Edge (modernos)
+- **PNG**: Todos los navegadores
+- **JPG**: Todos los navegadores
+- **SVG**: Todos los navegadores modernos
+- **GIF**: Todos los navegadores
+
+🎨 ESPECIFICACIONES RECOMENDADAS:
+
+- **Formato**: Cualquiera de los soportados
+- **Dimensiones**: 400x300 píxeles
+- **Tamaño**: Máximo 500KB por imagen
+- **Calidad**: Buena resolución, sin pixelación
+- **Fondo**: Preferiblemente transparente (PNG/SVG) o blanco
+
+🚀 EJEMPLOS DE USO:
+
+1. **Imagen PNG**: CZ-P09-NOCTURNE.png ✅
+2. **Imagen JPG**: CZ-P09-OR.jpg ✅
+3. **Imagen WebP**: CZ-P10-M.webp ✅
+4. **Imagen SVG**: CZ-SHADOW-2.svg ✅
+5. **Imagen GIF**: CZ-TS2-RACING.gif ✅
+
+⚠️ IMPORTANTE:
+
+- **NO** pongas extensiones en la base de datos
+- **SÍ** puedes usar cualquier formato de imagen
+- **El sistema detectará automáticamente** el formato disponible
+- **Si un formato falla, intentará con el siguiente** automáticamente
