@@ -13,6 +13,7 @@ import Finanzas from './pages/Finanzas/Finanzas';
 import GestionSeries from './pages/Finanzas/GestionSeries';
 import AsignacionSeries from './pages/AsignacionSeries';
 import JefeVentas from './pages/JefeVentas/JefeVentas';
+import Operaciones from './pages/Operaciones';
 // import JefeVentasSupervision from './pages/JefeVentas/JefeVentasSupervision';
 // import ReportsAndStatsPage from './pages/JefeVentas/ReportsAndStatsPage';
 // import ClientAssignmentPage from './pages/JefeVentas/ClientAssignmentPage';
@@ -102,6 +103,15 @@ const App = React.memo(() => {
               element={
                 <ProtectedRoute>
                   <JefeVentas />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/operaciones" 
+              element={
+                <ProtectedRoute>
+                  <Operaciones />
                 </ProtectedRoute>
               } 
             />
