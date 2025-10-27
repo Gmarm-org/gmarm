@@ -28,8 +28,14 @@ const JefeVentas: React.FC = () => {
   
   // Verificar si el usuario tiene permisos para ver Asignación de Series
   const puedeVerAsignacionSeries = user?.roles?.some(
-    role => role.rol?.codigo === 'SALES_CHIEF' || role.rol?.codigo === 'FINANCE'
+    role => {
+      const codigo = role.rol?.codigo || (role as any).codigo;
+      console.log('🔍 JefeVentas - Verificando rol para asignación de series:', codigo);
+      return codigo === 'SALES_CHIEF' || codigo === 'FINANCE';
+    }
   ) || false;
+  
+  console.log('🔍 JefeVentas - puedeVerAsignacionSeries:', puedeVerAsignacionSeries);
   
   // Estados para Stock de Armas
   const [stockArmas, setStockArmas] = useState<StockArma[]>([]);
