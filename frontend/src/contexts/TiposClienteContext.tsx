@@ -15,6 +15,7 @@ interface TiposClienteContextType {
   config: Record<string, TipoClienteConfig>;
   loading: boolean;
   error: string | null;
+  retry: () => void;
   getCodigoTipoCliente: (tipoCliente: string | undefined) => string;
   requiereCodigoIssfa: (tipoCliente: string | undefined) => boolean;
   esTipoMilitar: (tipoCliente: string | undefined) => boolean;
@@ -29,12 +30,13 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [config, setConfig] = useState<Record<string, TipoClienteConfig>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const loadConfig = async () => {
       try {
         setLoading(true);
-        console.log('🔄 TiposClienteProvider: Cargando configuración...');
+        console.log('🔄 TiposClienteProvider: Cargando configuración... (intento ' + (retryCount + 1) + ')');
         
         const tiposConfig = await apiService.getTiposClienteConfig();
         
@@ -44,16 +46,33 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
         
         setConfig(tiposConfig);
         setError(null);
+        setRetryCount(0); // Reset retry count on success
       } catch (err: any) {
         console.error('❌ TiposClienteProvider: Error cargando configuración:', err);
         setError('Error cargando configuración');
+        
+        // Auto-retry hasta 3 veces con delay incremental
+        if (retryCount < 3) {
+          const delay = (retryCount + 1) * 2000; // 2s, 4s, 6s
+          console.log(`⏰ TiposClienteProvider: Reintentando en ${delay/1000} segundos...`);
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, delay);
+        } else {
+          console.error('❌ TiposClienteProvider: Máximo de reintentos alcanzado');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadConfig();
-  }, []); // Solo se ejecuta UNA VEZ al montar el provider
+  }, [retryCount]); // Se ejecuta cuando cambia retryCount
+
+  const retry = () => {
+    console.log('🔄 TiposClienteProvider: Reintento manual solicitado');
+    setRetryCount(prev => prev + 1);
+  };
 
   const getCodigoTipoCliente = (tipoCliente: string | undefined): string => {
     if (!tipoCliente) {
@@ -110,6 +129,7 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
     config,
     loading,
     error,
+    retry,
     getCodigoTipoCliente,
     requiereCodigoIssfa,
     esTipoMilitar,
