@@ -30,6 +30,22 @@ export const useVendedorLogic = () => {
     cargarProvinciasCompletas();
   }, []);
 
+  // Cargar estado de expoferia al inicializar desde configuracion_sistema
+  useEffect(() => {
+    const cargarEstadoExpoferia = async () => {
+      try {
+        const config = await apiService.getConfiguracion('EXPOFERIA_ACTIVA');
+        const estado = config.valor === 'true' || config.valor === '1';
+        console.log('🎯 Estado de expoferia cargado desde configuracion_sistema:', estado);
+        setExpoferiaActiva(estado);
+      } catch (error) {
+        console.error('Error cargando estado de expoferia:', error);
+        setExpoferiaActiva(false);
+      }
+    };
+    cargarEstadoExpoferia();
+  }, []);
+
   // Funciones de mapeo usando datos de la API
   const mapearProvinciaACodigo = (nombreProvincia: string): string => {
     console.log('🔍 Mapeando provincia:', nombreProvincia);
@@ -56,7 +72,7 @@ export const useVendedorLogic = () => {
   const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null);
   const [precioModificado, setPrecioModificado] = useState<number>(0);
   const [cantidad, setCantidad] = useState<number>(1);
-  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number }>>({});
+  const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>>({});
   const [weaponPrices, setWeaponPrices] = useState<Record<number, number>>({});
   const [clientFilter, setClientFilter] = useState<string | null>(null);
   const [clientsLoading, setClientsLoading] = useState(true);
@@ -64,6 +80,9 @@ export const useVendedorLogic = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [clientesBloqueados, setClientesBloqueados] = useState<Record<string, { bloqueado: boolean; motivo: string }>>({});
   const [clientFormData, setClientFormData] = useState<any>(null); // Para almacenar datos del formulario cuando se crea un cliente
+  const [expoferiaActiva, setExpoferiaActiva] = useState<boolean>(false); // Estado de expoferia
+  const [selectedSerieId, setSelectedSerieId] = useState<number | null>(null); // ID de serie seleccionada
+  const [selectedSerieNumero, setSelectedSerieNumero] = useState<string | null>(null); // Número de serie seleccionado
   
   // Estados de paginación
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(0);
@@ -177,7 +196,7 @@ export const useVendedorLogic = () => {
       setCurrentPageNumber(page);
       
       // Cargar armas para cada cliente
-      const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number }> = {};
+      const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
       
       for (const client of clientsData) {
         try {
@@ -194,7 +213,9 @@ export const useVendedorLogic = () => {
                 precioReferencia: parseFloat(arma.precioUnitario) || 0
               },
               precio: parseFloat(arma.precioUnitario) || 0,
-              cantidad: parseInt(arma.cantidad) || 1
+              cantidad: parseInt(arma.cantidad) || 1,
+              numeroSerie: arma.numeroSerie, // Incluir número de serie
+              estado: arma.estado // Incluir estado (RESERVADA, ASIGNADA, etc.)
             };
           }
         } catch (error) {
@@ -518,9 +539,10 @@ export const useVendedorLogic = () => {
 
   // Función para manejar cuando se confirma la selección de arma
   const handleWeaponSelectionConfirm = useCallback(() => {
-    console.log('🔫 Selección de arma confirmada, navegando a forma de pago');
+    console.log('🔫 Selección de arma confirmada');
     console.log('🔫 clientFormData actual:', clientFormData);
     console.log('🔫 selectedClient actual:', selectedClient);
+    console.log('🎯 expoferiaActiva:', expoferiaActiva);
     
     // Si no hay clientFormData pero hay selectedClient, usar selectedClient
     if (!clientFormData && selectedClient) {
@@ -535,8 +557,54 @@ export const useVendedorLogic = () => {
       return;
     }
     
+    // Si expoferia está activa y hay un nuevo cliente (clientFormData), ir a asignación de series
+    if (expoferiaActiva && clientFormData && !clientFormData.id) {
+      console.log('🎯 Expoferia activa - Navegando a asignación de series');
+      setCurrentPage('seriesAssignment');
+    } else {
+      console.log('💰 Navegando directamente a forma de pago');
+      setCurrentPage('paymentForm');
+    }
+  }, [clientFormData, selectedClient, expoferiaActiva]);
+
+  // Función para volver al formulario del cliente desde weaponSelection
+  const handleBackToClientForm = useCallback(() => {
+    console.log('⬅️ Volviendo al formulario del cliente');
+    console.log('📄 clientFormData preservado:', clientFormData);
+    
+    // Si hay datos del cliente guardados, volver al formulario en modo edición
+    if (clientFormData) {
+      setClientFormMode('create'); // Mantener en modo creación
+      setCurrentPage('clientForm');
+    } else {
+      // Si no hay datos, volver al dashboard
+      setCurrentPage('dashboard');
+    }
+  }, [clientFormData]);
+
+  // Función para manejar cuando se selecciona una serie
+  const handleSerieSelected = useCallback((serieId: number, numeroSerie: string) => {
+    console.log('🔢 Serie seleccionada:', { serieId, numeroSerie });
+    setSelectedSerieId(serieId);
+    setSelectedSerieNumero(numeroSerie);
+    
+    // Navegar a la forma de pago
+    console.log('💰 Navegando a forma de pago con serie asignada');
     setCurrentPage('paymentForm');
-  }, [clientFormData, selectedClient]);
+  }, []);
+
+  // Función para volver de seriesAssignment a weaponSelection
+  const handleBackToWeaponSelection = useCallback(() => {
+    console.log('⬅️ Volviendo a selección de armas');
+    console.log('📄 clientFormData preservado:', clientFormData);
+    console.log('🔫 selectedWeapon preservado:', selectedWeapon);
+    
+    // Limpiar la serie seleccionada
+    setSelectedSerieId(null);
+    setSelectedSerieNumero(null);
+    
+    setCurrentPage('weaponSelection');
+  }, [clientFormData, selectedWeapon]);
 
   // Nueva función para manejar la finalización del proceso de pago
   const handlePaymentComplete = useCallback(async (paymentData: any) => {
@@ -584,8 +652,11 @@ export const useVendedorLogic = () => {
       const armaData = selectedWeapon ? {
         armaId: selectedWeapon.id,
         cantidad: cantidad,
-        precioUnitario: precioModificado
+        precioUnitario: precioModificado,
+        numeroSerie: selectedSerieNumero // Incluir número de serie si está seleccionado
       } : null;
+      
+      console.log('🔢 Número de serie que se enviará al backend:', selectedSerieNumero);
       
       // Preparar datos de documentos del usuario (si existen)
       const documentosUsuario = clientFormData.uploadedDocuments || {};
@@ -943,6 +1014,7 @@ export const useVendedorLogic = () => {
     isInitialized,
     clientesBloqueados,
     isLoading,
+    expoferiaActiva,
     
     // Paginación
     currentPageNumber,
@@ -975,7 +1047,12 @@ export const useVendedorLogic = () => {
     handlePaymentComplete,
     handleClientDataConfirm,
     handleWeaponSelectionConfirm,
+    handleBackToClientForm,
+    handleSerieSelected,
+    handleBackToWeaponSelection,
     clientFormData,
+    selectedSerieId,
+    selectedSerieNumero,
     handleViewClient,
     handleEditClient,
     handleFilterByType,

@@ -22,6 +22,7 @@ interface WeaponReserveProps {
   onUpdateWeaponQuantity: (weaponId: number, newQuantity: number) => void;
   getWeaponPriceForClient: (weaponId: number, clientId?: string) => number;
   currentClientId?: string;
+  isCreatingClient?: boolean;
 }
 
 const WeaponReserve: React.FC<WeaponReserveProps> = ({
@@ -38,7 +39,8 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   onUpdateWeaponPrice,
   onUpdateWeaponQuantity,
   getWeaponPriceForClient,
-  currentClientId
+  currentClientId,
+  isCreatingClient = false
 }) => {
  
   // Validando estructura de armas recibidas
@@ -192,16 +194,22 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 px-8 py-12 text-center text-white">
+            <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 px-8 py-12 text-center text-white relative">
+              {/* Botón de Volver - Mejorado y más visible */}
+              <button 
+                onClick={onBack}
+                className="absolute left-4 top-4 sm:left-8 sm:top-8 bg-white text-red-600 hover:bg-red-50 rounded-lg px-4 py-3 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 font-semibold group"
+                title={isCreatingClient ? "Volver a datos del cliente" : "Volver al dashboard"}
+              >
+                <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="hidden sm:inline">
+                  {isCreatingClient ? "Volver a datos del cliente" : "Volver"}
+                </span>
+              </button>
+
               <div className="flex items-center justify-center mb-4">
-                <button 
-                  onClick={onBack}
-                  className="absolute left-8 top-12 bg-white/20 hover:bg-white/30 text-white rounded-full p-3 transition-all duration-200 backdrop-blur-sm"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
                 <div className="bg-white/20 p-4 rounded-full mr-4 backdrop-blur-sm">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />

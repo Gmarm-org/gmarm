@@ -2,8 +2,10 @@ package com.armasimportacion.service.helper;
 
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.Arma;
+import com.armasimportacion.model.ArmaSerie;
 import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.repository.ArmaRepository;
+import com.armasimportacion.repository.ArmaSerieRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ public class GestionArmasServiceHelper {
 
     private final ArmaRepository armaRepository;
     private final ClienteArmaRepository clienteArmaRepository;
+    private final ArmaSerieRepository armaSerieRepository;
     private final com.armasimportacion.service.ConfiguracionSistemaService configuracionService;
     private final com.armasimportacion.service.InventarioService inventarioService;
 
@@ -53,7 +56,17 @@ public class GestionArmasServiceHelper {
             }
             
             Arma arma = armaOpt.get();
-            ClienteArma clienteArma = crearClienteArma(cliente, arma, armaData);
+            
+            // Extraer número de serie si existe (para expoferia)
+            String numeroSerie = extraerNumeroSerie(armaData);
+            log.info("🔢 Número de serie recibido: {}", numeroSerie);
+            
+            ClienteArma clienteArma = crearClienteArma(cliente, arma, armaData, numeroSerie);
+            
+            // Si hay número de serie, asignarlo y actualizar estado de la serie
+            if (numeroSerie != null && !numeroSerie.isEmpty()) {
+                asignarSerieAClienteArma(clienteArma, numeroSerie, arma.getId());
+            }
             
             // Validar y reducir stock ANTES de guardar la asignación
             Integer cantidad = clienteArma.getCantidad();
@@ -118,7 +131,7 @@ public class GestionArmasServiceHelper {
     /**
      * Crea la relación ClienteArma con todos los datos necesarios
      */
-    private ClienteArma crearClienteArma(Cliente cliente, Arma arma, Map<String, Object> armaData) {
+    private ClienteArma crearClienteArma(Cliente cliente, Arma arma, Map<String, Object> armaData, String numeroSerie) {
         ClienteArma clienteArma = new ClienteArma();
         clienteArma.setCliente(cliente);
         clienteArma.setArma(arma);
@@ -131,14 +144,70 @@ public class GestionArmasServiceHelper {
         Integer cantidad = calcularCantidadArma(armaData);
         clienteArma.setCantidad(cantidad);
         
-        // Establecer estado y fecha
-        clienteArma.setEstado(ClienteArma.EstadoClienteArma.RESERVADA);
+        // Si hay número de serie, asignarlo y cambiar estado a ASIGNADA
+        if (numeroSerie != null && !numeroSerie.isEmpty()) {
+            clienteArma.setNumeroSerie(numeroSerie);
+            clienteArma.setEstado(ClienteArma.EstadoClienteArma.ASIGNADA);
+            log.info("🔢 Serie asignada al cliente-arma: {}", numeroSerie);
+        } else {
+            // Si no hay serie, estado es RESERVADA
+            clienteArma.setEstado(ClienteArma.EstadoClienteArma.RESERVADA);
+        }
+        
         clienteArma.setFechaAsignacion(LocalDateTime.now());
         
-        log.info("🔧 ClienteArma creado: precio={}, cantidad={}, estado={}", 
-            precio, cantidad, clienteArma.getEstado());
+        log.info("🔧 ClienteArma creado: precio={}, cantidad={}, estado={}, numeroSerie={}", 
+            precio, cantidad, clienteArma.getEstado(), numeroSerie);
         
         return clienteArma;
+    }
+    
+    /**
+     * Extrae el número de serie de los datos del arma
+     */
+    private String extraerNumeroSerie(Map<String, Object> armaData) {
+        Object numeroSerieObj = armaData.get("numeroSerie");
+        if (numeroSerieObj == null) {
+            log.info("📝 No se encontró número de serie en los datos del arma");
+            return null;
+        }
+        return numeroSerieObj.toString();
+    }
+    
+    /**
+     * Asigna la serie a la relación cliente-arma y actualiza el estado de la serie
+     */
+    private void asignarSerieAClienteArma(ClienteArma clienteArma, String numeroSerie, Long armaId) {
+        try {
+            log.info("🔢 Buscando serie con número: {} para arma ID: {}", numeroSerie, armaId);
+            
+            // Buscar la serie en la base de datos
+            Optional<ArmaSerie> serieOpt = armaSerieRepository.findByNumeroSerieAndArmaId(numeroSerie, armaId);
+            
+            if (serieOpt.isEmpty()) {
+                log.error("❌ No se encontró la serie {} para el arma ID: {}", numeroSerie, armaId);
+                throw new RuntimeException("Serie no encontrada: " + numeroSerie);
+            }
+            
+            ArmaSerie serie = serieOpt.get();
+            
+            // Verificar que la serie esté disponible
+            if (!ArmaSerie.EstadoSerie.DISPONIBLE.equals(serie.getEstado())) {
+                log.error("❌ La serie {} no está disponible. Estado actual: {}", numeroSerie, serie.getEstado());
+                throw new RuntimeException("La serie " + numeroSerie + " no está disponible");
+            }
+            
+            // Actualizar estado de la serie a ASIGNADO
+            serie.setEstado(ArmaSerie.EstadoSerie.ASIGNADO);
+            serie.setFechaAsignacion(LocalDateTime.now());
+            armaSerieRepository.save(serie);
+            
+            log.info("✅ Serie {} actualizada a estado ASIGNADO", numeroSerie);
+            
+        } catch (Exception e) {
+            log.error("❌ Error asignando serie: {}", e.getMessage(), e);
+            throw new RuntimeException("Error asignando serie: " + e.getMessage(), e);
+        }
     }
 
     /**

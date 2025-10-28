@@ -37,6 +37,11 @@ public interface ArmaSerieRepository extends JpaRepository<ArmaSerie, Long> {
     List<ArmaSerie> findByArmaIdAndEstado(Long armaId, EstadoSerie estado);
 
     /**
+     * Busca una serie por número de serie y arma
+     */
+    Optional<ArmaSerie> findByNumeroSerieAndArmaId(String numeroSerie, Long armaId);
+
+    /**
      * Encuentra todas las series disponibles de un arma
      */
     @Query("SELECT s FROM ArmaSerie s WHERE s.arma.id = :armaId AND s.estado = 'DISPONIBLE'")

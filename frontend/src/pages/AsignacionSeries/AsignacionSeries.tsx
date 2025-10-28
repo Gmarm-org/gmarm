@@ -1,29 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 
-interface Cliente {
+// DTO que coincide EXACTAMENTE con el backend ReservaPendienteDTO
+interface ReservaPendienteDTO {
   id: number;
-  nombres: string;
-  apellidos: string;
-  numeroIdentificacion: string;
-  email: string;
-}
-
-interface Arma {
-  id: number;
-  nombre: string;
-  codigo: string;
-  calibre: string;
-}
-
-interface ClienteArma {
-  id: number;
-  cliente: Cliente;
-  arma: Arma;
+  // Datos del cliente (planos, no anidados)
+  clienteId: number;
+  clienteNombres: string;
+  clienteApellidos: string;
+  clienteNumeroIdentificacion: string;
+  // Datos del arma (planos, no anidados)
+  armaId: number;
+  armaCodigo: string;
+  armaNombre: string;
+  armaCalibre: string;
+  armaCapacidad: number;
+  // Datos de la reserva
   cantidad: number;
   precioUnitario: number;
   estado: string;
-  numeroSerie: string | null;
+  fechaAsignacion: string;
   fechaCreacion: string;
 }
 
@@ -37,8 +33,8 @@ interface ArmaSerie {
 }
 
 const AsignacionSeries: React.FC = () => {
-  const [reservasPendientes, setReservasPendientes] = useState<ClienteArma[]>([]);
-  const [reservaSeleccionada, setReservaSeleccionada] = useState<ClienteArma | null>(null);
+  const [reservasPendientes, setReservasPendientes] = useState<ReservaPendienteDTO[]>([]);
+  const [reservaSeleccionada, setReservaSeleccionada] = useState<ReservaPendienteDTO | null>(null);
   const [seriesDisponibles, setSeriesDisponibles] = useState<ArmaSerie[]>([]);
   const [serieSeleccionadaNumero, setSerieSeleccionadaNumero] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,15 +60,15 @@ const AsignacionSeries: React.FC = () => {
     }
   };
 
-  const handleSeleccionarReserva = async (reserva: ClienteArma) => {
+  const handleSeleccionarReserva = async (reserva: ReservaPendienteDTO) => {
     setReservaSeleccionada(reserva);
     setSerieSeleccionadaNumero(null);
     setLoadingSeries(true);
 
     try {
-      const series = await apiService.getSeriesDisponibles(reserva.arma.id);
+      const series = await apiService.getSeriesDisponibles(reserva.armaId);
       setSeriesDisponibles(series);
-      console.log(`✅ Series disponibles para arma ${reserva.arma.codigo}:`, series.length);
+      console.log(`✅ Series disponibles para arma ${reserva.armaCodigo}:`, series.length);
     } catch (error) {
       console.error('❌ Error cargando series disponibles:', error);
       alert('Error cargando series disponibles');
@@ -166,13 +162,10 @@ const AsignacionSeries: React.FC = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <p className="font-semibold text-gray-900">
-                          {reserva.cliente.nombres} {reserva.cliente.apellidos}
+                          {reserva.clienteNombres} {reserva.clienteApellidos}
                         </p>
                         <p className="text-sm text-gray-600">
-                          CI: {reserva.cliente.numeroIdentificacion}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {reserva.cliente.email}
+                          CI: {reserva.clienteNumeroIdentificacion}
                         </p>
                       </div>
                       <div className="ml-4 text-right">
@@ -183,11 +176,11 @@ const AsignacionSeries: React.FC = () => {
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="font-medium text-gray-900">
-                        🔫 {reserva.arma.nombre}
+                        🔫 {reserva.armaNombre}
                       </p>
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-sm text-gray-600">
-                          {reserva.arma.codigo} - {reserva.arma.calibre}
+                          {reserva.armaCodigo} - {reserva.armaCalibre}
                         </p>
                         <p className="text-sm font-semibold text-green-600">
                           ${reserva.precioUnitario.toFixed(2)}
@@ -224,10 +217,10 @@ const AsignacionSeries: React.FC = () => {
               <>
                 <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-sm font-semibold text-blue-900">
-                    Arma: {reservaSeleccionada.arma.nombre}
+                    Arma: {reservaSeleccionada.armaNombre}
                   </p>
                   <p className="text-sm text-blue-700">
-                    Cliente: {reservaSeleccionada.cliente.nombres} {reservaSeleccionada.cliente.apellidos}
+                    Cliente: {reservaSeleccionada.clienteNombres} {reservaSeleccionada.clienteApellidos}
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
                     {seriesDisponibles.length} series disponibles

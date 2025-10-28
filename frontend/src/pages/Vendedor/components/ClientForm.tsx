@@ -1375,15 +1375,22 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         {formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toLocaleDateString('es-ES') : 'No especificado'}
                       </div>
                     ) : (
-                      <input
-                        type="date"
-                        value={formData.fechaNacimiento}
-                        onChange={(e) => handleInputChange('fechaNacimiento', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                      />
+                      <>
+                        <input
+                          type="date"
+                          value={formData.fechaNacimiento}
+                          onChange={(e) => handleInputChange('fechaNacimiento', e.target.value)}
+                          min="1900-01-01"
+                          max={new Date().toISOString().split('T')[0]}
+                          required
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Rango válido: 1900 - {new Date().getFullYear()} • El cliente debe tener al menos 25 años
+                        </p>
+                      </>
                     )}
-                    {formData.fechaNacimiento && (
+                    {formData.fechaNacimiento && edad !== null && (
                       <div className={`mt-2 p-3 rounded-lg text-sm ${edadValida ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
                         <span className="font-medium">Edad: {edad} años</span>
                         {!edadValida && (
@@ -2464,6 +2471,26 @@ const ClientForm: React.FC<ClientFormProps> = ({
                               <p><span className="font-medium">Arma:</span> {arma.armaNombre || 'N/A'}</p>
                               <p><span className="font-medium">Modelo:</span> {arma.armaModelo || 'N/A'}</p>
                               <p><span className="font-medium">Código:</span> {arma.armaCodigo || 'N/A'}</p>
+                              {arma.numeroSerie && (
+                                <p>
+                                  <span className="font-medium">Número de Serie:</span>{' '}
+                                  <span className="font-mono text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">
+                                    {arma.numeroSerie}
+                                  </span>
+                                </p>
+                              )}
+                              {arma.estado && (
+                                <p>
+                                  <span className="font-medium">Estado:</span>{' '}
+                                  <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                                    arma.estado === 'ASIGNADA' ? 'bg-green-100 text-green-800' :
+                                    arma.estado === 'RESERVADA' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {arma.estado}
+                                  </span>
+                                </p>
+                              )}
                               <p><span className="font-medium">Cantidad:</span> {cantidad}</p>
                               <p><span className="font-medium">Precio Unitario (sin IVA):</span> ${precioSinIva.toFixed(2)}</p>
                               <div className="border-t pt-2 mt-2">

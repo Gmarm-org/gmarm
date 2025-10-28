@@ -3,11 +3,15 @@ import WeaponReserve from './components/WeaponReserve';
 import Header from '../../components/Header';
 import ClientForm from './components/ClientForm';
 import PaymentForm from './components/PaymentForm';
+import SeriesAssignment from './components/SeriesAssignment';
 
 import { useVendedorLogic } from './hooks/useVendedorLogic';
 
 const Vendedor: React.FC = React.memo(() => {
   // Componente Vendedor inicializado
+  
+  // Estado para pestaña activa
+  const [activeTab, setActiveTab] = React.useState<'en-proceso' | 'asignados'>('en-proceso');
   
   // Usar el hook personalizado para toda la lógica
   const {
@@ -61,9 +65,32 @@ const Vendedor: React.FC = React.memo(() => {
     handlePaymentComplete,
     handleClientDataConfirm,
     handleWeaponSelectionConfirm,
+    handleBackToClientForm,
+    handleSerieSelected,
+    handleBackToWeaponSelection,
+    selectedSerieNumero,
+    expoferiaActiva,
 
     getClientCountByType,
   } = useVendedorLogic();
+  
+  // Filtrar clientes según el tab activo
+  const getClientsByTab = () => {
+    const allClients = getFilteredClients();
+    if (activeTab === 'en-proceso') {
+      // Clientes sin arma o con arma RESERVADA
+      return allClients.filter(client => {
+        const weaponAssignment = getWeaponForClient(client.id);
+        return !weaponAssignment || weaponAssignment.estado !== 'ASIGNADA';
+      });
+    } else {
+      // Clientes con arma ASIGNADA
+      return allClients.filter(client => {
+        const weaponAssignment = getWeaponForClient(client.id);
+        return weaponAssignment && weaponAssignment.estado === 'ASIGNADA';
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -197,21 +224,47 @@ const Vendedor: React.FC = React.memo(() => {
               </div>
             )}
 
-            {/* Botones de acción */}
-            <div className="flex space-x-4 mb-6">
+            {/* Pestañas de clientes */}
+            <div className="flex space-x-2 mb-6">
               <button
-                onClick={handleCreateClient}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
+                onClick={() => setActiveTab('en-proceso')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg ${
+                  activeTab === 'en-proceso'
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                Crear Cliente
+                📋 Clientes en Proceso
               </button>
               <button
-                onClick={handleAssignWeaponWithoutClient}
-                className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+                onClick={() => setActiveTab('asignados')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg ${
+                  activeTab === 'asignados'
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                Asignar Arma Sin Cliente
+                ✅ Clientes Asignados
               </button>
             </div>
+
+            {/* Botones de acción (solo en "En Proceso") */}
+            {activeTab === 'en-proceso' && (
+              <div className="flex space-x-4 mb-6">
+                <button
+                  onClick={handleCreateClient}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
+                >
+                  Crear Cliente
+                </button>
+                <button
+                  onClick={handleAssignWeaponWithoutClient}
+                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+                >
+                  Asignar Arma Sin Cliente
+                </button>
+              </div>
+            )}
 
             {/* Tabla de clientes */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -246,10 +299,31 @@ const Vendedor: React.FC = React.memo(() => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {getFilteredClients().map((client, index) => {
-                      const weaponAssignment = getWeaponForClient(client.id);
-                      return (
-                        <tr key={client.id} className={`hover:bg-gray-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    {getClientsByTab().length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            </svg>
+                            <p className="text-gray-500 text-lg font-medium">
+                              {activeTab === 'en-proceso' 
+                                ? 'No hay clientes en proceso' 
+                                : 'No hay clientes con armas asignadas'}
+                            </p>
+                            <p className="text-gray-400 text-sm mt-2">
+                              {activeTab === 'en-proceso' 
+                                ? 'Crea un nuevo cliente para comenzar' 
+                                : 'Los clientes aparecerán aquí cuando se les asigne una serie'}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      getClientsByTab().map((client, index) => {
+                        const weaponAssignment = getWeaponForClient(client.id);
+                        return (
+                          <tr key={client.id} className={`hover:bg-gray-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">
@@ -277,7 +351,23 @@ const Vendedor: React.FC = React.memo(() => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {weaponAssignment ? (
-                              `${weaponAssignment.weapon.nombre} (${weaponAssignment.weapon.calibre})`
+                              <div>
+                                <div>{weaponAssignment.weapon.nombre} ({weaponAssignment.weapon.calibre})</div>
+                                {weaponAssignment.numeroSerie && (
+                                  <div className="text-xs text-blue-600 font-mono font-semibold mt-1">
+                                    Serie: {weaponAssignment.numeroSerie}
+                                  </div>
+                                )}
+                                {weaponAssignment.estado && (
+                                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                    weaponAssignment.estado === 'ASIGNADA' ? 'bg-green-100 text-green-800' :
+                                    weaponAssignment.estado === 'RESERVADA' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {weaponAssignment.estado}
+                                  </span>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-gray-400">Sin arma asignada</span>
                             )}
@@ -323,7 +413,7 @@ const Vendedor: React.FC = React.memo(() => {
                           </td>
                         </tr>
                       );
-                    })}
+                    }))}
                   </tbody>
                 </table>
               </div>
@@ -394,7 +484,7 @@ const Vendedor: React.FC = React.memo(() => {
           <div className="p-6">
             <ClientForm
               mode={clientFormMode}
-              client={selectedClient as any}
+              client={(selectedClient || clientFormData) as any}
               onSave={handleClientSaved as any}
               onCancel={handleCloseForm}
               onEdit={() => selectedClient && handleEditClient(selectedClient)}
@@ -421,7 +511,16 @@ const Vendedor: React.FC = React.memo(() => {
               reservaParaCliente={selectedClient as any}
               clienteParaResumen={selectedClient as any}
               armaSeleccionadaEnReserva={selectedWeapon}
-              onBack={() => setCurrentPage('dashboard')}
+              isCreatingClient={!!clientFormData}
+              onBack={() => {
+                // Si hay datos del cliente guardados (flujo de creación), volver al formulario
+                if (clientFormData) {
+                  handleBackToClientForm();
+                } else {
+                  // Si no hay datos, volver al dashboard
+                  setCurrentPage('dashboard');
+                }
+              }}
               onWeaponSelection={handleWeaponSelected}
               onWeaponSelectionInReserve={handleWeaponSelected}
               onAssignWeaponToClient={(client, weapon) => {
@@ -466,6 +565,29 @@ const Vendedor: React.FC = React.memo(() => {
           </div>
         );
 
+      case 'seriesAssignment':
+        // Solo mostrar si expoferia está activa y hay un arma seleccionada
+        if (!expoferiaActiva || !selectedWeapon) {
+          console.error('❌ No se puede mostrar asignación de series sin expoferia activa o arma seleccionada');
+          setCurrentPage('dashboard');
+          return null;
+        }
+        
+        const clienteData = clientFormData || selectedClient;
+        
+        return (
+          <div className="p-6">
+            <SeriesAssignment
+              armaId={selectedWeapon.id}
+              armaNombre={selectedWeapon.nombre}
+              clienteNombres={clienteData?.nombres || ''}
+              clienteApellidos={clienteData?.apellidos || ''}
+              onSerieSelected={handleSerieSelected}
+              onBack={handleBackToWeaponSelection}
+            />
+          </div>
+        );
+
       case 'paymentForm':
         console.log('💰 Vendedor - Navegando a PaymentForm con valores:');
         console.log('  - selectedClient:', selectedClient);
@@ -504,7 +626,16 @@ const Vendedor: React.FC = React.memo(() => {
               selectedWeapon={selectedWeapon as any}
               precioModificado={precioModificado}
               cantidad={cantidad}
-              onBack={() => setCurrentPage('weaponSelection')}
+              selectedSerieNumero={selectedSerieNumero}
+              onBack={() => {
+                // Si hay una serie seleccionada y expoferia activa, volver a seriesAssignment
+                if (selectedSerieNumero && expoferiaActiva) {
+                  setCurrentPage('seriesAssignment');
+                } else {
+                  // Si no, volver a weaponSelection
+                  setCurrentPage('weaponSelection');
+                }
+              }}
               onComplete={handlePaymentComplete}
             />
           </div>

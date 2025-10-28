@@ -5,11 +5,28 @@
 /**
  * Calcula la edad basada en la fecha de nacimiento
  * @param fechaNacimiento - Fecha de nacimiento en formato ISO string
- * @returns Edad en años
+ * @returns Edad en años, o null si la fecha es inválida
  */
-export const calcularEdad = (fechaNacimiento: string): number => {
+export const calcularEdad = (fechaNacimiento: string): number | null => {
+  if (!fechaNacimiento) return null;
+  
   const fechaNac = new Date(fechaNacimiento);
   const fechaActual = new Date();
+  
+  // Validar que la fecha sea válida
+  if (isNaN(fechaNac.getTime())) {
+    return null;
+  }
+  
+  // Validar que no sea una fecha futura
+  if (fechaNac > fechaActual) {
+    return null;
+  }
+  
+  // Validar que no sea antes de 1900
+  if (fechaNac.getFullYear() < 1900) {
+    return null;
+  }
   
   let edad = fechaActual.getFullYear() - fechaNac.getFullYear();
   const mesActual = fechaActual.getMonth();
@@ -31,6 +48,7 @@ export const calcularEdad = (fechaNacimiento: string): number => {
  */
 export const validarEdadMinima = (fechaNacimiento: string, edadMinima: number = 25): boolean => {
   const edad = calcularEdad(fechaNacimiento);
+  if (edad === null) return false;
   return edad >= edadMinima;
 };
 
@@ -41,8 +59,13 @@ export const validarEdadMinima = (fechaNacimiento: string, edadMinima: number = 
  * @returns Mensaje de error o null si cumple la edad
  */
 export const obtenerMensajeErrorEdad = (fechaNacimiento: string, edadMinima: number = 25): string | null => {
+  const edad = calcularEdad(fechaNacimiento);
+  
+  if (edad === null) {
+    return 'Fecha de nacimiento inválida';
+  }
+  
   if (!validarEdadMinima(fechaNacimiento, edadMinima)) {
-    const edad = calcularEdad(fechaNacimiento);
     const añosFaltantes = edadMinima - edad;
     
     if (añosFaltantes === 1) {

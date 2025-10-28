@@ -8,6 +8,7 @@ interface PaymentFormProps {
   selectedWeapon: Arma;
   precioModificado: number;
   cantidad: number;
+  selectedSerieNumero?: string | null; // Número de serie seleccionado (si expoferia está activa)
   onBack: () => void;
   onComplete: (paymentData: any) => void;
 }
@@ -23,6 +24,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   selectedWeapon,
   precioModificado,
   cantidad,
+  selectedSerieNumero,
   onBack,
   onComplete
 }) => {
@@ -179,6 +181,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                     <h3 className="text-lg font-semibold text-gray-700">Arma Seleccionada</h3>
                     <div className="space-y-2">
                       <p><span className="font-medium">Arma:</span> {selectedWeapon.nombre}</p>
+                      {selectedSerieNumero && (
+                        <p className="flex items-center gap-2">
+                          <span className="font-medium">Número de Serie:</span> 
+                          <span className="font-mono bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm font-bold">
+                            {selectedSerieNumero}
+                          </span>
+                        </p>
+                      )}
                       <p><span className="font-medium">Cantidad:</span> {cantidad}</p>
                       <p><span className="font-medium">Precio unitario:</span> ${precioModificado.toFixed(2)}</p>
                     </div>
