@@ -207,7 +207,7 @@ export const useVendedorLogic = () => {
       const endIndex = startIndex + pageSize;
       const clientsPaginados = clientsData.slice(startIndex, endIndex);
       
-      setClients(clientsPaginados);
+      setClients(clientsPaginados as any); // Cast temporal para compatibilidad entre tipos Client
       setTotalPages(totalPagesCalc);
       setTotalClients(totalElements);
       setCurrentPageNumber(page);

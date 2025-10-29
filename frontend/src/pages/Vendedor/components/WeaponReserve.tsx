@@ -231,8 +231,8 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                   {(currentClient || reservaParaCliente)?.fechaNacimiento && (
                     (() => {
                       const cliente = currentClient || reservaParaCliente;
-                      const puedeComprar = validarEdadMinima(cliente!.fechaNacimiento);
-                      const mensajeError = obtenerMensajeErrorEdad(cliente!.fechaNacimiento);
+                      const puedeComprar = cliente!.fechaNacimiento ? validarEdadMinima(cliente!.fechaNacimiento) : false;
+                      const mensajeError = cliente!.fechaNacimiento ? obtenerMensajeErrorEdad(cliente!.fechaNacimiento) : 'Fecha de nacimiento no especificada';
                       
                       if (!puedeComprar) {
                         return (

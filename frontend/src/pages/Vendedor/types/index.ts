@@ -9,8 +9,8 @@ export interface Client {
   nombres: string;
   apellidos: string;
   email: string;
-  fechaNacimiento: string; // Fecha de nacimiento para validación de edad
-  direccion: string;
+  fechaNacimiento?: string; // Fecha de nacimiento para validación de edad (opcional desde API)
+  direccion?: string; // Dirección (opcional desde API)
   telefonoPrincipal: string;
   telefonoSecundario?: string;
   

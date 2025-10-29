@@ -1234,9 +1234,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
     return true;
   };
 
-  const edad = calcularEdad(formData.fechaNacimiento);
-  const edadValida = validarEdadMinima(formData.fechaNacimiento);
-  const mensajeErrorEdad = obtenerMensajeErrorEdad(formData.fechaNacimiento);
+  const edad = formData.fechaNacimiento ? calcularEdad(formData.fechaNacimiento) : null;
+  const edadValida = formData.fechaNacimiento ? validarEdadMinima(formData.fechaNacimiento) : false;
+  const mensajeErrorEdad = formData.fechaNacimiento ? obtenerMensajeErrorEdad(formData.fechaNacimiento) : 'Fecha de nacimiento no especificada';
 
   console.log('ClientForm render - mode:', mode, 'client:', client, 'formData:', formData);
   console.log('🔍 Estado de catálogos:', { tiposCliente: tiposCliente.length, tiposIdentificacion: tiposIdentificacion.length });
