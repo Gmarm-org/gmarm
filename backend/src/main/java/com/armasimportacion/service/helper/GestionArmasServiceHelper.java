@@ -64,11 +64,6 @@ public class GestionArmasServiceHelper {
             
             ClienteArma clienteArma = crearClienteArma(cliente, arma, armaData, numeroSerie);
             
-            // Si hay número de serie, asignarlo y actualizar estado de la serie
-            if (numeroSerie != null && !numeroSerie.isEmpty()) {
-                asignarSerieAClienteArma(clienteArma, numeroSerie, arma.getId());
-            }
-            
             // Validar y reducir stock ANTES de guardar la asignación
             Integer cantidad = clienteArma.getCantidad();
             log.info("🔍 Validando stock disponible para arma ID={}, cantidad solicitada={}", armaId, cantidad);
@@ -86,7 +81,14 @@ public class GestionArmasServiceHelper {
             inventarioService.reducirStock(armaId, cantidad);
             log.info("✅ Stock reducido exitosamente para arma '{}'", arma.getNombre());
             
+            // CRÍTICO: Guardar ClienteArma PRIMERO antes de asignar la serie
             ClienteArma clienteArmaGuardado = clienteArmaRepository.save(clienteArma);
+            log.info("✅ ClienteArma guardado con ID: {}", clienteArmaGuardado.getId());
+            
+            // AHORA sí, asignar la serie (clienteArma ya está persistido)
+            if (numeroSerie != null && !numeroSerie.isEmpty()) {
+                asignarSerieAClienteArma(clienteArmaGuardado, numeroSerie, arma.getId());
+            }
             
             log.info("✅ Arma asignada exitosamente: cliente={}, arma={}, precio={}, cantidad={}", 
                 cliente.getId(), arma.getNombre(), clienteArmaGuardado.getPrecioUnitario(), 

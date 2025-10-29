@@ -1141,7 +1141,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Rioverde', 'RIOV', true, (SELECT id FROM provincia WHERE codigo = 'ESM'))
 ON CONFLICT DO NOTHING;
 
--- GALÑPAGOS
+-- GALAPAGOS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('San Cristóbal', 'SCRI', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
 ('Isabela', 'ISAB', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
@@ -1464,7 +1464,7 @@ INSERT INTO usuario (
     username, apellidos, email, nombres, direccion, password_hash
 ) VALUES (
     false, 0, NOW(), '0999999999', 'ACTIVO', 
-    'karolina.pazmino', 'Pazmiï¿½o', 'karritogeova@hotmail.com', 
+    'karolina.pazmino', 'Pazmiño', 'karritogeova@hotmail.com', 
     'Karolina', 'Quito, Ecuador', 'admin123'
 ) ON CONFLICT (email) DO UPDATE SET 
     nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = 'ACTIVO';
@@ -1521,8 +1521,8 @@ ON CONFLICT DO NOTHING;
 -- VERIFICACIï¿½N FINAL
 -- ========================================
 
-SELECT '=== INSTALACIï¿½N COMPLETADA - AMBIENTE DESARROLLO ===' as info;
-SELECT 'La base de datos estï¿½ lista con todos los datos de desarrollo.' as mensaje;
+SELECT '=== INSTALACION COMPLETADA - AMBIENTE DESARROLLO ===' as info;
+SELECT 'La base de datos esta lista con todos los datos de desarrollo.' as mensaje;
 
 -- Mostrar usuarios y roles
 SELECT 
@@ -2051,5 +2051,3 @@ SELECT 'Armas con mï¿½ltiples imï¿½genes:' as info, COUNT(DISTINCT arma_id
 FROM arma_imagen 
 GROUP BY arma_id 
 HAVING COUNT(*) > 1;
-
-
