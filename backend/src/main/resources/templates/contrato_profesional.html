@@ -188,7 +188,7 @@
 
         <div class="parties-section">
             <div class="party-info">
-                Comparecen a la celebración del presente contrato, por una parte, el Dr. JOSE LUIS GUERRERO MARTINEZ, portador de la cédula de ciudadanía No. 1707543922, quien cuenta con Licencia de Comerciante importador de armas y municiones debidamente autorizado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No. DOC000687803, por una parte, y el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio activo/pasivo, como se justifica el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
+                Comparecen a la celebración del presente contrato, por una parte, el Dr. JOSE LUIS GUERRERO MARTINEZ, portador de la cédula de ciudadanía No. 1707543922, quien cuenta con Licencia de Comerciante importador de armas y municiones debidamente autorizado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No. DOC000687803, por una parte, y el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>, como se justifica el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
             </div>
         </div>
 
@@ -198,7 +198,7 @@
         </div>
         
         <div class="clause-content">
-            <span>El </span> <span class="text-bold text-uppercase" th:if="${clienteRango != null and clienteRango != ''}" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span class="text-bold text-uppercase" th:unless="${clienteRango != null and clienteRango != ''}" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, militar en servicio activo/pasivo y requiere adquirir un arma de porte o tenencia personal.
+            <span>El </span> <span class="text-bold text-uppercase" th:if="${clienteRango != null and clienteRango != ''}" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span class="text-bold text-uppercase" th:unless="${clienteRango != null and clienteRango != ''}" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span> y requiere adquirir un arma de porte o tenencia personal.
         </div>
         
         <div class="clause-content">
@@ -304,7 +304,7 @@
 
         <div>
             <span class="clause-title-bold">SÉPTIMA.-</span>
-            <span class="clause-content-inline">El comprador declara estar consciente que esta arma es intransferible ya que es un tratamiento especial para su uso personal, tomando en cuenta que el comprador es militar en servicio activo/pasivo y que de acuerdo a la normativa relacionada a la importación de armas en caso de desistimiento en cualquier momento durante la vigencia del presente contrato, el comprador perderá todo el dinero pagado hasta la fecha y deberá pagar los saldos pendientes hasta su total cancelación; el arma será entregada a control de Armas para su destrucción o decisión correspondiente.</span>
+            <span class="clause-content-inline">El comprador declara estar consciente que esta arma es intransferible ya que es un tratamiento especial para su uso personal, tomando en cuenta que el comprador es militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span> y que de acuerdo a la normativa relacionada a la importación de armas en caso de desistimiento en cualquier momento durante la vigencia del presente contrato, el comprador perderá todo el dinero pagado hasta la fecha y deberá pagar los saldos pendientes hasta su total cancelación; el arma será entregada a control de Armas para su destrucción o decisión correspondiente.</span>
         </div>
 
         <div class="clause-content">
@@ -342,7 +342,7 @@
             <li class="annex-item"><span class="text-bold">ANEXO 6</span> Certificado de Antecedentes penales del comprador.</li>
             <li class="annex-item"><span class="text-bold">ANEXO 7</span> Certificado de no presentarse violencia intrafamiliar del comprador.</li>
             <li class="annex-item"><span class="text-bold">ANEXO 8</span> Certificado de no presentar procesos judiciales del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 9</span> Certificado del ISSFA, donde se corrobora que el militar está en servicio activo/pasivo.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 9</span> Certificado del ISSFA, donde se corrobora que el militar está en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>.</li>
         </ul>
 
         <div class="clause-content">
