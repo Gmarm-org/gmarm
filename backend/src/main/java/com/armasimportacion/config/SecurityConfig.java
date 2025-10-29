@@ -67,10 +67,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/arma/**").permitAll() // Endpoints de armas
                 .requestMatchers("/api/arma-serie/**").permitAll() // Endpoints de series de armas
                 .requestMatchers("/api/cliente-arma/**").permitAll() // Endpoints de reservas
-                .requestMatchers("/api/asignacion-series/**").authenticated() // Endpoints de asignación de series (requiere autenticación)
+                // Endpoints de asignación de series - ORDEN IMPORTA (específicos primero)
+                .requestMatchers("/api/asignacion-series/series-disponibles/**").permitAll() // Consulta de series disponibles (para vendedores)
                 .requestMatchers("/api/asignacion-series/pendientes").authenticated() // Solo usuarios autenticados
-                .requestMatchers("/api/asignacion-series/series-disponibles/**").authenticated() // Solo usuarios autenticados
                 .requestMatchers("/api/asignacion-series/asignar").authenticated() // Solo usuarios autenticados
+                .requestMatchers("/api/asignacion-series/**").authenticated() // Otros endpoints requieren autenticación
                 .requestMatchers("/api/pagos/**").permitAll() // TEMPORAL: Para debugging
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()

@@ -186,19 +186,35 @@ export const useVendedorLogic = () => {
   const loadClients = useCallback(async (page: number = currentPageNumber) => {
     try {
       setClientsLoading(true);
-      const response = await apiService.getClientes(page, pageSize);
-      const clientsData = (response.content || []) as any;
-      setClients(clientsData);
       
-      // Actualizar estados de paginación
-      setTotalPages(response.totalPages || 0);
-      setTotalClients(response.totalElements || 0);
+      // IMPORTANTE: El vendedor solo debe ver SUS clientes, no todos
+      if (!user || !user.id) {
+        console.error('❌ No se puede cargar clientes sin usuario autenticado');
+        setClientsLoading(false);
+        return;
+      }
+      
+      console.log(`📋 Cargando clientes del vendedor ID: ${user.id}`);
+      const clientsData = await apiService.getClientesPorVendedor(user.id);
+      
+      // Paginación manual en el frontend (ya que el endpoint no soporta paginación)
+      const totalElements = clientsData.length;
+      const totalPagesCalc = Math.ceil(totalElements / pageSize);
+      const startIndex = page * pageSize;
+      const endIndex = startIndex + pageSize;
+      const clientsPaginados = clientsData.slice(startIndex, endIndex);
+      
+      setClients(clientsPaginados);
+      setTotalPages(totalPagesCalc);
+      setTotalClients(totalElements);
       setCurrentPageNumber(page);
+      
+      console.log(`✅ Clientes cargados: ${clientsPaginados.length} de ${totalElements} total`);
       
       // Cargar armas para cada cliente
       const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
       
-      for (const client of clientsData) {
+      for (const client of clientsPaginados) {
         try {
           const armasResponse = await apiService.getArmasCliente(client.id);
           if (armasResponse && armasResponse.length > 0) {
@@ -229,7 +245,7 @@ export const useVendedorLogic = () => {
     } finally {
       setClientsLoading(false);
     }
-  }, []);
+  }, [user, currentPageNumber, pageSize]);
 
   const loadWeapons = useCallback(async () => {
     try {
@@ -718,7 +734,8 @@ export const useVendedorLogic = () => {
         arma: armaData ? {
           armaId: armaData.armaId,
           cantidad: armaData.cantidad,
-          precioUnitario: armaData.precioUnitario
+          precioUnitario: armaData.precioUnitario,
+          numeroSerie: armaData.numeroSerie // CRÍTICO: Incluir número de serie para expoferia
         } : null,
         respuestas: (clientFormData.respuestas || []).map((respuesta: any) => ({
           ...respuesta,

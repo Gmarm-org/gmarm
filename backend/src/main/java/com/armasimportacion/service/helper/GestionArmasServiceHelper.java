@@ -197,12 +197,16 @@ public class GestionArmasServiceHelper {
                 throw new RuntimeException("La serie " + numeroSerie + " no está disponible");
             }
             
-            // Actualizar estado de la serie a ASIGNADO
-            serie.setEstado(ArmaSerie.EstadoSerie.ASIGNADO);
-            serie.setFechaAsignacion(LocalDateTime.now());
+            // Obtener usuario asignador (vendedor) desde el cliente
+            // El vendedor es el usuario_creador del cliente
+            com.armasimportacion.model.Usuario vendedor = clienteArma.getCliente().getUsuarioCreador();
+            
+            // Usar el método asignar() del modelo para establecer todas las relaciones correctamente
+            serie.asignar(clienteArma, vendedor);
             armaSerieRepository.save(serie);
             
-            log.info("✅ Serie {} actualizada a estado ASIGNADO", numeroSerie);
+            log.info("✅ Serie {} asignada correctamente al cliente-arma. Estado: ASIGNADO, Vendedor: {}", 
+                numeroSerie, vendedor != null ? vendedor.getNombres() : "N/A");
             
         } catch (Exception e) {
             log.error("❌ Error asignando serie: {}", e.getMessage(), e);
