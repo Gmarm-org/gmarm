@@ -84,6 +84,9 @@ export const useVendedorLogic = () => {
   const [selectedSerieId, setSelectedSerieId] = useState<number | null>(null); // ID de serie seleccionada
   const [selectedSerieNumero, setSelectedSerieNumero] = useState<string | null>(null); // Número de serie seleccionado
   
+  // CRÍTICO: Usar ref para preservar el valor de numeroSerie entre renders
+  const selectedSerieNumeroRef = useRef<string | null>(null);
+  
   // Estados de paginación
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
@@ -602,13 +605,17 @@ export const useVendedorLogic = () => {
   const handleSerieSelected = useCallback((serieId: number, numeroSerie: string) => {
     console.log('🔢 Serie seleccionada:', { serieId, numeroSerie });
     
-    // CRÍTICO: Actualizar estados inmediatamente
+    // CRÍTICO: Guardar en ref INMEDIATAMENTE (no espera renders)
+    selectedSerieNumeroRef.current = numeroSerie;
+    
+    // También actualizar estados para el UI
     setSelectedSerieId(serieId);
     setSelectedSerieNumero(numeroSerie);
     
     // Navegar inmediatamente - React batcheará las actualizaciones
     console.log('💰 Navegando a forma de pago con serie asignada');
-    console.log('🔢 Serie que se guardó - ID:', serieId, 'Numero:', numeroSerie);
+    console.log('🔢 Serie guardada en ref:', selectedSerieNumeroRef.current);
+    console.log('🔢 Serie guardada en estado - ID:', serieId, 'Numero:', numeroSerie);
     setCurrentPage('paymentForm');
   }, []);
 
@@ -632,7 +639,8 @@ export const useVendedorLogic = () => {
       console.log('💰 clientFormData:', clientFormData);
       console.log('💰 selectedWeapon:', selectedWeapon);
       console.log('💰 precioModificado:', precioModificado);
-      console.log('🔢 CRÍTICO - selectedSerieNumero:', selectedSerieNumero);
+      console.log('🔢 CRÍTICO - selectedSerieNumero (estado):', selectedSerieNumero);
+      console.log('🔢 CRÍTICO - selectedSerieNumero (ref):', selectedSerieNumeroRef.current);
       console.log('🔢 CRÍTICO - selectedSerieId:', selectedSerieId);
       console.log('🎯 CRÍTICO - expoferiaActiva:', expoferiaActiva);
       
@@ -670,17 +678,22 @@ export const useVendedorLogic = () => {
         montoPendiente: paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100
       };
       
-      // Preparar datos de arma - USAR numeroSerie de paymentData (no del estado)
-      const numeroSerieDesdePayment = paymentData.numeroSerie || null;
+      // Preparar datos de arma - USAR numeroSerie con prioridad: ref > paymentData > estado
+      const numeroSerieDesdeRef = selectedSerieNumeroRef.current;
+      const numeroSerieDesdePayment = paymentData.numeroSerie;
+      const numeroSerieFinal = numeroSerieDesdeRef || numeroSerieDesdePayment || selectedSerieNumero || null;
+      
       const armaData = selectedWeapon ? {
         armaId: selectedWeapon.id,
         cantidad: cantidad,
         precioUnitario: precioModificado,
-        numeroSerie: numeroSerieDesdePayment // CRÍTICO: Usar el valor que viene de PaymentForm
+        numeroSerie: numeroSerieFinal // CRÍTICO: Usar el valor de la ref (más confiable)
       } : null;
       
+      console.log('🔢 Número de serie desde REF:', numeroSerieDesdeRef);
       console.log('🔢 Número de serie desde paymentData:', numeroSerieDesdePayment);
-      console.log('🔢 Número de serie del estado (para comparar):', selectedSerieNumero);
+      console.log('🔢 Número de serie del estado:', selectedSerieNumero);
+      console.log('🔢 ✅ Número de serie FINAL que se enviará:', numeroSerieFinal);
       
       // Preparar datos de documentos del usuario (si existen)
       const documentosUsuario = clientFormData.uploadedDocuments || {};

@@ -35,7 +35,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     console.log('  - Arma seleccionada:', selectedWeapon);
     console.log('  - Precio modificado:', precioModificado);
     console.log('  - Cantidad:', cantidad);
-  }, [client, selectedWeapon, precioModificado, cantidad]);
+    console.log('  🔢 CRÍTICO - selectedSerieNumero recibido en PaymentForm:', selectedSerieNumero);
+  }, [client, selectedWeapon, precioModificado, cantidad, selectedSerieNumero]);
 
   const [tipoPago, setTipoPago] = useState<'CONTADO' | 'CUOTAS'>('CONTADO');
   const [numeroCuotas, setNumeroCuotas] = useState<number>(2);
