@@ -129,9 +129,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       total,
       tipoPago,
       numeroCuotas: tipoPago === 'CUOTAS' ? numeroCuotas : 1,
-      cuotas: tipoPago === 'CUOTAS' ? cuotas : []
+      cuotas: tipoPago === 'CUOTAS' ? cuotas : [],
+      numeroSerie: selectedSerieNumero // CRÍTICO: Pasar el número de serie que se recibió como prop
     };
 
+    console.log('💰 PaymentForm - Enviando datos de pago con numeroSerie:', selectedSerieNumero);
     onComplete(paymentData);
   };
 

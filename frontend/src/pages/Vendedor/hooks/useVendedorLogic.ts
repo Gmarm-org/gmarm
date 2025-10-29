@@ -601,11 +601,14 @@ export const useVendedorLogic = () => {
   // Función para manejar cuando se selecciona una serie
   const handleSerieSelected = useCallback((serieId: number, numeroSerie: string) => {
     console.log('🔢 Serie seleccionada:', { serieId, numeroSerie });
+    
+    // CRÍTICO: Actualizar estados inmediatamente
     setSelectedSerieId(serieId);
     setSelectedSerieNumero(numeroSerie);
     
-    // Navegar a la forma de pago
+    // Navegar inmediatamente - React batcheará las actualizaciones
     console.log('💰 Navegando a forma de pago con serie asignada');
+    console.log('🔢 Serie que se guardó - ID:', serieId, 'Numero:', numeroSerie);
     setCurrentPage('paymentForm');
   }, []);
 
@@ -667,15 +670,17 @@ export const useVendedorLogic = () => {
         montoPendiente: paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100
       };
       
-      // Preparar datos de arma
+      // Preparar datos de arma - USAR numeroSerie de paymentData (no del estado)
+      const numeroSerieDesdePayment = paymentData.numeroSerie || null;
       const armaData = selectedWeapon ? {
         armaId: selectedWeapon.id,
         cantidad: cantidad,
         precioUnitario: precioModificado,
-        numeroSerie: selectedSerieNumero // Incluir número de serie si está seleccionado
+        numeroSerie: numeroSerieDesdePayment // CRÍTICO: Usar el valor que viene de PaymentForm
       } : null;
       
-      console.log('🔢 Número de serie que se enviará al backend:', selectedSerieNumero);
+      console.log('🔢 Número de serie desde paymentData:', numeroSerieDesdePayment);
+      console.log('🔢 Número de serie del estado (para comparar):', selectedSerieNumero);
       
       // Preparar datos de documentos del usuario (si existen)
       const documentosUsuario = clientFormData.uploadedDocuments || {};
