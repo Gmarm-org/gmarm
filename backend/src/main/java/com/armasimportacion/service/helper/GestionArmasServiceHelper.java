@@ -58,8 +58,9 @@ public class GestionArmasServiceHelper {
             Arma arma = armaOpt.get();
             
             // Extraer número de serie si existe (para expoferia)
+            log.info("🔍 DEBUG - armaData completo recibido: {}", armaData);
             String numeroSerie = extraerNumeroSerie(armaData);
-            log.info("🔢 Número de serie recibido: {}", numeroSerie);
+            log.info("🔢 Número de serie extraído: {}", numeroSerie);
             
             ClienteArma clienteArma = crearClienteArma(cliente, arma, armaData, numeroSerie);
             

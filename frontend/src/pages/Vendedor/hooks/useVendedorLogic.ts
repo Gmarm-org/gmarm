@@ -629,6 +629,9 @@ export const useVendedorLogic = () => {
       console.log('💰 clientFormData:', clientFormData);
       console.log('💰 selectedWeapon:', selectedWeapon);
       console.log('💰 precioModificado:', precioModificado);
+      console.log('🔢 CRÍTICO - selectedSerieNumero:', selectedSerieNumero);
+      console.log('🔢 CRÍTICO - selectedSerieId:', selectedSerieId);
+      console.log('🎯 CRÍTICO - expoferiaActiva:', expoferiaActiva);
       
       // VALIDACIÓN INICIAL: Verificar que tenemos todos los datos necesarios
       if (!clientFormData) {

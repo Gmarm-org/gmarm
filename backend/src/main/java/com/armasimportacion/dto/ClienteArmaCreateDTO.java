@@ -16,4 +16,5 @@ public class ClienteArmaCreateDTO {
     private Long armaId;
     private Integer cantidad;
     private BigDecimal precioUnitario;
+    private String numeroSerie; // Número de serie para expoferia
 }
