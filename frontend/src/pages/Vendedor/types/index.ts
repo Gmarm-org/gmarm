@@ -37,6 +37,7 @@ export interface Client {
   
   estadoMilitar?: 'ACTIVO' | 'PASIVO';
   codigoIssfa?: string;
+  rango?: string;
   
   // Campos para empresa
   representanteLegal?: string;

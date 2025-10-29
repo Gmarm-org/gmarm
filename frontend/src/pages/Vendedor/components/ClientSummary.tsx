@@ -208,6 +208,28 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
                 )}
               </div>
             )}
+            {(clienteParaResumen.tipoClienteEsMilitar || clienteParaResumen.tipoClienteEsPolicia) && (
+              <>
+                {clienteParaResumen.estadoMilitar && (
+                  <div className="summary-row">
+                    <span className="summary-label">Estado Militar:</span>
+                    <span className="summary-value">{clienteParaResumen.estadoMilitar}</span>
+                  </div>
+                )}
+                {clienteParaResumen.rango && (
+                  <div className="summary-row">
+                    <span className="summary-label">Rango:</span>
+                    <span className="summary-value">{clienteParaResumen.rango}</span>
+                  </div>
+                )}
+                {clienteParaResumen.codigoIssfa && (
+                  <div className="summary-row">
+                    <span className="summary-label">Código ISSFA:</span>
+                    <span className="summary-value">{clienteParaResumen.codigoIssfa}</span>
+                  </div>
+                )}
+              </>
+            )}
             {clienteParaResumen.tipoClienteEsEmpresa && (
               <>
                 <div className="summary-row">
