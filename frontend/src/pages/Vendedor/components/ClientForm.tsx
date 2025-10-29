@@ -362,8 +362,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
       });
       
       // Si tiene documentos cargados, restaurarlos también
-      if (client.uploadedDocuments) {
-        setUploadedDocuments(client.uploadedDocuments);
+      if ((client as any).uploadedDocuments) {
+        setUploadedDocuments((client as any).uploadedDocuments);
       }
       
       console.log('✅ Datos del formulario restaurados correctamente');
@@ -663,9 +663,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
           })) || []
         });
       }
-    } else if (mode === 'create') {
-      console.log('Resetting form data for create mode');
-      // Reset form data for create mode
+    } else if (mode === 'create' && (!client || !client.nombres)) {
+      // Solo resetear el formulario si NO hay datos de cliente para restaurar
+      console.log('Resetting form data for create mode (no client data to restore)');
       setFormData({
         id: '',
         nombres: '',
@@ -693,7 +693,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
         respuestas: []
       });
       setClienteBloqueado(false);
-              setMotivoBloqueo('');
+      setMotivoBloqueo('');
+    } else if (mode === 'create' && client && client.nombres) {
+      console.log('Skipping reset - client data exists for restoration');
     }
   }, [client, mode, tiposCliente, tiposIdentificacion]); // Agregar dependencias de catálogos
 
