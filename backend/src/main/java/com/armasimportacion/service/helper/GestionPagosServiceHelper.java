@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -208,9 +210,9 @@ public class GestionPagosServiceHelper {
                 BigDecimal monto = new BigDecimal(cuotaData.get("monto").toString());
                 cuota.setMonto(monto);
                 
-                // Fecha de vencimiento
+                // Fecha de vencimiento - parsear considerando zona horaria de Ecuador
                 String fechaStr = cuotaData.get("fecha").toString();
-                LocalDate fechaVencimiento = LocalDate.parse(fechaStr);
+                LocalDate fechaVencimiento = parsearFechaEcuador(fechaStr);
                 cuota.setFechaVencimiento(fechaVencimiento);
                 
                 cuota.setEstado(EstadoCuotaPago.PENDIENTE);
@@ -262,6 +264,29 @@ public class GestionPagosServiceHelper {
         } catch (Exception e) {
             log.warn("⚠️ Error obteniendo IVA del sistema, usando valor por defecto 15%: {}", e.getMessage());
             return 0.15;  // Fallback
+        }
+    }
+
+    /**
+     * Parsea una fecha string considerando la zona horaria de Ecuador (America/Guayaquil)
+     * Esto evita desfases de fechas causados por diferencias de zona horaria
+     */
+    private LocalDate parsearFechaEcuador(String fechaStr) {
+        try {
+            // Si la fecha viene con hora (ISO DateTime), parsearlo como ZonedDateTime
+            if (fechaStr.contains("T")) {
+                ZonedDateTime zonedDateTime = ZonedDateTime.parse(fechaStr);
+                // Convertir a zona horaria de Ecuador
+                ZonedDateTime ecuadorTime = zonedDateTime.withZoneSameInstant(ZoneId.of("America/Guayaquil"));
+                return ecuadorTime.toLocalDate();
+            } else {
+                // Si es solo fecha (YYYY-MM-DD), parsearlo directamente
+                return LocalDate.parse(fechaStr);
+            }
+        } catch (Exception e) {
+            log.error("❌ Error parseando fecha '{}': {}", fechaStr, e.getMessage());
+            // Fallback: intentar parsear como LocalDate simple
+            return LocalDate.parse(fechaStr);
         }
     }
 

@@ -188,7 +188,7 @@
 
         <div class="parties-section">
             <div class="party-info">
-                Comparecen a la celebración del presente contrato, por una parte, el Dr. JOSE LUIS GUERRERO MARTINEZ, portador de la cédula de ciudadanía No. 1707543922, quien cuenta con Licencia de Comerciante importador de armas y municiones debidamente autorizado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No. DOC000687803, por una parte, y el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>, como se justifica el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
+                Comparecen a la celebración del presente contrato, por una parte, el Dr. JOSE LUIS GUERRERO MARTINEZ, portador de la cédula de ciudadanía No. 1707815922, quien cuenta con Licencia de Comerciante importador de armas y municiones debidamente autorizado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No. DOC-000687803, por una parte, y el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>, como se justifica en el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
             </div>
         </div>
 
@@ -216,7 +216,7 @@
 
         <div>
             <span class="clause-title-bold">SEGUNDA.-</span>
-            <span class="clause-content-inline">El precio pactado por la venta sin contar el IVA es de <span>USD <span th:text="${#numbers.formatDecimal(pago.subtotal != null ? pago.subtotal : pago.montoTotal, 1, 2)}">1200.00</span> (MIL DOSCIENTOS 00/100, DOLARES DE LOS ESTADOS UNIDOS)</span>.</span>
+            <span class="clause-content-inline">El precio pactado por la venta sin contar el IVA es de <span>USD <span th:text="${#numbers.formatDecimal(pago.subtotal != null ? pago.subtotal : pago.montoTotal, 1, 2)}">1200.00</span> (<span th:text="${numberToTextService.convertToText(pago.subtotal != null ? pago.subtotal : pago.montoTotal)}">MIL DOSCIENTOS 00/100</span> DOLARES DE LOS ESTADOS UNIDOS)</span>.</span>
         </div>
 
         <div class="clause-content">
@@ -233,7 +233,7 @@
         </div>
         
         <div class="clause-content">
-            En caso de que el arma llegue a Ecuador en un tiempo menor al establecido anteriormente el comprador podrá pagar el valor total y recibir la correspondiente factura para realizar los tramites matriculación. En ningún caso se entregará una arma sin que se encuentre pagada en su totalidad.
+            En caso de que el arma llegue a Ecuador en un tiempo menor al establecido anteriormente el comprador podrá pagar el valor total y recibir la correspondiente factura para realizar los tramites de matriculación. En ningún caso se entregará una arma sin que se encuentre pagada en su totalidad.
         </div>
 
         <div>
@@ -337,12 +337,12 @@
         <ul class="annex-list">
             <li class="annex-item"><span class="text-bold">ANEXO 1</span> Detalle armamento.</li>
             <li class="annex-item"><span class="text-bold">ANEXO 2</span> Autorización de comerciante importador de Armas emitido por el Comando Conjunto de las FF.AA.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 4</span> Copia color de cédula de ciudadanía actualizada del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 5</span> Copia color del carnet militar actualizado del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 6</span> Certificado de Antecedentes penales del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 7</span> Certificado de no presentarse violencia intrafamiliar del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 8</span> Certificado de no presentar procesos judiciales del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 9</span> Certificado del ISSFA, donde se corrobora que el militar está en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 3</span> Copia color de cédula de ciudadanía actualizada del comprador.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 4</span> Copia color del carnet militar actualizado del comprador.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 5</span> Certificado de Antecedentes penales del comprador.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 6</span> Certificado de no presentarse violencia intrafamiliar del comprador.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 7</span> Certificado de no presentar procesos judiciales del comprador.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 8</span> Certificado del ISSFA, donde se corrobora que el militar está en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>.</li>
         </ul>
 
         <div class="clause-content">
@@ -397,7 +397,7 @@
                             <span>Dr. JOSE LUIS GUERRERO MARTÍNEZ</span><br/>
                             DISTRIBUIDOR AUTORIZADO<br/>
                             Ceská Zbrojovka<br/>
-                            CC 1707543922<br/>
+                            CC 1707815922<br/>
                             &nbsp;<br/>
                             &nbsp;
                         </div>
