@@ -328,6 +328,48 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [client, mode, loadClientData]);
   
+  // NUEVO: Restaurar datos del formulario cuando se regresa en el flujo de creación
+  useEffect(() => {
+    if (client && mode === 'create' && client.nombres) {
+      console.log('🔄 Restaurando datos del formulario en proceso de creación:', client);
+      setFormData({
+        id: client.id || '',
+        nombres: client.nombres || '',
+        apellidos: client.apellidos || '',
+        email: client.email || '',
+        numeroIdentificacion: client.numeroIdentificacion || '',
+        tipoCliente: client.tipoCliente || client.tipoClienteNombre || '',
+        tipoIdentificacion: client.tipoIdentificacion || client.tipoIdentificacionNombre || '',
+        telefonoPrincipal: client.telefonoPrincipal || '',
+        telefonoSecundario: client.telefonoSecundario || '',
+        direccion: client.direccion || '',
+        provincia: client.provincia || '',
+        canton: client.canton || '',
+        fechaNacimiento: client.fechaNacimiento || '',
+        representanteLegal: client.representanteLegal || '',
+        ruc: client.ruc || '',
+        nombreEmpresa: client.nombreEmpresa || '',
+        direccionFiscal: client.direccionFiscal || '',
+        telefonoReferencia: client.telefonoReferencia || '',
+        correoEmpresa: client.correoEmpresa || '',
+        provinciaEmpresa: client.provinciaEmpresa || '',
+        cantonEmpresa: client.cantonEmpresa || '',
+        estadoMilitar: client.estadoMilitar,
+        codigoIssfa: client.codigoIssfa || '',
+        rango: client.rango || '',
+        documentos: client.documentos || [],
+        respuestas: client.respuestas || []
+      });
+      
+      // Si tiene documentos cargados, restaurarlos también
+      if (client.uploadedDocuments) {
+        setUploadedDocuments(client.uploadedDocuments);
+      }
+      
+      console.log('✅ Datos del formulario restaurados correctamente');
+    }
+  }, [client, mode]);
+  
   // Mostrar advertencia para uniformado pasivo
   useEffect(() => {
     if (isUniformado && formData.estadoMilitar === 'PASIVO') {
