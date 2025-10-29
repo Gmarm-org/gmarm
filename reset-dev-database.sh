@@ -102,8 +102,35 @@ echo ""
 echo "✅ Verificación completada"
 echo ""
 
-# Paso 7: Levantar servicios restantes
-echo "🚀 Paso 7: Levantando servicios restantes..."
+# Paso 7: Limpiar archivos y documentos
+echo "🗑️ Paso 7: Limpiando archivos subidos y documentos generados..."
+
+# Limpiar documentos de clientes (mantener estructura de carpetas)
+if [ -d "documentacion/documentos_cliente" ]; then
+    echo "  Limpiando documentos de clientes..."
+    find documentacion/documentos_cliente -mindepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+    echo "  ✅ Documentos de clientes eliminados"
+fi
+
+# Limpiar contratos generados
+if [ -d "documentacion/contratos_generados" ]; then
+    echo "  Limpiando contratos generados..."
+    find documentacion/contratos_generados -type f -name "*.pdf" -delete 2>/dev/null || true
+    echo "  ✅ Contratos generados eliminados"
+fi
+
+# Limpiar uploads de clientes
+if [ -d "uploads/clientes" ]; then
+    echo "  Limpiando uploads de clientes..."
+    find uploads/clientes -mindepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+    echo "  ✅ Uploads de clientes eliminados"
+fi
+
+echo "✅ Limpieza de archivos completada"
+echo ""
+
+# Paso 8: Levantar servicios restantes
+echo "🚀 Paso 8: Levantando servicios restantes..."
 docker-compose -f docker-compose.dev.yml up -d
 
 if [ $? -ne 0 ]; then
