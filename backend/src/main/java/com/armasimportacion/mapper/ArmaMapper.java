@@ -2,10 +2,13 @@ package com.armasimportacion.mapper;
 
 import com.armasimportacion.dto.ArmaDTO;
 import com.armasimportacion.model.Arma;
+import com.armasimportacion.model.ArmaStock;
+import com.armasimportacion.service.InventarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -13,10 +16,24 @@ import java.util.stream.Collectors;
 public class ArmaMapper {
     
     private final ArmaImagenMapper armaImagenMapper;
+    private final InventarioService inventarioService;
 
     public ArmaDTO toDTO(Arma arma) {
         if (arma == null) {
             return null;
+        }
+
+        // Obtener información de stock
+        Optional<ArmaStock> stockOpt = inventarioService.getArmaStock(arma.getId());
+        Integer cantidadTotal = 0;
+        Integer cantidadDisponible = 0;
+        Boolean tieneStock = false;
+        
+        if (stockOpt.isPresent()) {
+            ArmaStock stock = stockOpt.get();
+            cantidadTotal = stock.getCantidadTotal();
+            cantidadDisponible = stock.getCantidadDisponible();
+            tieneStock = stock.tieneStockDisponible();
         }
 
         return ArmaDTO.builder()
@@ -37,6 +54,10 @@ public class ArmaMapper {
                 // Mapear imágenes
                 .imagenes(armaImagenMapper.toDTOList(arma.getImagenes()))
                 .imagenPrincipal(arma.getImagenPrincipal())
+                // Información de stock
+                .cantidadTotal(cantidadTotal)
+                .cantidadDisponible(cantidadDisponible)
+                .tieneStock(tieneStock)
                 .build();
     }
 

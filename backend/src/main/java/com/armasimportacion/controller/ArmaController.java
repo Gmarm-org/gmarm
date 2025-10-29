@@ -35,21 +35,37 @@ public class ArmaController {
     public ResponseEntity<List<ArmaDTO>> getAllArmas() {
         log.info("Solicitud para obtener todas las armas");
         
+        // Verificar si la expoferia está activa
+        boolean isExpoferiaActiva = inventarioService.isExpoferiaActiva();
+        
         // Usar el inventario para obtener armas disponibles
         List<Arma> armas;
-        if (inventarioService.isExpoferiaActiva()) {
-            log.info("🎯 Expoferia activa - Obteniendo armas con stock disponible de expoferia");
+        if (isExpoferiaActiva) {
+            log.info("🎯 EXPOFERIA ACTIVA - Obteniendo solo armas con stock disponible");
             armas = inventarioService.getArmasConStockDisponible().stream()
                     .map(stock -> stock.getArma())
                     .toList();
         } else {
-            log.info("🎯 Expoferia inactiva - Obteniendo todas las armas activas");
+            log.info("🎯 MODO NORMAL - Obteniendo todas las armas activas (sin control de stock)");
             armas = armaService.findAllActive();
         }
         
-        log.info("Total de armas devueltas por la API: {}", armas.size());
+        log.info("Total de armas encontradas: {}", armas.size());
+        
+        // Mapear a DTOs (incluye información de stock)
         List<ArmaDTO> armasDTO = armaMapper.toDTOList(armas);
-        return ResponseEntity.ok(armasDTO);
+        
+        // CRÍTICO: Solo filtrar por stock si es EXPOFERIA
+        if (isExpoferiaActiva) {
+            List<ArmaDTO> armasConStock = armasDTO.stream()
+                    .filter(arma -> arma.getTieneStock() != null && arma.getTieneStock())
+                    .toList();
+            log.info("✅ EXPOFERIA - Armas con stock disponible: {}", armasConStock.size());
+            return ResponseEntity.ok(armasConStock);
+        } else {
+            log.info("✅ MODO NORMAL - Todas las armas activas: {}", armasDTO.size());
+            return ResponseEntity.ok(armasDTO);
+        }
     }
 
     @GetMapping("/{id}")

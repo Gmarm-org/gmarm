@@ -89,6 +89,10 @@ export interface Weapon {
   urlImagen?: string;
   disponible?: boolean;
   precioModificado?: number; // Para el precio modificable
+  // Información de stock
+  cantidadTotal?: number;
+  cantidadDisponible?: number;
+  tieneStock?: boolean;
 }
 
 export interface WeaponReservation {

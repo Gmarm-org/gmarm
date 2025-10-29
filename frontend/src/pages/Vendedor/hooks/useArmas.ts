@@ -18,6 +18,10 @@ export interface Arma {
   // Múltiples imágenes
   imagenes?: ArmaImagen[];
   imagenPrincipal?: string;
+  // Información de stock
+  cantidadTotal?: number;
+  cantidadDisponible?: number;
+  tieneStock?: boolean;
 }
 
 export const useArmas = () => {

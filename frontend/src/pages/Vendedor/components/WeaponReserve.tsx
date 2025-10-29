@@ -55,38 +55,24 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   const [cantidades, setCantidades] = React.useState<Record<number, number>>({});
   const [preciosEnEdicion, setPreciosEnEdicion] = React.useState<Record<number, string>>({});
   
-  // Estado para stock de armas
-  // TODO: Implementar visualización de stock en la UI de selección de armas
-  // const [stockArmas, setStockArmas] = useState<Record<number, { disponible: number; total: number }>>({});
+  // Estado para control de expoferia
+  const [isExpoferiaActiva, setIsExpoferiaActiva] = React.useState<boolean>(false);
 
-  // Cargar stock de armas
+  // Cargar estado de expoferia al montar el componente
   useEffect(() => {
-    const cargarStock = async () => {
-      const stockPromises = weapons.map(async (weapon) => {
-        try {
-          const stock = await apiService.getStockArma(weapon.id);
-          return { weaponId: weapon.id, stock };
-        } catch (error) {
-          console.error(`Error cargando stock para arma ${weapon.id}:`, error);
-          return { weaponId: weapon.id, stock: 0 };
-        }
-      });
-      
-      // const stockResults = await Promise.all(stockPromises);
-      // const stockMap = stockResults.reduce((acc, { weaponId, stock }) => {
-      //   acc[weaponId] = { disponible: stock, total: stock };
-      //   return acc;
-      // }, {} as Record<number, { disponible: number; total: number }>);
-      
-      // setStockArmas(stockMap);
-      // console.log('📦 Stock de armas cargado:', stockMap);
-      await Promise.all(stockPromises);
+    const cargarExpoferiaEstado = async () => {
+      try {
+        const estado = await apiService.getExpoferiaEstado();
+        setIsExpoferiaActiva(estado);
+        console.log('🎯 Estado de Expoferia:', estado ? 'ACTIVA' : 'INACTIVA');
+      } catch (error) {
+        console.error('Error cargando estado de expoferia:', error);
+        setIsExpoferiaActiva(false);
+      }
     };
 
-    if (weapons.length > 0) {
-      cargarStock();
-    }
-  }, [weapons]);
+    cargarExpoferiaEstado();
+  }, []);
 
   // Handler para cantidad
   const handleCantidadChange = (weaponId: number, value: string) => {
@@ -300,13 +286,25 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
               {/* Grid de Armas */}
               
               {/* Contador de armas visible */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-center">
-                <div className="flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-blue-800 font-medium">
-                    Total de armas disponibles: {weapons?.length || 0}
+              <div className={`${isExpoferiaActiva ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'} border rounded-xl p-4 mb-6`}>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                  <div className="flex items-center">
+                    {isExpoferiaActiva ? (
+                      <svg className="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    <span className={`${isExpoferiaActiva ? 'text-orange-800' : 'text-blue-800'} font-bold`}>
+                      {weapons?.length || 0} modelo{weapons && weapons.length !== 1 ? 's' : ''} disponible{weapons && weapons.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <span className={`${isExpoferiaActiva ? 'text-orange-600' : 'text-blue-600'} text-sm hidden sm:inline`}>•</span>
+                  <span className={`${isExpoferiaActiva ? 'text-orange-700' : 'text-blue-700'} text-sm`}>
+                    {isExpoferiaActiva ? '🎯 Modo EXPOFERIA - Armas piloto con stock limitado' : 'Armas disponibles del catálogo'}
                   </span>
                 </div>
               </div>
@@ -362,6 +360,20 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                             <div className="flex justify-between">
                               <span className="text-gray-600">Capacidad:</span>
                               <span className="font-semibold text-gray-900">{weapon.capacidad}</span>
+                            </div>
+                          )}
+                          {/* Información de stock - SOLO EN MODO EXPOFERIA */}
+                          {isExpoferiaActiva && weapon.cantidadTotal !== undefined && weapon.cantidadDisponible !== undefined && (
+                            <div className="flex justify-between items-center bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                              <span className="text-green-700 font-medium flex items-center">
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                Stock:
+                              </span>
+                              <span className={`font-bold text-lg ${weapon.cantidadDisponible > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {weapon.cantidadDisponible} / {weapon.cantidadTotal}
+                              </span>
                             </div>
                           )}
                         </div>

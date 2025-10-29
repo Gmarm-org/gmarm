@@ -40,4 +40,9 @@ public class ArmaDTO {
     
     // Imagen principal (primera o marcada como principal)
     private String imagenPrincipal;
+    
+    // Información de stock
+    private Integer cantidadTotal;
+    private Integer cantidadDisponible;
+    private Boolean tieneStock; // true si cantidadDisponible > 0
 }
