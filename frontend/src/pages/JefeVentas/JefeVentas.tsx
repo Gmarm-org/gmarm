@@ -48,6 +48,13 @@ const JefeVentas: React.FC = () => {
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteConVendedor | null>(null);
   const [clientesAsignados, setClientesAsignados] = useState<ClienteConVendedor[]>([]);
   const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>>({});
+  
+  // Estados para detalle completo del cliente
+  const [armasCliente, setArmasCliente] = useState<any[]>([]);
+  const [documentosCliente, setDocumentosCliente] = useState<any[]>([]);
+  const [contratosCliente, setContratosCliente] = useState<any[]>([]);
+  const [pagosCliente, setPagosCliente] = useState<any[]>([]);
+  const [loadingDetalleCliente, setLoadingDetalleCliente] = useState(false);
 
   // Cargar estado de expoferia al inicio
   useEffect(() => {
@@ -166,12 +173,45 @@ const JefeVentas: React.FC = () => {
     }
   };
 
-  const handleVerDetalleCliente = (cliente: ClienteConVendedor) => {
+  const handleVerDetalleCliente = async (cliente: ClienteConVendedor) => {
     setClienteSeleccionado(cliente);
+    setLoadingDetalleCliente(true);
+    
+    try {
+      // Cargar armas asignadas
+      const armas = await apiService.getArmasCliente(Number(cliente.id));
+      setArmasCliente(armas);
+      console.log('🔫 Armas del cliente:', armas);
+      
+      // Cargar documentos
+      const documentos = await apiService.getDocumentosCliente(Number(cliente.id));
+      setDocumentosCliente(documentos);
+      console.log('📄 Documentos del cliente:', documentos);
+      
+      // Cargar contratos
+      const contratos = await apiService.getContratosCliente(Number(cliente.id));
+      setContratosCliente(contratos);
+      console.log('📋 Contratos del cliente:', contratos);
+      
+      // Cargar pagos
+      const pagos = await apiService.getPagosCliente(Number(cliente.id));
+      setPagosCliente(pagos);
+      console.log('💰 Pagos del cliente:', pagos);
+      
+    } catch (error) {
+      console.error('Error cargando detalle del cliente:', error);
+    } finally {
+      setLoadingDetalleCliente(false);
+    }
   };
 
   const handleCerrarDetalle = () => {
     setClienteSeleccionado(null);
+    // Limpiar datos del detalle
+    setArmasCliente([]);
+    setDocumentosCliente([]);
+    setContratosCliente([]);
+    setPagosCliente([]);
   };
 
   return (
@@ -583,9 +623,10 @@ const JefeVentas: React.FC = () => {
 
         {/* Modal de Detalle de Cliente */}
         {clienteSeleccionado && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full my-8">
               <div className="p-6">
+                {/* Header */}
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-800">
@@ -603,41 +644,233 @@ const JefeVentas: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Tipo de Cliente</p>
-                    <p className="font-medium">{clienteSeleccionado.tipoClienteNombre}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{clienteSeleccionado.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Teléfono</p>
-                    <p className="font-medium">{clienteSeleccionado.telefonoPrincipal}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Dirección</p>
-                    <p className="font-medium">{clienteSeleccionado.direccion}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Vendedor Responsable</p>
-                    <p className="font-medium text-blue-600">
-                      {clienteSeleccionado.vendedorNombre} {clienteSeleccionado.vendedorApellidos}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Estado</p>
-                    <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                      clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
-                      clienteSeleccionado.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
-                      clienteSeleccionado.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {clienteSeleccionado.estado}
-                    </span>
+                {/* Datos Personales */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Datos Personales
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-sm text-gray-600">Tipo de Cliente</p>
+                      <p className="font-medium">{clienteSeleccionado.tipoClienteNombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium">{clienteSeleccionado.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Teléfono</p>
+                      <p className="font-medium">{clienteSeleccionado.telefonoPrincipal}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Dirección</p>
+                      <p className="font-medium">{clienteSeleccionado.direccion || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Vendedor Responsable</p>
+                      <p className="font-medium text-blue-600">
+                        {clienteSeleccionado.vendedorNombre} {clienteSeleccionado.vendedorApellidos}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Estado</p>
+                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                        clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
+                        clienteSeleccionado.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
+                        clienteSeleccionado.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {clienteSeleccionado.estado}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {loadingDetalleCliente ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p className="mt-4 text-gray-600">Cargando información completa...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Armas Asignadas */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Armas Asignadas ({armasCliente.length})
+                      </h3>
+                      {armasCliente.length === 0 ? (
+                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
+                          No hay armas asignadas
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          {armasCliente.map((arma, index) => (
+                            <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div>
+                                  <p className="text-sm text-gray-600">Arma</p>
+                                  <p className="font-semibold text-blue-600">{arma.armaNombre || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Número de Serie</p>
+                                  <p className="font-mono font-semibold">{arma.numeroSerie || 'Sin asignar'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Cantidad</p>
+                                  <p className="font-medium">{arma.cantidad || 1}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Precio Unitario</p>
+                                  <p className="font-medium">${arma.precioUnitario?.toFixed(2) || '0.00'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Documentos */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Documentos ({documentosCliente.length})
+                      </h3>
+                      {documentosCliente.length === 0 ? (
+                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
+                          No hay documentos subidos
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {documentosCliente.map((doc, index) => (
+                              <div key={index} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <svg className="w-8 h-8 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <div>
+                                    <p className="font-medium text-sm">{doc.tipoDocumentoNombre || 'Documento'}</p>
+                                    <p className="text-xs text-gray-500">{doc.nombreArchivo || 'archivo.pdf'}</p>
+                                  </div>
+                                </div>
+                                {doc.rutaArchivo && (
+                                  <a
+                                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${doc.rutaArchivo}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contratos */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Contratos Generados ({contratosCliente.length})
+                      </h3>
+                      {contratosCliente.length === 0 ? (
+                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
+                          No hay contratos generados
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          {contratosCliente.map((contrato, index) => (
+                            <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-blue-600">Contrato de Compra-Venta</p>
+                                <p className="text-sm text-gray-600">Fecha: {contrato.fechaCreacion ? new Date(contrato.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}</p>
+                              </div>
+                              {contrato.rutaArchivo && (
+                                <a
+                                  href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${contrato.rutaArchivo}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  Ver PDF
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Plan de Pagos */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Plan de Pagos ({pagosCliente.length} cuotas)
+                      </h3>
+                      {pagosCliente.length === 0 ? (
+                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
+                          No hay plan de pagos registrado
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="bg-gray-200">
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">Cuota</th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">Monto</th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">Fecha Vencimiento</th>
+                                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-700">Estado</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {pagosCliente.map((pago, index) => (
+                                  <tr key={index}>
+                                    <td className="px-3 py-2 text-sm">Cuota #{pago.numeroCuota || index + 1}</td>
+                                    <td className="px-3 py-2 text-sm font-semibold">${pago.monto?.toFixed(2) || '0.00'}</td>
+                                    <td className="px-3 py-2 text-sm">{pago.fechaVencimiento ? new Date(pago.fechaVencimiento).toLocaleDateString('es-ES') : 'N/A'}</td>
+                                    <td className="px-3 py-2 text-center">
+                                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                        pago.estado === 'PAGADO' ? 'bg-green-100 text-green-800' :
+                                        pago.estado === 'VENCIDO' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                      }`}>
+                                        {pago.estado || 'PENDIENTE'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="mt-6 flex justify-end">
                   <button
