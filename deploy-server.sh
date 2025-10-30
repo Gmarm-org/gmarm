@@ -50,8 +50,9 @@ fi
 echo "✅ Docker y Docker Compose están instalados"
 
 # Detener contenedores existentes
+# IMPORTANTE: NO usar --volumes para preservar datos de la base de datos
 echo "🛑 Deteniendo contenedores existentes..."
-docker-compose -f $COMPOSE_FILE down --volumes --remove-orphans || true
+docker-compose -f $COMPOSE_FILE down --remove-orphans || true
 
 # Limpiar imágenes no utilizadas
 echo "🧹 Limpiando imágenes no utilizadas..."
