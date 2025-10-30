@@ -23,14 +23,19 @@ docker-compose -f $COMPOSE_FILE down --volumes --remove-orphans
 
 ### 1. **Modificación del Script de Despliegue**
 
-**Archivo:** `deploy-server.sh` (línea 52-55)
+**Archivo:** `deploy-server.sh`
 
+**Cambio 1 (línea 54):** Se eliminó el flag `--volumes` del comando `docker-compose down`:
 ```bash
 # ✅ DESPUÉS: Preserva volúmenes para mantener datos
 docker-compose -f $COMPOSE_FILE down --remove-orphans
 ```
 
-**Cambio:** Se eliminó el flag `--volumes` del comando `docker-compose down`.
+**Cambio 2 (línea 58):** Se agregó `--volumes=false` a `docker system prune`:
+```bash
+# ✅ Limpiar imágenes pero NO volúmenes
+docker system prune -f --volumes=false
+```
 
 ### 2. **Comportamiento Esperado**
 
@@ -109,9 +114,14 @@ docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -c "SELECT COUNT(*)
 
 ## 📝 Archivos Modificados
 
-1. **`deploy-server.sh`** (línea 52-55):
-   - Se eliminó `--volumes` del comando `docker-compose down`
-   - Se agregó comentario explicativo
+1. **`deploy-server.sh`**:
+   - Línea 54: Se eliminó `--volumes` del comando `docker-compose down`
+   - Línea 58: Se agregó `--volumes=false` a `docker system prune`
+   
+2. **`scripts/reiniciar-servidor-dev.sh`**:
+   - Se agregó confirmación interactiva antes de eliminar datos
+   - Se agregaron advertencias sobre uso del script
+   - Script destinado solo para reset completo, no para despliegues normales
 
 ---
 
