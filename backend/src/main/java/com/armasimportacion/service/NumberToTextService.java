@@ -99,7 +99,7 @@ public class NumberToTextService {
             if (decenas == 2 && unidades == 0) {
                 resultado += (resultado.isEmpty() ? "" : " ") + "VEINTE";
             } else if (decenas == 2) {
-                resultado += (resultado.isEmpty() ? "" : " ") + "VEINTI" + UNIDADES[unidades].toLowerCase();
+                resultado += (resultado.isEmpty() ? "" : " ") + "VEINTI" + UNIDADES[unidades];
             } else {
                 resultado += (resultado.isEmpty() ? "" : " ") + DECENAS[decenas];
                 if (unidades > 0) {
