@@ -17,9 +17,19 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
+      - ./logs:/app/logs  # Logs del backend para análisis
     restart: unless-stopped
     networks:
       - gmarm-network
+    # Límites de recursos para producción
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'      # Máximo 2 CPU
+          memory: 1024M    # Máximo 1GB RAM
+        reservations:
+          cpus: '1.0'      # Mínimo 1 CPU
+          memory: 512M     # Mínimo 512MB RAM
 
   frontend:
     build: ./frontend
@@ -46,6 +56,12 @@ services:
       POSTGRES_PASSWORD: prodpass
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      # Optimizaciones para producción
+      POSTGRES_SHARED_BUFFERS: "512MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "1GB"
+      POSTGRES_WORK_MEM: "32MB"
+      POSTGRES_MAINTENANCE_WORK_MEM: "128MB"
+      POSTGRES_MAX_CONNECTIONS: "100"
     ports:
       - "5433:5432"
     volumes:
@@ -54,6 +70,21 @@ services:
     restart: unless-stopped
     networks:
       - gmarm-network
+    # Límites de recursos para producción
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M    # 1.5GB RAM
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U produser -d gmarm_db"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   postgres_data_prod:
