@@ -53,6 +53,14 @@ echo "✅ Docker y Docker Compose están instalados"
 echo "🛑 Deteniendo contenedores existentes..."
 docker-compose -f $COMPOSE_FILE down --remove-orphans || true
 
+# Limpiar contenedores zombies que puedan quedar
+echo "🧹 Limpiando contenedores huérfanos..."
+docker rm -f $(docker ps -a -q --filter "name=gmarm-") 2>/dev/null || true
+
+# Limpiar redes huérfanas que puedan quedar
+echo "🧹 Limpiando redes huérfanas..."
+docker network prune -f || true
+
 # Limpiar imágenes no utilizadas (PERO NO volúmenes)
 echo "🧹 Limpiando imágenes no utilizadas..."
 docker system prune -f --volumes=false
@@ -76,9 +84,9 @@ if [ -f "check-docker-status.sh" ]; then
     chmod +x check-docker-status.sh
 fi
 
-# Iniciar los servicios
+# Iniciar los servicios (forzar recreación para evitar conflictos)
 echo "🚀 Iniciando servicios..."
-docker-compose -f $COMPOSE_FILE up -d
+docker-compose -f $COMPOSE_FILE up -d --force-recreate
 
 # Esperar a que PostgreSQL esté listo
 echo "⏳ Esperando a que PostgreSQL esté listo..."
