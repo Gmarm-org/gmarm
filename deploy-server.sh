@@ -49,17 +49,26 @@ fi
 
 echo "✅ Docker y Docker Compose están instalados"
 
-# Detener contenedores existentes
+# Detener y eliminar contenedores existentes
 echo "🛑 Deteniendo contenedores existentes..."
+# Intentar detener con docker-compose primero
 docker-compose -f $COMPOSE_FILE down --remove-orphans || true
 
 # Limpiar contenedores zombies que puedan quedar
-echo "🧹 Limpiando contenedores huérfanos..."
-docker rm -f $(docker ps -a -q --filter "name=gmarm-") 2>/dev/null || true
+echo "🧹 Limpiando contenedores huérfanos (forzado)..."
+# Eliminar contenedores gmarm- manualmente uno por uno para evitar problemas
+for container in $(docker ps -a -q --filter "name=gmarm-"); do
+    echo "  Eliminando contenedor $container..."
+    docker stop $container 2>/dev/null || true
+    docker rm -f $container 2>/dev/null || true
+done
 
 # Limpiar redes huérfanas que puedan quedar
 echo "🧹 Limpiando redes huérfanas..."
 docker network prune -f || true
+
+# Esperar un momento para que Docker procese la limpieza
+sleep 2
 
 # Limpiar imágenes no utilizadas (PERO NO volúmenes)
 echo "🧹 Limpiando imágenes no utilizadas..."
