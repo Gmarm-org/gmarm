@@ -10,6 +10,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      # Optimizaciones para servidores con recursos limitados
+      POSTGRES_SHARED_BUFFERS: "256MB"        # Memoria compartida (default: 128MB)
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "512MB"  # Cache disponible total
+      POSTGRES_WORK_MEM: "16MB"               # Memoria por operación de sorting
+      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"   # Memoria para VACUUM, CREATE INDEX
+      POSTGRES_MAX_CONNECTIONS: "50"          # Máximo de conexiones (default: 100)
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -20,12 +26,21 @@ services:
     networks:
       - gmarm_network
     restart: unless-stopped
+    # Límites de recursos para evitar que consuma toda la RAM del servidor
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'      # Máximo 1 CPU
+          memory: 768M     # Máximo 768MB RAM
+        reservations:
+          cpus: '0.5'      # Mínimo 0.5 CPU
+          memory: 256M     # Mínimo 256MB RAM
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gmarm_dev}"]
-      interval: 10s
-      timeout: 5s
+      interval: 15s        # Aumentado de 10s a 15s
+      timeout: 10s         # Aumentado de 5s a 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s    # Aumentado de 30s a 60s para dar más tiempo de arranque
 
   backend_dev:
     build:
@@ -43,12 +58,23 @@ services:
       SPRING_CORS_ALLOWED_ORIGINS: ${SPRING_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://72.167.52.14:5173,http://72.167.52.14:80}
       SPRING_CORS_ALLOWED_METHODS: GET,POST,PUT,DELETE,OPTIONS
       SPRING_CORS_ALLOWED_HEADERS: "*"
+      # Configuración JVM para limitar uso de memoria
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
     depends_on:
       postgres_dev:
         condition: service_healthy
     networks:
       - gmarm_network
     restart: unless-stopped
+    # Límites de recursos para evitar consumo excesivo
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'      # Máximo 1.5 CPU
+          memory: 768M     # Máximo 768MB RAM
+        reservations:
+          cpus: '0.5'      # Mínimo 0.5 CPU
+          memory: 384M     # Mínimo 384MB RAM
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -79,6 +105,15 @@ services:
     networks:
       - gmarm_network
     restart: unless-stopped
+    # Límites de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'      # Máximo 0.5 CPU
+          memory: 512M     # Máximo 512MB RAM
+        reservations:
+          cpus: '0.25'     # Mínimo 0.25 CPU
+          memory: 256M     # Mínimo 256MB RAM
 
 volumes:
   postgres_data_dev:
