@@ -77,7 +77,7 @@ jobs:
           echo "🏗️ Construyendo backend..."
           cd backend
           chmod +x ./mvnw
-          ./mvnw clean compile -DskipTests
+          ./mvnw clean install -DskipTests
           echo "✅ Backend build exitoso"
 
       - name: 🧪 Run Backend Tests
