@@ -3,12 +3,25 @@
 # ========================================
 # SCRIPT PARA REINICIAR SERVIDOR DE DESARROLLO
 # ========================================
+# ⚠️  ADVERTENCIA: Este script ELIMINA TODOS LOS DATOS
+# ⚠️  Solo usar cuando necesites resetear completamente la BD
+# ⚠️  Para despliegues normales, usar: ./deploy-server.sh
+# ========================================
 # Ejecutar en el servidor: ssh ubuntu@72.167.52.14
 
 set -e
 
 echo "🔄 REINICIANDO SERVIDOR DE DESARROLLO GMARM"
 echo "==========================================="
+echo "⚠️  ADVERTENCIA: Este script eliminará TODOS los datos"
+echo "⚠️  Si solo quieres actualizar código, usa: ./deploy-server.sh"
+echo ""
+echo -n "¿Continuar con la eliminación de datos? (yes/no): "
+read CONFIRM
+if [ "$CONFIRM" != "yes" ]; then
+    echo "❌ Operación cancelada"
+    exit 1
+fi
 echo ""
 
 # Verificar que estamos en el directorio correcto
