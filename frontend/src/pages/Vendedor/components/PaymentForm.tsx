@@ -28,16 +28,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   onBack,
   onComplete
 }) => {
-  // Logs para debugging
-  useEffect(() => {
-    console.log('💰 PaymentForm - Valores recibidos:');
-    console.log('  - Cliente:', client);
-    console.log('  - Arma seleccionada:', selectedWeapon);
-    console.log('  - Precio modificado:', precioModificado);
-    console.log('  - Cantidad:', cantidad);
-    console.log('  🔢 CRÍTICO - selectedSerieNumero recibido en PaymentForm:', selectedSerieNumero);
-  }, [client, selectedWeapon, precioModificado, cantidad, selectedSerieNumero]);
-
   const [tipoPago, setTipoPago] = useState<'CONTADO' | 'CUOTAS'>('CONTADO');
   const [numeroCuotas, setNumeroCuotas] = useState<number>(2);
   const [cuotas, setCuotas] = useState<CuotaData[]>([]);
@@ -103,9 +93,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     
     // Validar que hay datos del cliente (ya sea seleccionado o en formulario)
     if (!client) {
-      console.error('❌ PaymentForm: No hay datos del cliente disponibles');
-      console.error('❌ PaymentForm: client =', client);
-      console.error('❌ PaymentForm: selectedWeapon =', selectedWeapon);
       alert('⚠️ No hay datos del cliente disponibles. Por favor, completa el proceso desde el inicio.');
       return;
     }
@@ -140,11 +127,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       numeroSerie: selectedSerieNumero // CRÍTICO: Pasar el número de serie que se recibió como prop
     };
 
-    console.log('💰 PaymentForm - Enviando datos de pago con numeroSerie:', selectedSerieNumero);
-    console.log('📅 PaymentForm - tipoPago:', tipoPago);
-    console.log('📅 PaymentForm - cuotas.length:', cuotas.length);
-    console.log('📅 PaymentForm - cuotas completas:', JSON.stringify(cuotas, null, 2));
-    console.log('📅 PaymentForm - paymentData.cuotas:', JSON.stringify(paymentData.cuotas, null, 2));
     onComplete(paymentData);
   };
 

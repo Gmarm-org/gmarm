@@ -589,20 +589,10 @@ const Vendedor: React.FC = React.memo(() => {
         );
 
       case 'paymentForm':
-        console.log('💰 Vendedor - Navegando a PaymentForm con valores:');
-        console.log('  - selectedClient:', selectedClient);
-        console.log('  - clientFormData:', clientFormData);
-        console.log('  - selectedWeapon:', selectedWeapon);
-        console.log('  - precioModificado:', precioModificado);
-        console.log('  - cantidad:', cantidad);
-        
         // Asegurar que siempre haya datos del cliente
         const clientData = selectedClient || clientFormData;
         
         if (!clientData) {
-          console.error('❌ Vendedor: No hay datos del cliente para PaymentForm');
-          console.error('❌ selectedClient:', selectedClient);
-          console.error('❌ clientFormData:', clientFormData);
           return (
             <div className="p-6">
               <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">

@@ -268,10 +268,9 @@ public class GestionDocumentosServiceHelper {
             log.info("🪖 Estado militar: '{}'", estadoMilitarLowercase);
             variables.put("estadoMilitarLowercase", estadoMilitarLowercase);
             
-            // Agregar fecha actual en timezone de Ecuador para firma del contrato
-            java.time.LocalDate fechaActualEcuador = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
-            log.info("📅 Fecha actual Ecuador para contrato: {}", fechaActualEcuador);
-            variables.put("fechaActual", fechaActualEcuador);
+        // Agregar fecha actual en timezone de Ecuador para firma del contrato
+        java.time.LocalDate fechaActualEcuador = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
+        variables.put("fechaActual", fechaActualEcuador);
             
             // Construir dirección completa con nombres legibles
             String nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());

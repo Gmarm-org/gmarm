@@ -635,21 +635,11 @@ export const useVendedorLogic = () => {
   // Nueva función para manejar la finalización del proceso de pago
   const handlePaymentComplete = useCallback(async (paymentData: any) => {
     try {
-      console.log('💰 Procesando pago completado:', paymentData);
-      console.log('💰 clientFormData:', clientFormData);
-      console.log('💰 selectedWeapon:', selectedWeapon);
-      console.log('💰 precioModificado:', precioModificado);
-      console.log('🔢 CRÍTICO - selectedSerieNumero (estado):', selectedSerieNumero);
-      console.log('🔢 CRÍTICO - selectedSerieNumero (ref):', selectedSerieNumeroRef.current);
-      console.log('🔢 CRÍTICO - selectedSerieId:', selectedSerieId);
-      console.log('🎯 CRÍTICO - expoferiaActiva:', expoferiaActiva);
-      
       // VALIDACIÓN INICIAL: Verificar que tenemos todos los datos necesarios
       if (!clientFormData) {
         throw new Error('No hay datos del cliente para procesar');
       }
-      
-      // VALIDACIÓN CRÍTICA: Verificar que el usuario esté autenticado
+
       if (!user?.id) {
         throw new Error('Usuario no autenticado. No se puede crear el cliente sin un vendedor válido.');
       }
@@ -690,20 +680,12 @@ export const useVendedorLogic = () => {
         numeroSerie: numeroSerieFinal // CRÍTICO: Usar el valor de la ref (más confiable)
       } : null;
       
-      console.log('🔢 Número de serie desde REF:', numeroSerieDesdeRef);
-      console.log('🔢 Número de serie desde paymentData:', numeroSerieDesdePayment);
-      console.log('🔢 Número de serie del estado:', selectedSerieNumero);
-      console.log('🔢 ✅ Número de serie FINAL que se enviará:', numeroSerieFinal);
-      
       // Preparar datos de documentos del usuario (si existen)
       const documentosUsuario = clientFormData.uploadedDocuments || {};
-      console.log('📄 Documentos del usuario en handlePaymentComplete:', documentosUsuario);
-      console.log('📄 clientFormData completo:', clientFormData);
       
       // Preparar cuotas si es pago a crédito
       const cuotasData = [];
       if (paymentData.tipoPago === 'CUOTAS' && paymentData.cuotas && paymentData.cuotas.length > 0) {
-        console.log('💰 Preparando cuotas para envío al backend...');
         for (const cuota of paymentData.cuotas) {
           cuotasData.push({
             numeroCuota: cuota.numeroCuota,
@@ -712,7 +694,6 @@ export const useVendedorLogic = () => {
             estado: 'PENDIENTE'
           });
         }
-        console.log('💰 Cuotas preparadas:', cuotasData);
       }
       
       // Crear objeto estructurado según ClienteCompletoCreateDTO

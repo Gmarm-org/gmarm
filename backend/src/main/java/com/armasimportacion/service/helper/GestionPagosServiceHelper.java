@@ -182,14 +182,7 @@ public class GestionPagosServiceHelper {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> cuotasData = (List<Map<String, Object>>) pagoData.get("cuotas");
         
-        log.info("📅 DEBUG: pagoData completo recibido: {}", pagoData);
-        log.info("📅 DEBUG: cuotasData extraído: {}", cuotasData);
-        log.info("📅 DEBUG: cuotasData es null? {}", cuotasData == null);
-        log.info("📅 DEBUG: cuotasData está vacío? {}", cuotasData != null ? cuotasData.isEmpty() : "N/A");
-        
         if (cuotasData != null && !cuotasData.isEmpty()) {
-            log.info("📅 ✅ Creando {} cuotas específicas del frontend para pago ID: {}", 
-                cuotasData.size(), pago.getId());
             crearCuotasEspecificas(pago, cuotasData);
         } else {
             log.warn("📅 ⚠️ No hay cuotas específicas del frontend, creando {} cuotas automáticas para pago ID: {}", 
@@ -278,17 +271,13 @@ public class GestionPagosServiceHelper {
      */
     private LocalDate parsearFechaEcuador(String fechaStr) {
         try {
-            log.info("📅 Parseando fecha: '{}'", fechaStr);
-            
             // Si la fecha viene con hora (ISO DateTime con 'T'), extraer solo YYYY-MM-DD
             if (fechaStr.contains("T")) {
                 fechaStr = fechaStr.split("T")[0];
             }
             
             // Parsear directamente como LocalDate (sin conversiones de timezone)
-            LocalDate fecha = LocalDate.parse(fechaStr);
-            log.info("📅 ✅ Fecha parseada: {}", fecha);
-            return fecha;
+            return LocalDate.parse(fechaStr);
             
         } catch (Exception e) {
             log.error("❌ Error parseando fecha '{}': {}", fechaStr, e.getMessage());

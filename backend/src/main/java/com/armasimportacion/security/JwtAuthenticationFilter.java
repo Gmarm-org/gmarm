@@ -31,12 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                   @NonNull HttpServletResponse response,
                                   @NonNull FilterChain filterChain) throws ServletException, IOException {
-
-        log.info("🔍 JWT Filter: doFilterInternal llamado para: {}", request.getRequestURI());
         
         // SOLUCIÓN DIRECTA: Verificar si este filtro debe ejecutarse para esta request
         if (shouldNotFilter(request)) {
-            log.info("🔍 JWT Filter: Saltando endpoint público: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -62,13 +59,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    
-                    log.debug("🔐 Usuario autenticado: {} con autoridades: {}", username, authorities);
                 } else {
                     log.warn("🔐 Token válido pero usuario no existe: {}", username);
                 }
-            } else {
-                log.debug("🔍 JWT Filter: No hay token válido para: {}", request.getRequestURI());
             }
         } catch (Exception ex) {
             log.error("🔐 Error al configurar la autenticación del usuario: {}", ex.getMessage());
@@ -94,10 +87,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        log.info("🔍 JWT Filter: shouldNotFilter llamado para: {}", path);
         
         // ENDPOINTS PÚBLICOS EXACTOS - NO REQUIEREN JWT
-        boolean isPublicEndpoint = path.equals("/api/auth/login") ||
+        return path.equals("/api/auth/login") ||
                path.startsWith("/api/health") ||
                path.startsWith("/api/tipo-cliente") ||
                path.startsWith("/api/tipos-cliente") ||
@@ -113,15 +105,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/images/") ||
                path.startsWith("/api/documentos/serve") ||
                path.startsWith("/api/documentos-cliente/cargar");
-        
-        log.info("🔍 JWT Filter: isPublicEndpoint = {} para path: {}", isPublicEndpoint, path);
-        
-        if (isPublicEndpoint) {
-            log.info("🔍 JWT Filter: SALTANDO endpoint público: {}", path);
-        } else {
-            log.info("🔍 JWT Filter: PROCESANDO endpoint protegido: {}", path);
-        }
-        
-        return isPublicEndpoint;
     }
 }

@@ -266,15 +266,6 @@ class ApiService {
       },
     };
 
-    // DEBUG: Ver qué headers se están enviando
-    console.log('🔍 API - request - URL:', url);
-    console.log('🔍 API - request - Method:', config.method);
-    console.log('🔍 API - request - Headers:', config.headers);
-    console.log('🔍 API - request - Body type:', typeof config.body);
-    if (config.body instanceof FormData) {
-      console.log('🔍 API - request - Body is FormData');
-    }
-
     try {
       const response = await fetch(url, config);
       
@@ -412,11 +403,9 @@ class ApiService {
   }
 
   async createCliente(clienteData: any): Promise<Client> {
-    console.log('🔍 API Service - createCliente recibió:', clienteData);
     // El backend espera el formato { cliente: {...}, arma: {...}, pago: {...}, etc }
     // Si ya viene con esa estructura, enviar tal cual; si no, envolver en "cliente"
     const requestBody = clienteData.cliente ? clienteData : { cliente: clienteData };
-    console.log('🔍 API Service - Enviando al backend:', requestBody);
     
     return this.request<Client>('/api/clientes', {
       method: 'POST',
