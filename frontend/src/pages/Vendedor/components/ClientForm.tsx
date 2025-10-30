@@ -1416,7 +1416,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de Nacimiento *</label>
                     {mode === 'view' ? (
                       <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toLocaleDateString('es-ES') : 'No especificado'}
+                        {formData.fechaNacimiento || 'No especificado'}
                       </div>
                     ) : (
                       <>
@@ -1425,7 +1425,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           value={formData.fechaNacimiento}
                           onChange={(e) => handleInputChange('fechaNacimiento', e.target.value)}
                           min="1900-01-01"
-                          max={new Date().toISOString().split('T')[0]}
+                          max={(() => {
+                            const hoy = new Date();
+                            const año = hoy.getFullYear();
+                            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+                            const dia = String(hoy.getDate()).padStart(2, '0');
+                            return `${año}-${mes}-${dia}`;
+                          })()}
                           required
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
                         />

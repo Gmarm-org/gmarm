@@ -188,7 +188,7 @@
 
         <div class="parties-section">
             <div class="party-info">
-                Comparecen a la celebración del presente contrato, por una parte, el Dr. JOSE LUIS GUERRERO MARTINEZ, portador de la cédula de ciudadanía No. 1707815922, quien cuenta con Licencia de Comerciante importador de armas y municiones debidamente autorizado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No. DOC-000687803, por una parte, y el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>, como se justifica en el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
+                Comparecen a la celebración del presente contrato, por una parte, el Dr. JOSE LUIS GUERRERO MARTINEZ, portador de la cédula de ciudadanía No. 1707815922, quien cuenta con Licencia de Comerciante importador de armas y municiones debidamente autorizado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No. DOC-000687803, por una parte, y el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio <span th:text="${estadoMilitarLowercase}">activo</span>, como se justifica en el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
             </div>
         </div>
 
@@ -198,7 +198,7 @@
         </div>
         
         <div class="clause-content">
-            <span>El </span> <span class="text-bold text-uppercase" th:if="${clienteRango != null and clienteRango != ''}" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span class="text-bold text-uppercase" th:unless="${clienteRango != null and clienteRango != ''}" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span> y requiere adquirir un arma de porte o tenencia personal.
+            <span>El </span> <span class="text-bold text-uppercase" th:if="${clienteRango != null and clienteRango != ''}" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span class="text-bold text-uppercase" th:unless="${clienteRango != null and clienteRango != ''}" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, militar en servicio <span th:text="${estadoMilitarLowercase}">activo</span> y requiere adquirir un arma de porte o tenencia personal.
         </div>
         
         <div class="clause-content">
@@ -270,15 +270,7 @@
             <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 6}">
                 <span class="text-bold">CUOTA 6.-</span> Hasta el <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}">X</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[5].fechaVencimiento).toUpperCase()}">MES 2025</span> la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[5].monto, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[5].monto) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
-            <!-- IVA: b) para CONTADO, a) para CRÉDITO -->
-            <div class="payment-item" th:if="${pago.tipoPago == 'CONTADO'}">
-                <span class="text-bold">b).-</span> El pago del IVA que al momento se encuentra en <span th:text="${ivaPorcentaje}">15</span>%, USD <span class="number-format" th:text="${#numbers.formatDecimal(pago.montoIva != null ? pago.montoIva : (pago.montoTotal / (1 + ivaDecimal) * ivaDecimal), 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoIva != null ? pago.montoIva : (pago.montoTotal / (1 + ivaDecimal) * ivaDecimal)) + ' DOLARES DE LOS ESTADOS UNIDOS'}">CIENTO OCHENTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>), se pagara cuando se emita la factura correspondiente, misma que constituye el documento imprescindible para realizar todos los permisos y registro ante las autoridades de control de armas del Comando Conjunto de las Fuerzas Armadas del Ecuador.
-            </div>
             
-            <!-- IVA para CRÉDITO: siempre a) -->
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO'}">
-                <span class="text-bold">a).-</span> El pago del IVA que al momento se encuentra en <span th:text="${ivaPorcentaje}">15</span>%, USD <span class="number-format" th:text="${#numbers.formatDecimal(pago.montoIva != null ? pago.montoIva : (pago.montoTotal * ivaDecimal), 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoIva != null ? pago.montoIva : (pago.montoTotal * ivaDecimal)) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS SIETE con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>), se pagara cuando se emita la factura correspondiente, misma que constituye el documento imprescindible para realizar todos los permisos y registro ante las autoridades de control de armas del Comando Conjunto de las Fuerzas Armadas del Ecuador.
-            </div>
         </div>
         <div class="clause-content">
             En el caso de retraso de una de las cuotas establecidas se producirá una aceleración de pago, quedando el total de la obligación de plazo vencido y ejecutable.
@@ -304,7 +296,7 @@
 
         <div>
             <span class="clause-title-bold">SÉPTIMA.-</span>
-            <span class="clause-content-inline">El comprador declara estar consciente que esta arma es intransferible ya que es un tratamiento especial para su uso personal, tomando en cuenta que el comprador es militar en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span> y que de acuerdo a la normativa relacionada a la importación de armas en caso de desistimiento en cualquier momento durante la vigencia del presente contrato, el comprador perderá todo el dinero pagado hasta la fecha y deberá pagar los saldos pendientes hasta su total cancelación; el arma será entregada a control de Armas para su destrucción o decisión correspondiente.</span>
+            <span class="clause-content-inline">El comprador declara estar consciente que esta arma es intransferible ya que es un tratamiento especial para su uso personal, tomando en cuenta que el comprador es militar en servicio <span th:text="${estadoMilitarLowercase}">activo</span> y que de acuerdo a la normativa relacionada a la importación de armas en caso de desistimiento en cualquier momento durante la vigencia del presente contrato, el comprador perderá todo el dinero pagado hasta la fecha y deberá pagar los saldos pendientes hasta su total cancelación; el arma será entregada a control de Armas para su destrucción o decisión correspondiente.</span>
         </div>
 
         <div class="clause-content">
@@ -342,7 +334,7 @@
             <li class="annex-item"><span class="text-bold">ANEXO 5</span> Certificado de Antecedentes penales del comprador.</li>
             <li class="annex-item"><span class="text-bold">ANEXO 6</span> Certificado de no presentarse violencia intrafamiliar del comprador.</li>
             <li class="annex-item"><span class="text-bold">ANEXO 7</span> Certificado de no presentar procesos judiciales del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 8</span> Certificado del ISSFA, donde se corrobora que el militar está en servicio <span th:text="${cliente.estadoMilitar != null ? cliente.estadoMilitar.toLowerCase() : 'activo'}">activo</span>.</li>
+            <li class="annex-item"><span class="text-bold">ANEXO 8</span> Certificado del ISSFA, donde se corrobora que el militar está en servicio <span th:text="${estadoMilitarLowercase}">activo</span>.</li>
         </ul>
 
         <div class="clause-content">
@@ -385,7 +377,7 @@
 
         <div class="signature-block">
             <div class="closing-statement">
-                Para constancia de lo acordado, las partes firman por triplicado el presente contrato a los <span th:text="${#dates.format(#dates.createNow(), 'dd')}">19</span> días del mes de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(T(java.time.LocalDate).now()).toUpperCase()}">SEPTIEMBRE 2025</span>.
+                Para constancia de lo acordado, las partes firman por triplicado el presente contrato a los <span th:text="${fechaActual.dayOfMonth}">29</span> días del mes de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(fechaActual).toUpperCase()}">OCTUBRE 2025</span>.
             </div>
 
             <div class="signature-section">

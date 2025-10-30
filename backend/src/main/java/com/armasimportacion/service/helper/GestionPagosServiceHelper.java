@@ -182,12 +182,17 @@ public class GestionPagosServiceHelper {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> cuotasData = (List<Map<String, Object>>) pagoData.get("cuotas");
         
+        log.info("📅 DEBUG: pagoData completo recibido: {}", pagoData);
+        log.info("📅 DEBUG: cuotasData extraído: {}", cuotasData);
+        log.info("📅 DEBUG: cuotasData es null? {}", cuotasData == null);
+        log.info("📅 DEBUG: cuotasData está vacío? {}", cuotasData != null ? cuotasData.isEmpty() : "N/A");
+        
         if (cuotasData != null && !cuotasData.isEmpty()) {
-            log.info("📅 Creando {} cuotas específicas del frontend para pago ID: {}", 
+            log.info("📅 ✅ Creando {} cuotas específicas del frontend para pago ID: {}", 
                 cuotasData.size(), pago.getId());
             crearCuotasEspecificas(pago, cuotasData);
         } else {
-            log.info("📅 No hay cuotas específicas, creando {} cuotas automáticas para pago ID: {}", 
+            log.warn("📅 ⚠️ No hay cuotas específicas del frontend, creando {} cuotas automáticas para pago ID: {}", 
                 pago.getNumeroCuotas(), pago.getId());
             crearCuotasAutomaticamente(pago);
         }
@@ -210,8 +215,8 @@ public class GestionPagosServiceHelper {
                 BigDecimal monto = new BigDecimal(cuotaData.get("monto").toString());
                 cuota.setMonto(monto);
                 
-                // Fecha de vencimiento - parsear considerando zona horaria de Ecuador
-                String fechaStr = cuotaData.get("fecha").toString();
+                // Fecha de vencimiento - el frontend envía "fechaVencimiento" no "fecha"
+                String fechaStr = cuotaData.get("fechaVencimiento").toString();
                 LocalDate fechaVencimiento = parsearFechaEcuador(fechaStr);
                 cuota.setFechaVencimiento(fechaVencimiento);
                 
@@ -273,20 +278,21 @@ public class GestionPagosServiceHelper {
      */
     private LocalDate parsearFechaEcuador(String fechaStr) {
         try {
-            // Si la fecha viene con hora (ISO DateTime), parsearlo como ZonedDateTime
+            log.info("📅 Parseando fecha: '{}'", fechaStr);
+            
+            // Si la fecha viene con hora (ISO DateTime con 'T'), extraer solo YYYY-MM-DD
             if (fechaStr.contains("T")) {
-                ZonedDateTime zonedDateTime = ZonedDateTime.parse(fechaStr);
-                // Convertir a zona horaria de Ecuador
-                ZonedDateTime ecuadorTime = zonedDateTime.withZoneSameInstant(ZoneId.of("America/Guayaquil"));
-                return ecuadorTime.toLocalDate();
-            } else {
-                // Si es solo fecha (YYYY-MM-DD), parsearlo directamente
-                return LocalDate.parse(fechaStr);
+                fechaStr = fechaStr.split("T")[0];
             }
+            
+            // Parsear directamente como LocalDate (sin conversiones de timezone)
+            LocalDate fecha = LocalDate.parse(fechaStr);
+            log.info("📅 ✅ Fecha parseada: {}", fecha);
+            return fecha;
+            
         } catch (Exception e) {
             log.error("❌ Error parseando fecha '{}': {}", fechaStr, e.getMessage());
-            // Fallback: intentar parsear como LocalDate simple
-            return LocalDate.parse(fechaStr);
+            throw new RuntimeException("Error parseando fecha: " + fechaStr, e);
         }
     }
 

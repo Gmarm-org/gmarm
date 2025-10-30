@@ -61,9 +61,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         const fechaCuota = new Date(fechaInicial);
         fechaCuota.setMonth(fechaCuota.getMonth() + i);
         
+        // Formato YYYY-MM-DD sin conversión a UTC (para evitar cambio de día)
+        const año = fechaCuota.getFullYear();
+        const mes = String(fechaCuota.getMonth() + 1).padStart(2, '0');
+        const dia = String(fechaCuota.getDate()).padStart(2, '0');
+        const fechaString = `${año}-${mes}-${dia}`;
+        
         nuevasCuotas.push({
           numeroCuota: i + 1,
-          fecha: fechaCuota.toISOString().split('T')[0],
+          fecha: fechaString,
           monto: Math.round(montoPorCuota * 100) / 100 // Redondear a 2 decimales
         });
       }
@@ -135,6 +141,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     };
 
     console.log('💰 PaymentForm - Enviando datos de pago con numeroSerie:', selectedSerieNumero);
+    console.log('📅 PaymentForm - tipoPago:', tipoPago);
+    console.log('📅 PaymentForm - cuotas.length:', cuotas.length);
+    console.log('📅 PaymentForm - cuotas completas:', JSON.stringify(cuotas, null, 2));
+    console.log('📅 PaymentForm - paymentData.cuotas:', JSON.stringify(paymentData.cuotas, null, 2));
     onComplete(paymentData);
   };
 
@@ -301,7 +311,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                                 type="date"
                                 value={cuota.fecha}
                                 onChange={(e) => handleCuotaChange(index, 'fecha', e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
+                                min={(() => {
+                                  const hoy = new Date();
+                                  const año = hoy.getFullYear();
+                                  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+                                  const dia = String(hoy.getDate()).padStart(2, '0');
+                                  return `${año}-${mes}-${dia}`;
+                                })()}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                 required
                               />

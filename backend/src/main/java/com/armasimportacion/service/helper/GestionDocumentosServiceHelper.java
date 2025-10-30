@@ -260,6 +260,19 @@ public class GestionDocumentosServiceHelper {
             log.info("🎖️ Rango del cliente: '{}'", cliente.getRango());
             variables.put("clienteRango", cliente.getRango());
             
+            // Agregar estado militar en lowercase para el template
+            String estadoMilitarLowercase = "activo"; // Valor por defecto
+            if (cliente.getEstadoMilitar() != null) {
+                estadoMilitarLowercase = cliente.getEstadoMilitar().toString().toLowerCase();
+            }
+            log.info("🪖 Estado militar: '{}'", estadoMilitarLowercase);
+            variables.put("estadoMilitarLowercase", estadoMilitarLowercase);
+            
+            // Agregar fecha actual en timezone de Ecuador para firma del contrato
+            java.time.LocalDate fechaActualEcuador = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
+            log.info("📅 Fecha actual Ecuador para contrato: {}", fechaActualEcuador);
+            variables.put("fechaActual", fechaActualEcuador);
+            
             // Construir dirección completa con nombres legibles
             String nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());
             String nombreCanton = cliente.getCanton(); // El cantón ya debería estar como nombre

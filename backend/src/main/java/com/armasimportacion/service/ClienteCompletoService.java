@@ -166,6 +166,10 @@ public class ClienteCompletoService {
         log.info("💰 Paso 4: Creando pago del cliente");
         
         Map<String, Object> pagoData = extraerDatosPago(requestData);
+        // Agregar cuotas al pagoData si existen (vienen en requestData.cuotas, no en pago.cuotas)
+        if (requestData.containsKey("cuotas")) {
+            pagoData.put("cuotas", requestData.get("cuotas"));
+        }
         Pago pago = pagosHelper.crearPagoCompleto(pagoData, clienteId);
         
         log.info("✅ Pago creado: ID={}, monto={}, tipo={}", 
@@ -285,21 +289,15 @@ public class ClienteCompletoService {
             .map(Object::toString)
             .ifPresentOrElse(
                 fechaStr -> {
-                    log.info("🔍 DEBUG: Procesando fecha string: '{}'", fechaStr);
                     try {
                         java.time.LocalDate fechaParseada = parsearFechaCompleta(fechaStr);
-                        dto.setFechaNacimiento(fechaParseada);
-                        log.info("✅ Fecha de nacimiento parseada correctamente: '{}' → {}", fechaStr, fechaParseada);
-                        log.info("🔍 DEBUG: DTO fechaNacimiento después del set: {}", dto.getFechaNacimiento());
+                        dto.setFechaNacimiento(fechaParseada.toString()); // Guardar como String ISO YYYY-MM-DD
                     } catch (Exception e) {
-                        log.warn("⚠️ Error parseando fecha '{}': {}, usando fecha por defecto", 
-                            fechaStr, e.getMessage());
-                        dto.setFechaNacimiento(LocalDateTime.now().toLocalDate().minusYears(30));
+                        dto.setFechaNacimiento(LocalDateTime.now().toLocalDate().minusYears(30).toString());
                     }
                 },
                 () -> {
-                    log.warn("⚠️ No se recibió fecha de nacimiento, usando fecha por defecto");
-                    dto.setFechaNacimiento(LocalDateTime.now().toLocalDate().minusYears(30));
+                    dto.setFechaNacimiento(LocalDateTime.now().toLocalDate().minusYears(30).toString());
                 }
             );
     }
@@ -315,6 +313,13 @@ public class ClienteCompletoService {
         }
         
         fechaStr = fechaStr.trim();
+        
+        // Si la fecha viene con hora (ISO DateTime con 'T'), extraer solo la parte de la fecha
+        if (fechaStr.contains("T")) {
+            String fechaSola = fechaStr.split("T")[0]; // Tomar solo YYYY-MM-DD
+            log.info("🔍 Detectado formato ISO DateTime, extrayendo fecha: {}", fechaSola);
+            return java.time.LocalDate.parse(fechaSola);
+        }
         
         // Formato ISO: YYYY-MM-DD
         if (fechaStr.matches("\\d{4}-\\d{2}-\\d{2}")) {

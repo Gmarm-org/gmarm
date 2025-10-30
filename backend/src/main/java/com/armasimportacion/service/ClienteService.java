@@ -458,7 +458,20 @@ public class ClienteService {
         cliente.setNombres(dto.getNombres());
         cliente.setApellidos(dto.getApellidos());
         cliente.setNumeroIdentificacion(dto.getNumeroIdentificacion());
-        cliente.setFechaNacimiento(dto.getFechaNacimiento());
+        // Parsear fechaNacimiento de String a LocalDate (sin conversiones de timezone)
+        if (dto.getFechaNacimiento() != null && !dto.getFechaNacimiento().isEmpty()) {
+            String fechaStr = dto.getFechaNacimiento();
+            log.info("📅 DEBUG fechaNacimiento - Recibido del DTO: '{}'", fechaStr);
+            // Si viene con 'T' (ISO DateTime), extraer solo la fecha
+            if (fechaStr.contains("T")) {
+                fechaStr = fechaStr.split("T")[0];
+                log.info("📅 DEBUG fechaNacimiento - Extraído (sin timestamp): '{}'", fechaStr);
+            }
+            java.time.LocalDate fechaParsed = java.time.LocalDate.parse(fechaStr);
+            log.info("📅 DEBUG fechaNacimiento - LocalDate parseado: {}", fechaParsed);
+            cliente.setFechaNacimiento(fechaParsed);
+            log.info("📅 DEBUG fechaNacimiento - Guardado en cliente: {}", cliente.getFechaNacimiento());
+        }
         cliente.setDireccion(dto.getDireccion());
         cliente.setProvincia(dto.getProvincia());
         cliente.setCanton(dto.getCanton());
@@ -537,7 +550,20 @@ public class ClienteService {
         cliente.setNombres(dto.getNombres());
         cliente.setApellidos(dto.getApellidos());
         cliente.setNumeroIdentificacion(dto.getNumeroIdentificacion());
-        cliente.setFechaNacimiento(dto.getFechaNacimiento());
+        // Parsear fechaNacimiento de String a LocalDate (sin conversiones de timezone)
+        if (dto.getFechaNacimiento() != null && !dto.getFechaNacimiento().isEmpty()) {
+            String fechaStr = dto.getFechaNacimiento();
+            log.info("📅 DEBUG fechaNacimiento - Recibido del DTO: '{}'", fechaStr);
+            // Si viene con 'T' (ISO DateTime), extraer solo la fecha
+            if (fechaStr.contains("T")) {
+                fechaStr = fechaStr.split("T")[0];
+                log.info("📅 DEBUG fechaNacimiento - Extraído (sin timestamp): '{}'", fechaStr);
+            }
+            java.time.LocalDate fechaParsed = java.time.LocalDate.parse(fechaStr);
+            log.info("📅 DEBUG fechaNacimiento - LocalDate parseado: {}", fechaParsed);
+            cliente.setFechaNacimiento(fechaParsed);
+            log.info("📅 DEBUG fechaNacimiento - Guardado en cliente: {}", cliente.getFechaNacimiento());
+        }
         cliente.setDireccion(dto.getDireccion());
         cliente.setProvincia(dto.getProvincia());
         cliente.setCanton(dto.getCanton());

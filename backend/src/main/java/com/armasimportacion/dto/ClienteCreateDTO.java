@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,7 +17,7 @@ public class ClienteCreateDTO {
     private String numeroIdentificacion;
     private String tipoIdentificacionCodigo; // "CED" o "RUC" - CÓDIGO del tipo
     private String tipoClienteCodigo; // "CIV", "MIL", "EMP", "DEP" - CÓDIGO del tipo
-    private LocalDate fechaNacimiento;
+    private String fechaNacimiento; // YYYY-MM-DD, se parsea manualmente
     private String direccion;
     private String provincia;
     private String canton;
