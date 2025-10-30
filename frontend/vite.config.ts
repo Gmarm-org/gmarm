@@ -32,9 +32,30 @@ export default defineConfig(({ mode }) => {
     publicDir: 'public',
     build: {
       assetsDir: 'assets',
+      // Generar nombres únicos para assets (cache busting)
+      manifest: true,
+      // Hash en nombres de archivos para evitar cache
+      cssCodeSplit: true,
+      sourcemap: false,
       rollupOptions: {
         input: {
           main: 'index.html'
+        },
+        output: {
+          // Incluir hash en nombres de archivos
+          entryFileNames: 'assets/js/[name].[hash].js',
+          chunkFileNames: 'assets/js/[name].[hash].js',
+          assetFileNames: (assetInfo) => {
+            const info = assetInfo.name.split('.');
+            const ext = info[info.length - 1];
+            if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
+              return `assets/images/[name].[hash].[ext]`;
+            }
+            if (/css/i.test(ext)) {
+              return `assets/css/[name].[hash].[ext]`;
+            }
+            return `assets/[name].[hash].[ext]`;
+          }
         }
       }
     },
