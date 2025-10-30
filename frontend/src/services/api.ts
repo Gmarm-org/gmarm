@@ -581,6 +581,23 @@ class ApiService {
     return this.request<SaldoCliente>(`/pagos/cliente/${clienteId}/saldo`);
   }
 
+  // Obtener cuotas de un pago
+  async getCuotasPorPago(pagoId: number): Promise<any[]> {
+    return this.request<any[]>(`/pagos/${pagoId}/cuotas`);
+  }
+
+  // Registrar pago de cuota
+  async pagarCuota(cuotaId: number, referenciaPago: string, usuarioConfirmadorId: number): Promise<any> {
+    return this.request<any>(`/pagos/cuota/${cuotaId}/pagar?referenciaPago=${encodeURIComponent(referenciaPago)}&usuarioConfirmadorId=${usuarioConfirmadorId}`, {
+      method: 'POST'
+    });
+  }
+
+  // Obtener usuario actual
+  async getMe(): Promise<any> {
+    return this.request<any>('/auth/me');
+  }
+
   // ========================================
   // ARMAS (REEMPLAZA A MODELOS DE ARMAS)
   // ========================================
@@ -1164,6 +1181,23 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ clienteArmaId, numeroSerie })
     });
+  }
+
+  // ========================================
+  // AUTORIZACIONES DE VENTA
+  // ========================================
+
+  // Generar autorización de venta para un cliente
+  async generarAutorizacion(clienteId: string, numeroFactura: string, tramite: string): Promise<any> {
+    return this.request<any>('/api/autorizaciones/generar', {
+      method: 'POST',
+      body: JSON.stringify({ clienteId, numeroFactura, tramite })
+    });
+  }
+
+  // Obtener autorizaciones de un cliente
+  async getAutorizacionesPorCliente(clienteId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/autorizaciones/cliente/${clienteId}`);
   }
 
 }

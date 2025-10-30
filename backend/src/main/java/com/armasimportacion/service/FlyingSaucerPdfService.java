@@ -8,7 +8,6 @@ import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Map;
 
 @Service
@@ -35,7 +34,7 @@ public class FlyingSaucerPdfService {
             
             // Generar PDF usando Flying Saucer
             ITextRenderer renderer = new ITextRenderer();
-            renderer.setDocumentFromString(htmlContent);
+            renderer.setDocumentFromString(htmlContent, "classpath:/templates/");
             renderer.layout();
             
             // Convertir a bytes

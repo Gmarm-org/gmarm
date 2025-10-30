@@ -937,7 +937,10 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ('MAX_CUOTAS_PERMITIDAS', '6', 'Máximo número de cuotas permitidas', false),
 ('MIN_MONTO_CUOTA', '100.00', 'Monto mínimo por cuota', false),
 ('EXPOFERIA_ACTIVA', 'true', 'Indica si la expoferia está activa y se deben mostrar solo armas de expoferia', true),
-('EXPOFERIA_NOMBRE', 'EXPOFERIA_2025', 'Nombre de la expoferia actual', true)
+('EXPOFERIA_NOMBRE', 'EXPOFERIA_2025', 'Nombre de la expoferia actual', true),
+('COORDINADOR_NOMBRE_EXPOFERIA', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar de expoferia', true),
+('COORDINADOR_CARGO_EXPOFERIA', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar de expoferia', true),
+('COORDINADOR_DIRECCION_EXPOFERIA', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección/cargo del coordinador militar de expoferia', true)
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================

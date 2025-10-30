@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import Header from '../../components/Header';
 import AsignacionSeries from '../AsignacionSeries';
+import ClientesAsignados from './ClientesAsignados';
+import PagosFinanzas from './PagosFinanzas';
 
 const Finanzas: React.FC = () => {
-  const [vistaActual, setVistaActual] = useState<'dashboard' | 'series'>('dashboard');
+  const [vistaActual, setVistaActual] = useState<'pagos' | 'series' | 'clientes-asignados'>('pagos');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -13,14 +15,25 @@ const Finanzas: React.FC = () => {
         {/* Navegación de pestañas */}
         <div className="flex space-x-2 mb-6">
           <button
-            onClick={() => setVistaActual('dashboard')}
+            onClick={() => setVistaActual('pagos')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
-              vistaActual === 'dashboard'
+              vistaActual === 'pagos'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            💰 Dashboard Financiero
+            💰 Pagos
+          </button>
+          
+          <button
+            onClick={() => setVistaActual('clientes-asignados')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'clientes-asignados'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            📋 Clientes con Armas Asignadas
           </button>
           
           <button
@@ -35,17 +48,19 @@ const Finanzas: React.FC = () => {
           </button>
         </div>
 
-        {/* Contenido: Dashboard Financiero */}
-        {vistaActual === 'dashboard' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Dashboard Financiero</h2>
-            <p className="text-gray-600">Módulo de gestión financiera del sistema.</p>
-          </div>
+        {/* Contenido: Pagos */}
+        {vistaActual === 'pagos' && (
+          <PagosFinanzas />
         )}
 
         {/* Contenido: Asignación de Series */}
         {vistaActual === 'series' && (
           <AsignacionSeries />
+        )}
+
+        {/* Contenido: Clientes Asignados */}
+        {vistaActual === 'clientes-asignados' && (
+          <ClientesAsignados />
         )}
       </div>
     </div>

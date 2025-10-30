@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Autorización de Venta de Arma</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1in;
+        }
+        
+        body {
+            font-family: "Times New Roman", serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            color: #000;
+            font-size: 11pt;
+        }
+
+        /* Logo superior izquierdo - En header normal */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .logo-image {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .logo-text-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-text {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 14pt;
+            color: #666;
+            margin: 0;
+        }
+
+        .logo-subtitle {
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            color: #999;
+            margin: 0;
+            font-style: italic;
+        }
+
+        /* Marca de agua inferior derecha */
+        .watermark {
+            position: absolute;
+            bottom: 1in;
+            right: 1in;
+            width: 120px;
+            height: 120px;
+            opacity: 0.08;
+        }
+
+        .watermark-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Encabezado del oficio - Alineado a la derecha */
+        .oficio-header {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+
+        .oficio-codigo {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .fecha-lugar {
+            font-size: 11pt;
+            margin-bottom: 5px;
+        }
+
+        /* Destinatario */
+        .destinatario {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .destinatario-line {
+            margin-bottom: 2px;
+        }
+
+        .destinatario-title {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Cuerpo del documento */
+        .saludo {
+            margin-bottom: 8px;
+        }
+
+        .contenido {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* Tabla de información del arma - Centrada y simple */
+        .arma-info {
+            margin: 15px 0;
+            padding: 0;
+        }
+
+        .arma-table {
+            width: 80%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .arma-table th,
+        .arma-table td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: left;
+        }
+
+        .arma-table th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .arma-table td {
+            text-align: center;
+        }
+
+        /* Despedida */
+        .despedida {
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .cierre {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .text-uppercase {
+            text-transform: uppercase;
+        }
+
+        .text-bold {
+            font-weight: bold;
+        }
+
+        /* Firma - Sin línea, solo texto */
+        .firma {
+            margin-top: 30px;
+            padding: 0;
+        }
+
+        .firma-nombre {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .firma-info {
+            font-size: 11pt;
+            line-height: 1.4;
+        }
+
+        /* Cliente nombre en negrita */
+        .cliente-nombre {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark">
+        <img th:src="${watermarkImageUrl}" alt="CZ Watermark" class="watermark-image" />
+    </div>
+
+    <!-- Logo superior izquierdo -->
+    <div class="logo-container">
+        <img th:src="${logoImageUrl}" alt="CZ Logo" class="logo-image" />
+        <div class="logo-text-container">
+            <div class="logo-text">CZ</div>
+            <div class="logo-subtitle">For those who know</div>
+        </div>
+    </div>
+
+    <!-- Código del oficio - Alineado a la derecha -->
+    <div class="oficio-header">
+        <div class="oficio-codigo" th:text="'OFICIO: CZ - ' + ${licenciaIniciales} + ' - ' + ${ultimos4NumerosFactura} + ' - ' + ${anioActual}">
+            OFICIO: CZ – JL- 0326–2025
+        </div>
+        <div class="fecha-lugar" th:text="${fechaActual}">
+            Quito, 23 de octubre del 2025
+        </div>
+    </div>
+
+    <!-- Destinatario -->
+    <div class="destinatario">
+        <div class="destinatario-line">Señor:</div>
+        <div class="destinatario-line text-uppercase" th:text="${coordinadorNombre}">
+            TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA
+        </div>
+        <div class="destinatario-line" th:text="${coordinadorCargo}">
+            COORDINADOR MILITAR CENTRO "PICHINCHA"
+        </div>
+        <div class="destinatario-line" th:text="${coordinadorDireccion}">
+            COMANDO CONJUNTO DE LAS FUERZA ARMADAS
+        </div>
+        <div class="destinatario-line destinatario-title">Presente. –</div>
+    </div>
+
+    <!-- Saludo -->
+    <div class="saludo">
+        De mi consideración
+    </div>
+
+    <!-- Cuerpo del documento -->
+    <div class="contenido">
+        Yo, Dr. José Luis Guerrero Martínez con RUC: 1707815922001, en mi calidad de representante y distribuidor autorizado de CZ para Ecuador, muy comedidamente solicito se digne autorizar a quien corresponda, se emita la autorización de venta de la siguiente arma a favor de:
+    </div>
+
+    <div class="contenido">
+        <span class="cliente-nombre" th:text="${cliente.nombres} + ' ' + ${cliente.apellidos} + ' con CI ' + ${cliente.numeroIdentificacion}">
+            NOMBRE COMPLETO CLIENTE con CI 1205059759.
+        </span>
+    </div>
+
+    <div class="contenido">
+        Por el arma:
+    </div>
+
+    <!-- Tabla de información del arma - Centrada -->
+    <div class="arma-info">
+        <table class="arma-table">
+            <thead>
+                <tr>
+                    <th>TIPO</th>
+                    <th>MODELO</th>
+                    <th>CALIBRE</th>
+                    <th>SERIE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>PISTOLA</td>
+                    <td th:text="${arma.nombre}">PISTOLA MARCA CZ, MODELO CZ P 10 C</td>
+                    <td th:text="${arma.calibre}">9MM</td>
+                    <td th:text="${numeroSerie}">K149131</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="contenido">
+        Esto con cargo a mi importación previa <span th:text="${tramite}">TRA-0002017613</span>
+    </div>
+
+    <div class="contenido">
+        Adjunto la factura Nro. <span th:text="${numeroFactura}">001-901-000000326</span> correspondiente a dicha venta.
+    </div>
+
+    <div class="despedida">
+        Seguro de contar con la favorable atención que se dispense a la presente, antelo mis agradecimientos no sin antes reiterarle los más altos sentimientos de consideración y aprecio que guardo hacia su persona.
+    </div>
+
+    <div class="cierre">
+        A t e n t a m e n t e
+    </div>
+
+    <!-- Firma - Sin línea, texto normal -->
+    <div class="firma">
+        <div class="firma-nombre" th:text="${licenciaRepresentante}">
+            Dr. José Luis Guerrero
+        </div>
+        <div class="firma-info">
+            RUC. <span th:text="${licenciaRUC}">1707815922001</span><br/>
+            Cel.<span th:text="${licenciaTelefono}">0984167983</span><br/>
+            Email: <span th:text="${licenciaEmail}">joseluis@guerreromartinez.com</span>
+        </div>
+    </div>
+</body>
+</html>
+

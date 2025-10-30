@@ -29,7 +29,7 @@ export const ROLE_PERMISSIONS: Record<string, RolePermission> = {
     description: 'Gestión de pagos y finanzas',
     routes: ['/pagos', '/finanzas', '/role-selection', '/dashboard', '/profile'],
     permissions: ['view_payments', 'create_payments', 'view_finances', 'view_profile'],
-    redirectAfterLogin: '/pagos'
+    redirectAfterLogin: '/finanzas'
   },
   
   SALES_CHIEF: {

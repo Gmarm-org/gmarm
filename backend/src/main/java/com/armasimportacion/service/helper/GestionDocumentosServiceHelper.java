@@ -16,9 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import com.armasimportacion.service.FlyingSaucerPdfService;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,6 +71,66 @@ public class GestionDocumentosServiceHelper {
         } catch (Exception e) {
             log.error("❌ Error generando contrato para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando contrato", e);
+        }
+    }
+
+    /**
+     * Genera y guarda una autorización de venta PDF para el cliente usando Flying Saucer + Thymeleaf
+     */
+    public DocumentoGenerado generarYGuardarAutorizacion(Cliente cliente, ClienteArma clienteArma, 
+                                                         String numeroFactura, String tramite) {
+        try {
+            log.info("📄 GENERANDO AUTORIZACIÓN DE VENTA PARA CLIENTE ID: {}", cliente.getId());
+            
+            // Verificar y eliminar autorizaciones anteriores del cliente (sobrescribir)
+            List<DocumentoGenerado> autorizacionesAnteriores = documentoGeneradoRepository
+                .findByClienteIdAndTipo(cliente.getId(), TipoDocumentoGenerado.AUTORIZACION);
+            
+            if (!autorizacionesAnteriores.isEmpty()) {
+                log.info("⚠️ Se encontraron {} autorización(es) anterior(es) para el cliente, se sobrescribirán", autorizacionesAnteriores.size());
+                
+                for (DocumentoGenerado autorizacionAnterior : autorizacionesAnteriores) {
+                    // Eliminar archivo físico si existe
+                    try {
+                        String rutaCompletaAnterior = construirRutaCompletaDocumentoGenerado(
+                            autorizacionAnterior.getRutaArchivo(), 
+                            autorizacionAnterior.getNombreArchivo()
+                        );
+                        File archivoAnterior = new File(rutaCompletaAnterior);
+                        if (archivoAnterior.exists()) {
+                            archivoAnterior.delete();
+                            log.info("🗑️ Archivo anterior eliminado: {}", rutaCompletaAnterior);
+                        }
+                    } catch (Exception e) {
+                        log.warn("⚠️ No se pudo eliminar archivo anterior: {}", e.getMessage());
+                    }
+                    
+                    // Eliminar registro de BD
+                    documentoGeneradoRepository.delete(autorizacionAnterior);
+                    log.info("🗑️ Registro anterior eliminado de BD: ID={}", autorizacionAnterior.getId());
+                }
+            }
+            
+            byte[] pdfBytes = generarPDFAutorizacion(cliente, clienteArma, numeroFactura, tramite);
+            log.info("🔍 DEBUG: PDF autorización generado, tamaño: {} bytes", pdfBytes.length);
+            
+            String nombreArchivo = generarNombreArchivoAutorizacion(cliente);
+            String rutaArchivo = construirRutaArchivoAutorizacion(cliente);
+            
+            DocumentoGenerado documento = crearDocumentoAutorizacion(cliente, nombreArchivo, rutaArchivo, pdfBytes);
+            DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
+            
+            // Escribir el archivo PDF físicamente al sistema de archivos
+            escribirArchivoPDF(rutaArchivo, nombreArchivo, pdfBytes);
+            
+            log.info("✅ Autorización generada y guardada con ID: {}, archivo: {}", 
+                documentoGuardado.getId(), nombreArchivo);
+            
+            return documentoGuardado;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando autorización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            throw new RuntimeException("Error generando autorización", e);
         }
     }
     
@@ -207,6 +269,35 @@ public class GestionDocumentosServiceHelper {
     }
     
     /**
+     * Determina el template correcto según el tipo de cliente
+     */
+    private String determinarTemplateContrato(Cliente cliente) {
+        if (cliente.getTipoCliente() == null || cliente.getTipoCliente().getNombre() == null) {
+            log.warn("⚠️ Tipo de cliente no definido, usando template por defecto");
+            return "contratos/contrato_civil";
+        }
+        
+        String nombreTipoCliente = cliente.getTipoCliente().getNombre();
+        log.info("🔍 Tipo de cliente: {}", nombreTipoCliente);
+        
+        // Mapear nombres de tipos de cliente a templates
+        return switch (nombreTipoCliente) {
+            case "Civil" -> "contratos/contrato_civil";
+            case "Militar Fuerza Terrestre" -> "contratos/contrato_militar_fuerza_terrestre";
+            case "Militar Fuerza Naval" -> "contratos/contrato_militar_fuerza_naval";
+            case "Militar Fuerza Aérea" -> "contratos/contrato_militar_fuerza_aerea";
+            case "Uniformado Policial" -> "contratos/contrato_policial";
+            case "Compañía de Seguridad" -> "contratos/contrato_compania_seguridad";
+            case "Deportista" -> "contratos/contrato_deportista";
+            case "Militar Expoferia" -> "contratos/contrato_militar_expoferia";
+            default -> {
+                log.warn("⚠️ Tipo de cliente desconocido: {}, usando template por defecto", nombreTipoCliente);
+                yield "contratos/contrato_civil";
+            }
+        };
+    }
+    
+    /**
      * Genera PDF profesional usando Flying Saucer con template HTML/CSS
      */
     private byte[] generarPDFConFlyingSaucer(Cliente cliente, Pago pago) throws Exception {
@@ -299,8 +390,12 @@ public class GestionDocumentosServiceHelper {
             log.info("🔧 Variables preparadas para template: cliente={}, pago={}, arma={}, IVA={}%, numeroCuotas={}", 
                 cliente.getNombres(), pago.getMontoTotal(), clienteArma.getArma().getNombre(), ivaPorcentaje, pago.getNumeroCuotas());
             
-            // Generar PDF usando Flying Saucer con template profesional
-            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("contrato_profesional", variables);
+            // Determinar el template correcto según el tipo de cliente
+            String nombreTemplate = determinarTemplateContrato(cliente);
+            log.info("📄 Usando template: {}", nombreTemplate);
+            
+            // Generar PDF usando Flying Saucer con template específico
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate(nombreTemplate, variables);
             
             log.info("✅ PDF generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
@@ -309,6 +404,214 @@ public class GestionDocumentosServiceHelper {
             log.error("❌ Error generando PDF con Flying Saucer: {}", e.getMessage(), e);
             throw e;
         }
+    }
+
+    /**
+     * Genera PDF de autorización de venta usando Flying Saucer con template HTML/CSS
+     */
+    private byte[] generarPDFAutorizacion(Cliente cliente, ClienteArma clienteArma, 
+                                         String numeroFactura, String tramite) throws Exception {
+        log.info("🔧 Generando PDF de autorización con Flying Saucer para cliente: {}", cliente.getNombres());
+        
+        try {
+            // Obtener los últimos 4 dígitos del número de factura para el código del oficio
+            String ultimos4Numeros = "0000"; // Valor por defecto
+            if (numeroFactura != null && !numeroFactura.isEmpty()) {
+                // Extraer solo los dígitos del número de factura
+                String soloNumeros = numeroFactura.replaceAll("[^0-9]", "");
+                
+                if (soloNumeros.length() >= 4) {
+                    // Tomar los últimos 4 dígitos
+                    ultimos4Numeros = soloNumeros.substring(soloNumeros.length() - 4);
+                } else if (soloNumeros.length() > 0) {
+                    // Rellenar con ceros a la izquierda para asegurar 4 dígitos
+                    ultimos4Numeros = String.format("%04d", Integer.parseInt(soloNumeros));
+                }
+            }
+            
+            // Obtener año actual
+            String anioActual = String.valueOf(java.time.LocalDate.now().getYear());
+            
+            // Obtener información de la licencia (por defecto para expoferia)
+            String licenciaIniciales = "JL"; // Por defecto para Expoferia
+            String licenciaRepresentante = "Dr. José Luis Guerrero";
+            String licenciaRUC = "1707815922001";
+            String licenciaTelefono = "0984167983";
+            String licenciaEmail = "joseluis@guerreromartinez.com";
+            
+            // TODO: Obtener dinámicamente desde configuración del sistema o licencia activa
+            // Por ahora se usa la configuración por defecto para expoferia
+            
+            // Obtener información del coordinador desde configuración (con fallback)
+            String coordinadorNombre = "TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA";
+            String coordinadorCargo = "COORDINADOR MILITAR CENTRO \"PICHINCHA\"";
+            String coordinadorDireccion = "COMANDO CONJUNTO DE LAS FUERZA ARMADAS";
+            
+            try {
+                coordinadorNombre = configuracionService.getValorConfiguracion("COORDINADOR_NOMBRE_EXPOFERIA");
+            } catch (Exception e) {
+                log.debug("Usando valor por defecto para COORDINADOR_NOMBRE_EXPOFERIA");
+            }
+            try {
+                coordinadorCargo = configuracionService.getValorConfiguracion("COORDINADOR_CARGO_EXPOFERIA");
+            } catch (Exception e) {
+                log.debug("Usando valor por defecto para COORDINADOR_CARGO_EXPOFERIA");
+            }
+            try {
+                coordinadorDireccion = configuracionService.getValorConfiguracion("COORDINADOR_DIRECCION_EXPOFERIA");
+            } catch (Exception e) {
+                log.debug("Usando valor por defecto para COORDINADOR_DIRECCION_EXPOFERIA");
+            }
+            
+            // Fecha actual en formato legible
+            String fechaActual = obtenerFechaActualFormateada();
+            
+            // Preparar variables para el template
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("cliente", cliente);
+            variables.put("arma", clienteArma.getArma());
+            variables.put("numeroSerie", clienteArma.getNumeroSerie());
+            variables.put("numeroFactura", numeroFactura);
+            variables.put("tramite", tramite);
+            variables.put("licenciaIniciales", licenciaIniciales);
+            variables.put("ultimos4NumerosFactura", ultimos4Numeros);
+            variables.put("anioActual", anioActual);
+            variables.put("fechaActual", fechaActual);
+            variables.put("licenciaRepresentante", licenciaRepresentante);
+            variables.put("licenciaRUC", licenciaRUC);
+            variables.put("licenciaTelefono", licenciaTelefono);
+            variables.put("licenciaEmail", licenciaEmail);
+            variables.put("coordinadorNombre", coordinadorNombre);
+            variables.put("coordinadorCargo", coordinadorCargo);
+            variables.put("coordinadorDireccion", coordinadorDireccion);
+            
+            // URLs de logo y marca de agua
+            // Las imágenes deben estar en: backend/src/main/resources/static/images/logos/
+            // Usamos rutas relativas desde el classpath base
+            variables.put("logoImageUrl", "../../../static/images/logos/cz-logo.png");
+            variables.put("watermarkImageUrl", "../../../static/images/logos/cz-watermark.png");
+            
+            log.info("🔧 Variables preparadas para template de autorización: cliente={}, arma={}, factura={}, tramite={}", 
+                cliente.getNombres(), clienteArma.getArma().getNombre(), numeroFactura, tramite);
+            
+            // Generar PDF usando Flying Saucer con template de autorización
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("autorizaciones/autorizacion_venta", variables);
+            
+            log.info("✅ PDF de autorización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
+            return pdfBytes;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando PDF de autorización: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Obtiene la fecha actual formateada en español
+     */
+    private String obtenerFechaActualFormateada() {
+        java.time.LocalDate fecha = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
+        
+        String[] meses = {
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+        };
+        
+        int dia = fecha.getDayOfMonth();
+        String mes = meses[fecha.getMonthValue() - 1];
+        int anio = fecha.getYear();
+        
+        return String.format("Quito, %d de %s del %d", dia, mes, anio);
+    }
+
+    /**
+     * Genera el nombre del archivo de autorización
+     */
+    private String generarNombreArchivoAutorizacion(Cliente cliente) {
+        String fechaActual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        return String.format("autorizacion_venta_%s_%s.pdf", 
+            cliente.getNumeroIdentificacion(), fechaActual);
+    }
+
+    /**
+     * Construye la ruta del archivo de autorización
+     */
+    private String construirRutaArchivoAutorizacion(Cliente cliente) {
+        return String.format("documentacion/autorizaciones/cliente_%s/", 
+            cliente.getNumeroIdentificacion());
+    }
+
+    /**
+     * Crea el objeto DocumentoGenerado para autorización
+     */
+    private DocumentoGenerado crearDocumentoAutorizacion(Cliente cliente, 
+                                                        String nombreArchivo, String rutaArchivo, byte[] pdfBytes) {
+        DocumentoGenerado documento = new DocumentoGenerado();
+        documento.setCliente(cliente);
+        documento.setNombre("Autorización de Venta de Arma");
+        documento.setDescripcion("Autorización de venta generada automáticamente para el arma asignada al cliente");
+        documento.setTipoDocumento(TipoDocumentoGenerado.AUTORIZACION);
+        documento.setNombreArchivo(nombreArchivo);
+        documento.setRutaArchivo(rutaArchivo);
+        documento.setTamanioBytes((long) pdfBytes.length);
+        documento.setFechaGeneracion(LocalDateTime.now());
+        documento.setEstado(com.armasimportacion.enums.EstadoDocumentoGenerado.GENERADO);
+        
+        // Obtener el usuario actual del contexto de seguridad
+        try {
+            String emailUsuarioActual = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+            
+            Usuario usuarioActual = buscarUsuarioPorEmail(emailUsuarioActual);
+            if (usuarioActual != null) {
+                documento.setUsuarioGenerador(usuarioActual);
+            } else {
+                // Fallback a usuario admin por defecto
+                Usuario usuarioAdmin = new Usuario();
+                usuarioAdmin.setId(1L);
+                documento.setUsuarioGenerador(usuarioAdmin);
+            }
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo usuario actual: {}", e.getMessage());
+            Usuario usuarioAdmin = new Usuario();
+            usuarioAdmin.setId(1L);
+            documento.setUsuarioGenerador(usuarioAdmin);
+        }
+        
+        return documento;
+    }
+    
+    /**
+     * Construye la ruta completa física para un documento generado (contrato/autorización)
+     * Ruta en BD: "documentacion/contratos_generados/cliente_X/" o "documentacion/autorizaciones/cliente_X/"
+     * Nombre archivo: "contrato_1234567892_20251006_191319.pdf" o "autorizacion_venta_1234567892_20251006_191319.pdf"
+     * Ruta física: "/app/documentacion/{tipo}/cliente_X/{nombreArchivo}.pdf"
+     */
+    private String construirRutaCompletaDocumentoGenerado(String rutaBD, String nombreArchivo) {
+        String rutaCompleta;
+        
+        // Si la ruta ya es absoluta con /app/, usarla como base
+        if (rutaBD.startsWith("/app/")) {
+            rutaCompleta = rutaBD;
+        }
+        // Si la ruta empieza con "documentacion/", agregar /app/ al inicio
+        else if (rutaBD.startsWith("documentacion/")) {
+            rutaCompleta = "/app/" + rutaBD;
+        }
+        // En cualquier otro caso, asumir que falta todo el prefijo
+        else {
+            rutaCompleta = "/app/documentacion/contratos_generados/" + rutaBD;
+        }
+        
+        // Asegurar que la ruta termine con / antes de agregar el nombre del archivo
+        if (!rutaCompleta.endsWith("/")) {
+            rutaCompleta = rutaCompleta + "/";
+        }
+        
+        // Agregar el nombre del archivo
+        return rutaCompleta + nombreArchivo;
     }
     
 }

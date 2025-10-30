@@ -229,12 +229,35 @@ $env:WS_PORT="5173"
 docker-compose -f docker-compose.dev.yml up -d --build
 ```
 
-### 2. Antes de Probar Cambios
+### 2. ⚠️ OBLIGATORIO: Reinicio Total Después de Cambios en Backend ⚠️
+
+**🚨 REGLA CRÍTICA**: Después de CUALQUIER cambio en el backend (Java), DEBES reiniciar los servicios para que los cambios surtan efecto.
+
 ```powershell
-# SIEMPRE reiniciar servicios después de cambios
-docker-compose -f docker-compose.dev.yml down
-docker-compose -f docker-compose.dev.yml up --build
+# Backend: Cambios en Java
+cd backend
+mvn clean compile -DskipTests  # Primero compilar
+cd ..
+
+# REINICIO OBLIGATORIO
+docker-compose -f docker-compose.local.yml restart backend_local frontend_local
+
+# O mejor aún, rebuild completo para asegurar actualización
+docker-compose -f docker-compose.local.yml down
+docker-compose -f docker-compose.local.yml up -d --build
 ```
+
+**⚠️ IMPORTANTE**: 
+- Los cambios en `.java` NO se reflejan automáticamente en contenedores Docker
+- `docker-compose restart` solo reinicia contenedores, NO reconstruye imágenes con código nuevo
+- Para cambios significativos, usa `down` + `up --build` para asegurar actualización completa
+
+**✅ Workflow Correcto para Cambios en Backend:**
+1. Modificar código Java
+2. Compilar: `mvn clean compile -DskipTests` (dentro de `backend/`)
+3. **Reiniciar servicios**: `docker-compose restart backend_local` o `down/up --build`
+4. Probar la funcionalidad
+5. Si funciona → commit y push
 
 ### 3. Volúmenes Importantes
 ```yaml
@@ -786,7 +809,7 @@ Antes de implementar, pregúntate:
 
 ## ⚠️ Recordatorios Importantes
 
-1. **SIEMPRE reiniciar Docker después de cambios**
+1. **🚨 CRÍTICO: SIEMPRE reiniciar Docker después de cambios en Backend (obligatorio)**
 2. **NO usar && en PowerShell, usar ; en su lugar**
 3. **Máximo 500 líneas por archivo/clase**
 4. **Actualizar SQL maestro, NO crear migraciones**

@@ -10,7 +10,7 @@ CZ P-09 F Nocturne FDE              | CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO         
 CZ P-09 F Nocturne OD Green         | CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO       | 30
 CZ P-10 C                           | CZ-P10-C-PLAN-PILOTO                         | 125
 CZ P-10 C OR                        | CZ-P10-C-OR-PLAN-PILOTO                      | 5
-CZ P-10 C OR FDE                    | CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO         | 10
+CZ P-10 C OR FDE CERAKOTE           | CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO         | 10
 CZ P-10 F                           | CZ-P10-F-PLAN-PILOTO                         | 57
 CZ P-10 F FDE                       | CZ-P10-F-FDE-PLAN-PILOTO                     | 73
 CZ P-10 F MIRAS TRITIUM             | CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO            | 20
@@ -18,7 +18,7 @@ CZ P-10 F OR                        | CZ-P10-F-OR-PLAN-PILOTO                   
 CZ P-10 S                           | CZ-P10-S-PLAN-PILOTO                         | 5
 CZ P-10 SC                          | CZ-P10-SC-PLAN-PILOTO                        | 20
 CZ P-10 SC FDE                      | CZ-P10-SC-FDE-PLAN-PILOTO                    | 30
-CZ P-10 SC Urban Grey               | CZ-P10-SC-URBAN-PLAN-PILOTO                  | 33
+CZ P-10 SC URBAN               | CZ-P10-SC-URBAN-PLAN-PILOTO                  | 33
 CZ Shadow 2 Carry                   | CZ-SHADOW-2-CARRY-PLAN-PILOTO                | 10
 CZ Shadow 2 Compact OR              | CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO           | 10
                                                                            TOTAL: 500
@@ -32,7 +32,7 @@ Para cada serie, usa este formato:
 ('NUMERO_SERIE', (SELECT id FROM arma WHERE codigo = 'CODIGO-DE-ARRIBA'), 'DISPONIBLE', '2 alimentadoras'),
 
 EJEMPLO:
-Si tienes la serie "ABC123" del modelo "CZ P-10 SC Urban Grey":
+Si tienes la serie "ABC123" del modelo "CZ P-10 SC URBAN":
 
 ('ABC123', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
 
