@@ -52,7 +52,8 @@ public class NumberToTextService {
         String centavosStr = String.format("%02d", centavos);
         resultado += " con " + centavosStr + "/100";
 
-        return resultado;
+        // Asegurar que TODO esté en mayúsculas (por si acaso hay algún caso especial)
+        return resultado.toUpperCase();
     }
 
     /**
