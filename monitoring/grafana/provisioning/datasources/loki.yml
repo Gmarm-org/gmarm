@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Extraer trace IDs si los usamos en el futuro
+        - datasourceUid: loki
+          matcherRegex: "traceID=(\\w+)"
+          name: TraceID
+          url: '$${__value.raw}'
+    isDefault: true
+    editable: true
+

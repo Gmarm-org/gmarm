@@ -54,6 +54,7 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
+      - ./logs:/app/logs  # Logs del backend para análisis
 
   frontend_local:
     build:

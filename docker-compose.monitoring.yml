@@ -1,0 +1,97 @@
+version: '3.8'
+
+#########################################
+# GMARM - STACK DE MONITOREO
+# Loki + Grafana + Promtail
+#########################################
+
+services:
+  # =================================
+  # LOKI - Agregador de logs
+  # =================================
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: gmarm-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # =================================
+  # PROMTAIL - Recolector de logs
+  # =================================
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: gmarm-promtail
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+      - ./logs:/var/log/gmarm  # Logs del backend
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Logs de Docker
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring_network
+    depends_on:
+      - loki
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # =================================
+  # GRAFANA - Dashboard y visualización
+  # =================================
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: gmarm-grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - monitoring_network
+    depends_on:
+      - loki
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+volumes:
+  loki_data:
+  grafana_data:
+
+networks:
+  monitoring_network:
+    driver: bridge
+

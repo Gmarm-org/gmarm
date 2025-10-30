@@ -1,0 +1,11 @@
+# Ignorar todos los archivos de log
+*.log
+*.log.*
+*.gz
+
+# Mantener la carpeta archive
+!archive/.gitkeep
+
+# Mantener este .gitignore
+!.gitignore
+
