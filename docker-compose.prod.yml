@@ -56,12 +56,16 @@ services:
       POSTGRES_PASSWORD: prodpass
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-      # Optimizaciones para producción
-      POSTGRES_SHARED_BUFFERS: "512MB"
-      POSTGRES_EFFECTIVE_CACHE_SIZE: "1GB"
-      POSTGRES_WORK_MEM: "32MB"
-      POSTGRES_MAINTENANCE_WORK_MEM: "128MB"
-      POSTGRES_MAX_CONNECTIONS: "100"
+      # Optimizaciones CONSERVADORAS para producción (evitar OOM)
+      POSTGRES_SHARED_BUFFERS: "256MB"                       # 25% de 1GB límite
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "512MB"                 # Cache conservadora
+      POSTGRES_WORK_MEM: "8MB"                              # Reducido para evitar peak memory
+      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"                  # Mantenimiento conservador
+      POSTGRES_MAX_CONNECTIONS: "50"                        # Reducido de 100 para estabilidad
+      # Configuración adicional para estabilidad
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.9"           # Checkpoints suaves
+      POSTGRES_WAL_BUFFERS: "16MB"                           # Buffers WAL pequeños
+      POSTGRES_DEFAULT_STATISTICS_TARGET: "50"               # Estadísticas moderadas
     ports:
       - "5433:5432"
     volumes:
@@ -70,21 +74,21 @@ services:
     restart: unless-stopped
     networks:
       - gmarm-network
-    # Límites de recursos para producción
+    # Límites de recursos para producción (MÁS CONSERVADOR para estabilidad crítica)
     deploy:
       resources:
         limits:
           cpus: '2.0'
-          memory: 1536M    # 1.5GB RAM
+          memory: 1024M    # REDUCIDO a 1GB para evitar OOM killers
         reservations:
           cpus: '1.0'
-          memory: 512M
+          memory: 384M     # Reserva mínima conservadora
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U produser -d gmarm_db"]
-      interval: 15s
+      interval: 30s        # Más espaciado para producción
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 3           # Fallar rápido si hay problemas
+      start_period: 90s    # Más tiempo para iniciar
 
 volumes:
   postgres_data_prod:

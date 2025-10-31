@@ -10,12 +10,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-      # Optimizaciones para servidores con recursos limitados
-      POSTGRES_SHARED_BUFFERS: "256MB"        # Memoria compartida (default: 128MB)
-      POSTGRES_EFFECTIVE_CACHE_SIZE: "512MB"  # Cache disponible total
-      POSTGRES_WORK_MEM: "16MB"               # Memoria por operación de sorting
-      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"   # Memoria para VACUUM, CREATE INDEX
-      POSTGRES_MAX_CONNECTIONS: "50"          # Máximo de conexiones (default: 100)
+      # Optimizaciones para servidores con recursos limitados (CONSERVADOR)
+      POSTGRES_SHARED_BUFFERS: "128MB"        # Reducido de 256MB para evitar OOM
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "256MB"  # Reducido para evitar presiones de memoria
+      POSTGRES_WORK_MEM: "4MB"                # Reducido drásticamente (default: 4MB)
+      POSTGRES_MAINTENANCE_WORK_MEM: "32MB"   # Reducido para operaciones de mantenimiento
+      POSTGRES_MAX_CONNECTIONS: "30"          # Reducido de 50 a 30 para evitar sobrecarga
+      # Configuración adicional para estabilidad
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.9"  # Checkpoints más suaves
+      POSTGRES_WAL_BUFFERS: "16MB"                   # Buffers WAL más pequeños
+      POSTGRES_DEFAULT_STATISTICS_TARGET: "50"       # Estadísticas menos agresivas
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -37,10 +41,10 @@ services:
           memory: 256M     # Mínimo 256MB RAM
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gmarm_dev}"]
-      interval: 15s        # Aumentado de 10s a 15s
-      timeout: 10s         # Aumentado de 5s a 10s
-      retries: 5
-      start_period: 60s    # Aumentado de 30s a 60s para dar más tiempo de arranque
+      interval: 30s        # Cada 30 segundos
+      timeout: 10s         # Timeout de 10s por check
+      retries: 3           # Solo 3 reintentos antes de marcar unhealthy
+      start_period: 90s    # 90 segundos de gracia para iniciar
 
   backend_dev:
     build:
