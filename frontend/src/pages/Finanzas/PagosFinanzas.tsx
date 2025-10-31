@@ -36,10 +36,26 @@ const PagosFinanzas: React.FC = () => {
   const [mostrarDatosFactura, setMostrarDatosFactura] = useState(false);
   const [clienteFactura, setClienteFactura] = useState<Client | null>(null);
   const [montoFactura, setMontoFactura] = useState<number>(0);
+  const [ivaPercent, setIvaPercent] = useState<number>(15); // IVA por defecto 15%
 
   useEffect(() => {
     cargarDatos();
+    cargarIVA();
   }, []);
+
+  const cargarIVA = async () => {
+    try {
+      const configuraciones = await apiService.getConfiguracionSistema();
+      if (configuraciones && Array.isArray(configuraciones)) {
+        const ivaData = configuraciones.find((config: any) => config.clave === 'IVA');
+        if (ivaData && ivaData.valor) {
+          setIvaPercent(parseFloat(ivaData.valor));
+        }
+      }
+    } catch (error) {
+      console.warn('No se pudo cargar el IVA desde configuración, usando 15% por defecto');
+    }
+  };
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -489,10 +505,20 @@ const PagosFinanzas: React.FC = () => {
                 </div>
 
                 <div className="md:col-span-2 pt-4 border-t border-gray-300">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Monto Total (Incluye IVA)
-                  </label>
-                  <p className="text-2xl font-bold text-blue-600">${montoFactura.toFixed(2)}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-medium text-gray-700">Subtotal</label>
+                      <p className="text-sm font-semibold text-gray-900">${(montoFactura / (1 + ivaPercent / 100)).toFixed(2)}</p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-medium text-gray-700">IVA ({ivaPercent}%)</label>
+                      <p className="text-sm font-semibold text-gray-900">${(montoFactura - (montoFactura / (1 + ivaPercent / 100))).toFixed(2)}</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                      <label className="text-base font-bold text-gray-900">Total</label>
+                      <p className="text-2xl font-bold text-blue-600">${montoFactura.toFixed(2)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
