@@ -46,10 +46,10 @@ const PagosFinanzas: React.FC = () => {
   const cargarIVA = async () => {
     try {
       const configuraciones = await apiService.getConfiguracionSistema();
-      if (configuraciones && Array.isArray(configuraciones)) {
-        const ivaData = configuraciones.find((config: any) => config.clave === 'IVA');
-        if (ivaData && ivaData.valor) {
-          setIvaPercent(parseFloat(ivaData.valor));
+      if (configuraciones && typeof configuraciones === 'object') {
+        const ivaValue = configuraciones.IVA || configuraciones['IVA'];
+        if (ivaValue) {
+          setIvaPercent(typeof ivaValue === 'number' ? ivaValue : parseFloat(ivaValue));
         }
       }
     } catch (error) {
