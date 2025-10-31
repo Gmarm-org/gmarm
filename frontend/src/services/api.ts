@@ -595,7 +595,7 @@ class ApiService {
 
   // Obtener usuario actual
   async getMe(): Promise<any> {
-    return this.request<any>('/auth/me');
+    return this.request<any>('/api/auth/me');
   }
 
   // ========================================
