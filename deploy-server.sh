@@ -153,9 +153,16 @@ done
 
 # Verificar que el backend esté funcionando después de los intentos
 if ! curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
-    echo "⚠️  Backend puede estar aún iniciando..."
-    echo "📋 Logs del backend:"
-    docker-compose -f $COMPOSE_FILE logs backend_dev
+    echo "❌ Backend no está funcionando después de 20 intentos"
+    echo "📋 Verificando estado de contenedores:"
+    docker-compose -f $COMPOSE_FILE ps
+    echo ""
+    echo "📋 Logs del backend (últimas 50 líneas):"
+    docker-compose -f $COMPOSE_FILE logs --tail=50 backend_dev
+    echo ""
+    echo "📋 Verificando si el contenedor del backend está corriendo:"
+    docker ps | grep backend_dev || echo "❌ Contenedor backend_dev NO está corriendo"
+    exit 1
 fi
 
 # Verificar que el frontend esté funcionando
