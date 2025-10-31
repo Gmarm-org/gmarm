@@ -85,8 +85,41 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "✅ SQL maestro ejecutado exitosamente" -ForegroundColor Green
 Write-Host ""
 
+# Paso 5.5: Resetear secuencias de PostgreSQL (CRÍTICO para IDs continuos)
+Write-Host "🔄 Paso 5.5: Reseteando secuencias de PostgreSQL para IDs continuos..." -ForegroundColor Yellow
+Write-Host ""
+
+$sequenceResetQuery = @"
+-- Obtener el máximo ID de cada tabla con secuencia
+SELECT setval('usuario_id_seq', (SELECT COALESCE(MAX(id), 1) FROM usuario));
+SELECT setval('cliente_id_seq', (SELECT COALESCE(MAX(id), 1) FROM cliente));
+SELECT setval('cliente_arma_id_seq', (SELECT COALESCE(MAX(id), 1) FROM cliente_arma));
+SELECT setval('pago_id_seq', (SELECT COALESCE(MAX(id), 1) FROM pago));
+SELECT setval('cuota_pago_id_seq', (SELECT COALESCE(MAX(id), 1) FROM cuota_pago));
+SELECT setval('documento_generado_id_seq', (SELECT COALESCE(MAX(id), 1) FROM documento_generado));
+SELECT setval('documento_cliente_id_seq', (SELECT COALESCE(MAX(id), 1) FROM documento_cliente));
+SELECT setval('arma_id_seq', (SELECT COALESCE(MAX(id), 1) FROM arma));
+SELECT setval('arma_serie_id_seq', (SELECT COALESCE(MAX(id), 1) FROM arma_serie));
+SELECT setval('arma_stock_id_seq', (SELECT COALESCE(MAX(id), 1) FROM arma_stock));
+SELECT setval('categoria_arma_id_seq', (SELECT COALESCE(MAX(id), 1) FROM categoria_arma));
+SELECT setval('respuesta_cliente_id_seq', (SELECT COALESCE(MAX(id), 1) FROM respuesta_cliente));
+SELECT setval('grupo_importacion_id_seq', (SELECT COALESCE(MAX(id), 1) FROM grupo_importacion));
+SELECT setval('cliente_grupo_importacion_id_seq', (SELECT COALESCE(MAX(id), 1) FROM cliente_grupo_importacion));
+SELECT setval('importacion_id_seq', (SELECT COALESCE(MAX(id), 1) FROM importacion));
+SELECT setval('inventario_id_seq', (SELECT COALESCE(MAX(id), 1) FROM inventario));
+SELECT setval('configuracion_sistema_id_seq', (SELECT COALESCE(MAX(id), 1) FROM configuracion_sistema));
+SELECT setval('notificacion_id_seq', (SELECT COALESCE(MAX(id), 1) FROM notificacion));
+SELECT setval('log_auditoria_id_seq', (SELECT COALESCE(MAX(id), 1) FROM log_auditoria));
+SELECT setval('arma_imagen_id_seq', (SELECT COALESCE(MAX(id), 1) FROM arma_imagen));
+"@
+
+docker exec gmarm-postgres-local psql -U postgres -d gmarm_dev -c "$sequenceResetQuery" 2>&1 | Out-Null
+
+Write-Host "✅ Secuencias reseteadas" -ForegroundColor Green
+Write-Host ""
+
 # Paso 6: Verificar datos
-Write-Host "🔍 Paso 6: Verificando datos..." -ForegroundColor Yellow
+Write-Host "🔍 Paso 6: Verificando datos y secuencias..." -ForegroundColor Yellow
 Write-Host ""
 
 $query = @"

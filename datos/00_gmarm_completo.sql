@@ -815,13 +815,13 @@ INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categor
 ('CZ-P10-C-PLAN-PILOTO', 'CZ P-10 C', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true, 'EXPOFERIA_2025'),
 ('CZ-P10-SC-PLAN-PILOTO', 'CZ P-10 SC', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC.png', 'https://czfirearms.com/pistols/p10-sc', true, 'EXPOFERIA_2025'),
 ('CZ-P10-SC-FDE-PLAN-PILOTO', 'CZ P-10 SC FDE', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-FDE.png', 'https://czfirearms.com/pistols/p10-sc-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-URBAN-PLAN-PILOTO', 'CZ P-10 SC Urban Grey', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-URBAN.png', 'https://czfirearms.com/pistols/p10-sc-urban', true, 'EXPOFERIA_2025'),
+('CZ-P10-SC-URBAN-PLAN-PILOTO', 'CZ P-10 SC URBAN', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-URBAN.png', 'https://czfirearms.com/pistols/p10-sc-urban', true, 'EXPOFERIA_2025'),
 ('CZ-P10-F-PLAN-PILOTO', 'CZ P-10 F', '9MM', 19, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true, 'EXPOFERIA_2025'),
 ('CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO', 'CZ P-10 F MIRAS TRITIUM', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true, 'EXPOFERIA_2025'),
 ('CZ-P10-F-FDE-PLAN-PILOTO', 'CZ P-10 F FDE', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-FDE.png', 'https://czfirearms.com/pistols/p10-f-fde', true, 'EXPOFERIA_2025'),
 ('CZ-P10-S-PLAN-PILOTO', 'CZ P-10 S', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true, 'EXPOFERIA_2025'),
 ('CZ-P10-C-OR-PLAN-PILOTO', 'CZ P-10 C OR', '9MM', 15, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true, 'EXPOFERIA_2025'),
-('CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO', 'CZ P-10 C OR FDE', '9MM', 15, 1620.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR-FDE-CERAKOTE.png', 'https://czfirearms.com/pistols/p10-c-or-fde', true, 'EXPOFERIA_2025'),
+('CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO', 'CZ P-10 C OR FDE CERAKOTE', '9MM', 15, 1620.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR-FDE-CERAKOTE.png', 'https://czfirearms.com/pistols/p10-c-or-fde', true, 'EXPOFERIA_2025'),
 ('CZ-P10-F-OR-PLAN-PILOTO', 'CZ P-10 F OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true, 'EXPOFERIA_2025'),
 
 -- Arm as CZ P-09 Serie (Plan Piloto)
@@ -2054,3 +2054,36 @@ SELECT 'Armas con mï¿½ltiples imï¿½genes:' as info, COUNT(DISTINCT arma_id
 FROM arma_imagen 
 GROUP BY arma_id 
 HAVING COUNT(*) > 1;
+
+-- ========================================
+-- RESET DE SECUENCIAS PARA IDs CONTINUOS
+-- ========================================
+-- CRITICO: Sin esto, los IDs saltan después de resets
+-- Este bloque asegura que los próximos IDs generados sean consecutivos
+
+SELECT 'Reseteando secuencias de PostgreSQL...' as info;
+
+-- Resetear secuencias principales (usar COALESCE para evitar errores si la tabla está vacía)
+SELECT setval('usuario_id_seq', COALESCE((SELECT MAX(id) FROM usuario), 0), true);
+SELECT setval('cliente_id_seq', COALESCE((SELECT MAX(id) FROM cliente), 0), true);
+SELECT setval('cliente_arma_id_seq', COALESCE((SELECT MAX(id) FROM cliente_arma), 0), true);
+SELECT setval('pago_id_seq', COALESCE((SELECT MAX(id) FROM pago), 0), true);
+SELECT setval('cuota_pago_id_seq', COALESCE((SELECT MAX(id) FROM cuota_pago), 0), true);
+SELECT setval('documento_generado_id_seq', COALESCE((SELECT MAX(id) FROM documento_generado), 0), true);
+SELECT setval('documento_cliente_id_seq', COALESCE((SELECT MAX(id) FROM documento_cliente), 0), true);
+SELECT setval('arma_id_seq', COALESCE((SELECT MAX(id) FROM arma), 0), true);
+SELECT setval('arma_serie_id_seq', COALESCE((SELECT MAX(id) FROM arma_serie), 0), true);
+SELECT setval('arma_stock_id_seq', COALESCE((SELECT MAX(id) FROM arma_stock), 0), true);
+SELECT setval('categoria_arma_id_seq', COALESCE((SELECT MAX(id) FROM categoria_arma), 0), true);
+SELECT setval('respuesta_cliente_id_seq', COALESCE((SELECT MAX(id) FROM respuesta_cliente), 0), true);
+SELECT setval('grupo_importacion_id_seq', COALESCE((SELECT MAX(id) FROM grupo_importacion), 0), true);
+SELECT setval('cliente_grupo_importacion_id_seq', COALESCE((SELECT MAX(id) FROM cliente_grupo_importacion), 0), true);
+SELECT setval('importacion_id_seq', COALESCE((SELECT MAX(id) FROM importacion), 0), true);
+SELECT setval('inventario_id_seq', COALESCE((SELECT MAX(id) FROM inventario), 0), true);
+SELECT setval('configuracion_sistema_id_seq', COALESCE((SELECT MAX(id) FROM configuracion_sistema), 0), true);
+SELECT setval('notificacion_id_seq', COALESCE((SELECT MAX(id) FROM notificacion), 0), true);
+SELECT setval('log_auditoria_id_seq', COALESCE((SELECT MAX(id) FROM log_auditoria), 0), true);
+SELECT setval('arma_imagen_id_seq', COALESCE((SELECT MAX(id) FROM arma_imagen), 0), true);
+
+SELECT 'Secuencias reseteadas exitosamente' as info;
+SELECT 'El proximo ID generado sera consecutivo' as mensaje;
