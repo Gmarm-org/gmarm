@@ -166,8 +166,27 @@ jobs:
           echo "📁 Deploy Directory: ${{ steps.env-info.outputs.deploy-dir }}"
           echo "🐳 Compose File: ${{ steps.env-info.outputs.compose-file }}"
 
+      - name: 🔍 Test SSH Connection
+        id: test-ssh
+        run: |
+          echo "🔍 Verificando conexión SSH al servidor..."
+          
+          # Intentar conexión SSH con timeout
+          if ssh -o StrictHostKeyChecking=no \
+                 -o ConnectTimeout=30 \
+                 -o BatchMode=yes \
+                 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+                 "echo 'SSH connection successful'" > /dev/null 2>&1; then
+            echo "✅ Conexión SSH exitosa"
+            echo "ssh-available=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ No se pudo conectar al servidor por SSH"
+            echo "ssh-available=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: 🚀 Deploy to Server
         id: deploy
+        if: steps.test-ssh.outputs.ssh-available == 'true'
         run: |
           set -e
           
@@ -181,8 +200,13 @@ jobs:
           echo "🐳 Compose: $COMPOSE_FILE"
           echo "🌿 Rama: $BRANCH"
           
-          # Deploy to server con mejor manejo de errores
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
+          # Deploy to server con mejor manejo de errores y configuración SSH robusta
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=60 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=3 \
+              -o BatchMode=yes \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
             set -e
             
             echo "📁 Navegando a directorio de deployment: $DEPLOY_DIR"
