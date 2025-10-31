@@ -559,36 +559,36 @@ class ApiService {
   // ========================================
 
   async getPagos(page: number = 0, size: number = 10): Promise<ApiResponse<Pago[]>> {
-    return this.request<ApiResponse<Pago[]>>(`/pagos?page=${page}&size=${size}`);
+    return this.request<ApiResponse<Pago[]>>(`/api/pagos?page=${page}&size=${size}`);
   }
 
   async getPago(id: number): Promise<Pago> {
-    return this.request<Pago>(`/pagos/${id}`);
+    return this.request<Pago>(`/api/pagos/${id}`);
   }
 
   async createPago(pagoData: Partial<Pago>): Promise<Pago> {
-    return this.request<Pago>('/pagos', {
+    return this.request<Pago>('/api/pagos', {
       method: 'POST',
       body: JSON.stringify(pagoData),
     });
   }
 
   async getPagosPorCliente(clienteId: number): Promise<Pago[]> {
-    return this.request<Pago[]>(`/pagos/cliente/${clienteId}`);
+    return this.request<Pago[]>(`/api/pagos/cliente/${clienteId}`);
   }
 
   async getSaldoCliente(clienteId: number): Promise<SaldoCliente> {
-    return this.request<SaldoCliente>(`/pagos/cliente/${clienteId}/saldo`);
+    return this.request<SaldoCliente>(`/api/pagos/cliente/${clienteId}/saldo`);
   }
 
   // Obtener cuotas de un pago
   async getCuotasPorPago(pagoId: number): Promise<any[]> {
-    return this.request<any[]>(`/pagos/${pagoId}/cuotas`);
+    return this.request<any[]>(`/api/pagos/${pagoId}/cuotas`);
   }
 
   // Registrar pago de cuota
   async pagarCuota(cuotaId: number, referenciaPago: string, usuarioConfirmadorId: number): Promise<any> {
-    return this.request<any>(`/pagos/cuota/${cuotaId}/pagar?referenciaPago=${encodeURIComponent(referenciaPago)}&usuarioConfirmadorId=${usuarioConfirmadorId}`, {
+    return this.request<any>(`/api/pagos/cuota/${cuotaId}/pagar?referenciaPago=${encodeURIComponent(referenciaPago)}&usuarioConfirmadorId=${usuarioConfirmadorId}`, {
       method: 'POST'
     });
   }
