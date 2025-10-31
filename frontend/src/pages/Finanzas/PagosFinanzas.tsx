@@ -174,10 +174,10 @@ const PagosFinanzas: React.FC = () => {
         if (armasResponse && armasResponse.length > 0) {
           const arma = armasResponse[0];
           // Construir descripción: PISTOLA MARCA CZ, MODELO CZ P-10 SC Urban Grey, CALIBRE 9MM SERIE: D286252
-          const tipoArma = arma.armaNombre?.toUpperCase() || 'ARMA';
-          const marca = 'CZ';
+          const tipoArma = (arma.armaCategoriaNombre?.toUpperCase() || 'ARMA');
+          const marca = arma.armaNombre?.substring(0, 2).toUpperCase() || 'CZ';
           const modelo = arma.armaNombre || 'N/A';
-          const calibre = arma.armaModelo || arma.armaCalibre || 'N/A';
+          const calibre = arma.armaCalibre || 'N/A';
           const serie = arma.numeroSerie || 'N/A';
           const descripcion = `${tipoArma} MARCA ${marca}, MODELO ${modelo}, CALIBRE ${calibre} SERIE: ${serie}`;
           setDescripcionArma(descripcion);

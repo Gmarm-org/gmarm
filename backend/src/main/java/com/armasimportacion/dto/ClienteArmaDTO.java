@@ -23,6 +23,8 @@ public class ClienteArmaDTO {
     private String armaNombre;
     private String armaCodigo;
     private String armaModelo;
+    private String armaCalibre;
+    private String armaCategoriaNombre;
     private String armaImagen;
     private Integer cantidad;
     private BigDecimal precioUnitario;

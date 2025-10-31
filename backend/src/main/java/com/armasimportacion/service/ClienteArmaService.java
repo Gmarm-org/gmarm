@@ -97,7 +97,7 @@ public class ClienteArmaService {
     public List<ClienteArmaDTO> obtenerReservasPorCliente(Long clienteId) {
         log.info("Obteniendo reservas para cliente: {}", clienteId);
         
-        List<ClienteArma> reservas = clienteArmaRepository.findByClienteId(clienteId);
+        List<ClienteArma> reservas = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId);
         return reservas.stream()
                 .map(this::convertirADTO)
                 .collect(Collectors.toList());
@@ -276,7 +276,8 @@ public class ClienteArmaService {
         dto.setArmaId(clienteArma.getArma().getId());
         dto.setArmaNombre(clienteArma.getArma().getNombre());
         dto.setArmaCodigo(clienteArma.getArma().getCodigo());
-        dto.setArmaModelo(clienteArma.getArma().getCalibre());
+        dto.setArmaCalibre(clienteArma.getArma().getCalibre());
+        dto.setArmaCategoriaNombre(clienteArma.getArma().getCategoria() != null ? clienteArma.getArma().getCategoria().getNombre() : null);
         dto.setArmaImagen(clienteArma.getArma().getUrlImagen());
         dto.setCantidad(clienteArma.getCantidad());
         dto.setPrecioUnitario(clienteArma.getPrecioUnitario());

@@ -19,6 +19,10 @@ public interface ClienteArmaRepository extends JpaRepository<ClienteArma, Long> 
     // Buscar por cliente
     List<ClienteArma> findByClienteId(Long clienteId);
     
+    // Buscar por cliente con FETCH JOIN para cargar arma y categoria
+    @Query("SELECT ca FROM ClienteArma ca JOIN FETCH ca.arma arma JOIN FETCH arma.categoria WHERE ca.cliente.id = :clienteId")
+    List<ClienteArma> findByClienteIdWithArmaAndCategoria(@Param("clienteId") Long clienteId);
+    
     // Buscar por arma
     List<ClienteArma> findByArmaId(Long armaId);
     
