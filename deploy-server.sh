@@ -97,6 +97,11 @@ fi
 echo "🚀 Iniciando servicios..."
 docker-compose -f $COMPOSE_FILE up -d --force-recreate
 
+# Mostrar logs iniciales del backend para diagnóstico
+echo "📋 Logs iniciales del backend (últimas 20 líneas):"
+sleep 5  # Esperar un poco para que arranque
+docker-compose -f $COMPOSE_FILE logs --tail=20 backend_dev 2>&1 || echo "⚠️  Backend aún no tiene logs"
+
 # Esperar a que PostgreSQL esté listo
 echo "⏳ Esperando a que PostgreSQL esté listo..."
 for i in {1..30}; do
