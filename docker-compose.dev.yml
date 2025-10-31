@@ -83,6 +83,12 @@ services:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
       - ./logs:/app/logs  # Logs del backend para análisis
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
+      interval: 30s        # Cada 30 segundos
+      timeout: 10s         # Timeout de 10s por check
+      retries: 3           # Solo 3 reintentos antes de marcar unhealthy
+      start_period: 120s   # 120 segundos de gracia para iniciar (Spring Boot tarda ~60-90s)
 
   frontend_dev:
     build:

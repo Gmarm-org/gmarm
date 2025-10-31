@@ -30,6 +30,12 @@ services:
         reservations:
           cpus: '1.0'      # Mínimo 1 CPU
           memory: 512M     # Mínimo 512MB RAM
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
 
   frontend:
     build: ./frontend

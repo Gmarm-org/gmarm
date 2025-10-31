@@ -9,12 +9,13 @@ RUN mvn clean package -DskipTests
 FROM openjdk:17-jdk-slim
 WORKDIR /app
 
-# Instalar fuentes necesarias para JasperReports
+# Instalar fuentes necesarias para JasperReports y curl para healthcheck
 RUN apt-get update && apt-get install -y \
     fontconfig \
     fonts-dejavu-core \
     fonts-liberation \
     fonts-noto-cjk \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar variables de entorno para JasperReports
