@@ -116,6 +116,30 @@ if ! docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; the
     exit 1
 fi
 
+# Verificar si la base de datos tiene tablas (si no, ejecutar SQL maestro)
+echo "🔍 Verificando si la base de datos necesita inicialización..."
+TABLE_COUNT=$(docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
+
+if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
+    echo "⚠️  Base de datos vacía detectada, cargando SQL maestro..."
+    
+    if [ -f "datos/00_gmarm_completo.sql" ]; then
+        # Ejecutar SQL maestro con codificación UTF-8
+        echo "📄 Ejecutando script SQL maestro..."
+        cat "datos/00_gmarm_completo.sql" | docker exec -i gmarm-postgres-dev psql -U postgres -d gmarm_dev 2>&1
+        
+        if [ $? -eq 0 ]; then
+            echo "✅ SQL maestro ejecutado exitosamente"
+        else
+            echo "⚠️  Error al ejecutar SQL maestro, pero continuando..."
+        fi
+    else
+        echo "⚠️  No se encontró datos/00_gmarm_completo.sql"
+    fi
+else
+    echo "✅ Base de datos ya tiene $TABLE_COUNT tablas"
+fi
+
 # Esperar a que el backend esté listo
 echo "⏳ Esperando a que el backend esté listo..."
 for i in {1..20}; do
