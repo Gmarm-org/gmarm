@@ -253,12 +253,14 @@ const PagosFinanzas: React.FC = () => {
                             Ver Cuotas
                           </button>
                         )}
-                        <button
-                          onClick={() => handleVerDatosFactura(pago)}
-                          className="text-green-600 hover:text-green-900 font-medium text-left"
-                        >
-                          Ver Datos Factura
-                        </button>
+                        {pago.estado === 'COMPLETADO' && (
+                          <button
+                            onClick={() => handleVerDatosFactura(pago)}
+                            className="text-green-600 hover:text-green-900 font-medium text-left"
+                          >
+                            Ver Datos Factura
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
