@@ -33,6 +33,9 @@ const PagosFinanzas: React.FC = () => {
   const [referenciaPago, setReferenciaPago] = useState('');
   const [fechaPago, setFechaPago] = useState('');
   const [procesando, setProcesando] = useState(false);
+  const [mostrarDatosFactura, setMostrarDatosFactura] = useState(false);
+  const [clienteFactura, setClienteFactura] = useState<Client | null>(null);
+  const [montoFactura, setMontoFactura] = useState<number>(0);
 
   useEffect(() => {
     cargarDatos();
@@ -103,7 +106,12 @@ const PagosFinanzas: React.FC = () => {
   const handlePagarCuota = (cuota: CuotaPago) => {
     setCuotaEditando(cuota);
     setReferenciaPago('');
-    setFechaPago(new Date().toISOString().split('T')[0]);
+    // Formato manual para evitar problemas de timezone
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setFechaPago(`${year}-${month}-${day}`);
   };
 
   const confirmarPagoCuota = async () => {
@@ -134,6 +142,14 @@ const PagosFinanzas: React.FC = () => {
       alert(`Error registrando el pago: ${error}`);
     } finally {
       setProcesando(false);
+    }
+  };
+
+  const handleVerDatosFactura = (pago: PagoCompleto) => {
+    if (pago.cliente) {
+      setClienteFactura(pago.cliente);
+      setMontoFactura(pago.montoTotal);
+      setMostrarDatosFactura(true);
     }
   };
 
@@ -228,14 +244,22 @@ const PagosFinanzas: React.FC = () => {
                       {new Date(pago.fechaCreacion).toLocaleDateString('es-EC')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {(pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') && (
+                      <div className="flex flex-col gap-1">
+                        {(pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') && (
+                          <button
+                            onClick={() => handleVerCuotas(pago)}
+                            className="text-blue-600 hover:text-blue-900 font-medium text-left"
+                          >
+                            Ver Cuotas
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleVerCuotas(pago)}
-                          className="text-blue-600 hover:text-blue-900 font-medium"
+                          onClick={() => handleVerDatosFactura(pago)}
+                          className="text-green-600 hover:text-green-900 font-medium text-left"
                         >
-                          Ver Cuotas
+                          Ver Datos Factura
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -323,6 +347,44 @@ const PagosFinanzas: React.FC = () => {
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Registrar Pago de Cuota #{cuotaEditando.numeroCuota}</h3>
             
+            {/* Información de solo lectura */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-md">
+              <div className="mb-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Número de Comprobante
+                </label>
+                <p className="text-sm font-semibold text-gray-900">CUOTA-{cuotaEditando.id.toString().padStart(6, '0')}</p>
+              </div>
+              
+              <div className="mb-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Valor de Pago
+                </label>
+                <p className="text-sm font-semibold text-gray-900">${cuotaEditando.monto.toFixed(2)}</p>
+              </div>
+
+              <div className="mb-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Fecha de Vencimiento
+                </label>
+                <p className="text-sm font-semibold text-gray-900">
+                  {new Date(cuotaEditando.fechaVencimiento).toLocaleDateString('es-EC')}
+                </p>
+              </div>
+
+              {cuotaEditando.estado && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Saldo Pendiente
+                  </label>
+                  <p className="text-sm font-semibold text-red-600">
+                    ${cuotaEditando.monto.toFixed(2)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Campos editables */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Referencia de Pago *
@@ -365,6 +427,80 @@ const PagosFinanzas: React.FC = () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {procesando ? 'Procesando...' : 'Confirmar Pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para ver datos de factura */}
+      {mostrarDatosFactura && clienteFactura && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Datos de Factura</h3>
+              <button
+                onClick={() => setMostrarDatosFactura(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Cédula / RUC
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900">{clienteFactura.numeroIdentificacion}</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Nombre Completo
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {clienteFactura.nombres} {clienteFactura.apellidos}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Correo Electrónico
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900">{clienteFactura.email}</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Teléfono
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900">{clienteFactura.telefonoPrincipal}</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Dirección
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900">{clienteFactura.direccion || 'N/A'}</p>
+                </div>
+
+                <div className="md:col-span-2 pt-4 border-t border-gray-300">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Monto Total (Incluye IVA)
+                  </label>
+                  <p className="text-2xl font-bold text-blue-600">${montoFactura.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setMostrarDatosFactura(false)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Cerrar
               </button>
             </div>
           </div>
