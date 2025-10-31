@@ -37,6 +37,7 @@ const PagosFinanzas: React.FC = () => {
   const [clienteFactura, setClienteFactura] = useState<Client | null>(null);
   const [montoFactura, setMontoFactura] = useState<number>(0);
   const [ivaPercent, setIvaPercent] = useState<number>(15); // IVA por defecto 15%
+  const [descripcionArma, setDescripcionArma] = useState<string>('');
 
   useEffect(() => {
     cargarDatos();
@@ -161,10 +162,31 @@ const PagosFinanzas: React.FC = () => {
     }
   };
 
-  const handleVerDatosFactura = (pago: PagoCompleto) => {
+  const handleVerDatosFactura = async (pago: PagoCompleto) => {
     if (pago.cliente) {
       setClienteFactura(pago.cliente);
       setMontoFactura(pago.montoTotal);
+      setDescripcionArma(''); // Limpiar descripción anterior
+      
+      // Cargar información del arma del cliente
+      try {
+        const armasResponse = await apiService.getArmasCliente(parseInt(pago.cliente.id));
+        if (armasResponse && armasResponse.length > 0) {
+          const arma = armasResponse[0];
+          // Construir descripción: PISTOLA MARCA CZ, MODELO CZ P-10 SC Urban Grey, CALIBRE 9MM SERIE: D286252
+          const tipoArma = arma.armaNombre?.toUpperCase() || 'ARMA';
+          const marca = 'CZ';
+          const modelo = arma.armaNombre || 'N/A';
+          const calibre = arma.armaModelo || arma.armaCalibre || 'N/A';
+          const serie = arma.numeroSerie || 'N/A';
+          const descripcion = `${tipoArma} MARCA ${marca}, MODELO ${modelo}, CALIBRE ${calibre} SERIE: ${serie}`;
+          setDescripcionArma(descripcion);
+        }
+      } catch (error) {
+        console.warn('No se pudieron cargar las armas del cliente:', error);
+        setDescripcionArma('No disponible');
+      }
+      
       setMostrarDatosFactura(true);
     }
   };
@@ -502,6 +524,13 @@ const PagosFinanzas: React.FC = () => {
                     Dirección
                   </label>
                   <p className="text-sm font-semibold text-gray-900">{clienteFactura.direccion || 'N/A'}</p>
+                </div>
+
+                <div className="md:col-span-2 pt-4 border-t border-gray-300">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Descripción
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900">{descripcionArma || 'Cargando...'}</p>
                 </div>
 
                 <div className="md:col-span-2 pt-4 border-t border-gray-300">
