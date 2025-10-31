@@ -1,6 +1,8 @@
 package com.armasimportacion.controller;
 
+import com.armasimportacion.dto.CuotaPagoDTO;
 import com.armasimportacion.enums.EstadoPago;
+import com.armasimportacion.mapper.CuotaPagoMapper;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.CuotaPago;
 import com.armasimportacion.service.PagoService;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -22,6 +25,7 @@ import java.util.List;
 public class PagoController {
 
     private final PagoService pagoService;
+    private final CuotaPagoMapper cuotaPagoMapper;
 
     @PostMapping
     public ResponseEntity<Pago> crearPago(@RequestBody Pago pago) {
@@ -88,9 +92,14 @@ public class PagoController {
     }
 
     @GetMapping("/{pagoId}/cuotas")
-    public ResponseEntity<List<CuotaPago>> obtenerCuotasPorPago(@PathVariable Long pagoId) {
+    public ResponseEntity<List<CuotaPagoDTO>> obtenerCuotasPorPago(@PathVariable Long pagoId) {
+        log.info("📅 Obteniendo cuotas para pago ID: {}", pagoId);
         List<CuotaPago> cuotas = pagoService.obtenerCuotasPorPago(pagoId);
-        return ResponseEntity.ok(cuotas);
+        log.info("✅ Se encontraron {} cuotas para pago ID: {}", cuotas.size(), pagoId);
+        List<CuotaPagoDTO> cuotasDTO = cuotas.stream()
+                .map(cuotaPagoMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(cuotasDTO);
     }
 
     @PostMapping("/cuota/{cuotaId}/pagar")
