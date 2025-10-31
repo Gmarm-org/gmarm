@@ -127,6 +127,7 @@ jobs:
     name: 🚀 Deploy to Server
     needs: build-and-test
     runs-on: ubuntu-latest
+    timeout-minutes: 45  # Timeout de 45 minutos para evitar deployments infinitos
     if: github.event_name == 'push' && needs.build-and-test.outputs.build-status == 'success'
     
     environment: 
