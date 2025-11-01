@@ -55,13 +55,13 @@ services:
           memory: 192M      # Mínimo 192MB
     # OOM Score: -500 para que el kernel NO lo mate primero
     oom_score_adj: -500
-    # Healthcheck SIMPLE: máxima tolerancia para inicialización
+    # Healthcheck MINIMALISTA: solo verificar que PostgreSQL acepte conexiones
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
-      interval: 30s         # Cada 30 segundos
-      timeout: 10s          # Timeout de 10s
-      retries: 10           # Muchos reintentos
-      start_period: 180s    # 3 minutos de gracia para carga completa del SQL
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s          # Verificar cada 5s
+      timeout: 3s           # Timeout de 3s
+      retries: 60           # 60 reintentos = 5 minutos máximo
+      start_period: 10s     # Solo 10s de gracia antes de empezar a verificar
     # Configuración de logging para debugging
     logging:
       driver: "json-file"
@@ -89,7 +89,7 @@ services:
       JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
     depends_on:
       postgres_dev:
-        condition: service_healthy
+        condition: service_started
     networks:
       - gmarm_network
     restart: unless-stopped
