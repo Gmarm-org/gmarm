@@ -679,14 +679,94 @@ class ApiService {
     return this.request<Record<string, any>>('/api/configuracion-sistema');
   }
 
+  // ========================================
+  // GESTIÓN DE PREGUNTAS
+  // ========================================
+
+  // Obtener todas las preguntas
+  async getPreguntas(incluirInactivas: boolean = false): Promise<any[]> {
+    const url = incluirInactivas 
+      ? '/api/pregunta-cliente?incluirInactivas=true' 
+      : '/api/pregunta-cliente';
+    return this.request<any[]>(url);
+  }
+
+  // Obtener pregunta por ID
+  async getPreguntaById(id: number): Promise<any> {
+    return this.request<any>(`/api/pregunta-cliente/${id}`);
+  }
+
   // Obtener preguntas por tipo de cliente
   async getPreguntasCliente(tipoClienteId: number): Promise<any[]> {
     return this.request<any[]>(`/api/pregunta-cliente/tipo/${tipoClienteId}`);
   }
 
+  // Crear nueva pregunta
+  async createPregunta(pregunta: any): Promise<any> {
+    return this.request<any>('/api/pregunta-cliente', {
+      method: 'POST',
+      body: JSON.stringify(pregunta)
+    });
+  }
+
+  // Actualizar pregunta
+  async updatePregunta(id: number, pregunta: any): Promise<any> {
+    return this.request<any>(`/api/pregunta-cliente/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(pregunta)
+    });
+  }
+
+  // Eliminar pregunta
+  async deletePregunta(id: number): Promise<void> {
+    return this.request<void>(`/api/pregunta-cliente/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ========================================
+  // GESTIÓN DE TIPOS DE DOCUMENTO
+  // ========================================
+
+  // Obtener todos los tipos de documento
+  async getTiposDocumento(incluirInactivos: boolean = false): Promise<any[]> {
+    const url = incluirInactivos 
+      ? '/api/tipo-documento?incluirInactivos=true' 
+      : '/api/tipo-documento';
+    return this.request<any[]>(url);
+  }
+
+  // Obtener tipo de documento por ID
+  async getTipoDocumentoById(id: number): Promise<any> {
+    return this.request<any>(`/api/tipo-documento/${id}`);
+  }
+
   // Obtener documentos requeridos por tipo de cliente
   async getDocumentosRequeridos(tipoClienteId: number): Promise<any[]> {
     return this.request<any[]>(`/api/tipo-documento/tipo-cliente/${tipoClienteId}`);
+  }
+
+  // Crear nuevo tipo de documento
+  async createTipoDocumento(tipoDocumento: any): Promise<any> {
+    return this.request<any>('/api/tipo-documento', {
+      method: 'POST',
+      body: JSON.stringify(tipoDocumento)
+    });
+  }
+
+  // Actualizar tipo de documento
+  async updateTipoDocumento(id: number, tipoDocumento: any): Promise<any> {
+    return this.request<any>(`/api/tipo-documento/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(tipoDocumento)
+    });
+  }
+
+  // Eliminar tipo de documento
+  async deleteTipoDocumento(id: number): Promise<void> {
+    return this.request<void>(`/api/tipo-documento/${id}`, {
+      method: 'DELETE'
+    });
   }
 
   // ========================================
@@ -1241,6 +1321,40 @@ class ApiService {
   // Eliminar tipo de importación
   async deleteImportType(id: number): Promise<void> {
     return this.request<void>(`/api/tipo-importacion/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ========================================
+  // GESTIÓN DE TIPO CLIENTE IMPORTACIÓN
+  // ========================================
+
+  // Obtener todas las relaciones
+  async getTipoClienteImportacion(): Promise<any[]> {
+    return this.request<any[]>('/api/tipo-cliente-importacion');
+  }
+
+  // Obtener relación por ID
+  async getTipoClienteImportacionById(id: number): Promise<any> {
+    return this.request<any>(`/api/tipo-cliente-importacion/${id}`);
+  }
+
+  // Obtener por tipo de cliente
+  async getTipoClienteImportacionByTipoCliente(tipoClienteId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/tipo-cliente-importacion/tipo-cliente/${tipoClienteId}`);
+  }
+
+  // Crear nueva relación
+  async createTipoClienteImportacion(relacion: any): Promise<any> {
+    return this.request<any>('/api/tipo-cliente-importacion', {
+      method: 'POST',
+      body: JSON.stringify(relacion)
+    });
+  }
+
+  // Eliminar relación
+  async deleteTipoClienteImportacion(id: number): Promise<void> {
+    return this.request<void>(`/api/tipo-cliente-importacion/${id}`, {
       method: 'DELETE'
     });
   }

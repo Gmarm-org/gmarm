@@ -4,12 +4,15 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { userApi, type User } from '../../../services/adminApi';
+import UserEditModal from './UserEditModal';
 
 const UserListContent: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -75,18 +78,32 @@ const UserListContent: React.FC = () => {
   };
 
   const handleEdit = async (user: User) => {
-    console.log('Editar usuario:', user);
-    alert('Funcionalidad de edición en desarrollo');
+    setSelectedUser(user);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    await loadUsers(); // Recargar usuarios después de guardar
+    setEditModalOpen(false);
+    setSelectedUser(null);
   };
 
   const handleDelete = async (user: User) => {
-    console.log('Eliminar usuario:', user);
-    alert('Funcionalidad de eliminación en desarrollo');
+    if (confirm(`¿Está seguro de eliminar al usuario ${user.username}?`)) {
+      try {
+        await userApi.delete(user.id);
+        await loadUsers();
+      } catch (error) {
+        console.error('Error eliminando usuario:', error);
+        alert('Error al eliminar el usuario');
+      }
+    }
   };
 
   const handleView = async (user: User) => {
-    console.log('Ver usuario:', user);
-    alert('Funcionalidad de visualización en desarrollo');
+    setSelectedUser(user);
+    // TODO: Implementar modal de visualización
+    alert(`Usuario: ${user.username}\nEmail: ${user.email}\nRoles: ${user.roles?.join(', ') || 'Sin roles'}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -179,21 +196,36 @@ const UserListContent: React.FC = () => {
   ];
 
   return (
-    <AdminDataTable
-      title="Gestión de Usuarios"
-      description="Administra los usuarios del sistema"
-      columns={columns}
-      data={filteredUsers}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar usuarios..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Usuarios"
+        description="Administra los usuarios del sistema"
+        columns={columns}
+        data={filteredUsers}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar usuarios..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      {/* Modal de Edición */}
+      {selectedUser && editModalOpen && (
+        <UserEditModal
+          user={selectedUser}
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setSelectedUser(null);
+          }}
+          onSave={handleSaveEdit}
+        />
+      )}
+    </>
   );
 };
 

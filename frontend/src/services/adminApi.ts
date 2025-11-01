@@ -661,6 +661,192 @@ export const identificationTypeApi = {
 };
 
 // ========================================
+// SERVICIOS PARA PREGUNTAS
+// ========================================
+
+export interface Question {
+  id: number;
+  pregunta: string;
+  obligatoria: boolean;
+  orden: number;
+  tipoProcesoId: number;
+  tipoProcesoNombre: string;
+  tipoRespuesta: string;
+  estado: boolean;
+}
+
+export const questionApi = {
+  getAll: async (): Promise<Question[]> => {
+    try {
+      const response = await apiService.getPreguntas(true);
+      return response;
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      throw error;
+    }
+  },
+
+  getById: async (id: number): Promise<Question> => {
+    try {
+      const response = await apiService.getPreguntaById(id);
+      return response;
+    } catch (error) {
+      console.error('Error fetching question:', error);
+      throw error;
+    }
+  },
+
+  create: async (question: Partial<Question>): Promise<Question> => {
+    try {
+      const response = await apiService.createPregunta(question);
+      return response;
+    } catch (error) {
+      console.error('Error creating question:', error);
+      throw error;
+    }
+  },
+
+  update: async (id: number, question: Partial<Question>): Promise<Question> => {
+    try {
+      const response = await apiService.updatePregunta(id, question);
+      return response;
+    } catch (error) {
+      console.error('Error updating question:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id: number): Promise<void> => {
+    try {
+      await apiService.deletePregunta(id);
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      throw error;
+    }
+  }
+};
+
+// ========================================
+// SERVICIOS PARA TIPOS DE DOCUMENTO
+// ========================================
+
+export interface DocumentType {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  obligatorio: boolean;
+  tipoProcesoId: number;
+  tipoProcesoNombre: string;
+  estado: boolean;
+  urlDocumento?: string;
+}
+
+export const documentTypeApi = {
+  getAll: async (): Promise<DocumentType[]> => {
+    try {
+      const response = await apiService.getTiposDocumento(true);
+      return response;
+    } catch (error) {
+      console.error('Error fetching document types:', error);
+      throw error;
+    }
+  },
+
+  getById: async (id: number): Promise<DocumentType> => {
+    try {
+      const response = await apiService.getTipoDocumentoById(id);
+      return response;
+    } catch (error) {
+      console.error('Error fetching document type:', error);
+      throw error;
+    }
+  },
+
+  create: async (documentType: Partial<DocumentType>): Promise<DocumentType> => {
+    try {
+      const response = await apiService.createTipoDocumento(documentType);
+      return response;
+    } catch (error) {
+      console.error('Error creating document type:', error);
+      throw error;
+    }
+  },
+
+  update: async (id: number, documentType: Partial<DocumentType>): Promise<DocumentType> => {
+    try {
+      const response = await apiService.updateTipoDocumento(id, documentType);
+      return response;
+    } catch (error) {
+      console.error('Error updating document type:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id: number): Promise<void> => {
+    try {
+      await apiService.deleteTipoDocumento(id);
+    } catch (error) {
+      console.error('Error deleting document type:', error);
+      throw error;
+    }
+  }
+};
+
+// ========================================
+// SERVICIOS PARA TIPO CLIENTE IMPORTACIÓN
+// ========================================
+
+export interface ClientImportType {
+  id: number;
+  tipoClienteId: number;
+  tipoClienteNombre: string;
+  tipoImportacionId: number;
+  tipoImportacionNombre: string;
+  cupoMaximo: number;
+}
+
+export const clientImportTypeApi = {
+  getAll: async (): Promise<ClientImportType[]> => {
+    try {
+      const response = await apiService.getTipoClienteImportacion();
+      return response;
+    } catch (error) {
+      console.error('Error fetching client import types:', error);
+      throw error;
+    }
+  },
+
+  getById: async (id: number): Promise<ClientImportType> => {
+    try {
+      const response = await apiService.getTipoClienteImportacionById(id);
+      return response;
+    } catch (error) {
+      console.error('Error fetching client import type:', error);
+      throw error;
+    }
+  },
+
+  create: async (relacion: Partial<ClientImportType>): Promise<ClientImportType> => {
+    try {
+      const response = await apiService.createTipoClienteImportacion(relacion);
+      return response;
+    } catch (error) {
+      console.error('Error creating client import type:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id: number): Promise<void> => {
+    try {
+      await apiService.deleteTipoClienteImportacion(id);
+    } catch (error) {
+      console.error('Error deleting client import type:', error);
+      throw error;
+    }
+  }
+};
+
+// ========================================
 // SERVICIOS PARA CONFIGURACIÓN DEL SISTEMA
 // ========================================
 
