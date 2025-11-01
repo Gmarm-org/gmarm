@@ -127,23 +127,27 @@ echo "🔍 Verificando si la base de datos necesita inicialización..."
 # Primero verificar si la BD existe
 DB_EXISTS=$(docker exec gmarm-postgres-dev psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='gmarm_dev';" 2>/dev/null | xargs || echo "0")
 
-if [ "$DB_EXISTS" = "1" ]; then
-    # Si existe, verificar si tiene tablas
-    TABLE_COUNT=$(docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
+if [ "$DB_EXISTS" = "0" ] || [ -z "$DB_EXISTS" ]; then
+    echo "⚠️ Base de datos gmarm_dev NO existe, creándola manualmente..."
+    docker exec gmarm-postgres-dev psql -U postgres -c "CREATE DATABASE gmarm_dev ENCODING 'UTF8';" 2>/dev/null || echo "BD puede existir ya"
+    
+    # Esperar un momento
+    sleep 5
+    
+    # Cargar SQL maestro
+    echo "📥 Cargando SQL maestro..."
+    if [ -f "datos/00_gmarm_completo.sql" ]; then
+        docker exec -i gmarm-postgres-dev psql -U postgres -d gmarm_dev < datos/00_gmarm_completo.sql
+        echo "✅ SQL maestro cargado exitosamente"
+    else
+        echo "❌ Error: archivo 00_gmarm_completo.sql no encontrado"
+        exit 1
+    fi
+    
+    TABLE_COUNT="999"  # Ya lo cargamos manualmente
 else
-    echo "⏳ Base de datos gmarm_dev aún no existe, esperando a que se cree..."
-    # Esperar hasta 120 segundos para que se ejecuten los scripts de init
-    for i in {1..24}; do
-        sleep 5
-        DB_EXISTS=$(docker exec gmarm-postgres-dev psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='gmarm_dev';" 2>/dev/null | xargs || echo "0")
-        if [ "$DB_EXISTS" = "1" ]; then
-            echo "✅ Base de datos gmarm_dev creada"
-            # Esperar 10s más para que se carguen datos
-            sleep 10
-            break
-        fi
-        echo "⏳ Intento $i/24: Esperando creación de BD..."
-    done
+    echo "✅ Base de datos gmarm_dev existe"
+    # Verificar si tiene tablas
     TABLE_COUNT=$(docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
 fi
 
