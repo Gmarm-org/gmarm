@@ -121,9 +121,31 @@ if ! docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; the
     exit 1
 fi
 
-# Verificar si la base de datos tiene tablas (si no, ejecutar SQL maestro)
+# Verificar si la base de datos existe y tiene tablas
 echo "🔍 Verificando si la base de datos necesita inicialización..."
-TABLE_COUNT=$(docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
+
+# Primero verificar si la BD existe
+DB_EXISTS=$(docker exec gmarm-postgres-dev psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='gmarm_dev';" 2>/dev/null | xargs || echo "0")
+
+if [ "$DB_EXISTS" = "1" ]; then
+    # Si existe, verificar si tiene tablas
+    TABLE_COUNT=$(docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
+else
+    echo "⏳ Base de datos gmarm_dev aún no existe, esperando a que se cree..."
+    # Esperar hasta 120 segundos para que se ejecuten los scripts de init
+    for i in {1..24}; do
+        sleep 5
+        DB_EXISTS=$(docker exec gmarm-postgres-dev psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='gmarm_dev';" 2>/dev/null | xargs || echo "0")
+        if [ "$DB_EXISTS" = "1" ]; then
+            echo "✅ Base de datos gmarm_dev creada"
+            # Esperar 10s más para que se carguen datos
+            sleep 10
+            break
+        fi
+        echo "⏳ Intento $i/24: Esperando creación de BD..."
+    done
+    TABLE_COUNT=$(docker exec gmarm-postgres-dev psql -U postgres -d gmarm_dev -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
+fi
 
 if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
     echo "⚠️  Base de datos vacía detectada, cargando SQL maestro..."
