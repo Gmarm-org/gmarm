@@ -10,7 +10,6 @@ interface UserEditModalProps {
 
 const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, onSave }) => {
   const [allRoles, setAllRoles] = useState<any[]>([]);
-  const [userRoles, setUserRoles] = useState<any[]>([]);
   const [selectedRoleIds, setSelectedRoleIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,7 +30,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
 
       // Cargar roles actuales del usuario
       const currentRoles = await userApi.getUserRoles(user.id);
-      setUserRoles(currentRoles);
 
       // Pre-seleccionar roles actuales
       const roleIds = new Set(currentRoles.map((r: any) => r.id));

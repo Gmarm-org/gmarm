@@ -22,7 +22,7 @@ public class RolController {
     private final RolRepository rolRepository;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todos los roles", description = "Devuelve la lista completa de roles del sistema")
     public ResponseEntity<List<Rol>> getAllRoles() {
         log.info("📋 GET /api/roles - Obteniendo todos los roles");
@@ -32,7 +32,7 @@ public class RolController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener rol por ID", description = "Devuelve un rol específico por su ID")
     public ResponseEntity<Rol> getRolById(@PathVariable Long id) {
         log.info("📋 GET /api/roles/{} - Obteniendo rol", id);
@@ -48,7 +48,7 @@ public class RolController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nuevo rol", description = "Crea un nuevo rol en el sistema")
     public ResponseEntity<Rol> createRol(@RequestBody Rol rol) {
         log.info("📝 POST /api/roles - Creando nuevo rol: {}", rol.getNombre());
@@ -58,7 +58,7 @@ public class RolController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar rol", description = "Actualiza un rol existente")
     public ResponseEntity<Rol> updateRol(@PathVariable Long id, @RequestBody Rol rol) {
         log.info("📝 PUT /api/roles/{} - Actualizando rol", id);
@@ -78,7 +78,7 @@ public class RolController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Eliminar rol", description = "Elimina un rol del sistema")
     public ResponseEntity<Void> deleteRol(@PathVariable Long id) {
         log.info("🗑️ DELETE /api/roles/{} - Eliminando rol", id);

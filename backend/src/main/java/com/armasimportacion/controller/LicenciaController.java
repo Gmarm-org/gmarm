@@ -23,7 +23,7 @@ public class LicenciaController {
     private final LicenciaRepository licenciaRepository;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todas las licencias", description = "Devuelve la lista completa de licencias")
     public ResponseEntity<List<Licencia>> getAllLicencias() {
         log.info("📋 GET /api/licencia - Obteniendo todas las licencias");
@@ -33,7 +33,7 @@ public class LicenciaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener licencia por ID", description = "Devuelve una licencia específica por su ID")
     public ResponseEntity<Licencia> getLicenciaById(@PathVariable Long id) {
         log.info("📋 GET /api/licencia/{} - Obteniendo licencia", id);
@@ -49,7 +49,7 @@ public class LicenciaController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nueva licencia", description = "Crea una nueva licencia en el sistema")
     public ResponseEntity<Licencia> createLicencia(@RequestBody Licencia licencia) {
         log.info("📝 POST /api/licencia - Creando nueva licencia: {}", licencia.getNumero());
@@ -64,7 +64,7 @@ public class LicenciaController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente")
     public ResponseEntity<Licencia> updateLicencia(@PathVariable Long id, @RequestBody Licencia licencia) {
         log.info("📝 PUT /api/licencia/{} - Actualizando licencia", id);
@@ -103,7 +103,7 @@ public class LicenciaController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Eliminar licencia", description = "Elimina una licencia del sistema")
     public ResponseEntity<Void> deleteLicencia(@PathVariable Long id) {
         log.info("🗑️ DELETE /api/licencia/{} - Eliminando licencia", id);

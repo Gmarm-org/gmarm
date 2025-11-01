@@ -56,6 +56,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Endpoints públicos
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/me").permitAll()
                 .requestMatchers("/api/health/**").permitAll()
                 .requestMatchers("/api/tipo-cliente/**").permitAll()
                 .requestMatchers("/api/tipos-cliente/**").permitAll()

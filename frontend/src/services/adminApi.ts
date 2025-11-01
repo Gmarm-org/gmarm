@@ -349,11 +349,16 @@ export const roleApi = {
 // ========================================
 
 export const userApi = {
-  // Obtener todos los usuarios
-  getAll: async (): Promise<User[]> => {
+  // Obtener todos los usuarios (con paginación)
+  getAll: async (page: number = 0, size: number = 20): Promise<User[]> => {
     try {
-      const response = await apiService.getUsers();
-      return response.data || [];
+      const response = await apiService.getUsers(page, size);
+      // El backend ahora retorna un objeto con content, totalElements, etc.
+      if (response.data && typeof response.data === 'object' && 'content' in response.data) {
+        return (response.data as any).content;
+      }
+      // Fallback por si aún retorna array directo
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error('Error fetching users:', error);
       throw error;
@@ -896,11 +901,16 @@ export const systemConfigApi = {
   update: async (clave: string, config: Partial<SystemConfig>): Promise<SystemConfig> => {
     try {
       // El backend espera ConfiguracionSistemaDTO
-      const response = await apiService.request('/api/configuracion-sistema/' + clave, {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE_URL}/api/configuracion-sistema/${clave}`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(config)
       });
-      return response;
+      return await response.json();
     } catch (error) {
       console.error('Error updating config:', error);
       throw error;

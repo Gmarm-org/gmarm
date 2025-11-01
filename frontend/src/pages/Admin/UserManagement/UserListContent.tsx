@@ -167,28 +167,28 @@ const UserListContent: React.FC = () => {
   const stats: AdminStat[] = [
     {
       label: 'Total Usuarios',
-      value: users.length,
+      value: users.length || 0,
       icon: '👥',
       color: 'blue',
       description: 'Usuarios del sistema'
     },
     {
       label: 'Usuarios Activos',
-      value: users.filter(u => u.estado).length,
+      value: users.filter(u => u?.estado).length || 0,
       icon: '✅',
       color: 'green',
       description: 'Usuarios activos'
     },
     {
       label: 'Administradores',
-      value: users.filter(u => u.roles.some((r: any) => r.codigo === 'ADMIN')).length,
+      value: users.filter(u => u?.roles?.some((r: any) => r?.codigo === 'ADMIN')).length || 0,
       icon: '🛡️',
       color: 'purple',
       description: 'Usuarios con rol admin'
     },
     {
       label: 'Vendedores',
-      value: users.filter(u => u.roles.some((r: any) => r.codigo === 'VENDEDOR')).length,
+      value: users.filter(u => u?.roles?.some((r: any) => r?.codigo === 'VENDEDOR')).length || 0,
       icon: '💰',
       color: 'orange',
       description: 'Usuarios vendedores'

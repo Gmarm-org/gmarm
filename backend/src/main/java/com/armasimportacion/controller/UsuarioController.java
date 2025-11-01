@@ -1,12 +1,17 @@
 package com.armasimportacion.controller;
 
+import com.armasimportacion.dto.UsuarioSimpleDTO;
 import com.armasimportacion.enums.EstadoUsuario;
+import com.armasimportacion.mapper.UsuarioMapper;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,7 +28,9 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PatchMapping;
 
 import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -34,14 +41,30 @@ import java.util.Set;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final UsuarioMapper usuarioMapper;
 
     // ===== OPERACIONES CRUD =====
 
     @GetMapping
-    public ResponseEntity<List<Usuario>> getAllUsuarios() {
-        log.info("Obteniendo todos los usuarios");
-        List<Usuario> usuarios = usuarioService.findAll();
-        return ResponseEntity.ok(usuarios);
+    public ResponseEntity<Map<String, Object>> getAllUsuarios(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("📋 GET /api/usuarios?page={}&size={}", page, size);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Usuario> usuariosPage = usuarioService.findAllPaginated(pageable);
+        
+        List<UsuarioSimpleDTO> usuariosDTO = usuarioMapper.toDTOList(usuariosPage.getContent());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", usuariosDTO);
+        response.put("totalElements", usuariosPage.getTotalElements());
+        response.put("totalPages", usuariosPage.getTotalPages());
+        response.put("currentPage", usuariosPage.getNumber());
+        response.put("pageSize", usuariosPage.getSize());
+        
+        log.info("✅ Usuarios obtenidos: {} de {} total", usuariosDTO.size(), usuariosPage.getTotalElements());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
