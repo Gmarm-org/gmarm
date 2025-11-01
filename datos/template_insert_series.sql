@@ -62,7 +62,7 @@ INSERT INTO arma_serie (numero_serie, arma_id, estado, observaciones) VALUES
 -- ========== CZ P-10 SC FDE ==========
 ('SERIE1301', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
 
--- ========== CZ P-10 SC Urban Grey ==========
+-- ========== CZ P-10 SC URBAN ==========
 ('SERIE1401', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
 
 -- ========== CZ Shadow 2 Carry ==========

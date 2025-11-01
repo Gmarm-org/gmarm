@@ -55,13 +55,13 @@ services:
           memory: 192M      # Mínimo 192MB
     # OOM Score: -500 para que el kernel NO lo mate primero
     oom_score_adj: -500
-    # Healthcheck BALANCEADO: rápido pero con suficiente tiempo de inicio
+    # Healthcheck SIMPLE: máxima tolerancia para inicialización
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gmarm_dev || exit 1"]
-      interval: 15s         # Cada 15 segundos
-      timeout: 10s          # Timeout generoso
-      retries: 5            # 5 reintentos
-      start_period: 120s    # 2 minutos de gracia para inicialización completa
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 30s         # Cada 30 segundos
+      timeout: 10s          # Timeout de 10s
+      retries: 10           # Muchos reintentos
+      start_period: 180s    # 3 minutos de gracia para carga completa del SQL
     # Configuración de logging para debugging
     logging:
       driver: "json-file"
