@@ -1,6 +1,6 @@
 services:
   postgres_dev:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: gmarm-postgres-dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gmarm_dev}
@@ -8,41 +8,48 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-      # Optimizaciones para servidores con recursos limitados (CONSERVADOR)
-      POSTGRES_SHARED_BUFFERS: "128MB"        # Reducido de 256MB para evitar OOM
-      POSTGRES_EFFECTIVE_CACHE_SIZE: "256MB"  # Reducido para evitar presiones de memoria
-      POSTGRES_WORK_MEM: "4MB"                # Reducido drásticamente (default: 4MB)
-      POSTGRES_MAINTENANCE_WORK_MEM: "32MB"   # Reducido para operaciones de mantenimiento
-      POSTGRES_MAX_CONNECTIONS: "30"          # Reducido de 50 a 30 para evitar sobrecarga
-      # Configuración adicional para estabilidad
-      POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.9"  # Checkpoints más suaves
-      POSTGRES_WAL_BUFFERS: "16MB"                   # Buffers WAL más pequeños
-      POSTGRES_DEFAULT_STATISTICS_TARGET: "50"       # Estadísticas menos agresivas
+      # Configuración CRÍTICA para evitar OOM y caídas
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
-      # Script adicional para verificar inicialización
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+      # CRÍTICO: postgresql.conf personalizado para máxima estabilidad
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: 
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
     networks:
       - gmarm_network
-    restart: unless-stopped
-    # Límites de recursos para evitar que consuma toda la RAM del servidor
+    # CRÍTICO: always en lugar de unless-stopped para que siempre se reinicie
+    restart: always
+    # Límites AJUSTADOS para evitar OOM Killer
     deploy:
       resources:
         limits:
-          cpus: '1.0'      # Máximo 1 CPU
-          memory: 768M     # Máximo 768MB RAM
+          cpus: '1.0'
+          memory: 512M      # Reducido a 512MB para evitar OOM
         reservations:
-          cpus: '0.5'      # Mínimo 0.5 CPU
-          memory: 256M     # Mínimo 256MB RAM
+          cpus: '0.25'
+          memory: 192M      # Mínimo 192MB
+    # OOM Score: -500 para que el kernel NO lo mate primero
+    oom_score_adj: -500
+    # Healthcheck MÁS AGRESIVO para detectar problemas rápido
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gmarm_dev}"]
-      interval: 30s        # Cada 30 segundos
-      timeout: 10s         # Timeout de 10s por check
-      retries: 3           # Solo 3 reintentos antes de marcar unhealthy
-      start_period: 90s    # 90 segundos de gracia para iniciar
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gmarm_dev || exit 1"]
+      interval: 10s         # Cada 10 segundos (MÁS frecuente)
+      timeout: 5s           # Timeout más corto
+      retries: 5            # Más reintentos antes de marcar unhealthy
+      start_period: 60s     # 60s de gracia
+    # Configuración de logging para debugging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend_dev:
     build:
