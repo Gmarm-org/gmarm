@@ -1,5 +1,7 @@
 package com.armasimportacion.controller;
 
+import com.armasimportacion.dto.RolDTO;
+import com.armasimportacion.mapper.RolMapper;
 import com.armasimportacion.model.Rol;
 import com.armasimportacion.repository.RolRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -20,15 +23,19 @@ import java.util.List;
 public class RolController {
 
     private final RolRepository rolRepository;
+    private final RolMapper rolMapper;
 
     @GetMapping
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todos los roles", description = "Devuelve la lista completa de roles del sistema")
-    public ResponseEntity<List<Rol>> getAllRoles() {
+    public ResponseEntity<List<RolDTO>> getAllRoles() {
         log.info("📋 GET /api/roles - Obteniendo todos los roles");
         List<Rol> roles = rolRepository.findAll();
-        log.info("✅ Roles encontrados: {}", roles.size());
-        return ResponseEntity.ok(roles);
+        List<RolDTO> rolesDTO = roles.stream()
+                .map(rolMapper::toDTO)
+                .collect(Collectors.toList());
+        log.info("✅ Roles encontrados: {}", rolesDTO.size());
+        return ResponseEntity.ok(rolesDTO);
     }
 
     @GetMapping("/{id}")
