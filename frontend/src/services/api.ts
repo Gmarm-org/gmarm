@@ -320,39 +320,49 @@ class ApiService {
   // ========================================
 
   async getUsers(page: number = 0, size: number = 10): Promise<ApiResponse<User[]>> {
-    return this.request<ApiResponse<User[]>>(`/usuarios?page=${page}&size=${size}`);
+    return this.request<ApiResponse<User[]>>(`/api/usuarios?page=${page}&size=${size}`);
   }
 
   async getUser(id: number): Promise<User> {
-    return this.request<User>(`/usuarios/${id}`);
+    return this.request<User>(`/api/usuarios/${id}`);
   }
 
   async createUser(userData: Partial<User>): Promise<User> {
-    return this.request<User>('/usuarios', {
+    return this.request<User>('/api/usuarios', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
-    return this.request<User>(`/usuarios/${id}`, {
+    return this.request<User>(`/api/usuarios/${id}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
   }
 
   async deleteUser(id: number): Promise<void> {
-    await this.request(`/usuarios/${id}`, { method: 'DELETE' });
+    await this.request(`/api/usuarios/${id}`, { method: 'DELETE' });
   }
 
   async getVendedores(): Promise<User[]> {
-    return this.request<User[]>('/usuarios/vendedores');
+    return this.request<User[]>('/api/usuarios/vendedores');
+  }
+
+  async getUserRolesByUserId(userId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/usuarios/${userId}/roles`);
   }
 
   async assignRoles(userId: number, roleIds: number[]): Promise<void> {
-    await this.request(`/usuarios/${userId}/roles`, {
+    await this.request(`/api/usuarios/${userId}/roles`, {
       method: 'POST',
-      body: JSON.stringify({ roleIds }),
+      body: JSON.stringify(roleIds),
+    });
+  }
+
+  async removeUserRole(userId: number, roleId: number): Promise<void> {
+    await this.request(`/api/usuarios/${userId}/roles/${roleId}`, {
+      method: 'DELETE'
     });
   }
 
@@ -812,17 +822,17 @@ class ApiService {
   // ========================================
 
   // Obtener todas las armas
-  async getArmas(): Promise<any[]> {
-          // Obteniendo armas desde API
+  async getArmas(incluirInactivas: boolean = false): Promise<any[]> {
     try {
-      const response = await this.request<any>('/api/arma');
-      // Respuesta recibida del backend
-      // Validando respuesta de armas
+      const url = incluirInactivas 
+        ? '/api/arma?incluirInactivas=true' 
+        : '/api/arma';
+      const response = await this.request<any>(url);
+      
       if (Array.isArray(response)) {
         return response;
       }
       
-      // Si no es array, mostrar error
       console.error('API Service: Respuesta de armas no es array:', response);
       return [];
       
@@ -1122,6 +1132,117 @@ class ApiService {
   // Obtener contratos de un cliente
   async getContratosCliente(clienteId: number): Promise<any[]> {
     return this.request<any[]>(`/api/contratos/cliente/${clienteId}`);
+  }
+
+  // ========================================
+  // GESTIÓN DE ROLES
+  // ========================================
+
+  // Obtener todos los roles
+  async getRoles(): Promise<any[]> {
+    return this.request<any[]>('/api/roles');
+  }
+
+  // Obtener rol por ID
+  async getRoleById(id: number): Promise<any> {
+    return this.request<any>(`/api/roles/${id}`);
+  }
+
+  // Crear nuevo rol
+  async createRole(role: any): Promise<any> {
+    return this.request<any>('/api/roles', {
+      method: 'POST',
+      body: JSON.stringify(role)
+    });
+  }
+
+  // Actualizar rol
+  async updateRole(id: number, role: any): Promise<any> {
+    return this.request<any>(`/api/roles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(role)
+    });
+  }
+
+  // Eliminar rol
+  async deleteRole(id: number): Promise<void> {
+    return this.request<void>(`/api/roles/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ========================================
+  // GESTIÓN DE TIPOS DE IDENTIFICACIÓN
+  // ========================================
+
+  // Obtener todos los tipos de identificación
+  async getIdentificationTypes(): Promise<any[]> {
+    return this.request<any[]>('/api/tipo-identificacion');
+  }
+
+  // Obtener tipo de identificación por ID
+  async getIdentificationTypeById(id: number): Promise<any> {
+    return this.request<any>(`/api/tipo-identificacion/${id}`);
+  }
+
+  // Crear nuevo tipo de identificación
+  async createIdentificationType(identificationType: any): Promise<any> {
+    return this.request<any>('/api/tipo-identificacion', {
+      method: 'POST',
+      body: JSON.stringify(identificationType)
+    });
+  }
+
+  // Actualizar tipo de identificación
+  async updateIdentificationType(id: number, identificationType: any): Promise<any> {
+    return this.request<any>(`/api/tipo-identificacion/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(identificationType)
+    });
+  }
+
+  // Eliminar tipo de identificación
+  async deleteIdentificationType(id: number): Promise<void> {
+    return this.request<void>(`/api/tipo-identificacion/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ========================================
+  // GESTIÓN DE TIPOS DE IMPORTACIÓN
+  // ========================================
+
+  // Obtener todos los tipos de importación
+  async getImportTypes(): Promise<any[]> {
+    return this.request<any[]>('/api/tipo-importacion');
+  }
+
+  // Obtener tipo de importación por ID
+  async getImportTypeById(id: number): Promise<any> {
+    return this.request<any>(`/api/tipo-importacion/${id}`);
+  }
+
+  // Crear nuevo tipo de importación
+  async createImportType(importType: any): Promise<any> {
+    return this.request<any>('/api/tipo-importacion', {
+      method: 'POST',
+      body: JSON.stringify(importType)
+    });
+  }
+
+  // Actualizar tipo de importación
+  async updateImportType(id: number, importType: any): Promise<any> {
+    return this.request<any>(`/api/tipo-importacion/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(importType)
+    });
+  }
+
+  // Eliminar tipo de importación
+  async deleteImportType(id: number): Promise<void> {
+    return this.request<void>(`/api/tipo-importacion/${id}`, {
+      method: 'DELETE'
+    });
   }
 
   // ========================================

@@ -26,4 +26,19 @@ public class TipoDocumentoService {
     public List<TipoDocumento> findAll() {
         return repository.findAll();
     }
+
+    public TipoDocumento findById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado con ID: " + id));
+    }
+
+    public TipoDocumento save(TipoDocumento tipoDocumento) {
+        log.info("Guardando tipo de documento: {}", tipoDocumento.getNombre());
+        return repository.save(tipoDocumento);
+    }
+
+    public void delete(Long id) {
+        log.info("Eliminando tipo de documento con ID: {}", id);
+        repository.deleteById(id);
+    }
 }

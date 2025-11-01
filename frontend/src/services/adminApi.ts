@@ -90,12 +90,12 @@ export interface IdentificationType {
 // ========================================
 
 export const weaponApi = {
-  // Obtener todas las armas
+  // Obtener todas las armas (incluye inactivas para admin)
   getAll: async (): Promise<Weapon[]> => {
     try {
-      // Llamar a la API real del backend
-      const response = await apiService.getArmas();
-      console.log('🔫 Admin API - Armas obtenidas del backend:', response);
+      // Para admin: incluir armas inactivas (las 30 no-expoferia)
+      const response = await apiService.getArmas(true);
+      console.log('🔫 Admin API - Armas obtenidas del backend (incluye inactivas):', response);
       return response;
     } catch (error) {
       console.error('Error fetching weapons:', error);
@@ -296,63 +296,38 @@ export const licenseApi = {
 export const roleApi = {
   getAll: async (): Promise<Role[]> => {
     try {
-      // Por ahora, devolver datos mock hasta que el backend esté listo
-      return [
-        {
-          id: 1,
-          nombre: 'Administrador',
-          codigo: 'ADMIN',
-          descripcion: 'Acceso completo al sistema',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'Vendedor',
-          codigo: 'VENDEDOR',
-          descripcion: 'Registro de clientes y selección de armas',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'Jefe de Ventas',
-          codigo: 'JEFE_VENTAS',
-          descripcion: 'Supervisión de ventas y aprobaciones',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
+      const response = await apiService.getRoles();
+      return response;
     } catch (error) {
       console.error('Error fetching roles:', error);
       throw error;
     }
   },
 
-  getById: async (_id: number): Promise<Role> => {
+  getById: async (id: number): Promise<Role> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.getRoleById(id);
+      return response;
     } catch (error) {
       console.error('Error fetching role:', error);
       throw error;
     }
   },
 
-  create: async (_role: Partial<Role>): Promise<Role> => {
+  create: async (role: Partial<Role>): Promise<Role> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.createRole(role);
+      return response;
     } catch (error) {
       console.error('Error creating role:', error);
       throw error;
     }
   },
 
-  update: async (_id: number, _role: Partial<Role>): Promise<Role> => {
+  update: async (id: number, role: Partial<Role>): Promise<Role> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.updateRole(id, role);
+      return response;
     } catch (error) {
       console.error('Error updating role:', error);
       throw error;
@@ -361,8 +336,7 @@ export const roleApi = {
 
   delete: async (id: number): Promise<void> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      console.log('Role deleted:', id);
+      await apiService.deleteRole(id);
     } catch (error) {
       console.error('Error deleting role:', error);
       throw error;
@@ -425,6 +399,37 @@ export const userApi = {
       await apiService.deleteUser(id);
     } catch (error) {
       console.error('Error deleting user:', error);
+      throw error;
+    }
+  },
+
+  // Obtener roles de un usuario
+  getUserRoles: async (userId: number): Promise<any[]> => {
+    try {
+      const response = await apiService.getUserRolesByUserId(userId);
+      return response;
+    } catch (error) {
+      console.error('Error fetching user roles:', error);
+      throw error;
+    }
+  },
+
+  // Asignar roles a un usuario
+  assignRoles: async (userId: number, roleIds: number[]): Promise<void> => {
+    try {
+      await apiService.assignRoles(userId, roleIds);
+    } catch (error) {
+      console.error('Error assigning roles:', error);
+      throw error;
+    }
+  },
+
+  // Remover un rol de un usuario
+  removeRole: async (userId: number, roleId: number): Promise<void> => {
+    try {
+      await apiService.removeUserRole(userId, roleId);
+    } catch (error) {
+      console.error('Error removing role:', error);
       throw error;
     }
   }
@@ -552,71 +557,38 @@ export const clientTypeApi = {
 export const importTypeApi = {
   getAll: async (): Promise<ImportType[]> => {
     try {
-      // Por ahora, devolver datos mock hasta que el backend esté listo
-      return [
-        {
-          id: 1,
-          nombre: 'CUPO CIVIL',
-          cupo_maximo: 25,
-          descripcion: 'Importación regular para personas naturales civiles',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'EXTRACUPO UNIFORMADO',
-          cupo_maximo: 1000,
-          descripcion: 'Importación especial para personal uniformado militar y policial',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'EXTRACUPO COMPAÑÍA',
-          cupo_maximo: 1000,
-          descripcion: 'Importación especial para empresas de seguridad',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 4,
-          nombre: 'CUPO DEPORTISTA',
-          cupo_maximo: 1000,
-          descripcion: 'Importación regular para deportistas',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
+      const response = await apiService.getImportTypes();
+      return response;
     } catch (error) {
       console.error('Error fetching import types:', error);
       throw error;
     }
   },
 
-  getById: async (_id: number): Promise<ImportType> => {
+  getById: async (id: number): Promise<ImportType> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.getImportTypeById(id);
+      return response;
     } catch (error) {
       console.error('Error fetching import type:', error);
       throw error;
     }
   },
 
-  create: async (_importType: Partial<ImportType>): Promise<ImportType> => {
+  create: async (importType: Partial<ImportType>): Promise<ImportType> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.createImportType(importType);
+      return response;
     } catch (error) {
       console.error('Error creating import type:', error);
       throw error;
     }
   },
 
-  update: async (_id: number, _importType: Partial<ImportType>): Promise<ImportType> => {
+  update: async (id: number, importType: Partial<ImportType>): Promise<ImportType> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.updateImportType(id, importType);
+      return response;
     } catch (error) {
       console.error('Error updating import type:', error);
       throw error;
@@ -625,8 +597,7 @@ export const importTypeApi = {
 
   delete: async (id: number): Promise<void> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      console.log('Import type deleted:', id);
+      await apiService.deleteImportType(id);
     } catch (error) {
       console.error('Error deleting import type:', error);
       throw error;
@@ -641,74 +612,38 @@ export const importTypeApi = {
 export const identificationTypeApi = {
   getAll: async (): Promise<IdentificationType[]> => {
     try {
-      // Por ahora, devolver datos mock hasta que el backend esté listo
-      return [
-        {
-          id: 1,
-          nombre: 'CEDULA',
-          descripcion: 'Cédula de identidad ecuatoriana',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'PASAPORTE',
-          descripcion: 'Pasaporte ecuatoriano o extranjero',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'RUC',
-          descripcion: 'Registro Único de Contribuyentes',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 4,
-          nombre: 'CARNET MILITAR',
-          descripcion: 'Carnet de identidad militar',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 5,
-          nombre: 'CARNET POLICIAL',
-          descripcion: 'Carnet de identidad policial',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
+      const response = await apiService.getIdentificationTypes();
+      return response;
     } catch (error) {
       console.error('Error fetching identification types:', error);
       throw error;
     }
   },
 
-  getById: async (_id: number): Promise<IdentificationType> => {
+  getById: async (id: number): Promise<IdentificationType> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.getIdentificationTypeById(id);
+      return response;
     } catch (error) {
       console.error('Error fetching identification type:', error);
       throw error;
     }
   },
 
-  create: async (_identificationType: Partial<IdentificationType>): Promise<IdentificationType> => {
+  create: async (identificationType: Partial<IdentificationType>): Promise<IdentificationType> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.createIdentificationType(identificationType);
+      return response;
     } catch (error) {
       console.error('Error creating identification type:', error);
       throw error;
     }
   },
 
-  update: async (_id: number, _identificationType: Partial<IdentificationType>): Promise<IdentificationType> => {
+  update: async (id: number, identificationType: Partial<IdentificationType>): Promise<IdentificationType> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      throw new Error('Not implemented yet');
+      const response = await apiService.updateIdentificationType(id, identificationType);
+      return response;
     } catch (error) {
       console.error('Error updating identification type:', error);
       throw error;
@@ -717,10 +652,71 @@ export const identificationTypeApi = {
 
   delete: async (id: number): Promise<void> => {
     try {
-      // TODO: Implementar cuando el backend esté listo
-      console.log('Identification type deleted:', id);
+      await apiService.deleteIdentificationType(id);
     } catch (error) {
       console.error('Error deleting identification type:', error);
+      throw error;
+    }
+  }
+};
+
+// ========================================
+// SERVICIOS PARA CONFIGURACIÓN DEL SISTEMA
+// ========================================
+
+export interface SystemConfig {
+  id: number;
+  clave: string;
+  valor: string;
+  descripcion: string;
+  editable: boolean;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+}
+
+export const systemConfigApi = {
+  getAll: async (): Promise<SystemConfig[]> => {
+    try {
+      const response = await apiService.getConfiguracionCompleta();
+      // Convertir el objeto de configuración a array
+      if (typeof response === 'object' && !Array.isArray(response)) {
+        return Object.entries(response).map(([clave, datos]: [string, any]) => ({
+          id: datos.id || 0,
+          clave,
+          valor: datos.valor || datos,
+          descripcion: datos.descripcion || '',
+          editable: datos.editable !== false,
+          fechaCreacion: datos.fechaCreacion || new Date().toISOString(),
+          fechaActualizacion: datos.fechaActualizacion
+        }));
+      }
+      return response;
+    } catch (error) {
+      console.error('Error fetching system config:', error);
+      throw error;
+    }
+  },
+
+  getById: async (clave: string): Promise<SystemConfig> => {
+    try {
+      const response = await apiService.getConfiguracion(clave);
+      return response;
+    } catch (error) {
+      console.error('Error fetching config:', error);
+      throw error;
+    }
+  },
+
+  update: async (clave: string, config: Partial<SystemConfig>): Promise<SystemConfig> => {
+    try {
+      // El backend espera ConfiguracionSistemaDTO
+      const response = await apiService.request('/api/configuracion-sistema/' + clave, {
+        method: 'PUT',
+        body: JSON.stringify(config)
+      });
+      return response;
+    } catch (error) {
+      console.error('Error updating config:', error);
       throw error;
     }
   }

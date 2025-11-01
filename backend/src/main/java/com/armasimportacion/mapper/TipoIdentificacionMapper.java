@@ -25,6 +25,21 @@ public class TipoIdentificacionMapper {
                 .build();
     }
 
+    public TipoIdentificacion toEntity(TipoIdentificacionDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        TipoIdentificacion entity = new TipoIdentificacion();
+        entity.setId(dto.getId());
+        entity.setNombre(dto.getNombre());
+        entity.setCodigo(dto.getCodigo());
+        entity.setDescripcion(dto.getDescripcion());
+        entity.setEstado(dto.getEstado());
+        
+        return entity;
+    }
+
     public List<TipoIdentificacionDTO> toDTOList(List<TipoIdentificacion> entities) {
         if (entities == null) {
             return null;

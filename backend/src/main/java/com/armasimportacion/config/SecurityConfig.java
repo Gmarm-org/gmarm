@@ -86,6 +86,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/documentos/serve-generated/**").permitAll()
                 // TEMPORAL: Para debugging - subida de documentos
                 .requestMatchers("/api/documentos-cliente/cargar").permitAll()
+                // Endpoints de administración - TEMPORAL: permitAll para desarrollo
+                // TODO: Cambiar a hasAuthority("ADMIN") en producción cuando JWT esté corregido
+                .requestMatchers("/api/usuarios/**").permitAll()
+                .requestMatchers("/api/roles/**").permitAll()
+                .requestMatchers("/api/licencia/**").permitAll()
+                .requestMatchers("/api/configuracion-sistema/**").permitAll()
+                .requestMatchers("/api/pregunta-cliente/**").permitAll()
+                .requestMatchers("/api/tipo-cliente-importacion/**").permitAll()
+                .requestMatchers("/api/tipo-documento/**").permitAll()
+                .requestMatchers("/api/arma-imagen/**").permitAll()
                 // Todos los demás endpoints requieren autenticación
                 .anyRequest().authenticated()
             )

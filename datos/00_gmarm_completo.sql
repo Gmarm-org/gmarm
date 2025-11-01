@@ -1498,6 +1498,14 @@ CROSS JOIN rol r
 WHERE u.email = 'rossy-revelo@hotmail.com' AND r.codigo = 'VENDOR'
 ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
 
+-- Asignar roles a franklin.endara (FINANCE y SALES_CHIEF)
+INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
+SELECT u.id, r.id, true, NOW()
+FROM usuario u
+CROSS JOIN rol r
+WHERE u.email = 'franklin.endara@hotmail.com' AND r.codigo IN ('FINANCE', 'SALES_CHIEF')
+ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
+
 -- ========================================
 -- MIGRACIï¿½N DE IMï¿½GENES A TABLA arma_imagen
 -- ========================================
@@ -2049,8 +2057,8 @@ ON CONFLICT (numero_serie) DO NOTHING;
 
 SELECT 'Total de clientes:' as info, COUNT(*) as total FROM cliente;
 SELECT 'Total de armas:' as info, COUNT(*) as total FROM arma;
-SELECT 'Total de imï¿½genes de armas:' as info, COUNT(*) as total FROM arma_imagen;
-SELECT 'Armas con mï¿½ltiples imï¿½genes:' as info, COUNT(DISTINCT arma_id) as total 
+SELECT 'Total de imagenes de armas:' as info, COUNT(*) as total FROM arma_imagen;
+SELECT 'Armas con multiples imagenes:' as info, COUNT(DISTINCT arma_id) as total 
 FROM arma_imagen 
 GROUP BY arma_id 
 HAVING COUNT(*) > 1;

@@ -25,6 +25,14 @@ public class ArmaService {
     private final ArmaImageService armaImageService;
     
     /**
+     * Obtener TODAS las armas (activas e inactivas)
+     */
+    public List<Arma> findAll() {
+        log.info("Obteniendo TODAS las armas (activas e inactivas)");
+        return armaRepository.findAll();
+    }
+    
+    /**
      * Obtener todas las armas activas
      */
     public List<Arma> findAllActive() {

@@ -26,4 +26,19 @@ public class PreguntaClienteService {
     public List<PreguntaCliente> findAll() {
         return repository.findAll();
     }
+
+    public PreguntaCliente findById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pregunta no encontrada con ID: " + id));
+    }
+
+    public PreguntaCliente save(PreguntaCliente pregunta) {
+        log.info("Guardando pregunta: {}", pregunta.getPregunta());
+        return repository.save(pregunta);
+    }
+
+    public void delete(Long id) {
+        log.info("Eliminando pregunta con ID: {}", id);
+        repository.deleteById(id);
+    }
 }

@@ -97,6 +97,19 @@ public class UsuarioController {
 
     // ===== GESTIÓN DE ROLES =====
 
+    @GetMapping("/{id}/roles")
+    public ResponseEntity<Set<com.armasimportacion.model.Rol>> getUserRoles(@PathVariable Long id) {
+        log.info("📋 GET /api/usuarios/{}/roles - Obteniendo roles del usuario", id);
+        try {
+            Usuario usuario = usuarioService.findById(id);
+            log.info("✅ Usuario encontrado: {}, roles: {}", usuario.getUsername(), usuario.getRoles().size());
+            return ResponseEntity.ok(usuario.getRoles());
+        } catch (ResourceNotFoundException e) {
+            log.error("Usuario no encontrado con ID: {}", id);
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/{id}/roles")
     public ResponseEntity<Usuario> assignRoles(@PathVariable Long id, @RequestBody Set<Long> roleIds) {
         log.info("Asignando roles al usuario con ID: {}", id);

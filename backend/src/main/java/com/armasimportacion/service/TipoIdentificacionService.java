@@ -32,4 +32,14 @@ public class TipoIdentificacionService {
         return repository.findByNombre(nombre)
                 .orElseThrow(() -> new RuntimeException("Tipo de identificación no encontrado con nombre: " + nombre));
     }
+    
+    public TipoIdentificacion save(TipoIdentificacion tipoIdentificacion) {
+        log.info("Guardando tipo de identificación: {}", tipoIdentificacion.getNombre());
+        return repository.save(tipoIdentificacion);
+    }
+    
+    public void delete(Long id) {
+        log.info("Eliminando tipo de identificación con ID: {}", id);
+        repository.deleteById(id);
+    }
 }

@@ -32,10 +32,20 @@ public class ArmaController {
 
     @GetMapping
     @Operation(summary = "Obtener todas las armas", description = "Retorna la lista de todas las armas disponibles")
-    public ResponseEntity<List<ArmaDTO>> getAllArmas() {
-        log.info("Solicitud para obtener todas las armas");
+    public ResponseEntity<List<ArmaDTO>> getAllArmas(
+            @RequestParam(required = false, defaultValue = "false") boolean incluirInactivas) {
+        log.info("Solicitud para obtener todas las armas (incluirInactivas: {})", incluirInactivas);
         
-        // Verificar si la expoferia está activa
+        // Si incluirInactivas=true (para admin), devolver TODAS las armas
+        if (incluirInactivas) {
+            log.info("🔧 ADMIN MODE - Obteniendo TODAS las armas (activas e inactivas)");
+            List<Arma> todasArmas = armaService.findAll();
+            List<ArmaDTO> armasDTO = armaMapper.toDTOList(todasArmas);
+            log.info("✅ Total de armas (ADMIN): {}", armasDTO.size());
+            return ResponseEntity.ok(armasDTO);
+        }
+        
+        // Para vendedores: verificar si la expoferia está activa
         boolean isExpoferiaActiva = inventarioService.isExpoferiaActiva();
         
         // Usar el inventario para obtener armas disponibles
