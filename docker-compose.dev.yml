@@ -16,12 +16,30 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
-      # CRÍTICO: postgresql.conf personalizado para máxima estabilidad
-      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
     command: 
       - "postgres"
       - "-c"
-      - "config_file=/etc/postgresql/postgresql.conf"
+      - "listen_addresses=*"
+      - "-c"
+      - "max_connections=20"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "work_mem=2MB"
+      - "-c"
+      - "maintenance_work_mem=32MB"
+      - "-c"
+      - "effective_cache_size=256MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=4MB"
+      - "-c"
+      - "autovacuum=on"
+      - "-c"
+      - "log_connections=on"
+      - "-c"
+      - "log_checkpoints=on"
     networks:
       - gmarm_network
     # CRÍTICO: always en lugar de unless-stopped para que siempre se reinicie
