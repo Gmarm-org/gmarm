@@ -72,20 +72,17 @@
 
 ---
 
-### 4. **Inline Edit - Preguntas, Tipos Documento, Config Sistema**
-**Estado**: Ya implementado con inline edit  
+### 4. **~~Preguntas~~** ✅ **COMPLETADO**
+**Estado**: ✅ CRUD completo con SimpleFormModal  
 **Archivos**: 
-- `frontend/src/pages/Admin/SystemConfig/GestionPreguntas.tsx` ✅
-- `frontend/src/pages/Admin/SystemConfig/TipoDocumento.tsx` ✅
-- `frontend/src/pages/Admin/SystemConfig/ConfiguracionSistema.tsx` ✅
+- `frontend/src/pages/Admin/QuestionManagement/GestionPreguntas.tsx` ✅ Completado
 
 **Tareas**:
-- [ ] Verificar que inline edit funcione correctamente
-- [ ] Verificar que puedan crear nuevos registros
-- [ ] Verificar que puedan eliminar registros
-- [ ] Validar permisos backend
+- [x] Implementar CRUD completo ✅
+- [x] Create, Edit, View, Delete funcional ✅
+- [ ] Testing en producción
 
-**Prioridad**: BAJA - Ya está implementado, solo falta testing
+**Notas**: TipoDocumento y ConfiguracionSistema tienen implementación similar pero pendiente de actualizar a SimpleFormModal
 
 ---
 
@@ -219,11 +216,21 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 ---
 
 **Última actualización**: 2025-11-02  
-**Estado general**: 75% completado (6/8 catálogos con CRUD completo)  
-**Próximos pasos**: 
-1. Verificar inline edit (Preguntas, Tipos Documento, Config)
-2. Implementar CRUD de Tipo Cliente ↔ Importación
-3. Ajustar tipos e integrar CRUD de Licencias
-4. Implementar filtrado de armas (activas/inactivas)
-5. Testing completo antes de push a DEV
+**Estado general**: 85% completado (7/8 catálogos principales con CRUD completo)  
+
+**✅ Completado en esta sesión:**
+- ✅ Roles, Categorías, Tipos Cliente, Tipos ID, Tipos Importación - CRUD completo
+- ✅ Usuarios - CRUD completo con asignación de múltiples roles
+- ✅ Preguntas - CRUD completo
+- ✅ SimpleFormModal - Componente genérico reutilizable
+- ✅ Eliminación total de mocks
+- ✅ Frontend builds sin errores
+
+**📋 Pendientes Menores (no bloqueantes):**
+1. TipoDocumento - Actualizar a SimpleFormModal (actualmente con alerts)
+2. ConfiguracionSistema - Actualizar a SimpleFormModal (actualmente con alerts)
+3. TipoClienteImportacion - Implementar CRUD de relaciones (requiere selects)
+4. Licencias - Ajustar tipos y integrar CRUD
+5. Armas - Filtro activas/inactivas
+6. Testing completo en DEV
 
