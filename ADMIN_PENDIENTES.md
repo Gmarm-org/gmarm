@@ -173,8 +173,35 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 - ✅ **Todos los endpoints admin** en `permitAll()` temporalmente
 - ✅ **Interface License** actualizada con campos reales de BD
 
+**🔴 CORRECCIONES CRÍTICAS (descubiertas en testing):**
+
+### Configuración Sistema:
+- ✅ **editable=false** → Cambiado a `true` en SQL maestro para todos los parámetros críticos
+
+### UI/UX:
+- ⚠️ **Falta botón X** para cerrar en todos los modales
+- ⚠️ **Fechas inválidas** (31/12/1969) en varios catálogos
+- ⚠️ **Tipos Documento** sin acciones (ver, editar, eliminar) - Ya tiene modal pero falta integrar acciones
+
+### Usuarios - Campos Faltantes:
+- ⚠️ **Teléfonos**: principal y secundario
+- ⚠️ **Dirección**
+- ⚠️ **Foto** del usuario
+- ⚠️ **Último Login** (para auditoría)
+- ⚠️ **Acción Desbloquear** cuando usuario bloqueado
+- ⚠️ **Estado Boolean** (no String "ACTIVO"/"BLOQUEADO")
+
+### Roles:
+- ⚠️ **tipo_vendedor** cuando rol es VENDEDOR (para diferenciar tipos)
+
+### Armas:
+- ⚠️ **expoferia Boolean** (no String "SI"/"NO") para plan piloto
+
+### Cambios de Esquema (CRÍTICO para todas las tablas):
+- ⚠️ **Estado → Boolean** en TODAS las tablas (no VARCHAR)
+
 **📋 Pendientes Opcionales (Features Avanzadas):**
-1. **Armas - Múltiples Imágenes** - Sistema de gestión de múltiples imágenes por arma (UI compleja, no bloqueante)
+1. **Armas - Múltiples Imágenes** - Sistema de gestión de múltiples imágenes por arma (UI compleja)
 2. **Testing exhaustivo** en DEV antes de producción
 3. **Seguridad** - Cambiar `permitAll()` a `hasAuthority('ADMIN')` antes de PROD (🔴 CRÍTICO)
 

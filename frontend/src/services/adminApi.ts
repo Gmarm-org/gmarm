@@ -916,17 +916,22 @@ export const systemConfigApi = {
 
   update: async (clave: string, config: Partial<SystemConfig>): Promise<SystemConfig> => {
     try {
-      // El backend espera ConfiguracionSistemaDTO
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
       const response = await fetch(`${API_BASE_URL}/api/configuracion-sistema/${clave}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
+          // No enviamos Authorization para usar permitAll()
         },
         body: JSON.stringify(config)
       });
-      return await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const text = await response.text();
+      return text ? JSON.parse(text) : config;
     } catch (error) {
       console.error('Error updating config:', error);
       throw error;
