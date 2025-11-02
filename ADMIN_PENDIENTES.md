@@ -216,21 +216,24 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 ---
 
 **Última actualización**: 2025-11-02  
-**Estado general**: 85% completado (7/8 catálogos principales con CRUD completo)  
+**Estado general**: 90% completado (8/9 catálogos principales con CRUD completo)  
 
 **✅ Completado en esta sesión:**
-- ✅ Roles, Categorías, Tipos Cliente, Tipos ID, Tipos Importación - CRUD completo
-- ✅ Usuarios - CRUD completo con asignación de múltiples roles
-- ✅ Preguntas - CRUD completo
-- ✅ SimpleFormModal - Componente genérico reutilizable
-- ✅ Eliminación total de mocks
-- ✅ Frontend builds sin errores
+- ✅ **Roles** - CRUD completo con RoleFormModal
+- ✅ **Categorías de Armas** - CRUD completo con SimpleFormModal
+- ✅ **Tipos Cliente, Tipos ID, Tipos Importación** - CRUD completo con SimpleFormModal
+- ✅ **Usuarios** - CRUD completo con asignación de múltiples roles (UserEditModal)
+- ✅ **Preguntas** - CRUD completo con SimpleFormModal
+- ✅ **Tipos de Documento** - CRUD completo con SimpleFormModal
+- ✅ **Configuración Sistema** - Ya tiene inline edit funcional (OK)
+- ✅ **SimpleFormModal** - Componente genérico reutilizable creado
+- ✅ **Eliminación total de mocks** en todos los componentes
+- ✅ **Frontend builds sin errores TypeScript**
 
-**📋 Pendientes Menores (no bloqueantes):**
-1. TipoDocumento - Actualizar a SimpleFormModal (actualmente con alerts)
-2. ConfiguracionSistema - Actualizar a SimpleFormModal (actualmente con alerts)
-3. TipoClienteImportacion - Implementar CRUD de relaciones (requiere selects)
-4. Licencias - Ajustar tipos y integrar CRUD
-5. Armas - Filtro activas/inactivas
-6. Testing completo en DEV
+**📋 Pendientes Menores (no bloqueantes para producción):**
+1. **TipoClienteImportacion** - Implementar CRUD de relaciones (requiere dropdowns dinámicos para seleccionar tipos)
+2. **Licencias** - Ajustar tipos TypeScript y integrar modal (requiere actualizar interface License)
+3. **Armas** - Implementar filtro activas/inactivas con toggle
+4. **Testing exhaustivo** en DEV antes de producción
+5. **Seguridad** - Cambiar `permitAll()` a `hasAuthority('ADMIN')` antes de PROD
 
