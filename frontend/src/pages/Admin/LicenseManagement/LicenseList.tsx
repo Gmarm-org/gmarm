@@ -23,41 +23,9 @@ const LicenseList: React.FC = () => {
       setFilteredLicenses(data);
     } catch (error) {
       console.error('Error cargando licencias:', error);
-      // Fallback a datos mock si la API falla
-      const mockLicenses: License[] = [
-        {
-          id: 1,
-          numero: 'LIC001',
-          tipo: 'CUPO CIVIL',
-          estado: 'ACTIVA',
-          fecha_emision: '2024-01-01',
-          fecha_vencimiento: '2050-12-31',
-          cliente_id: 1,
-          cliente_nombre: 'LEITON PORTILLA CORALIA SALOME'
-        },
-        {
-          id: 2,
-          numero: 'LIC002',
-          tipo: 'CUPO CIVIL',
-          estado: 'ACTIVA',
-          fecha_emision: '2024-01-01',
-          fecha_vencimiento: '2050-12-31',
-          cliente_id: 2,
-          cliente_nombre: 'SILVA ACOSTA FRANCISCO JAVIER'
-        },
-        {
-          id: 3,
-          numero: 'LIC004',
-          tipo: 'EXTRACUPO COMPAÑÍA',
-          estado: 'ACTIVA',
-          fecha_emision: '2024-01-01',
-          fecha_vencimiento: '2050-12-31',
-          cliente_id: 3,
-          cliente_nombre: 'SIMOGUE S.A.S.'
-        }
-      ];
-      setLicenses(mockLicenses);
-      setFilteredLicenses(mockLicenses);
+      setLicenses([]);
+      setFilteredLicenses([]);
+      alert('Error al cargar licencias. Por favor, recarga la página.');
     } finally {
       setIsLoading(false);
     }

@@ -23,46 +23,9 @@ const IdentificationTypeList: React.FC = () => {
       setFilteredIdentificationTypes(data);
     } catch (error) {
       console.error('Error cargando tipos de identificación:', error);
-      // Fallback a datos mock si la API falla
-      const mockIdentificationTypes: IdentificationType[] = [
-        {
-          id: 1,
-          nombre: 'CEDULA',
-          descripcion: 'Cédula de identidad ecuatoriana',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'PASAPORTE',
-          descripcion: 'Pasaporte ecuatoriano o extranjero',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'RUC',
-          descripcion: 'Registro Único de Contribuyentes',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 4,
-          nombre: 'CARNET MILITAR',
-          descripcion: 'Carnet de identidad militar',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 5,
-          nombre: 'CARNET POLICIAL',
-          descripcion: 'Carnet de identidad policial',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
-      setIdentificationTypes(mockIdentificationTypes);
-      setFilteredIdentificationTypes(mockIdentificationTypes);
+      setIdentificationTypes([]);
+      setFilteredIdentificationTypes([]);
+      alert('Error al cargar tipos de identificación. Por favor, recarga la página.');
     } finally {
       setIsLoading(false);
     }

@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { roleApi, type Role } from '../../../services/adminApi';
+import RoleFormModal from './RoleFormModal';
 
 const RoleList: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [filteredRoles, setFilteredRoles] = useState<Role[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadRoles();
@@ -23,51 +27,9 @@ const RoleList: React.FC = () => {
       setFilteredRoles(data);
     } catch (error) {
       console.error('Error cargando roles:', error);
-      // Fallback a datos mock si la API falla
-      const mockRoles: Role[] = [
-        {
-          id: 1,
-          nombre: 'Administrador',
-          codigo: 'ADMIN',
-          descripcion: 'Acceso completo al sistema',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'Vendedor',
-          codigo: 'VENDEDOR',
-          descripcion: 'Registro de clientes y selección de armas catálogo',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'Jefe de Ventas',
-          codigo: 'JEFE_VENTAS',
-          descripcion: 'Aprobación de solicitudes y creación de grupos de importación',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 4,
-          nombre: 'Finanzas',
-          codigo: 'FINANZAS',
-          descripcion: 'Gestión de pagos y facturación',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 5,
-          nombre: 'Operaciones',
-          codigo: 'OPERACIONES',
-          descripcion: 'Gestión de importación y documentación',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
-      setRoles(mockRoles);
-      setFilteredRoles(mockRoles);
+      setRoles([]);
+      setFilteredRoles([]);
+      alert('Error al cargar roles. Por favor, recarga la página.');
     } finally {
       setIsLoading(false);
     }
@@ -91,23 +53,28 @@ const RoleList: React.FC = () => {
     setFilteredRoles(filtered);
   };
 
-  const handleCreate = async () => {
-    console.log('Crear nuevo rol');
-    // TODO: Implementar modal de creación
-    alert('Funcionalidad de creación en desarrollo');
+  const handleCreate = () => {
+    setSelectedRole(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = async (role: Role) => {
-    console.log('Editar rol:', role);
-    // TODO: Implementar modal de edición
-    alert(`Funcionalidad de edición en desarrollo para: ${role.nombre}`);
+  const handleEdit = (role: Role) => {
+    setSelectedRole(role);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (role: Role) => {
+    setSelectedRole(role);
+    setModalMode('view');
+    setModalOpen(true);
   };
 
   const handleDelete = async (role: Role) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar el rol "${role.nombre}"?`)) {
       try {
         await roleApi.delete(role.id);
-        // Recargar la lista después de eliminar
         await loadRoles();
         alert('Rol eliminado exitosamente');
       } catch (error) {
@@ -117,10 +84,19 @@ const RoleList: React.FC = () => {
     }
   };
 
-  const handleView = async (role: Role) => {
-    console.log('Ver rol:', role);
-    // TODO: Implementar modal de vista detallada
-    alert(`Vista detallada en desarrollo para: ${role.nombre}`);
+  const handleSave = async (roleData: Partial<Role>) => {
+    try {
+      if (modalMode === 'create') {
+        await roleApi.create(roleData);
+      } else if (modalMode === 'edit' && selectedRole) {
+        await roleApi.update(selectedRole.id, roleData);
+      }
+      await loadRoles();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando rol:', error);
+      throw error;
+    }
   };
 
   const columns: AdminTableColumn[] = [
@@ -197,21 +173,34 @@ const RoleList: React.FC = () => {
   ];
 
   return (
-    <AdminDataTable
-      title="Gestión de Roles"
-      description="Administra los roles y permisos del sistema"
-      columns={columns}
-      data={filteredRoles}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar roles..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Roles"
+        description="Administra los roles y permisos del sistema"
+        columns={columns}
+        data={filteredRoles}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar roles..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <RoleFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedRole(null);
+        }}
+        onSave={handleSave}
+        role={selectedRole}
+        mode={modalMode}
+      />
+    </>
   );
 };
 

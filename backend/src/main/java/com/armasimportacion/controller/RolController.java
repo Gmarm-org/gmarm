@@ -57,26 +57,29 @@ public class RolController {
     @PostMapping
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nuevo rol", description = "Crea un nuevo rol en el sistema")
-    public ResponseEntity<Rol> createRol(@RequestBody Rol rol) {
+    public ResponseEntity<RolDTO> createRol(@RequestBody Rol rol) {
         log.info("📝 POST /api/roles - Creando nuevo rol: {}", rol.getNombre());
         Rol savedRol = rolRepository.save(rol);
+        RolDTO rolDTO = rolMapper.toDTO(savedRol);
         log.info("✅ Rol creado con ID: {}", savedRol.getId());
-        return ResponseEntity.ok(savedRol);
+        return ResponseEntity.ok(rolDTO);
     }
 
     @PutMapping("/{id}")
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar rol", description = "Actualiza un rol existente")
-    public ResponseEntity<Rol> updateRol(@PathVariable Long id, @RequestBody Rol rol) {
+    public ResponseEntity<RolDTO> updateRol(@PathVariable Long id, @RequestBody Rol rol) {
         log.info("📝 PUT /api/roles/{} - Actualizando rol", id);
         return rolRepository.findById(id)
                 .map(existingRol -> {
                     existingRol.setNombre(rol.getNombre());
                     existingRol.setCodigo(rol.getCodigo());
                     existingRol.setDescripcion(rol.getDescripcion());
+                    existingRol.setEstado(rol.getEstado());
                     Rol updated = rolRepository.save(existingRol);
+                    RolDTO rolDTO = rolMapper.toDTO(updated);
                     log.info("✅ Rol actualizado: {}", updated.getNombre());
-                    return ResponseEntity.ok(updated);
+                    return ResponseEntity.ok(rolDTO);
                 })
                 .orElseGet(() -> {
                     log.warn("⚠️ Rol no encontrado con ID: {}", id);

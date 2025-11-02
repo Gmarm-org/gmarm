@@ -319,8 +319,8 @@ class ApiService {
   // USUARIOS
   // ========================================
 
-  async getUsers(page: number = 0, size: number = 10): Promise<ApiResponse<User[]>> {
-    return this.request<ApiResponse<User[]>>(`/api/usuarios?page=${page}&size=${size}`);
+  async getUsers(page: number = 0, size: number = 10): Promise<any> {
+    return this.request<any>(`/api/usuarios?page=${page}&size=${size}`);
   }
 
   async getUser(id: number): Promise<User> {

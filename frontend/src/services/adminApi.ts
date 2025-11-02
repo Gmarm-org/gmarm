@@ -353,12 +353,12 @@ export const userApi = {
   getAll: async (page: number = 0, size: number = 20): Promise<User[]> => {
     try {
       const response = await apiService.getUsers(page, size);
-      // El backend ahora retorna un objeto con content, totalElements, etc.
-      if (response.data && typeof response.data === 'object' && 'content' in response.data) {
-        return (response.data as any).content;
+      // El backend retorna directamente el objeto paginado (sin envolver en ApiResponse)
+      if (response && typeof response === 'object' && 'content' in response) {
+        return response.content;
       }
-      // Fallback por si aún retorna array directo
-      return Array.isArray(response.data) ? response.data : [];
+      // Fallback por si retorna array directo
+      return Array.isArray(response) ? response : [];
     } catch (error) {
       console.error('Error fetching users:', error);
       throw error;

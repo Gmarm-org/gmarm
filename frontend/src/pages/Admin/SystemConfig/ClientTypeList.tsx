@@ -23,7 +23,10 @@ const ClientTypeList: React.FC = () => {
       setFilteredClientTypes(data);
     } catch (error) {
       console.error('Error cargando tipos de cliente:', error);
-      // Fallback a datos mock si la API falla
+      setClientTypes([]);
+      setFilteredClientTypes([]);
+      alert('Error al cargar tipos de cliente. Por favor, recarga la página.');
+      /* MOCK DATA ELIMINADO - YA NO SE USA
       const mockClientTypes: ClientType[] = [
         {
           id: 1,
@@ -61,8 +64,7 @@ const ClientTypeList: React.FC = () => {
           fecha_creacion: '2024-01-01'
         }
       ];
-      setClientTypes(mockClientTypes);
-      setFilteredClientTypes(mockClientTypes);
+      MOCK DATA ELIMINADO - YA NO SE USA */
     } finally {
       setIsLoading(false);
     }
