@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { licenseApi, type License } from '../../../services/adminApi';
+import LicenseFormModal from './LicenseFormModal';
 
 const LicenseList: React.FC = () => {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [filteredLicenses, setFilteredLicenses] = useState<License[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadLicenses();
@@ -41,31 +45,51 @@ const LicenseList: React.FC = () => {
     if (searchTerm) {
       filtered = filtered.filter(license =>
         license.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        license.cliente_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        license.tipo.toLowerCase().includes(searchTerm.toLowerCase())
+        (license.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (license.ruc || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     setFilteredLicenses(filtered);
   };
 
-  const handleCreate = async () => {
-    console.log('Crear nueva licencia');
-    // TODO: Implementar modal de creación
-    alert('Funcionalidad de creación en desarrollo');
+  const handleCreate = () => {
+    setSelectedLicense(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = async (license: License) => {
-    console.log('Editar licencia:', license);
-    // TODO: Implementar modal de edición
-    alert(`Funcionalidad de edición en desarrollo para: ${license.numero}`);
+  const handleEdit = (license: License) => {
+    setSelectedLicense(license);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (license: License) => {
+    setSelectedLicense(license);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleSave = async (data: Partial<License>) => {
+    try {
+      if (modalMode === 'create') {
+        await licenseApi.create(data);
+      } else if (modalMode === 'edit' && selectedLicense) {
+        await licenseApi.update(selectedLicense.id, data);
+      }
+      await loadLicenses();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando licencia:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (license: License) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar la licencia "${license.numero}"?`)) {
       try {
         await licenseApi.delete(license.id);
-        // Recargar la lista después de eliminar
         await loadLicenses();
         alert('Licencia eliminada exitosamente');
       } catch (error) {
@@ -73,12 +97,6 @@ const LicenseList: React.FC = () => {
         alert('Error al eliminar la licencia');
       }
     }
-  };
-
-  const handleView = async (license: License) => {
-    console.log('Ver licencia:', license);
-    // TODO: Implementar modal de vista detallada
-    alert(`Vista detallada en desarrollo para: ${license.numero}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -103,25 +121,31 @@ const LicenseList: React.FC = () => {
       )
     },
     {
-      key: 'cliente_nombre',
-      label: 'Cliente',
+      key: 'nombre',
+      label: 'Nombre/Razón Social',
       render: (value) => (
-        <div className="text-sm text-gray-900">{value}</div>
+        <div className="text-sm text-gray-900">{value || 'N/A'}</div>
       )
     },
     {
-      key: 'tipo',
-      label: 'Tipo',
+      key: 'ruc',
+      label: 'RUC',
       render: (value) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          value.includes('CIVIL') ? 'bg-blue-100 text-blue-800' :
-          value.includes('MILITAR') ? 'bg-green-100 text-green-800' :
-          value.includes('COMPAÑÍA') ? 'bg-purple-100 text-purple-800' :
-          value.includes('DEPORTISTA') ? 'bg-orange-100 text-orange-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
-        </span>
+        <div className="text-sm text-gray-900 font-mono">{value || 'N/A'}</div>
+      )
+    },
+    {
+      key: 'cupo_total',
+      label: 'Cupo Total',
+      render: (value) => (
+        <div className="text-sm font-semibold text-gray-900">{value || 0}</div>
+      )
+    },
+    {
+      key: 'cupo_disponible',
+      label: 'Disponible',
+      render: (value) => (
+        <div className="text-sm font-semibold text-blue-600">{value || 0}</div>
       )
     },
     {
@@ -131,24 +155,6 @@ const LicenseList: React.FC = () => {
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(value)}`}>
           {value}
         </span>
-      )
-    },
-    {
-      key: 'fecha_emision',
-      label: 'Emisión',
-      render: (value) => (
-        <div className="text-sm text-gray-900">
-          {new Date(value).toLocaleDateString('es-EC')}
-        </div>
-      )
-    },
-    {
-      key: 'fecha_vencimiento',
-      label: 'Vencimiento',
-      render: (value) => (
-        <div className="text-sm text-gray-900">
-          {new Date(value).toLocaleDateString('es-EC')}
-        </div>
       )
     }
   ];
@@ -185,21 +191,34 @@ const LicenseList: React.FC = () => {
   ];
 
   return (
-    <AdminDataTable
-      title="Gestión de Licencias"
-      description="Administra las licencias de importación del sistema"
-      columns={columns}
-      data={filteredLicenses}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar licencias..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Licencias"
+        description="Administra las licencias de importación del sistema"
+        columns={columns}
+        data={filteredLicenses}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar licencias..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <LicenseFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedLicense(null);
+        }}
+        onSave={handleSave}
+        license={selectedLicense}
+        mode={modalMode}
+      />
+    </>
   );
 };
 

@@ -33,12 +33,28 @@ export interface WeaponCategory {
 export interface License {
   id: number;
   numero: string;
-  tipo: string;
-  estado: string;
-  fecha_emision: string;
-  fecha_vencimiento: string;
-  cliente_id: number;
-  cliente_nombre: string;
+  nombre: string;
+  ruc?: string;
+  cuenta_bancaria?: string;
+  nombre_banco?: string;
+  tipo_cuenta?: string;
+  cedula_cuenta?: string;
+  email?: string;
+  telefono?: string;
+  cupo_total?: number;
+  cupo_disponible?: number;
+  cupo_civil?: number;
+  cupo_militar?: number;
+  cupo_empresa?: number;
+  cupo_deportista?: number;
+  descripcion?: string;
+  fecha_emision?: string;
+  observaciones?: string;
+  estado: string; // ACTIVA, VENCIDA, SUSPENDIDA
+  estado_ocupacion?: string; // DISPONIBLE, BLOQUEADA
+  fecha_vencimiento?: string;
+  fecha_creacion?: string;
+  fecha_actualizacion?: string;
 }
 
 export interface Role {
