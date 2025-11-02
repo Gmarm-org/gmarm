@@ -13,6 +13,7 @@ const UserListContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('edit');
 
   useEffect(() => {
     loadUsers();
@@ -26,28 +27,9 @@ const UserListContent: React.FC = () => {
       setFilteredUsers(data);
     } catch (error) {
       console.error('Error cargando usuarios:', error);
-      const mockUsers: User[] = [
-        {
-          id: 1,
-          username: 'admin',
-          email: 'admin@armasimportacion.com',
-          nombres: 'Administrador',
-          apellidos: 'Sistema',
-          estado: 'ACTIVO',
-          roles: ['ADMIN']
-        },
-        {
-          id: 2,
-          username: 'vendedor',
-          email: 'vendedor@test.com',
-          nombres: 'Juan',
-          apellidos: 'Vendedor',
-          estado: 'ACTIVO',
-          roles: ['VENDEDOR']
-        }
-      ];
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
+      setUsers([]);
+      setFilteredUsers([]);
+      alert('Error al cargar usuarios. Por favor, recarga la página.');
     } finally {
       setIsLoading(false);
     }
@@ -72,18 +54,20 @@ const UserListContent: React.FC = () => {
     setFilteredUsers(filtered);
   };
 
-  const handleCreate = async () => {
-    console.log('Crear nuevo usuario');
-    alert('Funcionalidad de creación en desarrollo');
+  const handleCreate = () => {
+    setSelectedUser(null);
+    setModalMode('create');
+    setEditModalOpen(true);
   };
 
-  const handleEdit = async (user: User) => {
+  const handleEdit = (user: User) => {
     setSelectedUser(user);
+    setModalMode('edit');
     setEditModalOpen(true);
   };
 
   const handleSaveEdit = async () => {
-    await loadUsers(); // Recargar usuarios después de guardar
+    await loadUsers();
     setEditModalOpen(false);
     setSelectedUser(null);
   };
@@ -213,10 +197,11 @@ const UserListContent: React.FC = () => {
         stats={<AdminStats stats={stats} />}
       />
 
-      {/* Modal de Edición */}
-      {selectedUser && editModalOpen && (
+      {/* Modal de Edición/Creación */}
+      {editModalOpen && (
         <UserEditModal
           user={selectedUser}
+          mode={modalMode}
           isOpen={editModalOpen}
           onClose={() => {
             setEditModalOpen(false);
