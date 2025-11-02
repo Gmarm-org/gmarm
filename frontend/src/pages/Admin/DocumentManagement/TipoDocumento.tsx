@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { documentTypeApi, type DocumentType } from '../../../services/adminApi';
+import SimpleFormModal from '../components/SimpleFormModal';
 
 const TipoDocumento: React.FC = () => {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [filteredDocumentTypes, setFilteredDocumentTypes] = useState<DocumentType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<DocumentType | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadDocumentTypes();
@@ -47,11 +51,36 @@ const TipoDocumento: React.FC = () => {
   };
 
   const handleCreate = () => {
-    alert('Funcionalidad de creación en desarrollo');
+    setSelectedType(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
   const handleEdit = (documentType: DocumentType) => {
-    alert(`Editar tipo de documento: ${documentType.nombre}`);
+    setSelectedType(documentType);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (documentType: DocumentType) => {
+    setSelectedType(documentType);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleSave = async (data: Partial<DocumentType>) => {
+    try {
+      if (modalMode === 'create') {
+        await documentTypeApi.create(data);
+      } else if (modalMode === 'edit' && selectedType) {
+        await documentTypeApi.update(selectedType.id, data);
+      }
+      await loadDocumentTypes();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando tipo de documento:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (documentType: DocumentType) => {
@@ -64,10 +93,6 @@ const TipoDocumento: React.FC = () => {
         alert('Error al eliminar el tipo de documento');
       }
     }
-  };
-
-  const handleView = (documentType: DocumentType) => {
-    alert(`Tipo: ${documentType.nombre}\nDescripción: ${documentType.descripcion}\nObligatorio: ${documentType.obligatorio ? 'Sí' : 'No'}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -149,22 +174,44 @@ const TipoDocumento: React.FC = () => {
     }
   ];
 
+  const formFields = [
+    { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
+    { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
+    { key: 'obligatorio', label: 'Obligatorio', type: 'checkbox' as const },
+    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+  ];
+
   return (
-    <AdminDataTable
-      title="Gestión de Tipos de Documento"
-      description="Administra los tipos de documentos requeridos por tipo de cliente"
-      columns={columns}
-      data={filteredDocumentTypes}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar tipos de documento..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Tipos de Documento"
+        description="Administra los tipos de documentos requeridos por tipo de cliente"
+        columns={columns}
+        data={filteredDocumentTypes}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar tipos de documento..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <SimpleFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedType(null);
+        }}
+        onSave={handleSave}
+        data={selectedType}
+        mode={modalMode}
+        title="Tipo de Documento"
+        fields={formFields}
+      />
+    </>
   );
 };
 
