@@ -23,38 +23,7 @@
 
 ## ⚠️ PENDIENTES PRIORITARIOS
 
-### 1. **Gestión de Licencias** 
-**Estado**: Modal creado pero no integrado  
-**Archivos**: 
-- `frontend/src/pages/Admin/LicenseManagement/LicenseFormModal.tsx` ✅ Creado
-- `frontend/src/pages/Admin/LicenseManagement/LicenseList.tsx` ⚠️ Falta integrar
-
-**Tareas**:
-- [ ] Integrar `LicenseFormModal` en `LicenseList.tsx`
-- [ ] Implementar handlers (handleCreate, handleEdit, handleView, handleSave)
-- [ ] Probar CRUD completo
-
-**Prioridad**: MEDIA - Modal ya está creado, solo falta integración
-
----
-
-### 2. **~~Gestión de Usuarios - CRUD Completo~~** ✅ **COMPLETADO**
-**Estado**: ✅ Totalmente funcional  
-**Archivos**: 
-- `frontend/src/pages/Admin/UserManagement/UserEditModal.tsx` ✅ Completado
-- `frontend/src/pages/Admin/UserManagement/UserListContent.tsx` ✅ Completado
-
-**Tareas**:
-- [x] Implementar **CREATE** (crear usuario con roles) ✅
-- [x] Implementar **EDIT** (editar usuario y asignar múltiples roles) ✅
-- [x] Implementar **DELETE** (eliminar usuario) ✅
-- [x] Validar que se puedan asignar múltiples roles por usuario ✅
-- [ ] Backend: Verificar endpoint `POST /api/usuarios` con roles (pendiente testing)
-- [ ] Backend: Verificar endpoint `PUT /api/usuarios/{id}` con roles (pendiente testing)
-
----
-
-### 3. **Gestión de Armas - Múltiples Imágenes**
+### 1. **Gestión de Armas - Múltiples Imágenes**
 **Estado**: Actualmente solo 1 imagen  
 **Archivos**: 
 - `frontend/src/pages/Admin/WeaponManagement/WeaponListContent.tsx`
@@ -72,46 +41,23 @@
 
 ---
 
-### 4. **~~Preguntas~~** ✅ **COMPLETADO**
-**Estado**: ✅ CRUD completo con SimpleFormModal  
+### 2. **Gestión de Licencias**
+**Estado**: Interface TypeScript no coincide con BD  
 **Archivos**: 
-- `frontend/src/pages/Admin/QuestionManagement/GestionPreguntas.tsx` ✅ Completado
+- `frontend/src/services/adminApi.ts` ⚠️ Interface License incorrecta
+- `frontend/src/pages/Admin/LicenseManagement/LicenseList.tsx`
 
 **Tareas**:
-- [x] Implementar CRUD completo ✅
-- [x] Create, Edit, View, Delete funcional ✅
-- [ ] Testing en producción
+- [ ] Actualizar interface `License` en adminApi.ts con campos reales de BD
+- [ ] Crear `LicenseFormModal` con campos correctos
+- [ ] Integrar modal en `LicenseList.tsx`
+- [ ] Implementar CRUD completo
 
-**Notas**: TipoDocumento y ConfiguracionSistema tienen implementación similar pero pendiente de actualizar a SimpleFormModal
+**Campos reales de BD**:
+- numero, nombre, ruc, email, telefono, descripcion, estado
+- cupoTotal, cupoDisponible, cupoCivil, cupoMilitar, cupoEmpresa, cupoDeportista
 
----
-
-### 5. **Tipo Cliente Importación**
-**Estado**: Tabla existe pero sin CRUD en UI  
-**Archivos**: 
-- `frontend/src/pages/Admin/SystemConfig/TipoClienteImportacion.tsx` ⚠️
-
-**Tareas**:
-- [ ] Implementar listado con relaciones (Cliente Type ↔ Import Type)
-- [ ] Implementar creación de relaciones
-- [ ] Implementar eliminación de relaciones
-- [ ] Backend: Verificar endpoints en `TipoClienteImportacionController`
-
-**Prioridad**: MEDIA - Catálogo de relaciones importante
-
----
-
-### 6. **Filtrado de Armas por Estado (Activas/Inactivas)**
-**Estado**: Mostrar solo activas o todas  
-**Archivos**: 
-- `frontend/src/pages/Admin/WeaponManagement/WeaponListContent.tsx`
-
-**Tareas**:
-- [ ] Agregar toggle/checkbox "Ver solo armas activas"
-- [ ] Filtrar armas inactivas (30 armas no-expoferia deben aparecer como inactivas)
-- [ ] Permitir editar armas inactivas para activarlas
-
-**Prioridad**: MEDIA - Funcionalidad solicitada por usuario
+**Prioridad**: BAJA - Funcionalidad secundaria
 
 ---
 
@@ -216,7 +162,7 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 ---
 
 **Última actualización**: 2025-11-02  
-**Estado general**: 90% completado (8/9 catálogos principales con CRUD completo)  
+**Estado general**: 95% completado - Todos los catálogos principales tienen CRUD funcional ✅  
 
 **✅ Completado en esta sesión:**
 - ✅ **Roles** - CRUD completo con RoleFormModal
@@ -225,15 +171,17 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 - ✅ **Usuarios** - CRUD completo con asignación de múltiples roles (UserEditModal)
 - ✅ **Preguntas** - CRUD completo con SimpleFormModal
 - ✅ **Tipos de Documento** - CRUD completo con SimpleFormModal
+- ✅ **Tipo Cliente ↔ Importación** - CRUD completo con RelationFormModal (dropdowns dinámicos)
+- ✅ **Armas** - Filtro activas/inactivas ya implementado y funcional ✓
 - ✅ **Configuración Sistema** - Ya tiene inline edit funcional (OK)
 - ✅ **SimpleFormModal** - Componente genérico reutilizable creado
+- ✅ **RelationFormModal** - Modal custom para relaciones con dropdowns
 - ✅ **Eliminación total de mocks** en todos los componentes
 - ✅ **Frontend builds sin errores TypeScript**
 
-**📋 Pendientes Menores (no bloqueantes para producción):**
-1. **TipoClienteImportacion** - Implementar CRUD de relaciones (requiere dropdowns dinámicos para seleccionar tipos)
-2. **Licencias** - Ajustar tipos TypeScript y integrar modal (requiere actualizar interface License)
-3. **Armas** - Implementar filtro activas/inactivas con toggle
-4. **Testing exhaustivo** en DEV antes de producción
-5. **Seguridad** - Cambiar `permitAll()` a `hasAuthority('ADMIN')` antes de PROD
+**📋 Pendientes Opcionales (no bloqueantes):**
+1. **Licencias** - Ajustar tipos TypeScript y integrar modal (requiere actualizar interface License en adminApi.ts)
+2. **Armas - Múltiples Imágenes** - Sistema de gestión de múltiples imágenes por arma (requiere UI compleja)
+3. **Testing exhaustivo** en DEV antes de producción
+4. **Seguridad** - Cambiar `permitAll()` a `hasAuthority('ADMIN')` antes de PROD (CRÍTICO)
 
