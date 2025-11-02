@@ -3,16 +3,21 @@
 ## ✅ COMPLETADO
 
 ### CRUD Básico Funcional
-- ✅ **Roles**: CRUD completo con modal
-- ✅ **Categorías de Armas**: CRUD completo con modal simple
-- ✅ **Tipos de Cliente**: CRUD completo con modal simple
-- ✅ **Tipos de Identificación**: CRUD completo con modal simple
-- ✅ **Tipos de Importación**: CRUD completo con modal simple
-- ✅ **Usuarios**: Listado paginado funcional (GET)
+- ✅ **Roles**: CRUD completo con modal (RoleFormModal)
+- ✅ **Categorías de Armas**: CRUD completo con modal simple (SimpleFormModal)
+- ✅ **Tipos de Cliente**: CRUD completo con modal simple (SimpleFormModal)
+- ✅ **Tipos de Identificación**: CRUD completo con modal simple (SimpleFormModal)
+- ✅ **Tipos de Importación**: CRUD completo con modal simple (SimpleFormModal)
+- ✅ **Usuarios**: CRUD completo con asignación de múltiples roles (UserEditModal)
+  - ✅ CREATE: Crear usuarios con username, email, password, nombres, apellidos, roles
+  - ✅ EDIT: Editar usuarios y asignar/revocar roles
+  - ✅ DELETE: Eliminar usuarios (funcional)
+  - ✅ Listado paginado funcional (GET)
 - ✅ **Eliminación de datos mockeados**: Todos los catálogos usan datos reales de BD
 - ✅ **Configuración de seguridad**: Todos los endpoints admin en `permitAll()` temporalmente
 - ✅ **Estadísticas corregidas**: Sin NaN, con optional chaining
 - ✅ **Paginación**: Implementada en backend y frontend para usuarios
+- ✅ **SimpleFormModal**: Componente genérico creado para CRUDs simples
 
 ---
 
@@ -33,21 +38,19 @@
 
 ---
 
-### 2. **Gestión de Usuarios - CRUD Completo**
-**Estado**: Solo GET funciona  
+### 2. **~~Gestión de Usuarios - CRUD Completo~~** ✅ **COMPLETADO**
+**Estado**: ✅ Totalmente funcional  
 **Archivos**: 
-- `frontend/src/pages/Admin/UserManagement/UserEditModal.tsx` ✅ Existe
-- `frontend/src/pages/Admin/UserManagement/UserListContent.tsx` ⚠️ Falta completar
+- `frontend/src/pages/Admin/UserManagement/UserEditModal.tsx` ✅ Completado
+- `frontend/src/pages/Admin/UserManagement/UserListContent.tsx` ✅ Completado
 
 **Tareas**:
-- [ ] Implementar **CREATE** (crear usuario con roles)
-- [ ] Implementar **EDIT** (editar usuario y asignar múltiples roles)
-- [ ] Implementar **DELETE** (eliminar usuario)
-- [ ] Validar que se puedan asignar múltiples roles por usuario
-- [ ] Backend: Verificar endpoint `POST /api/usuarios` con roles
-- [ ] Backend: Verificar endpoint `PUT /api/usuarios/{id}` con roles
-
-**Prioridad**: ALTA - Funcionalidad crítica para administración
+- [x] Implementar **CREATE** (crear usuario con roles) ✅
+- [x] Implementar **EDIT** (editar usuario y asignar múltiples roles) ✅
+- [x] Implementar **DELETE** (eliminar usuario) ✅
+- [x] Validar que se puedan asignar múltiples roles por usuario ✅
+- [ ] Backend: Verificar endpoint `POST /api/usuarios` con roles (pendiente testing)
+- [ ] Backend: Verificar endpoint `PUT /api/usuarios/{id}` con roles (pendiente testing)
 
 ---
 
@@ -216,6 +219,11 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 ---
 
 **Última actualización**: 2025-11-02  
-**Estado general**: 60% completado  
-**Próximos pasos**: Integrar LicenseFormModal y completar CRUD de Usuarios
+**Estado general**: 75% completado (6/8 catálogos con CRUD completo)  
+**Próximos pasos**: 
+1. Verificar inline edit (Preguntas, Tipos Documento, Config)
+2. Implementar CRUD de Tipo Cliente ↔ Importación
+3. Ajustar tipos e integrar CRUD de Licencias
+4. Implementar filtrado de armas (activas/inactivas)
+5. Testing completo antes de push a DEV
 

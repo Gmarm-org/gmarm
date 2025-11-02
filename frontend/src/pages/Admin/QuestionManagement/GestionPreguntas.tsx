@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { questionApi, type Question } from '../../../services/adminApi';
+import SimpleFormModal from '../components/SimpleFormModal';
 
 const GestionPreguntas: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadQuestions();
@@ -46,11 +50,36 @@ const GestionPreguntas: React.FC = () => {
   };
 
   const handleCreate = () => {
-    alert('Funcionalidad de creación en desarrollo');
+    setSelectedQuestion(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
   const handleEdit = (question: Question) => {
-    alert(`Editar pregunta: ${question.pregunta}`);
+    setSelectedQuestion(question);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (question: Question) => {
+    setSelectedQuestion(question);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleSave = async (data: Partial<Question>) => {
+    try {
+      if (modalMode === 'create') {
+        await questionApi.create(data);
+      } else if (modalMode === 'edit' && selectedQuestion) {
+        await questionApi.update(selectedQuestion.id, data);
+      }
+      await loadQuestions();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando pregunta:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (question: Question) => {
@@ -63,10 +92,6 @@ const GestionPreguntas: React.FC = () => {
         alert('Error al eliminar la pregunta');
       }
     }
-  };
-
-  const handleView = (question: Question) => {
-    alert(`Pregunta: ${question.pregunta}\nTipo: ${question.tipoRespuesta}\nObligatoria: ${question.obligatoria ? 'Sí' : 'No'}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -155,22 +180,45 @@ const GestionPreguntas: React.FC = () => {
     }
   ];
 
+  const formFields = [
+    { key: 'pregunta', label: 'Pregunta', type: 'textarea' as const, required: true },
+    { key: 'tipoRespuesta', label: 'Tipo de Respuesta', type: 'text' as const, required: true, placeholder: 'text, number, date, etc.' },
+    { key: 'orden', label: 'Orden', type: 'number' as const, required: true },
+    { key: 'obligatoria', label: 'Obligatoria', type: 'checkbox' as const },
+    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+  ];
+
   return (
-    <AdminDataTable
-      title="Gestión de Preguntas"
-      description="Administra las preguntas para los formularios de clientes"
-      columns={columns}
-      data={filteredQuestions}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar preguntas..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Preguntas"
+        description="Administra las preguntas para los formularios de clientes"
+        columns={columns}
+        data={filteredQuestions}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar preguntas..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <SimpleFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedQuestion(null);
+        }}
+        onSave={handleSave}
+        data={selectedQuestion}
+        mode={modalMode}
+        title="Pregunta"
+        fields={formFields}
+      />
+    </>
   );
 };
 
