@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { clientTypeApi, type ClientType } from '../../../services/adminApi';
+import SimpleFormModal from '../components/SimpleFormModal';
 
 const ClientTypeList: React.FC = () => {
   const [clientTypes, setClientTypes] = useState<ClientType[]>([]);
   const [filteredClientTypes, setFilteredClientTypes] = useState<ClientType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<ClientType | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadClientTypes();
@@ -26,45 +30,6 @@ const ClientTypeList: React.FC = () => {
       setClientTypes([]);
       setFilteredClientTypes([]);
       alert('Error al cargar tipos de cliente. Por favor, recarga la página.');
-      /* MOCK DATA ELIMINADO - YA NO SE USA
-      const mockClientTypes: ClientType[] = [
-        {
-          id: 1,
-          nombre: 'PERSONA NATURAL',
-          descripcion: 'Clientes individuales, personas físicas',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'PERSONA JURÍDICA',
-          descripcion: 'Empresas, organizaciones y entidades legales',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'MILITAR',
-          descripcion: 'Personal militar y de fuerzas armadas',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 4,
-          nombre: 'POLICÍA',
-          descripcion: 'Personal policial y de seguridad',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 5,
-          nombre: 'DEPORTISTA',
-          descripcion: 'Deportistas con licencias especiales',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
-      MOCK DATA ELIMINADO - YA NO SE USA */
     } finally {
       setIsLoading(false);
     }
@@ -87,23 +52,43 @@ const ClientTypeList: React.FC = () => {
     setFilteredClientTypes(filtered);
   };
 
-  const handleCreate = async () => {
-    console.log('Crear nuevo tipo de cliente');
-    // TODO: Implementar modal de creación
-    alert('Funcionalidad de creación en desarrollo');
+  const handleCreate = () => {
+    setSelectedType(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = async (clientType: ClientType) => {
-    console.log('Editar tipo de cliente:', clientType);
-    // TODO: Implementar modal de edición
-    alert(`Funcionalidad de edición en desarrollo para: ${clientType.nombre}`);
+  const handleEdit = (clientType: ClientType) => {
+    setSelectedType(clientType);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (clientType: ClientType) => {
+    setSelectedType(clientType);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleSave = async (data: Partial<ClientType>) => {
+    try {
+      if (modalMode === 'create') {
+        await clientTypeApi.create(data);
+      } else if (modalMode === 'edit' && selectedType) {
+        await clientTypeApi.update(selectedType.id, data);
+      }
+      await loadClientTypes();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando tipo de cliente:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (clientType: ClientType) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar el tipo de cliente "${clientType.nombre}"?`)) {
       try {
         await clientTypeApi.delete(clientType.id);
-        // Recargar la lista después de eliminar
         await loadClientTypes();
         alert('Tipo de cliente eliminado exitosamente');
       } catch (error) {
@@ -111,12 +96,6 @@ const ClientTypeList: React.FC = () => {
         alert('Error al eliminar el tipo de cliente');
       }
     }
-  };
-
-  const handleView = async (clientType: ClientType) => {
-    console.log('Ver tipo de cliente:', clientType);
-    // TODO: Implementar modal de vista detallada
-    alert(`Vista detallada en desarrollo para: ${clientType.nombre}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -180,22 +159,43 @@ const ClientTypeList: React.FC = () => {
     }
   ];
 
+  const formFields = [
+    { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
+    { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
+    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+  ];
+
   return (
-    <AdminDataTable
-      title="Gestión de Tipos de Cliente"
-      description="Administra los tipos de cliente del sistema"
-      columns={columns}
-      data={filteredClientTypes}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar tipos de cliente..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Tipos de Cliente"
+        description="Administra los tipos de cliente del sistema"
+        columns={columns}
+        data={filteredClientTypes}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar tipos de cliente..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <SimpleFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedType(null);
+        }}
+        onSave={handleSave}
+        data={selectedType}
+        mode={modalMode}
+        title="Tipo de Cliente"
+        fields={formFields}
+      />
+    </>
   );
 };
 

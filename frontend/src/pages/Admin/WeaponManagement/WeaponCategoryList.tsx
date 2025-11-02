@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { weaponCategoryApi, type WeaponCategory } from '../../../services/adminApi';
+import SimpleFormModal from '../components/SimpleFormModal';
 
 const WeaponCategoryList: React.FC = () => {
   const [categories, setCategories] = useState<WeaponCategory[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<WeaponCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<WeaponCategory | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadCategories();
@@ -23,39 +27,9 @@ const WeaponCategoryList: React.FC = () => {
       setFilteredCategories(data);
     } catch (error) {
       console.error('Error cargando categorías:', error);
-      // Fallback a datos mock si la API falla
-      const mockCategories: WeaponCategory[] = [
-        {
-          id: 1,
-          nombre: 'PISTOLA',
-          descripcion: 'Armas de fuego cortas, de una mano',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 2,
-          nombre: 'ESCOPETA',
-          descripcion: 'Armas de fuego de cañón largo para caza',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 3,
-          nombre: 'RIFLE',
-          descripcion: 'Armas de fuego de alta precisión',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        },
-        {
-          id: 4,
-          nombre: 'CARABINA',
-          descripcion: 'Rifles de cañón corto',
-          estado: true,
-          fecha_creacion: '2024-01-01'
-        }
-      ];
-      setCategories(mockCategories);
-      setFilteredCategories(mockCategories);
+      setCategories([]);
+      setFilteredCategories([]);
+      alert('Error al cargar categorías. Por favor, recarga la página.');
     } finally {
       setIsLoading(false);
     }
@@ -78,23 +52,43 @@ const WeaponCategoryList: React.FC = () => {
     setFilteredCategories(filtered);
   };
 
-  const handleCreate = async () => {
-    console.log('Crear nueva categoría');
-    // TODO: Implementar modal de creación
-    alert('Funcionalidad de creación en desarrollo');
+  const handleCreate = () => {
+    setSelectedCategory(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = async (category: WeaponCategory) => {
-    console.log('Editar categoría:', category);
-    // TODO: Implementar modal de edición
-    alert(`Funcionalidad de edición en desarrollo para: ${category.nombre}`);
+  const handleEdit = (category: WeaponCategory) => {
+    setSelectedCategory(category);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (category: WeaponCategory) => {
+    setSelectedCategory(category);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleSave = async (categoryData: Partial<WeaponCategory>) => {
+    try {
+      if (modalMode === 'create') {
+        await weaponCategoryApi.create(categoryData);
+      } else if (modalMode === 'edit' && selectedCategory) {
+        await weaponCategoryApi.update(selectedCategory.id, categoryData);
+      }
+      await loadCategories();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando categoría:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (category: WeaponCategory) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.nombre}"?`)) {
       try {
         await weaponCategoryApi.delete(category.id);
-        // Recargar la lista después de eliminar
         await loadCategories();
         alert('Categoría eliminada exitosamente');
       } catch (error) {
@@ -102,12 +96,6 @@ const WeaponCategoryList: React.FC = () => {
         alert('Error al eliminar la categoría');
       }
     }
-  };
-
-  const handleView = async (category: WeaponCategory) => {
-    console.log('Ver categoría:', category);
-    // TODO: Implementar modal de vista detallada
-    alert(`Vista detallada en desarrollo para: ${category.nombre}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -171,22 +159,43 @@ const WeaponCategoryList: React.FC = () => {
     }
   ];
 
+  const formFields = [
+    { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
+    { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
+    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+  ];
+
   return (
-    <AdminDataTable
-      title="Gestión de Categorías de Armas"
-      description="Administra las categorías del catálogo de armas del sistema"
-      columns={columns}
-      data={filteredCategories}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar categorías..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Categorías de Armas"
+        description="Administra las categorías del catálogo de armas del sistema"
+        columns={columns}
+        data={filteredCategories}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar categorías..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <SimpleFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedCategory(null);
+        }}
+        onSave={handleSave}
+        data={selectedCategory}
+        mode={modalMode}
+        title="Categoría de Arma"
+        fields={formFields}
+      />
+    </>
   );
 };
 

@@ -4,12 +4,16 @@ import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { identificationTypeApi, type IdentificationType } from '../../../services/adminApi';
+import SimpleFormModal from '../components/SimpleFormModal';
 
 const IdentificationTypeList: React.FC = () => {
   const [identificationTypes, setIdentificationTypes] = useState<IdentificationType[]>([]);
   const [filteredIdentificationTypes, setFilteredIdentificationTypes] = useState<IdentificationType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<IdentificationType | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     loadIdentificationTypes();
@@ -48,23 +52,43 @@ const IdentificationTypeList: React.FC = () => {
     setFilteredIdentificationTypes(filtered);
   };
 
-  const handleCreate = async () => {
-    console.log('Crear nuevo tipo de identificación');
-    // TODO: Implementar modal de creación
-    alert('Funcionalidad de creación en desarrollo');
+  const handleCreate = () => {
+    setSelectedType(null);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = async (identificationType: IdentificationType) => {
-    console.log('Editar tipo de identificación:', identificationType);
-    // TODO: Implementar modal de edición
-    alert(`Funcionalidad de edición en desarrollo para: ${identificationType.nombre}`);
+  const handleEdit = (identificationType: IdentificationType) => {
+    setSelectedType(identificationType);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleView = (identificationType: IdentificationType) => {
+    setSelectedType(identificationType);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleSave = async (data: Partial<IdentificationType>) => {
+    try {
+      if (modalMode === 'create') {
+        await identificationTypeApi.create(data);
+      } else if (modalMode === 'edit' && selectedType) {
+        await identificationTypeApi.update(selectedType.id, data);
+      }
+      await loadIdentificationTypes();
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error guardando tipo de identificación:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (identificationType: IdentificationType) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar el tipo de identificación "${identificationType.nombre}"?`)) {
       try {
         await identificationTypeApi.delete(identificationType.id);
-        // Recargar la lista después de eliminar
         await loadIdentificationTypes();
         alert('Tipo de identificación eliminado exitosamente');
       } catch (error) {
@@ -72,12 +96,6 @@ const IdentificationTypeList: React.FC = () => {
         alert('Error al eliminar el tipo de identificación');
       }
     }
-  };
-
-  const handleView = async (identificationType: IdentificationType) => {
-    console.log('Ver tipo de identificación:', identificationType);
-    // TODO: Implementar modal de vista detallada
-    alert(`Vista detallada en desarrollo para: ${identificationType.nombre}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -141,22 +159,43 @@ const IdentificationTypeList: React.FC = () => {
     }
   ];
 
+  const formFields = [
+    { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
+    { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
+    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+  ];
+
   return (
-    <AdminDataTable
-      title="Gestión de Tipos de Identificación"
-      description="Administra los tipos de identificación del sistema"
-      columns={columns}
-      data={filteredIdentificationTypes}
-      isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onCreate={handleCreate}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      searchPlaceholder="Buscar tipos de identificación..."
-      stats={<AdminStats stats={stats} />}
-    />
+    <>
+      <AdminDataTable
+        title="Gestión de Tipos de Identificación"
+        description="Administra los tipos de identificación del sistema"
+        columns={columns}
+        data={filteredIdentificationTypes}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        searchPlaceholder="Buscar tipos de identificación..."
+        stats={<AdminStats stats={stats} />}
+      />
+
+      <SimpleFormModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedType(null);
+        }}
+        onSave={handleSave}
+        data={selectedType}
+        mode={modalMode}
+        title="Tipo de Identificación"
+        fields={formFields}
+      />
+    </>
   );
 };
 
