@@ -337,5 +337,83 @@ public class ArmaSerieService {
                 .map(ArmaSerieDTO::fromEntity)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Carga masiva de series desde JSON procesado en frontend
+     * 
+     * @param seriesData Lista de mapas con: serialNumber, codigo, model, caliber, observaciones
+     * @return Map con success (cantidad) y errors (lista de errores)
+     */
+    @Transactional
+    public Map<String, Object> bulkUploadSeriesFromJson(List<Map<String, String>> seriesData) {
+        log.info("📤 Iniciando carga masiva de {} series desde JSON", seriesData.size());
+        
+        int successCount = 0;
+        List<String> errors = new ArrayList<>();
+        
+        for (int i = 0; i < seriesData.size(); i++) {
+            Map<String, String> row = seriesData.get(i);
+            int rowNum = i + 1;
+            
+            try {
+                String serialNumber = row.get("serialNumber");
+                String codigo = row.get("codigo");
+                String observaciones = row.get("observaciones");
+                
+                // Validar datos requeridos
+                if (serialNumber == null || serialNumber.trim().isEmpty()) {
+                    errors.add("Fila " + rowNum + ": Número de serie vacío");
+                    continue;
+                }
+                
+                if (codigo == null || codigo.trim().isEmpty()) {
+                    errors.add("Fila " + rowNum + ": Código de arma vacío");
+                    continue;
+                }
+                
+                // Verificar si la serie ya existe
+                if (armaSerieRepository.existsByNumeroSerie(serialNumber)) {
+                    errors.add("Fila " + rowNum + ": Serie " + serialNumber + " ya existe (duplicada)");
+                    continue;
+                }
+                
+                // Buscar el arma por código
+                Arma arma = armaRepository.findByCodigo(codigo)
+                        .orElse(null);
+                
+                if (arma == null) {
+                    errors.add("Fila " + rowNum + ": Arma con código " + codigo + " no encontrada");
+                    continue;
+                }
+                
+                // Crear la serie
+                ArmaSerie serie = new ArmaSerie();
+                serie.setNumeroSerie(serialNumber);
+                serie.setArma(arma);
+                serie.setEstado(EstadoSerie.DISPONIBLE);
+                serie.setObservaciones(observaciones);
+                // fechaCreacion y fechaCarga se setean automáticamente con @PrePersist
+                
+                armaSerieRepository.save(serie);
+                successCount++;
+                
+                log.debug("✅ Fila {}: Serie {} asignada a arma {}", rowNum, serialNumber, arma.getNombre());
+                
+            } catch (Exception e) {
+                String errorMsg = "Fila " + rowNum + ": Error procesando - " + e.getMessage();
+                errors.add(errorMsg);
+                log.error("❌ {}", errorMsg, e);
+            }
+        }
+        
+        log.info("✅ Carga masiva completada: {} éxitos, {} errores", successCount, errors.size());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", successCount);
+        result.put("errors", errors);
+        result.put("total", seriesData.size());
+        
+        return result;
+    }
 }
 

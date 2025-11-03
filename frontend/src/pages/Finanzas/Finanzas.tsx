@@ -3,9 +3,10 @@ import Header from '../../components/Header';
 import AsignacionSeries from '../AsignacionSeries';
 import ClientesAsignados from './ClientesAsignados';
 import PagosFinanzas from './PagosFinanzas';
+import CargaMasivaSeries from './CargaMasivaSeries';
 
 const Finanzas: React.FC = () => {
-  const [vistaActual, setVistaActual] = useState<'pagos' | 'series' | 'clientes-asignados'>('pagos');
+  const [vistaActual, setVistaActual] = useState<'pagos' | 'series' | 'clientes-asignados' | 'carga-series'>('pagos');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -46,6 +47,17 @@ const Finanzas: React.FC = () => {
           >
             🔢 Asignación de Series
           </button>
+
+          <button
+            onClick={() => setVistaActual('carga-series')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'carga-series'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            📤 Carga Masiva de Series
+          </button>
         </div>
 
         {/* Contenido: Pagos */}
@@ -61,6 +73,11 @@ const Finanzas: React.FC = () => {
         {/* Contenido: Clientes Asignados */}
         {vistaActual === 'clientes-asignados' && (
           <ClientesAsignados />
+        )}
+
+        {/* Contenido: Carga Masiva de Series */}
+        {vistaActual === 'carga-series' && (
+          <CargaMasivaSeries />
         )}
       </div>
     </div>

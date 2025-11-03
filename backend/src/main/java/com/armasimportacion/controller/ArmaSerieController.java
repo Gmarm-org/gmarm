@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,33 @@ public class ArmaSerieController {
             log.error("❌ Error cargando series: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Carga masiva de series desde JSON (procesado desde Excel en frontend)
+     * 
+     * POST /api/arma-serie/bulk-upload
+     * 
+     * @param series Lista de series con estructura: { serialNumber, codigo, model, caliber, observaciones }
+     */
+    @PostMapping("/bulk-upload")
+    public ResponseEntity<Map<String, Object>> bulkUploadSeries(@RequestBody List<Map<String, String>> series) {
+        try {
+            log.info("📤 Solicitud de carga masiva de {} series", series.size());
+            
+            Map<String, Object> resultado = armaSerieService.bulkUploadSeriesFromJson(series);
+            
+            if (Boolean.TRUE.equals(resultado.get("success"))) {
+                return ResponseEntity.ok(resultado);
+            } else {
+                return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).body(resultado);
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ Error en carga masiva de series: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", 0, "errors", List.of("Error del servidor: " + e.getMessage())));
         }
     }
 
