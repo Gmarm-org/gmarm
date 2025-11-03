@@ -33,6 +33,7 @@ log_error() {
 # 1. Compilar backend
 log_info "Compilando backend..."
 cd backend
+chmod +x ./mvnw  # Dar permisos al Maven wrapper
 ./mvnw clean compile -DskipTests
 if [ $? -ne 0 ]; then
     log_error "Error compilando backend"
