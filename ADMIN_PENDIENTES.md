@@ -225,25 +225,26 @@ Este script:
 
 ---
 
-## ⚠️ PENDIENTE CRÍTICO - ELIMINACIÓN EN TODOS LOS CATÁLOGOS
+## ✅ COMPLETADO - ELIMINACIÓN EN TODOS LOS CATÁLOGOS
 
-### **Cambiar eliminación directa a desactivación (cambio de estado)**
-**Estado**: Solo aplicado en **Usuarios**, falta aplicar en todos los demás catálogos
+### **✅ Cambio de eliminación directa a desactivación (cambio de estado)**
+**Estado**: ✅ **COMPLETADO** en todos los catálogos (Commit: `2ecbf94`)
 
 **Motivo**: No eliminar registros de la BD para mantener auditoría y trazabilidad
 
-**Catálogos que necesitan el cambio**:
-- [ ] **Armas** (`WeaponListContent.tsx`)
-- [ ] **Roles** (`RoleList.tsx`)
-- [ ] **Categorías de Armas** (`WeaponCategoryList.tsx`)
-- [ ] **Licencias** (`LicenseList.tsx`)
-- [ ] **Tipos de Cliente** (`ClientTypeList.tsx`)
-- [ ] **Tipos de Identificación** (`IdentificationTypeList.tsx`)
-- [ ] **Tipos de Importación** (`ImportTypeList.tsx`)
-- [ ] **Tipos de Documento** (`TipoDocumento.tsx`)
-- [ ] **Preguntas** (`GestionPreguntas.tsx`)
+**Catálogos actualizados**:
+- [x] **Armas** (`WeaponListContent.tsx`) - ✅ Ya estaba implementado correctamente
+- [x] **Usuarios** (`UserListContent.tsx`) - ✅ Implementado previamente
+- [x] **Roles** (`RoleList.tsx`) - ✅ Actualizado
+- [x] **Categorías de Armas** (`WeaponCategoryList.tsx`) - ✅ Actualizado
+- [x] **Licencias** (`LicenseList.tsx`) - ✅ Actualizado (usa `estado: 'INACTIVA'` por enum)
+- [x] **Tipos de Cliente** (`ClientTypeList.tsx`) - ✅ Actualizado
+- [x] **Tipos de Identificación** (`IdentificationTypeList.tsx`) - ✅ Actualizado
+- [x] **Tipos de Importación** (`ImportTypeList.tsx`) - ✅ Actualizado
+- [x] **Tipos de Documento** (`TipoDocumento.tsx`) - ✅ Actualizado
+- [x] **Preguntas** (`GestionPreguntas.tsx`) - ✅ Actualizado
 
-**Patrón a seguir** (ejemplo de Usuarios):
+**Patrón aplicado**:
 ```typescript
 const handleDelete = async (item: Item) => {
   if (confirm(`¿Desactivar ${item.nombre}? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
@@ -251,6 +252,7 @@ const handleDelete = async (item: Item) => {
       // No eliminar, solo cambiar estado a false (inactivo)
       await api.update(item.id, { ...item, estado: false });
       await loadItems();
+      alert('Item desactivado exitosamente');
     } catch (error) {
       console.error('Error desactivando item:', error);
       alert('Error al desactivar el item');
@@ -259,7 +261,11 @@ const handleDelete = async (item: Item) => {
 };
 ```
 
-**Prioridad**: 🔴 **ALTA** - Debe aplicarse antes de producción
+**Nota especial**: 
+- **Licencias** usa `estado: 'INACTIVA'` (string) porque el campo `estado` es un enum `EstadoLicencia` con valores: ACTIVA, INACTIVA, VENCIDA, SUSPENDIDA, EN_PROCESO
+- Los demás catálogos usan `estado: false` (boolean)
+
+**Resultado**: Todos los registros ahora se mantienen en la BD para auditoría ✅
 
 ---
 
