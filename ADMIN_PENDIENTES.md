@@ -186,20 +186,22 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 - ✅ **Backend compila** sin errores ✓
 - ✅ **Frontend compila** sin errores ✓
 
-### UI/UX - Pendientes:
-- ⚠️ **Falta botón X** para cerrar en modales (SimpleFormModal, UserEditModal, etc.)
-- ⚠️ **Fechas inválidas** (31/12/1969, Invalid Date) en varios catálogos - necesita validación de renderizado
-- ⚠️ **Tipos Documento** - Ya tiene modal funcional ✓ (verificar acciones en tabla)
+### UI/UX - Completado:
+- ✅ **Botón X** agregado en UserEditModal y RelationFormModal ✓
+- ✅ **Otros modales** ya tenían botón X (SimpleFormModal, RoleFormModal, LicenseFormModal) ✓
 
-### Usuarios - Campos Mostrar en Admin:
-- ⚠️ **Teléfonos**: principal y secundario (ya existen en BD, falta mostrar en UI)
-- ⚠️ **Dirección** (ya existe en BD, falta mostrar en UI)
-- ⚠️ **Foto** (ya existe en BD, falta mostrar en UI)
-- ⚠️ **Último Login** (ya existe en BD, falta mostrar en columna)
-- ⚠️ **Acción Desbloquear** cuando usuario.bloqueado=true
+### Usuarios - Admin Panel:
+- ✅ **Teléfono principal** agregado a columnas ✓
+- ✅ **Último Login** agregado a columnas (muestra 'Nunca' si no hay) ✓
+- ✅ **Estado bloqueado** se muestra con badge "🔒 Bloqueado" ✓
+- ✅ **Acción Desbloquear** agregada inline cuando usuario.bloqueado=true ✓
+- ✅ **Estadística bloqueados** agregada al dashboard ✓
+- ✅ **Vista mejorada** muestra teléfono, estado, último login ✓
 
-### Roles - Campo Faltante:
-- ⚠️ **tipo_rol_vendedor** (ya existe en BD, falta usar en frontend para mostrar tipo)
+### Pendientes Menores (no bloqueantes):
+- ⚠️ **Fechas inválidas** (31/12/1969, Invalid Date) - renderizado de fechas null necesita validación
+- ⚠️ **tipo_rol_vendedor** en tabla Roles - falta mostrar en columna cuando rol es VENDEDOR
+- ⚠️ **Dirección y Foto** en tabla Usuarios - se pueden agregar a modal de vista detallada
 
 **📋 Pendientes Opcionales (Features Avanzadas):**
 1. **Armas - Múltiples Imágenes** - Sistema de gestión de múltiples imágenes por arma (UI compleja)
