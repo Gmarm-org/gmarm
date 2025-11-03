@@ -547,6 +547,52 @@ AHORA (CORRECTO):
 
 ---
 
+---
+
+## 🔥 DESCUBRIMIENTO CRÍTICO #2: deploy.resources NO funciona en Docker Compose
+
+### 🐛 Problema:
+**`deploy.resources.limits` NO APLICA LÍMITES** en Docker Compose normal. Solo funciona en **Swarm mode** (`docker stack deploy`).
+
+**Resultado**: PostgreSQL estaba usando **TODA la RAM del host** sin restricciones, por eso el OOM Killer lo mataba.
+
+### ✅ Solución Aplicada:
+
+**Cambio de sintaxis** (ahora SÍ funciona):
+
+```yaml
+# ❌ ANTES (NO funciona en Compose):
+deploy:
+  resources:
+    limits:
+      memory: 1536M
+      cpus: '0.5'
+
+# ✅ AHORA (SÍ funciona):
+mem_limit: 1.5g
+mem_reservation: 512m
+cpus: 0.5
+```
+
+**Archivos actualizados**:
+- ✅ `docker-compose.dev.yml` - Límites REALES aplicados
+- ✅ `docker-compose.prod.yml` - Límites REALES aplicados
+- ✅ Eliminado `oom_score_adj: -500` (puede empeorar el problema)
+- ✅ Eliminada sección `deploy.resources` completa
+
+**Verificación de límites**:
+```bash
+# Ver límites aplicados
+docker exec gmarm-postgres-dev cat /sys/fs/cgroup/memory.max
+# Debe mostrar: 1610612736 (1.5GB)
+
+# Monitorear en tiempo real
+docker stats
+# PostgreSQL NO debe pasar de 1.5GB
+```
+
+---
+
 ## 📋 COMANDOS PARA EJECUTAR AHORA EN DEV:
 
 ```bash
