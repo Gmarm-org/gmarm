@@ -179,9 +179,12 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 - ✅ **editable=false** → Cambiado a `true` en SQL maestro ✓
 
 ### Esquema de Base de Datos:
-- ✅ **usuario.estado** → Cambiado a BOOLEAN (true=activo, false=inactivo) ✓
-- ✅ **arma.expoferia** → Cambiado a BOOLEAN (true=es expoferia, false=no es expoferia) ✓
+- ✅ **usuario.estado** → Cambiado a BOOLEAN en BD, Entity, DTO, Service, Repository, Controller ✓
+- ✅ **arma.expoferia** → Cambiado a BOOLEAN en BD, Entity, DTO, Mapper ✓
+- ✅ **Frontend interfaces** → User.estado y Weapon.expoferia actualizados a boolean ✓
 - ✅ **Catálogos** (rol, tipo_cliente, tipo_identificacion, tipo_importacion, tipo_documento, categoria_arma) → YA son BOOLEAN ✓
+- ✅ **Backend compila** sin errores ✓
+- ✅ **Frontend compila** sin errores ✓
 
 ### UI/UX - Pendientes:
 - ⚠️ **Falta botón X** para cerrar en modales (SimpleFormModal, UserEditModal, etc.)
