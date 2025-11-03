@@ -39,7 +39,7 @@ public class UsuarioMapper {
                 .telefonoPrincipal(usuario.getTelefonoPrincipal())
                 .telefonoSecundario(usuario.getTelefonoSecundario())
                 .direccion(usuario.getDireccion())
-                .activo(usuario.getEstado() == com.armasimportacion.enums.EstadoUsuario.ACTIVO)
+                .activo(usuario.getEstado()) // estado ya es Boolean
                 .bloqueado(usuario.getBloqueado())
                 .fechaCreacion(usuario.getFechaCreacion())
                 .ultimoLogin(usuario.getUltimoLogin())
@@ -71,7 +71,7 @@ public class UsuarioMapper {
         usuario.setTelefonoPrincipal(dto.getTelefonoPrincipal());
         usuario.setTelefonoSecundario(dto.getTelefonoSecundario());
         usuario.setDireccion(dto.getDireccion());
-        usuario.setEstado(dto.getActivo() ? com.armasimportacion.enums.EstadoUsuario.ACTIVO : com.armasimportacion.enums.EstadoUsuario.INACTIVO);
+        usuario.setEstado(dto.getActivo()); // activo ya es Boolean
         usuario.setBloqueado(dto.getBloqueado());
         return usuario;
     }

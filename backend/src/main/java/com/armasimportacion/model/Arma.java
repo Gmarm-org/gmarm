@@ -50,8 +50,8 @@ public class Arma {
     @Column(name = "estado", nullable = false)
     private Boolean estado;
     
-    @Column(name = "expoferia", length = 50)
-    private String expoferia;
+    @Column(name = "expoferia")
+    private Boolean expoferia; // true = es de expoferia, false/null = no es de expoferia
     
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;

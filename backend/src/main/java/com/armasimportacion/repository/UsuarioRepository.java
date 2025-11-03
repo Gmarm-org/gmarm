@@ -1,6 +1,5 @@
 package com.armasimportacion.repository;
 
-import com.armasimportacion.enums.EstadoUsuario;
 import com.armasimportacion.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,18 +18,18 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByUsernameOrEmail(String username, String email);
 
     // Búsquedas por estado
-    List<Usuario> findByEstado(EstadoUsuario estado);
-    List<Usuario> findByEstadoAndBloqueado(EstadoUsuario estado, Boolean bloqueado);
+    List<Usuario> findByEstado(Boolean estado);
+    List<Usuario> findByEstadoAndBloqueado(Boolean estado, Boolean bloqueado);
 
     // Búsquedas por roles
     @Query("SELECT u FROM Usuario u JOIN u.roles r WHERE r.nombre = :rolNombre")
     List<Usuario> findByRolNombre(@Param("rolNombre") String rolNombre);
 
     @Query("SELECT u FROM Usuario u JOIN u.roles r WHERE r.nombre = :rolNombre AND u.estado = :estado")
-    List<Usuario> findByRolNombreAndEstado(@Param("rolNombre") String rolNombre, @Param("estado") EstadoUsuario estado);
+    List<Usuario> findByRolNombreAndEstado(@Param("rolNombre") String rolNombre, @Param("estado") Boolean estado);
 
     // Búsquedas por vendedor
-    @Query("SELECT u FROM Usuario u JOIN u.roles r WHERE r.nombre = 'Vendedor' AND u.estado = 'ACTIVO'")
+    @Query("SELECT u FROM Usuario u JOIN u.roles r WHERE r.nombre = 'Vendedor' AND u.estado = true")
     List<Usuario> findVendedoresActivos();
 
     // Búsquedas con filtros
@@ -42,7 +41,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     List<Usuario> findByFiltros(@Param("username") String username,
                                 @Param("email") String email,
                                 @Param("nombres") String nombres,
-                                @Param("estado") EstadoUsuario estado);
+                                @Param("estado") Boolean estado);
 
     // Verificaciones de existencia
     boolean existsByUsername(String username);
@@ -59,7 +58,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     // Estadísticas
     @Query("SELECT COUNT(u) FROM Usuario u WHERE u.estado = :estado")
-    Long countByEstado(@Param("estado") EstadoUsuario estado);
+    Long countByEstado(@Param("estado") Boolean estado);
 
     @Query("SELECT COUNT(u) FROM Usuario u WHERE u.bloqueado = :bloqueado")
     Long countByBloqueado(@Param("bloqueado") Boolean bloqueado);

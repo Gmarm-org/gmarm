@@ -75,10 +75,9 @@ public class Usuario {
     @Column(name = "ultimo_login")
     private LocalDateTime ultimoLogin;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado", nullable = false, length = 20)
+    @Column(name = "estado", nullable = false)
     @Builder.Default
-    private EstadoUsuario estado = EstadoUsuario.ACTIVO;
+    private Boolean estado = true; // true = ACTIVO, false = INACTIVO
 
     @Column(name = "intentos_login", nullable = false)
     @Builder.Default

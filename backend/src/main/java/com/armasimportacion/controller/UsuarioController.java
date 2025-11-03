@@ -1,7 +1,6 @@
 package com.armasimportacion.controller;
 
 import com.armasimportacion.dto.UsuarioSimpleDTO;
-import com.armasimportacion.enums.EstadoUsuario;
 import com.armasimportacion.mapper.UsuarioMapper;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.service.UsuarioService;
@@ -160,7 +159,7 @@ public class UsuarioController {
     // ===== GESTIÓN DE ESTADO =====
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Usuario> changeStatus(@PathVariable Long id, @RequestParam EstadoUsuario estado) {
+    public ResponseEntity<Usuario> changeStatus(@PathVariable Long id, @RequestParam Boolean estado) {
         log.info("Cambiando estado del usuario {} a {}", id, estado);
         try {
             Usuario usuario = usuarioService.changeStatus(id, estado);
@@ -193,7 +192,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/estado/{estado}")
-    public ResponseEntity<List<Usuario>> getUsuariosByEstado(@PathVariable EstadoUsuario estado) {
+    public ResponseEntity<List<Usuario>> getUsuariosByEstado(@PathVariable Boolean estado) {
         log.info("Obteniendo usuarios con estado: {}", estado);
         List<Usuario> usuarios = usuarioService.findByEstado(estado);
         return ResponseEntity.ok(usuarios);
@@ -209,7 +208,7 @@ public class UsuarioController {
     // ===== ESTADÍSTICAS =====
 
     @GetMapping("/stats/estado/{estado}")
-    public ResponseEntity<Long> countByEstado(@PathVariable EstadoUsuario estado) {
+    public ResponseEntity<Long> countByEstado(@PathVariable Boolean estado) {
         log.info("Contando usuarios con estado: {}", estado);
         Long count = usuarioService.countByEstado(estado);
         return ResponseEntity.ok(count);

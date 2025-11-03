@@ -65,7 +65,7 @@ public class UsuarioService {
         // No se requiere encriptación adicional
 
         // Configurar valores por defecto
-        usuario.setEstado(EstadoUsuario.ACTIVO);
+        usuario.setEstado(true); // true = ACTIVO
         usuario.setIntentosLogin(0);
         usuario.setBloqueado(false);
         usuario.setFechaCreacion(LocalDateTime.now());
@@ -114,13 +114,11 @@ public class UsuarioService {
 
     // ===== GESTIÓN DE ESTADO =====
 
-    public Usuario changeStatus(Long id, EstadoUsuario estado) {
+    public Usuario changeStatus(Long id, Boolean estado) {
         Usuario usuario = findById(id);
         usuario.setEstado(estado);
         
-        if (EstadoUsuario.BLOQUEADO.equals(estado)) {
-            usuario.setBloqueado(true);
-        } else if (EstadoUsuario.ACTIVO.equals(estado)) {
+        if (!estado) { // Si se desactiva, también desbloquear
             usuario.setBloqueado(false);
             usuario.setIntentosLogin(0);
         }
@@ -132,7 +130,7 @@ public class UsuarioService {
         Usuario usuario = findById(id);
         usuario.setBloqueado(false);
         usuario.setIntentosLogin(0);
-        usuario.setEstado(EstadoUsuario.ACTIVO);
+        usuario.setEstado(true); // Activar cuando se desbloquea
         return usuarioRepository.save(usuario);
     }
 
@@ -147,7 +145,7 @@ public class UsuarioService {
             // Bloquear si excede intentos
             if (usuario.getIntentosLogin() >= 3) {
                 usuario.setBloqueado(true);
-                usuario.setEstado(EstadoUsuario.BLOQUEADO);
+                usuario.setEstado(false); // false = INACTIVO cuando se bloquea
             }
             
             usuarioRepository.save(usuario);
@@ -175,7 +173,7 @@ public class UsuarioService {
         return usuarioRepository.findVendedoresActivos();
     }
 
-    public List<Usuario> findByEstado(EstadoUsuario estado) {
+    public List<Usuario> findByEstado(Boolean estado) {
         return usuarioRepository.findByEstado(estado);
     }
 
@@ -224,7 +222,7 @@ public class UsuarioService {
 
     // ===== ESTADÍSTICAS =====
 
-    public Long countByEstado(EstadoUsuario estado) {
+    public Long countByEstado(Boolean estado) {
         return usuarioRepository.countByEstado(estado);
     }
 
@@ -233,6 +231,6 @@ public class UsuarioService {
     }
 
     public Long countActivos() {
-        return usuarioRepository.countByEstado(EstadoUsuario.ACTIVO);
+        return usuarioRepository.countByEstado(true); // true = ACTIVO
     }
 } 

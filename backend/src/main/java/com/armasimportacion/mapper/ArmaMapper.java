@@ -49,6 +49,7 @@ public class ArmaMapper {
                 .urlImagen(arma.getUrlImagen())
                 .urlProducto(arma.getUrlProducto())
                 .estado(arma.getEstado())
+                .expoferia(arma.getExpoferia())
                 .fechaCreacion(arma.getFechaCreacion())
                 .fechaActualizacion(arma.getFechaActualizacion())
                 // Mapear imágenes

@@ -1,6 +1,5 @@
 package com.armasimportacion.dto;
 
-import com.armasimportacion.enums.EstadoUsuario;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +19,7 @@ public class UsuarioDTO {
     private String email;
     private String nombre;
     private String apellido;
-    private EstadoUsuario estado;
+    private Boolean estado; // true = ACTIVO, false = INACTIVO
     private LocalDateTime ultimoAcceso;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
@@ -41,7 +40,7 @@ public class UsuarioDTO {
     }
     
     public boolean esActivo() {
-        return estado == EstadoUsuario.ACTIVO;
+        return Boolean.TRUE.equals(estado); // estado es Boolean ahora
     }
     
     public boolean esVendedor() {

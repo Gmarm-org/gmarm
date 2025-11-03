@@ -31,6 +31,7 @@ public class ArmaDTO {
     private String urlImagen;
     private String urlProducto;
     private Boolean estado;
+    private Boolean expoferia; // true = es de expoferia, false/null = no es de expoferia
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
     
