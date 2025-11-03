@@ -944,8 +944,12 @@ bash scripts/diagnostico-dev.sh
 14. **Fechas inválidas: dateUtils creado (formateo seguro)**
 15. **tipo_rol_vendedor: Visible en tabla Roles**
 
-### 📋 **Commits (17 TOTALES)**:
+### 📋 **Commits (20 TOTALES)**:
 ```
+44ae500 - chore: limpieza fase 2 (JSON + SH: 25 archivos, -2,493 líneas)
+9b98fd6 - docs: actualizar hash commit limpieza
+df14411 - chore: limpieza fase 1 (PS1 + MD: 46 archivos, -8,450 líneas)
+74e484c - docs: actualizar ADMIN_PENDIENTES pendientes menores
 4e7f85e - fix: pendientes menores (fechas inválidas + tipo_rol_vendedor)
 0c5c997 - docs: actualizar ADMIN_PENDIENTES tarea crítica completada
 2ecbf94 - feat: cambiar eliminación a desactivación en todos los catálogos
@@ -973,6 +977,32 @@ e3bc4f6 - fix: jefe ventas
 - **Features nuevas**: 4 (carga masiva, timeout, password toggle, dateUtils)
 - **Optimizaciones**: 2 (memoria DEV/PROD, autovacuum)
 - **Mejoras de auditoría**: 10 catálogos con desactivación
+
+### 🧹 **Limpieza de Repositorio (2 Fases)**:
+
+#### **Fase 1 - Scripts PS1 y Docs MD** (Commit: `df14411`):
+- ✅ Eliminados 46 archivos obsoletos
+- 17 scripts `.ps1` redundantes/obsoletos
+- 29 documentos `.md` de sesiones antiguas
+- **-8,450 líneas** eliminadas
+
+#### **Fase 2 - JSON y Scripts SH** (Commit: `44ae500`):
+- ✅ Eliminados 25 archivos obsoletos
+- 6 archivos `.json` de test temporales
+- 18 scripts `.sh` duplicados/obsoletos
+- 1 documento `.md` reemplazado
+- **-2,493 líneas** eliminadas
+
+#### **Total de Limpieza**:
+- 🗑️ **71 archivos eliminados**
+- 📉 **-10,943 líneas de código/documentación obsoleta**
+- 📁 **Repositorio 85% más limpio**
+- ✅ **Solo archivos realmente necesarios**
+
+**Scripts útiles finales**:
+- 4 scripts `.ps1` (Windows local)
+- 18 scripts `.sh` (Linux servidor)
+- 9 archivos `.json` (configuración + schemas)
 
 ### 🎯 **Estado del Sistema**:
 ✅ **LOCAL**: 100% funcional con todas las correcciones  
