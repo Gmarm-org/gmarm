@@ -326,13 +326,27 @@ curl http://72.167.52.14:8080/api/health
 
 3. **Frontend (sin cambios)**: 512MB límite
 
-**Distribución de Memoria Después de Optimización**:
-- PostgreSQL: ~400MB uso real (límite 768MB)
-- Backend: ~350MB uso real (límite 512MB)
-- Frontend: ~100MB uso real (límite 512MB)
-- Docker daemon: ~500MB
-- **SWAP: 2GB** (NUEVO - previene OOM)
-- **Total necesario**: ~1.4GB RAM + 2GB SWAP = ✅ Suficiente
+**Distribución de Memoria DEFINITIVA (después de OOM en producción)**:
+
+**PROBLEMA**: PostgreSQL sigue siendo asesinado por OOM Killer (proceso interno `kdevtmpfsi` usa ~760MB).
+
+**SOLUCIÓN DEFINITIVA APLICADA**:
+- **PostgreSQL: LÍMITE 1.5GB** (era 768MB - aumentado 2x)
+  - Configuración MINIMALISTA: 5 conexiones, 32MB shared_buffers, 512KB work_mem
+  - `autovacuum=off`, `fsync=off` (solo desarrollo)
+  - Uso esperado: ~400MB normal, picos hasta 800MB (ahora tiene espacio)
+  
+- **Backend Java: LÍMITE 384MB** (reducido de 512MB)
+  - JVM Heap: `-Xmx256m` (reducido de 384MB)
+  - Metaspace: 96MB (reducido de 128MB)
+  - Uso esperado: ~280MB
+  
+- **Frontend: LÍMITE 384MB** (reducido de 512MB)
+  - Uso esperado: ~100MB
+  
+- **Docker daemon**: ~500MB
+- **SWAP: 2GB** configurado
+- **Total**: 1.5GB + 0.4GB + 0.4GB = 2.3GB de límites, 3.8GB RAM disponible = ✅ Amplio margen
 
 ### 📋 SCRIPT DE DIAGNÓSTICO DIARIO:
 
@@ -450,6 +464,42 @@ Error 403 causado por NullPointerException en `InventarioService.getArmasConStoc
 - ✅ `scripts/fix-403-dev.sh` - Fix rápido para errores 403
 
 **Resultado**: `/api/arma` funciona correctamente, vendedores pueden ver armas disponibles.
+
+---
+
+---
+
+## 🔥 SOLUCIÓN DEFINITIVA OOM KILLER - EJECUTAR AHORA EN DEV
+
+**Estado actual**: PostgreSQL sigue siendo asesinado (2 reinicios en 2 horas, 20+ eventos OOM).
+
+**Solución**: Aumentar límite de PostgreSQL a 1.5GB + reducir Backend/Frontend.
+
+### 📋 EJECUTA ESTE SCRIPT AHORA EN EL SERVIDOR DEV:
+
+```bash
+cd ~/deploy/dev
+git pull origin dev
+chmod +x scripts/fix-oom-definitivo.sh
+bash scripts/fix-oom-definitivo.sh
+```
+
+**El script hace**:
+1. ✅ Pull de cambios (docker-compose.dev.yml actualizado)
+2. ✅ Down de servicios
+3. ✅ Rebuild completo sin caché
+4. ✅ Up con nueva configuración (PostgreSQL: 1.5GB, Backend: 384MB, Frontend: 384MB)
+5. ✅ Verifica y crea la BD si no existe
+6. ✅ Muestra estado final y comandos de monitoreo
+
+**Tiempo estimado**: 3-4 minutos
+
+**Después de ejecutar**, espera 2-3 horas y ejecuta:
+```bash
+docker inspect gmarm-postgres-dev --format='Restarts={{.RestartCount}}, OOMKilled={{.State.OOMKilled}}'
+```
+
+**Resultado esperado**: `Restarts=0, OOMKilled=false`
 
 ---
 

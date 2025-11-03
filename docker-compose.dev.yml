@@ -21,38 +21,42 @@ services:
       - "-c"
       - "listen_addresses=*"
       - "-c"
-      - "max_connections=10"          # Reducido de 20 a 10
+      - "max_connections=5"            # ULTRA-REDUCIDO a 5 (solo backend + healthcheck)
       - "-c"
-      - "shared_buffers=64MB"          # Reducido de 128MB a 64MB
+      - "shared_buffers=32MB"          # MÍNIMO: 32MB (era 64MB)
       - "-c"
-      - "work_mem=1MB"                 # Reducido de 2MB a 1MB
+      - "work_mem=512KB"               # MÍNIMO: 512KB (era 1MB)
       - "-c"
-      - "maintenance_work_mem=16MB"    # Reducido de 32MB a 16MB
+      - "maintenance_work_mem=8MB"     # MÍNIMO: 8MB (era 16MB)
       - "-c"
-      - "effective_cache_size=128MB"   # Reducido de 256MB a 128MB
+      - "effective_cache_size=64MB"    # MÍNIMO: 64MB (era 128MB)
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
-      - "wal_buffers=2MB"              # Reducido de 4MB a 2MB
+      - "wal_buffers=1MB"              # MÍNIMO: 1MB (era 2MB)
       - "-c"
-      - "autovacuum=on"
+      - "autovacuum=off"               # DESACTIVADO para ahorrar recursos
       - "-c"
-      - "log_connections=off"          # Desactivado para ahorrar recursos
+      - "log_connections=off"
       - "-c"
-      - "log_checkpoints=off"          # Desactivado para ahorrar recursos
+      - "log_checkpoints=off"
+      - "-c"
+      - "log_statement=none"           # Sin logs de queries
+      - "-c"
+      - "fsync=off"                    # PELIGROSO pero necesario para desarrollo
     networks:
       - gmarm_network
     # CRÍTICO: always en lugar de unless-stopped para que siempre se reinicie
     restart: always
-    # Límites AJUSTADOS para evitar OOM Killer
+    # Límites DEFINITIVOS para evitar OOM Killer
     deploy:
       resources:
         limits:
           cpus: '0.5'
-          memory: 768M      # Aumentado a 768MB (era 512MB - CRÍTICO)
+          memory: 1536M     # 1.5GB - DEFINITIVO (kdevtmpfsi necesita >768MB)
         reservations:
           cpus: '0.25'
-          memory: 256M      # Mínimo 256MB
+          memory: 512M      # Mínimo 512MB
     # OOM Score: -500 para que el kernel NO lo mate primero
     oom_score_adj: -500
     # Healthcheck MINIMALISTA: solo verificar que PostgreSQL acepte conexiones
@@ -85,23 +89,23 @@ services:
       SPRING_CORS_ALLOWED_ORIGINS: ${SPRING_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://72.167.52.14:5173,http://72.167.52.14:80}
       SPRING_CORS_ALLOWED_METHODS: GET,POST,PUT,DELETE,OPTIONS
       SPRING_CORS_ALLOWED_HEADERS: "*"
-      # Configuración JVM para limitar uso de memoria (REDUCIDO)
-      JAVA_OPTS: "-Xms192m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m"
+      # Configuración JVM ULTRA-REDUCIDA para dar espacio a PostgreSQL
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=96m -XX:+UseStringDeduplication"
     depends_on:
       postgres_dev:
         condition: service_healthy
     networks:
       - gmarm_network
     restart: unless-stopped
-    # Límites de recursos para evitar consumo excesivo
+    # Límites ULTRA-REDUCIDOS para dar más espacio a PostgreSQL
     deploy:
       resources:
         limits:
-          cpus: '1.0'      # Máximo 1.0 CPU (reducido)
-          memory: 512M     # Máximo 512MB RAM (reducido de 768MB)
+          cpus: '1.0'      # Máximo 1.0 CPU
+          memory: 384M     # Reducido a 384MB (backend usa ~320MB)
         reservations:
           cpus: '0.5'      # Mínimo 0.5 CPU
-          memory: 256M     # Mínimo 256MB RAM
+          memory: 192M     # Mínimo 192MB RAM
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -139,15 +143,15 @@ services:
     networks:
       - gmarm_network
     restart: unless-stopped
-    # Límites de recursos
+    # Límites REDUCIDOS para dar más espacio a PostgreSQL
     deploy:
       resources:
         limits:
           cpus: '0.5'      # Máximo 0.5 CPU
-          memory: 512M     # Máximo 512MB RAM
+          memory: 384M     # Reducido a 384MB (era 512MB)
         reservations:
           cpus: '0.25'     # Mínimo 0.25 CPU
-          memory: 256M     # Mínimo 256MB RAM
+          memory: 192M     # Mínimo 192MB RAM
 
 volumes:
   postgres_data_dev:
