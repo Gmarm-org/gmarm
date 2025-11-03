@@ -176,29 +176,27 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/licencia" -UseBasicParsing
 **🔴 CORRECCIONES CRÍTICAS (descubiertas en testing):**
 
 ### Configuración Sistema:
-- ✅ **editable=false** → Cambiado a `true` en SQL maestro para todos los parámetros críticos
+- ✅ **editable=false** → Cambiado a `true` en SQL maestro ✓
 
-### UI/UX:
-- ⚠️ **Falta botón X** para cerrar en todos los modales
-- ⚠️ **Fechas inválidas** (31/12/1969) en varios catálogos
-- ⚠️ **Tipos Documento** sin acciones (ver, editar, eliminar) - Ya tiene modal pero falta integrar acciones
+### Esquema de Base de Datos:
+- ✅ **usuario.estado** → Cambiado a BOOLEAN (true=activo, false=inactivo) ✓
+- ✅ **arma.expoferia** → Cambiado a BOOLEAN (true=es expoferia, false=no es expoferia) ✓
+- ✅ **Catálogos** (rol, tipo_cliente, tipo_identificacion, tipo_importacion, tipo_documento, categoria_arma) → YA son BOOLEAN ✓
 
-### Usuarios - Campos Faltantes:
-- ⚠️ **Teléfonos**: principal y secundario
-- ⚠️ **Dirección**
-- ⚠️ **Foto** del usuario
-- ⚠️ **Último Login** (para auditoría)
-- ⚠️ **Acción Desbloquear** cuando usuario bloqueado
-- ⚠️ **Estado Boolean** (no String "ACTIVO"/"BLOQUEADO")
+### UI/UX - Pendientes:
+- ⚠️ **Falta botón X** para cerrar en modales (SimpleFormModal, UserEditModal, etc.)
+- ⚠️ **Fechas inválidas** (31/12/1969, Invalid Date) en varios catálogos - necesita validación de renderizado
+- ⚠️ **Tipos Documento** - Ya tiene modal funcional ✓ (verificar acciones en tabla)
 
-### Roles:
-- ⚠️ **tipo_vendedor** cuando rol es VENDEDOR (para diferenciar tipos)
+### Usuarios - Campos Mostrar en Admin:
+- ⚠️ **Teléfonos**: principal y secundario (ya existen en BD, falta mostrar en UI)
+- ⚠️ **Dirección** (ya existe en BD, falta mostrar en UI)
+- ⚠️ **Foto** (ya existe en BD, falta mostrar en UI)
+- ⚠️ **Último Login** (ya existe en BD, falta mostrar en columna)
+- ⚠️ **Acción Desbloquear** cuando usuario.bloqueado=true
 
-### Armas:
-- ⚠️ **expoferia Boolean** (no String "SI"/"NO") para plan piloto
-
-### Cambios de Esquema (CRÍTICO para todas las tablas):
-- ⚠️ **Estado → Boolean** en TODAS las tablas (no VARCHAR)
+### Roles - Campo Faltante:
+- ⚠️ **tipo_rol_vendedor** (ya existe en BD, falta usar en frontend para mostrar tipo)
 
 **📋 Pendientes Opcionales (Features Avanzadas):**
 1. **Armas - Múltiples Imágenes** - Sistema de gestión de múltiples imágenes por arma (UI compleja)
