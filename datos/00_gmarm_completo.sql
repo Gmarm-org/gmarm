@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     telefono_secundario VARCHAR(20),
     direccion TEXT,
     foto VARCHAR(255),
-    estado VARCHAR(20) DEFAULT 'ACTIVO',
+    estado BOOLEAN DEFAULT true, -- true = ACTIVO, false = INACTIVO
     bloqueado BOOLEAN DEFAULT false,
     intentos_login INTEGER DEFAULT 0,
     ultimo_intento TIMESTAMP,
@@ -259,8 +259,8 @@ CREATE TABLE IF NOT EXISTS arma (
     url_imagen VARCHAR(500),
     url_producto VARCHAR(500),
     estado BOOLEAN DEFAULT true,
-    -- Campo para identificar armas de expoferia (reutilizable para futuras expoferias)
-    expoferia VARCHAR(50) DEFAULT NULL,
+    -- Campo para identificar armas de expoferia plan piloto (true = es de expoferia, false/null = no es de expoferia)
+    expoferia BOOLEAN DEFAULT false,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -812,27 +812,27 @@ ON CONFLICT (codigo) DO NOTHING;
 -- Insertar armas específicas del plan piloto con campo expoferia
 INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado, expoferia) VALUES
 -- Arm as CZ P-10 Serie (Plan Piloto)
-('CZ-P10-C-PLAN-PILOTO', 'CZ P-10 C', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-PLAN-PILOTO', 'CZ P-10 SC', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC.png', 'https://czfirearms.com/pistols/p10-sc', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-FDE-PLAN-PILOTO', 'CZ P-10 SC FDE', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-FDE.png', 'https://czfirearms.com/pistols/p10-sc-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-URBAN-PLAN-PILOTO', 'CZ P-10 SC URBAN', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-URBAN.png', 'https://czfirearms.com/pistols/p10-sc-urban', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-PLAN-PILOTO', 'CZ P-10 F', '9MM', 19, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO', 'CZ P-10 F MIRAS TRITIUM', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-FDE-PLAN-PILOTO', 'CZ P-10 F FDE', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-FDE.png', 'https://czfirearms.com/pistols/p10-f-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-S-PLAN-PILOTO', 'CZ P-10 S', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true, 'EXPOFERIA_2025'),
-('CZ-P10-C-OR-PLAN-PILOTO', 'CZ P-10 C OR', '9MM', 15, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true, 'EXPOFERIA_2025'),
-('CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO', 'CZ P-10 C OR FDE CERAKOTE', '9MM', 15, 1620.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR-FDE-CERAKOTE.png', 'https://czfirearms.com/pistols/p10-c-or-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-OR-PLAN-PILOTO', 'CZ P-10 F OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true, 'EXPOFERIA_2025'),
+('CZ-P10-C-PLAN-PILOTO', 'CZ P-10 C', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true, true),
+('CZ-P10-SC-PLAN-PILOTO', 'CZ P-10 SC', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC.png', 'https://czfirearms.com/pistols/p10-sc', true, true),
+('CZ-P10-SC-FDE-PLAN-PILOTO', 'CZ P-10 SC FDE', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-FDE.png', 'https://czfirearms.com/pistols/p10-sc-fde', true, true),
+('CZ-P10-SC-URBAN-PLAN-PILOTO', 'CZ P-10 SC URBAN', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-URBAN.png', 'https://czfirearms.com/pistols/p10-sc-urban', true, true),
+('CZ-P10-F-PLAN-PILOTO', 'CZ P-10 F', '9MM', 19, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true, true),
+('CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO', 'CZ P-10 F MIRAS TRITIUM', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true, true),
+('CZ-P10-F-FDE-PLAN-PILOTO', 'CZ P-10 F FDE', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-FDE.png', 'https://czfirearms.com/pistols/p10-f-fde', true, true),
+('CZ-P10-S-PLAN-PILOTO', 'CZ P-10 S', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true, true),
+('CZ-P10-C-OR-PLAN-PILOTO', 'CZ P-10 C OR', '9MM', 15, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true, true),
+('CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO', 'CZ P-10 C OR FDE CERAKOTE', '9MM', 15, 1620.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR-FDE-CERAKOTE.png', 'https://czfirearms.com/pistols/p10-c-or-fde', true, true),
+('CZ-P10-F-OR-PLAN-PILOTO', 'CZ P-10 F OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true, true),
 
 -- Arm as CZ P-09 Serie (Plan Piloto)
-('CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO', 'CZ P-09 F Nocturne FDE', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-FDE.png', 'https://czfirearms.com/pistols/p09-nocturne-fde', true, 'EXPOFERIA_2025'),
-('CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO', 'CZ P-09 F Nocturne OD Green', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-OD-Verde.png', 'https://czfirearms.com/pistols/p09-nocturne-od', true, 'EXPOFERIA_2025'),
-('CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO', 'CZ P-09 C NOCTURNE SNIPER GREY', '9MM', 12, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-NOCTURNE-Sniper-Gris.png', 'https://czfirearms.com/pistols/p09-nocturne-sniper', true, 'EXPOFERIA_2025'),
-('CZ-P09-C-NOCTURNE-PLAN-PILOTO', 'CZ P-09 C NOCTURNE', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true, 'EXPOFERIA_2025'),
+('CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO', 'CZ P-09 F Nocturne FDE', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-FDE.png', 'https://czfirearms.com/pistols/p09-nocturne-fde', true, true),
+('CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO', 'CZ P-09 F Nocturne OD Green', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-OD-Verde.png', 'https://czfirearms.com/pistols/p09-nocturne-od', true, true),
+('CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO', 'CZ P-09 C NOCTURNE SNIPER GREY', '9MM', 12, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-NOCTURNE-Sniper-Gris.png', 'https://czfirearms.com/pistols/p09-nocturne-sniper', true, true),
+('CZ-P09-C-NOCTURNE-PLAN-PILOTO', 'CZ P-09 C NOCTURNE', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true, true),
 
 -- Arm as CZ SHADOW 2 Serie (Plan Piloto)
-('CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO', 'CZ Shadow 2 Compact OR', '9MM', 16, 2600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true, 'EXPOFERIA_2025'),
-('CZ-SHADOW-2-CARRY-PLAN-PILOTO', 'CZ Shadow 2 Carry', '9MM', 16, 2670.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-CARRY.png', 'https://czfirearms.com/pistols/shadow-2-carry', true, 'EXPOFERIA_2025')
+('CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO', 'CZ Shadow 2 Compact OR', '9MM', 16, 2600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true, true),
+('CZ-SHADOW-2-CARRY-PLAN-PILOTO', 'CZ Shadow 2 Carry', '9MM', 16, 2670.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-CARRY.png', 'https://czfirearms.com/pistols/shadow-2-carry', true, true)
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar stock para las armas del plan piloto
@@ -1365,15 +1365,15 @@ ON CONFLICT DO NOTHING;
 
 -- Usuario administrador (password: admin123)
 INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, username, apellidos, email, nombres, direccion, password_hash) VALUES
-(false, 0, NOW(), '0999999999', 'ACTIVO', 'admin', 'SISTEMA', 'admin@armasimportacion.com', 'ADMINISTRADOR', 'QUITO, ECUADOR', 'admin123')
+(false, 0, NOW(), '0999999999', true, 'admin', 'SISTEMA', 'admin@armasimportacion.com', 'ADMINISTRADOR', 'QUITO, ECUADOR', 'admin123')
 ON CONFLICT (username) DO NOTHING;
 
 -- Usuarios de prueba (password: admin123)
 INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, username, apellidos, email, nombres, direccion, password_hash) VALUES
-(false, 0, NOW(), '0987654321', 'ACTIVO', 'vendedor', 'Vendedor', 'vendedor@test.com', 'Juan', 'Guayaquil, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654322', 'ACTIVO', 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654323', 'ACTIVO', 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654324', 'ACTIVO', 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123')
+(false, 0, NOW(), '0987654321', true, 'vendedor', 'Vendedor', 'vendedor@test.com', 'Juan', 'Guayaquil, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654322', true, 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654323', true, 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654324', true, 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123')
 ON CONFLICT (username) DO NOTHING;
 
 -- Asignar roles a usuarios
