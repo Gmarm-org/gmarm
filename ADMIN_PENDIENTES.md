@@ -334,15 +334,57 @@ curl http://72.167.52.14:8080/api/health
 - **SWAP: 2GB** (NUEVO - previene OOM)
 - **Total necesario**: ~1.4GB RAM + 2GB SWAP = ✅ Suficiente
 
-### 📋 CRONTAB RECOMENDADO (en servidor DEV):
+### 📋 SCRIPT DE DIAGNÓSTICO DIARIO:
+
+**EN LA MAÑANA, ejecuta esto en el servidor DEV:**
+
+```bash
+# Pull del nuevo script
+cd ~/deploy/dev
+git pull origin dev
+
+# Dar permisos de ejecución
+chmod +x scripts/diagnostico-dev.sh
+
+# Ejecutar diagnóstico
+bash scripts/diagnostico-dev.sh
+```
+
+**El script verifica**:
+- ✅ Memoria y SWAP configurado
+- ✅ Contenedores corriendo
+- ✅ Reinicios de PostgreSQL (debe ser 0)
+- ✅ Base de datos existe y tiene datos
+- ✅ Uso de recursos actual
+- ✅ Eventos OOM Killer (no debe haber)
+- ✅ Backend responde (health check)
+- ✅ Frontend accesible
+- ✅ Logs recientes sin errores
+- ✅ Resumen con problemas detectados
+
+**Salida esperada si todo está bien:**
+```
+✅ PostgreSQL estable (0 reinicios)
+✅ Base de datos 'gmarm_dev' existe
+✅ Base de datos con datos
+✅ No hay eventos OOM Killer recientes
+✅ Backend respondiendo correctamente
+✅ Frontend accesible
+✅ ¡TODO FUNCIONANDO CORRECTAMENTE!
+```
+
+### 📋 CRONTAB RECOMENDADO (opcional):
 
 ```bash
 # Editar crontab
 crontab -e
 
 # Agregar estas líneas:
+# Diagnóstico diario a las 8 AM
+0 8 * * * /home/gmarmin/deploy/dev/scripts/diagnostico-dev.sh >> /tmp/diagnostico-daily.log 2>&1
+
 # Monitoreo y recuperación cada hora
-0 * * * * /ruta/al/proyecto/gmarm/scripts/monitor-and-heal-dev.sh >> /tmp/gmarm-monitor.log 2>&1
+0 * * * * /home/gmarmin/deploy/dev/scripts/monitor-and-heal-dev.sh >> /tmp/gmarm-monitor.log 2>&1
 
 # Backup diario de la BD a las 2 AM
 0 2 * * * docker exec gmarm-postgres-dev pg_dump -U postgres gmarm_dev > /tmp/gmarm-backup-$(date +\%Y\%m\%d).sql

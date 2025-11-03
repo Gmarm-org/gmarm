@@ -38,9 +38,9 @@ public interface ArmaStockRepository extends JpaRepository<ArmaStock, Long> {
            "JOIN ast.arma a " +
            "WHERE ast.cantidadDisponible > 0 " +
            "AND ast.activo = true " +
-           "AND a.expoferia = :expoferia " +
+           "AND a.expoferia = :esExpoferia " +
            "AND a.estado = true")
-    List<ArmaStock> findArmasExpoferiaConStock(@Param("expoferia") String expoferia);
+    List<ArmaStock> findArmasExpoferiaConStock(@Param("esExpoferia") Boolean esExpoferia);
 
     /**
      * Verificar si una arma tiene stock suficiente

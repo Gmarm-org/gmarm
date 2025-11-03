@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,13 +52,19 @@ public class InventarioService {
      */
     @Transactional(readOnly = true)
     public List<ArmaStock> getArmasConStockDisponible() {
-        if (isExpoferiaActiva()) {
-            String expoferiaNombre = getExpoferiaNombre();
-            log.info("🎯 Expoferia activa: {} - Mostrando solo armas de expoferia", expoferiaNombre);
-            return armaStockRepository.findArmasExpoferiaConStock(expoferiaNombre);
-        } else {
-            log.info("🎯 Expoferia inactiva - Mostrando todas las armas con stock");
-            return armaStockRepository.findArmasConStockDisponible();
+        try {
+            if (isExpoferiaActiva()) {
+                log.info("🎯 Expoferia activa - Mostrando solo armas de expoferia (expoferia=true)");
+                List<ArmaStock> armas = armaStockRepository.findArmasExpoferiaConStock(true);
+                return armas != null ? armas : new ArrayList<>();
+            } else {
+                log.info("🎯 Expoferia inactiva - Mostrando todas las armas con stock");
+                List<ArmaStock> armas = armaStockRepository.findArmasConStockDisponible();
+                return armas != null ? armas : new ArrayList<>();
+            }
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo armas con stock: {}", e.getMessage(), e);
+            return new ArrayList<>(); // Retornar lista vacía en caso de error
         }
     }
 
