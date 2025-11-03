@@ -980,31 +980,22 @@ e3bc4f6 - fix: jefe ventas
 - **Optimizaciones**: 2 (memoria DEV/PROD, autovacuum)
 - **Mejoras de auditoría**: 10 catálogos con desactivación
 
-### 🧹 **Limpieza de Repositorio (2 Fases)**:
+### 🧹 **Limpieza de Repositorio (PARCIALMENTE REVERTIDA)**:
 
-#### **Fase 1 - Scripts PS1 y Docs MD** (Commit: `df14411`):
-- ✅ Eliminados 46 archivos obsoletos
-- 17 scripts `.ps1` redundantes/obsoletos
-- 29 documentos `.md` de sesiones antiguas
-- **-8,450 líneas** eliminadas
+#### **⚠️ IMPORTANTE - Limpieza Revertida** (Commit: `d0f6851`):
+- ❌ La limpieza masiva causó problemas en el pipeline
+- ❌ Scripts eliminados eran necesarios para deployment
+- ✅ Restaurado `deploy-server.sh` (script funcional original)
+- ✅ Pipeline vuelve a usar script probado
 
-#### **Fase 2 - JSON y Scripts SH** (Commit: `44ae500`):
-- ✅ Eliminados 25 archivos obsoletos
-- 6 archivos `.json` de test temporales
-- 18 scripts `.sh` duplicados/obsoletos
-- 1 documento `.md` reemplazado
-- **-2,493 líneas** eliminadas
+#### **Limpieza que SÍ se mantiene**:
+- ✅ Eliminados 29 documentos `.md` de sesiones antiguas (útil)
+- ✅ Imagen Docker actualizada: `openjdk` → `eclipse-temurin:17-jre` (necesario)
 
-#### **Total de Limpieza**:
-- 🗑️ **71 archivos eliminados**
-- 📉 **-10,943 líneas de código/documentación obsoleta**
-- 📁 **Repositorio 85% más limpio**
-- ✅ **Solo archivos realmente necesarios**
-
-**Scripts útiles finales**:
-- 4 scripts `.ps1` (Windows local)
-- 18 scripts `.sh` (Linux servidor)
-- 9 archivos `.json` (configuración + schemas)
+#### **Lección Aprendida**:
+- ⚠️ **NO eliminar scripts sin probar el pipeline primero**
+- ⚠️ Scripts antiguos pueden tener configuraciones críticas
+- ⚠️ Limpieza debe hacerse DESPUÉS de validar que todo funciona
 
 ### 🎯 **Estado del Sistema**:
 ✅ **LOCAL**: 100% funcional con todas las correcciones  
