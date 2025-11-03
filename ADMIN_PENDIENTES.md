@@ -1005,5 +1005,77 @@ docker-compose -f docker-compose.dev.yml up -d --build frontend_dev
 
 ---
 
+## 🧹 SCRIPTS ÚTILES (Después de Limpieza - Commit: `TBD`)
+
+**Limpieza realizada**: Eliminados 17 scripts obsoletos/redundantes
+
+### ✅ **Scripts PowerShell para Desarrollo Local (Windows)**:
+
+```powershell
+# Iniciar servicios locales
+.\start-local.ps1
+
+# Detener servicios locales
+.\stop-local.ps1
+
+# Reiniciar solo backend (después de cambios Java)
+.\restart-backend-only.ps1
+
+# Monitoreo básico del sistema
+.\scripts\monitor-system-simple.ps1
+```
+
+### ✅ **Scripts Bash para Servidor (Linux - DEV/PROD)**:
+
+#### Diagnóstico y Monitoreo:
+```bash
+# Diagnóstico completo del sistema DEV
+bash scripts/diagnostico-dev.sh
+
+# Monitoreo y recuperación automática
+bash scripts/monitor-and-heal-dev.sh
+
+# Verificar salud de PostgreSQL
+bash scripts/monitor-postgres-health.sh
+```
+
+#### Reset y Recuperación:
+```bash
+# Reset completo y 100% funcional (DEV)
+bash scripts/reset-db-dev-100-funcional.sh
+
+# Fix definitivo OOM Killer
+bash scripts/fix-oom-definitivo.sh
+
+# Fix específico para loop de PostgreSQL
+bash scripts/fix-postgres-loop-dev.sh
+```
+
+#### Deployment:
+```bash
+# Deploy en servidor DEV
+bash scripts/deploy-dev.sh
+
+# Setup inicial de SWAP (una vez)
+sudo bash scripts/setup-swap.sh
+```
+
+#### Utilidades:
+```bash
+# Verificar series de armas en DEV
+bash scripts/verificar-series-dev.sh
+
+# Fix de secuencias (si es necesario)
+bash scripts/fix-sequences-dev.sh
+```
+
+### 📝 **Notas**:
+- Scripts `.ps1` son para desarrollo local en Windows
+- Scripts `.sh` son para servidores Linux (DEV/PROD)
+- Todos los scripts están en la raíz o en `scripts/`
+- Para más detalles, ver `SCRIPTS_CLEANUP.md`
+
+---
+
 **El sistema está LISTO para producción.** 🚀
 
