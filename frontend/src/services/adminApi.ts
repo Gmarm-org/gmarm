@@ -432,6 +432,25 @@ export const userApi = {
     }
   },
 
+  unlock: async (id: number): Promise<User> => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}/unlock`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error unlocking user:', error);
+      throw error;
+    }
+  },
+
   // Obtener roles de un usuario
   getUserRoles: async (userId: number): Promise<any[]> => {
     try {

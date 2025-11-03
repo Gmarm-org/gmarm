@@ -84,10 +84,24 @@ const UserListContent: React.FC = () => {
     }
   };
 
+  const handleUnlock = async (user: User) => {
+    if (confirm(`¿Desbloquear al usuario ${user.username}?`)) {
+      try {
+        await userApi.unlock(user.id);
+        await loadUsers();
+        alert('Usuario desbloqueado exitosamente');
+      } catch (error) {
+        console.error('Error desbloqueando usuario:', error);
+        alert('Error al desbloquear el usuario');
+      }
+    }
+  };
+
   const handleView = async (user: User) => {
-    setSelectedUser(user);
-    // TODO: Implementar modal de visualización
-    alert(`Usuario: ${user.username}\nEmail: ${user.email}\nRoles: ${user.roles?.join(', ') || 'Sin roles'}`);
+    const bloqueadoText = user.bloqueado ? '\n🔒 BLOQUEADO' : '';
+    const ultimoLogin = user.ultimo_login ? `\nÚltimo login: ${new Date(user.ultimo_login).toLocaleString('es-EC')}` : '\nÚltimo login: Nunca';
+    const telefono = user.telefono_principal ? `\nTeléfono: ${user.telefono_principal}` : '';
+    alert(`Usuario: ${user.username}\nEmail: ${user.email}\nEstado: ${user.estado ? 'Activo' : 'Inactivo'}${bloqueadoText}${ultimoLogin}${telefono}\nRoles: ${user.roles?.map((r: any) => r.nombre).join(', ') || 'Sin roles'}`);
   };
 
   const columns: AdminTableColumn[] = [
@@ -120,14 +134,48 @@ const UserListContent: React.FC = () => {
       )
     },
     {
+      key: 'telefono_principal',
+      label: 'Teléfono',
+      render: (value) => (
+        <div className="text-sm text-gray-900">{value || 'N/A'}</div>
+      )
+    },
+    {
       key: 'estado',
       label: 'Estado',
+      render: (value, row: any) => (
+        <div className="flex flex-col gap-1">
+          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {value ? 'Activo' : 'Inactivo'}
+          </span>
+          {row.bloqueado && (
+            <>
+              <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                🔒 Bloqueado
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUnlock(row);
+                }}
+                className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 rounded-md"
+              >
+                🔓 Desbloquear
+              </button>
+            </>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'ultimo_login',
+      label: 'Último Login',
       render: (value) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value ? 'Activo' : 'Inactivo'}
-        </span>
+        <div className="text-xs text-gray-600">
+          {value ? new Date(value).toLocaleString('es-EC') : 'Nunca'}
+        </div>
       )
     },
     {
@@ -135,7 +183,7 @@ const UserListContent: React.FC = () => {
       label: 'Roles',
       render: (value) => (
         <div className="flex flex-wrap gap-1">
-          {value.map((role: any, index: number) => (
+          {value?.map((role: any, index: number) => (
             <span
               key={index}
               className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
@@ -164,18 +212,18 @@ const UserListContent: React.FC = () => {
       description: 'Usuarios activos'
     },
     {
+      label: 'Bloqueados',
+      value: users.filter(u => u?.bloqueado).length || 0,
+      icon: '🔒',
+      color: 'red',
+      description: 'Usuarios bloqueados'
+    },
+    {
       label: 'Administradores',
       value: users.filter(u => u?.roles?.some((r: any) => r?.codigo === 'ADMIN')).length || 0,
       icon: '🛡️',
       color: 'purple',
       description: 'Usuarios con rol admin'
-    },
-    {
-      label: 'Vendedores',
-      value: users.filter(u => u?.roles?.some((r: any) => r?.codigo === 'VENDEDOR')).length || 0,
-      icon: '💰',
-      color: 'orange',
-      description: 'Usuarios vendedores'
     }
   ];
 

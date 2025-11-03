@@ -118,15 +118,24 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {mode === 'create' ? '➕ Crear Nuevo Usuario' : '✏️ Editar Usuario'}
-          </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {mode === 'create' 
-              ? 'Complete la información del nuevo usuario' 
-              : `Gestionar roles de: ${user?.nombres} ${user?.apellidos}`}
-          </p>
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              {mode === 'create' ? '➕ Crear Nuevo Usuario' : '✏️ Editar Usuario'}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {mode === 'create' 
+                ? 'Complete la información del nuevo usuario' 
+                : `Gestionar roles de: ${user?.nombres} ${user?.apellidos}`}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+            title="Cerrar"
+          >
+            ✖️
+          </button>
         </div>
 
         {/* Body */}

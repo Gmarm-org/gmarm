@@ -51,10 +51,13 @@ const RelationFormModal: React.FC<RelationFormModalProps> = ({ isOpen, onClose, 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800">
             {mode === 'create' ? '➕ Crear Relación' : '👁️ Ver Relación'}
           </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none" title="Cerrar">
+            ✖️
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
