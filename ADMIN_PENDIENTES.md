@@ -48,16 +48,38 @@
 - **Archivo**: `frontend/src/pages/Admin/UserManagement/UserListContent.tsx`
 - **Pendiente**: Aplicar mismo patrón a TODOS los catálogos (ver sección abajo)
 
-### 7. ✅ **PostgreSQL - OOM Killer Resuelto**
+### 7. ✅ **PostgreSQL - OOM Killer Resuelto (DEV y PROD)**
 - ✅ Uso correcto de `mem_limit`, `mem_reservation`, `cpus` en Docker Compose
 - ✅ PostgreSQL con startup garantizado (phased initialization)
 - ✅ SWAP de 2GB configurado en servidor
 - ✅ Consumo de memoria estable (2-3% en DEV)
+- ✅ **Optimizaciones aplicadas a PROD**:
+  - PostgreSQL: `mem_limit=1.5g` (antes 1g), `shared_buffers=384MB`, `effective_cache_size=1GB`
+  - Backend: `JAVA_OPTS` optimizados con StringDeduplication
+  - Frontend: `mem_limit=512m` agregado
+  - Parámetros adicionales: `random_page_cost=1.1`, `effective_io_concurrency=200` (SSD)
 - **Archivos**:
   - `docker-compose.dev.yml`
-  - `docker-compose.prod.yml`
+  - `docker-compose.prod.yml` ✅ ACTUALIZADO
   - `scripts/setup-swap.sh`
   - `scripts/ensure-db-exists.sh`
+
+### 8. ✅ **Carga Masiva de Series desde Excel (Finanzas)**
+- ✅ Nueva pestaña en Finanzas: "📤 Carga Masiva de Series"
+- ✅ Componente: `CargaMasivaSeries.tsx`
+- ✅ Librería `xlsx` instalada para lectura de Excel
+- ✅ Formato Excel: Serial number, CODIGO, Model, Caliber, Text2
+- ✅ Previsualización antes de cargar
+- ✅ Backend endpoint: `POST /api/arma-serie/bulk-upload`
+- ✅ Busca arma por código automáticamente
+- ✅ Inserta series como DISPONIBLE
+- ✅ Retorna cantidad de éxitos y lista de errores
+- **Archivos**:
+  - `frontend/src/pages/Finanzas/CargaMasivaSeries.tsx` (NUEVO)
+  - `frontend/src/pages/Finanzas/Finanzas.tsx`
+  - `backend/src/main/java/com/armasimportacion/controller/ArmaSerieController.java`
+  - `backend/src/main/java/com/armasimportacion/service/ArmaSerieService.java`
+  - `frontend/package.json` (dependencia xlsx agregada)
 
 ---
 

@@ -12,11 +12,11 @@ services:
       - SPRING_DATASOURCE_PASSWORD=prodpass
       - APP_JWT_SECRET=${JWT_SECRET}
       - APP_JWT_EXPIRATION=86400000
-      # Configuración JVM optimizada para producción
-      - JAVA_OPTS=-Xms512m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=192m
+      # Configuración JVM optimizada para producción (ajustada para mem_limit de 1GB)
+      - JAVA_OPTS=-Xms256m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:+UseStringDeduplication
     depends_on:
       postgres_prod:
-        condition: service_healthy
+        condition: service_started  # Cambio de healthy a started para evitar loops de CPU
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -50,6 +50,10 @@ services:
     restart: unless-stopped
     networks:
       - gmarm-network
+    # 🔥 Límites REALES de Docker (NO Swarm)
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: 1.0
 
   postgres_prod:
     image: postgres:15-alpine
@@ -74,19 +78,27 @@ services:
       - "-c"
       - "max_connections=30"                    # Optimizado para producción
       - "-c"
-      - "shared_buffers=256MB"                  # 25% de RAM disponible
+      - "shared_buffers=384MB"                  # 25% de 1.5GB RAM disponible
       - "-c"
-      - "work_mem=4MB"                          # Conservador
+      - "work_mem=4MB"                          # Conservador para múltiples conexiones
       - "-c"
-      - "maintenance_work_mem=64MB"
+      - "maintenance_work_mem=96MB"             # Mayor para VACUUM, ANALYZE
       - "-c"
-      - "effective_cache_size=512MB"
+      - "effective_cache_size=1GB"              # ~66% de memoria disponible
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
-      - "wal_buffers=8MB"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "random_page_cost=1.1"                  # Optimizado para SSD
+      - "-c"
+      - "effective_io_concurrency=200"          # Para SSD
       - "-c"
       - "autovacuum=on"
+      - "-c"
+      - "autovacuum_max_workers=2"              # Limitar workers de autovacuum
+      - "-c"
+      - "autovacuum_naptime=60s"                # Ejecutar cada minuto
       - "-c"
       - "log_min_duration_statement=1000"       # Log queries > 1s
       - "-c"
@@ -100,9 +112,9 @@ services:
     restart: always
     networks:
       - gmarm-network
-    # 🔥 Límites REALES de Docker (NO Swarm)
-    mem_limit: 1g
-    mem_reservation: 512m
+    # 🔥 Límites REALES de Docker (NO Swarm) - Optimizados para Producción
+    mem_limit: 1.5g
+    mem_reservation: 768m
     cpus: 1.0
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U produser -d gmarm_db"]
