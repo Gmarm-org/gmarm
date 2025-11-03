@@ -46,6 +46,20 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           estado: true
         });
         setSelectedRoleIds(new Set());
+      } else if (mode === 'edit' && user) {
+        // Cargar datos del usuario en modo edit
+        setFormData({
+          username: user.username || '',
+          email: user.email || '',
+          password: '', // No mostrar contraseña existente
+          nombres: user.nombres || '',
+          apellidos: user.apellidos || '',
+          telefono_principal: user.telefono_principal || '',
+          telefono_secundario: user.telefono_secundario || '',
+          direccion: user.direccion || '',
+          foto: user.foto || '',
+          estado: user.estado !== undefined ? user.estado : true
+        });
       }
       loadData();
     }
@@ -118,7 +132,28 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
         // Paso 2: Asignar roles al usuario recién creado
         await userApi.assignRoles(createdUser.id, Array.from(selectedRoleIds));
       } else if (user) {
-        // Solo asignar roles en modo edit
+        // Modo Edit: Actualizar datos del usuario Y roles
+        const updateData: any = {
+          username: formData.username,
+          email: formData.email,
+          nombres: formData.nombres,
+          apellidos: formData.apellidos,
+          telefonoPrincipal: formData.telefono_principal || null,
+          telefonoSecundario: formData.telefono_secundario || null,
+          direccion: formData.direccion || null,
+          foto: formData.foto || null,
+          estado: formData.estado
+        };
+        
+        // Si se proporcionó una nueva contraseña, incluirla
+        if (formData.password && formData.password.trim() !== '') {
+          updateData.passwordHash = formData.password;
+        }
+        
+        // Paso 1: Actualizar datos del usuario
+        await userApi.update(user.id, updateData);
+        
+        // Paso 2: Asignar roles
         await userApi.assignRoles(user.id, Array.from(selectedRoleIds));
       }
       
@@ -126,7 +161,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
       onClose();
     } catch (error) {
       console.error('Error guardando usuario:', error);
-      alert(mode === 'create' ? 'Error al crear el usuario. Verifique que el username y email sean únicos.' : 'Error al guardar los roles del usuario');
+      alert(mode === 'create' ? 'Error al crear el usuario. Verifique que el username y email sean únicos.' : 'Error al actualizar el usuario');
     } finally {
       setIsSaving(false);
     }
@@ -288,46 +323,119 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                 </div>
               )}
 
-              {/* Información del Usuario (solo en modo edit) */}
+              {/* Formulario para editar usuario */}
               {mode === 'edit' && user && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-6 space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Editando usuario:</strong> {user.nombres} {user.apellidos} (ID: {user.id})
+                    </p>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Usuario</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.username}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Usuario *</label>
+                      <input
+                        type="text"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.email}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nombres *</label>
+                      <input
+                        type="text"
+                        value={formData.nombres}
+                        onChange={(e) => setFormData({ ...formData, nombres: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Nombres</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.nombres}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Apellidos *</label>
+                      <input
+                        type="text"
+                        value={formData.apellidos}
+                        onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Principal</label>
+                      <input
+                        type="tel"
+                        value={formData.telefono_principal}
+                        onChange={(e) => setFormData({ ...formData, telefono_principal: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Apellidos</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.apellidos}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Secundario</label>
+                      <input
+                        type="tel"
+                        value={formData.telefono_secundario}
+                        onChange={(e) => setFormData({ ...formData, telefono_secundario: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono Principal</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.telefono_principal || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono Secundario</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.telefono_secundario || 'N/A'}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Dirección</label>
-                      <p className="text-sm font-semibold text-gray-900">{user.direccion || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        user.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.estado ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                    <input
+                      type="text"
+                      value={formData.direccion}
+                      onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Foto (URL)</label>
+                    <input
+                      type="text"
+                      value={formData.foto}
+                      onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="https://ejemplo.com/foto.jpg (opcional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña (opcional)</label>
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Dejar vacío para mantener la actual"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Solo complete si desea cambiar la contraseña</p>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="estado-edit"
+                      checked={formData.estado}
+                      onChange={(e) => setFormData({ ...formData, estado: e.target.checked })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="estado-edit" className="ml-2 block text-sm text-gray-900">
+                      Usuario activo
+                    </label>
                   </div>
                 </div>
               )}

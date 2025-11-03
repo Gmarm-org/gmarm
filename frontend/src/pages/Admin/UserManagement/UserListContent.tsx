@@ -75,13 +75,14 @@ const UserListContent: React.FC = () => {
   };
 
   const handleDelete = async (user: User) => {
-    if (confirm(`¿Está seguro de eliminar al usuario ${user.username}?`)) {
+    if (confirm(`¿Desactivar al usuario ${user.username}? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        await userApi.delete(user.id);
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await userApi.update(user.id, { ...user, estado: false });
         await loadUsers();
       } catch (error) {
-        console.error('Error eliminando usuario:', error);
-        alert('Error al eliminar el usuario');
+        console.error('Error desactivando usuario:', error);
+        alert('Error al desactivar el usuario');
       }
     }
   };

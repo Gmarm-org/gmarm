@@ -1,5 +1,104 @@
 # 📋 PENDIENTES - PANEL ADMINISTRADOR
 
+---
+
+## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (03/11/2024)
+
+### 1. ✅ **Series de Armas - 500 series cargadas**
+- ✅ SQL maestro corregido: campo `estado` de 'ACTIVO' → `true` (Boolean)
+- ✅ 500 series cargadas correctamente en `arma_serie`
+- ✅ Series vinculadas a 17 armas de expoferia
+- ✅ NullPointerException resuelto en `InventarioService` (`expoferia` ahora Boolean)
+
+### 2. ✅ **Jefe de Ventas - Botón "Generar Solicitud" eliminado**
+- ✅ Cambiado de "Generar Solicitud" → "Ver Detalle"
+- ✅ Jefe de Ventas solo supervisa, NO genera solicitudes
+- ✅ Texto cambiado: "listos para generar solicitud" → "Supervisión de clientes..."
+- **Archivo**: `frontend/src/pages/JefeVentas/JefeVentas.tsx`
+
+### 3. ✅ **Panel Admin - Filtro Expoferia**
+- ✅ Filtro ahora filtra por `weapon.expoferia === true` (antes filtraba por `estado`)
+- ✅ Filtro solo aparece si `EXPOFERIA_ACTIVA='true'` en `configuracion_sistema`
+- ✅ Muestra correctamente las 17 armas de expoferia cuando el filtro está activo
+- **Archivo**: `frontend/src/pages/Admin/WeaponManagement/WeaponListContent.tsx`
+
+### 4. ✅ **Panel Admin - Modal Ver Usuario**
+- ✅ Reemplazado `alert()` por `UserViewModal` visual moderno
+- ✅ Modal muestra: foto/avatar, contacto, roles, sesión
+- ✅ Botón "Editar Usuario" directo desde el modal
+- ✅ Diseño consistente con otros modales del sistema
+- **Archivos**:
+  - `frontend/src/pages/Admin/UserManagement/UserViewModal.tsx` (NUEVO)
+  - `frontend/src/pages/Admin/UserManagement/UserListContent.tsx` (ACTUALIZADO)
+
+### 5. ✅ **Panel Admin - Edición de Usuario Completa**
+- ✅ Modo EDIT ahora permite editar TODOS los campos del usuario:
+  - Username, email, nombres, apellidos
+  - Teléfonos (principal y secundario)
+  - Dirección, foto, estado
+  - Contraseña (opcional, solo si se desea cambiar)
+- ✅ Datos del usuario se cargan correctamente en el formulario
+- ✅ Correspondencia de datos correcta entre BD y formulario
+- **Archivo**: `frontend/src/pages/Admin/UserManagement/UserEditModal.tsx`
+
+### 6. ✅ **Eliminación de Usuarios - Cambio de Estado (No Eliminar)**
+- ✅ `handleDelete` ahora solo cambia `estado=false` (inactivo)
+- ✅ NO elimina el registro de la BD (mantiene auditoría)
+- ✅ Confirmación actualizada: explica que no se eliminará, solo desactivará
+- **Archivo**: `frontend/src/pages/Admin/UserManagement/UserListContent.tsx`
+- **Pendiente**: Aplicar mismo patrón a TODOS los catálogos (ver sección abajo)
+
+### 7. ✅ **PostgreSQL - OOM Killer Resuelto**
+- ✅ Uso correcto de `mem_limit`, `mem_reservation`, `cpus` en Docker Compose
+- ✅ PostgreSQL con startup garantizado (phased initialization)
+- ✅ SWAP de 2GB configurado en servidor
+- ✅ Consumo de memoria estable (2-3% en DEV)
+- **Archivos**:
+  - `docker-compose.dev.yml`
+  - `docker-compose.prod.yml`
+  - `scripts/setup-swap.sh`
+  - `scripts/ensure-db-exists.sh`
+
+---
+
+## ⚠️ PENDIENTE CRÍTICO - ELIMINACIÓN EN TODOS LOS CATÁLOGOS
+
+### **Cambiar eliminación directa a desactivación (cambio de estado)**
+**Estado**: Solo aplicado en **Usuarios**, falta aplicar en todos los demás catálogos
+
+**Motivo**: No eliminar registros de la BD para mantener auditoría y trazabilidad
+
+**Catálogos que necesitan el cambio**:
+- [ ] **Armas** (`WeaponListContent.tsx`)
+- [ ] **Roles** (`RoleList.tsx`)
+- [ ] **Categorías de Armas** (`WeaponCategoryList.tsx`)
+- [ ] **Licencias** (`LicenseList.tsx`)
+- [ ] **Tipos de Cliente** (`ClientTypeList.tsx`)
+- [ ] **Tipos de Identificación** (`IdentificationTypeList.tsx`)
+- [ ] **Tipos de Importación** (`ImportTypeList.tsx`)
+- [ ] **Tipos de Documento** (`TipoDocumento.tsx`)
+- [ ] **Preguntas** (`GestionPreguntas.tsx`)
+
+**Patrón a seguir** (ejemplo de Usuarios):
+```typescript
+const handleDelete = async (item: Item) => {
+  if (confirm(`¿Desactivar ${item.nombre}? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
+    try {
+      // No eliminar, solo cambiar estado a false (inactivo)
+      await api.update(item.id, { ...item, estado: false });
+      await loadItems();
+    } catch (error) {
+      console.error('Error desactivando item:', error);
+      alert('Error al desactivar el item');
+    }
+  }
+};
+```
+
+**Prioridad**: 🔴 **ALTA** - Debe aplicarse antes de producción
+
+---
+
 ## ✅ COMPLETADO
 
 ### CRUD Básico Funcional
