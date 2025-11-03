@@ -30,50 +30,8 @@ log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# 0. Configurar JAVA_HOME si no está definido
-if [ -z "$JAVA_HOME" ]; then
-    log_warn "JAVA_HOME no configurado, detectando Java..."
-    # Buscar Java en rutas comunes
-    if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then
-        export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-    elif [ -d "/usr/lib/jvm/java-17-openjdk" ]; then
-        export JAVA_HOME="/usr/lib/jvm/java-17-openjdk"
-    elif [ -d "/usr/lib/jvm/default-java" ]; then
-        export JAVA_HOME="/usr/lib/jvm/default-java"
-    else
-        log_error "No se pudo encontrar Java 17. Instalar con: sudo apt install openjdk-17-jdk"
-        exit 1
-    fi
-    export PATH="$JAVA_HOME/bin:$PATH"
-    log_info "JAVA_HOME configurado: $JAVA_HOME"
-fi
-
-# Verificar versión de Java
-log_info "Versión de Java:"
-java -version
-
-# 1. Compilar backend
-log_info "Compilando backend..."
-cd backend
-chmod +x ./mvnw  # Dar permisos al Maven wrapper
-./mvnw clean compile -DskipTests
-if [ $? -ne 0 ]; then
-    log_error "Error compilando backend"
-    exit 1
-fi
-cd ..
-log_info "Backend compilado exitosamente"
-
-# 2. Construir frontend
-log_info "Construyendo frontend..."
-cd frontend
-npm run build
-if [ $? -ne 0 ]; then
-    log_error "Error construyendo frontend"
-    exit 1
-fi
-cd ..
-log_info "Frontend construido exitosamente"
+# NOTA: NO compilar localmente - GitHub Actions ya compiló el código
+# El servidor solo reconstruye los contenedores Docker (que tienen Java/Node dentro)
 
 # 3. Verificar que las variables de entorno estén configuradas
 log_info "Verificando variables de entorno..."
