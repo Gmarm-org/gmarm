@@ -72,14 +72,15 @@ const RoleList: React.FC = () => {
   };
 
   const handleDelete = async (role: Role) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el rol "${role.nombre}"?`)) {
+    if (window.confirm(`¿Desactivar el rol "${role.nombre}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        await roleApi.delete(role.id);
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await roleApi.update(role.id, { ...role, estado: false });
         await loadRoles();
-        alert('Rol eliminado exitosamente');
+        alert('Rol desactivado exitosamente');
       } catch (error) {
-        console.error('Error eliminando rol:', error);
-        alert('Error al eliminar el rol');
+        console.error('Error desactivando rol:', error);
+        alert('Error al desactivar el rol');
       }
     }
   };

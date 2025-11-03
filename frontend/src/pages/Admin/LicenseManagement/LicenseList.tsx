@@ -87,14 +87,15 @@ const LicenseList: React.FC = () => {
   };
 
   const handleDelete = async (license: License) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar la licencia "${license.numero}"?`)) {
+    if (window.confirm(`¿Desactivar la licencia "${license.numero}"? No se eliminará de la base de datos, solo cambiará su estado a INACTIVA para mantener auditoría.`)) {
       try {
-        await licenseApi.delete(license.id);
+        // No eliminar, solo cambiar estado a INACTIVA
+        await licenseApi.update(license.id, { ...license, estado: 'INACTIVA' });
         await loadLicenses();
-        alert('Licencia eliminada exitosamente');
+        alert('Licencia desactivada exitosamente');
       } catch (error) {
-        console.error('Error eliminando licencia:', error);
-        alert('Error al eliminar la licencia');
+        console.error('Error desactivando licencia:', error);
+        alert('Error al desactivar la licencia');
       }
     }
   };

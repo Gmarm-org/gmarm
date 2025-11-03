@@ -83,13 +83,15 @@ const GestionPreguntas: React.FC = () => {
   };
 
   const handleDelete = async (question: Question) => {
-    if (confirm(`¿Eliminar la pregunta "${question.pregunta}"?`)) {
+    if (confirm(`¿Desactivar la pregunta "${question.pregunta}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        await questionApi.delete(question.id);
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await questionApi.update(question.id, { ...question, estado: false });
         await loadQuestions();
+        alert('Pregunta desactivada exitosamente');
       } catch (error) {
-        console.error('Error eliminando pregunta:', error);
-        alert('Error al eliminar la pregunta');
+        console.error('Error desactivando pregunta:', error);
+        alert('Error al desactivar la pregunta');
       }
     }
   };

@@ -84,13 +84,15 @@ const TipoDocumento: React.FC = () => {
   };
 
   const handleDelete = async (documentType: DocumentType) => {
-    if (confirm(`¿Eliminar el tipo de documento "${documentType.nombre}"?`)) {
+    if (confirm(`¿Desactivar el tipo de documento "${documentType.nombre}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        await documentTypeApi.delete(documentType.id);
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await documentTypeApi.update(documentType.id, { ...documentType, estado: false });
         await loadDocumentTypes();
+        alert('Tipo de documento desactivado exitosamente');
       } catch (error) {
-        console.error('Error eliminando tipo de documento:', error);
-        alert('Error al eliminar el tipo de documento');
+        console.error('Error desactivando tipo de documento:', error);
+        alert('Error al desactivar el tipo de documento');
       }
     }
   };

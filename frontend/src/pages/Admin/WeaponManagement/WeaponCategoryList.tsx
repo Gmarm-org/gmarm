@@ -86,14 +86,15 @@ const WeaponCategoryList: React.FC = () => {
   };
 
   const handleDelete = async (category: WeaponCategory) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.nombre}"?`)) {
+    if (window.confirm(`¿Desactivar la categoría "${category.nombre}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        await weaponCategoryApi.delete(category.id);
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await weaponCategoryApi.update(category.id, { ...category, estado: false });
         await loadCategories();
-        alert('Categoría eliminada exitosamente');
+        alert('Categoría desactivada exitosamente');
       } catch (error) {
-        console.error('Error eliminando categoría:', error);
-        alert('Error al eliminar la categoría');
+        console.error('Error desactivando categoría:', error);
+        alert('Error al desactivar la categoría');
       }
     }
   };

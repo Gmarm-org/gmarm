@@ -120,14 +120,15 @@ const ImportTypeList: React.FC = () => {
   };
 
   const handleDelete = async (importType: ImportType) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el tipo de importación "${importType.nombre}"?`)) {
+    if (window.confirm(`¿Desactivar el tipo de importación "${importType.nombre}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        await importTypeApi.delete(importType.id);
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await importTypeApi.update(importType.id, { ...importType, estado: false });
         await loadImportTypes();
-        alert('Tipo de importación eliminado exitosamente');
+        alert('Tipo de importación desactivado exitosamente');
       } catch (error) {
-        console.error('Error eliminando tipo de importación:', error);
-        alert('Error al eliminar el tipo de importación');
+        console.error('Error desactivando tipo de importación:', error);
+        alert('Error al desactivar el tipo de importación');
       }
     }
   };
