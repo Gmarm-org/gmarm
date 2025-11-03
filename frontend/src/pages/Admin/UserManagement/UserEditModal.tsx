@@ -22,6 +22,10 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
     password: '',
     nombres: '',
     apellidos: '',
+    telefono_principal: '',
+    telefono_secundario: '',
+    direccion: '',
+    foto: '',
     estado: true
   });
 
@@ -35,6 +39,10 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           password: '',
           nombres: '',
           apellidos: '',
+          telefono_principal: '',
+          telefono_secundario: '',
+          direccion: '',
+          foto: '',
           estado: true
         });
         setSelectedRoleIds(new Set());
@@ -87,16 +95,28 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
       if (mode === 'create') {
         // Validar campos requeridos
         if (!formData.username || !formData.email || !formData.password || !formData.nombres || !formData.apellidos) {
-          alert('Todos los campos son obligatorios');
+          alert('Todos los campos obligatorios deben estar completos');
           return;
         }
 
-        // Crear usuario con roles
+        // Paso 1: Crear usuario (el backend espera 'passwordHash' no 'password')
         const newUserData: any = {
-          ...formData,
-          roleIds: Array.from(selectedRoleIds)
+          username: formData.username,
+          email: formData.email,
+          passwordHash: formData.password, // El backend espera 'passwordHash'
+          nombres: formData.nombres,
+          apellidos: formData.apellidos,
+          telefonoPrincipal: formData.telefono_principal || null,
+          telefonoSecundario: formData.telefono_secundario || null,
+          direccion: formData.direccion || null,
+          foto: formData.foto || null,
+          estado: formData.estado
         };
-        await userApi.create(newUserData);
+        
+        const createdUser = await userApi.create(newUserData);
+        
+        // Paso 2: Asignar roles al usuario recién creado
+        await userApi.assignRoles(createdUser.id, Array.from(selectedRoleIds));
       } else if (user) {
         // Solo asignar roles en modo edit
         await userApi.assignRoles(user.id, Array.from(selectedRoleIds));
@@ -106,7 +126,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
       onClose();
     } catch (error) {
       console.error('Error guardando usuario:', error);
-      alert(mode === 'create' ? 'Error al crear el usuario' : 'Error al guardar los roles del usuario');
+      alert(mode === 'create' ? 'Error al crear el usuario. Verifique que el username y email sean únicos.' : 'Error al guardar los roles del usuario');
     } finally {
       setIsSaving(false);
     }
@@ -199,6 +219,48 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Principal</label>
+                      <input
+                        type="tel"
+                        value={formData.telefono_principal}
+                        onChange={(e) => setFormData({ ...formData, telefono_principal: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0999999999"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Secundario</label>
+                      <input
+                        type="tel"
+                        value={formData.telefono_secundario}
+                        onChange={(e) => setFormData({ ...formData, telefono_secundario: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0999999999"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                    <input
+                      type="text"
+                      value={formData.direccion}
+                      onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Quito, Ecuador"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Foto (URL)</label>
+                    <input
+                      type="text"
+                      value={formData.foto}
+                      onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="https://ejemplo.com/foto.jpg (opcional)"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
                     <input
@@ -237,6 +299,26 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
                       <p className="text-sm font-semibold text-gray-900">{user.email}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nombres</label>
+                      <p className="text-sm font-semibold text-gray-900">{user.nombres}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Apellidos</label>
+                      <p className="text-sm font-semibold text-gray-900">{user.apellidos}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono Principal</label>
+                      <p className="text-sm font-semibold text-gray-900">{user.telefono_principal || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono Secundario</label>
+                      <p className="text-sm font-semibold text-gray-900">{user.telefono_secundario || 'N/A'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Dirección</label>
+                      <p className="text-sm font-semibold text-gray-900">{user.direccion || 'N/A'}</p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>

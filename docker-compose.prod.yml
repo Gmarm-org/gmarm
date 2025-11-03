@@ -12,8 +12,11 @@ services:
       - SPRING_DATASOURCE_PASSWORD=prodpass
       - APP_JWT_SECRET=${JWT_SECRET}
       - APP_JWT_EXPIRATION=86400000
+      # Configuración JVM optimizada para producción
+      - JAVA_OPTS=-Xms512m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=192m
     depends_on:
-      - postgres_prod
+      postgres_prod:
+        condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -54,7 +57,7 @@ services:
       - gmarm-network
 
   postgres_prod:
-    image: postgres:14
+    image: postgres:15-alpine
     container_name: gmarm-postgres-prod
     environment:
       POSTGRES_DB: gmarm_db
@@ -62,39 +65,69 @@ services:
       POSTGRES_PASSWORD: prodpass
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-      # Optimizaciones CONSERVADORAS para producción (evitar OOM)
-      POSTGRES_SHARED_BUFFERS: "256MB"                       # 25% de 1GB límite
-      POSTGRES_EFFECTIVE_CACHE_SIZE: "512MB"                 # Cache conservadora
-      POSTGRES_WORK_MEM: "8MB"                              # Reducido para evitar peak memory
-      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"                  # Mantenimiento conservador
-      POSTGRES_MAX_CONNECTIONS: "50"                        # Reducido de 100 para estabilidad
-      # Configuración adicional para estabilidad
-      POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.9"           # Checkpoints suaves
-      POSTGRES_WAL_BUFFERS: "16MB"                           # Buffers WAL pequeños
-      POSTGRES_DEFAULT_STATISTICS_TARGET: "50"               # Estadísticas moderadas
     ports:
       - "5433:5432"
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
-      - ./datos:/docker-entrypoint-initdb.d
-    restart: unless-stopped
+      - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
+      - ./scripts/ensure-db-exists.sh:/docker-entrypoint-initdb.d/ensure-db-exists.sh
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/zzz-verify.sh
+    command:
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+      - "-c"
+      - "max_connections=30"                    # Optimizado para producción
+      - "-c"
+      - "shared_buffers=256MB"                  # 25% de RAM disponible
+      - "-c"
+      - "work_mem=4MB"                          # Conservador
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "effective_cache_size=512MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=8MB"
+      - "-c"
+      - "autovacuum=on"
+      - "-c"
+      - "log_min_duration_statement=1000"       # Log queries > 1s
+      - "-c"
+      - "log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+      - "-c"
+      - "log_checkpoints=on"
+      - "-c"
+      - "log_connections=off"
+      - "-c"
+      - "log_disconnections=off"
+    restart: always
     networks:
       - gmarm-network
-    # Límites de recursos para producción (MÁS CONSERVADOR para estabilidad crítica)
+    # Límites de recursos para producción (OPTIMIZADO)
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 1024M    # REDUCIDO a 1GB para evitar OOM killers
-        reservations:
           cpus: '1.0'
-          memory: 384M     # Reserva mínima conservadora
+          memory: 1024M    # 1GB para PostgreSQL en producción
+        reservations:
+          cpus: '0.5'
+          memory: 512M     # Reserva mínima 512MB
+    # OOM Score: -500 para que el kernel NO lo mate primero
+    oom_score_adj: -500
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U produser -d gmarm_db"]
-      interval: 30s        # Más espaciado para producción
-      timeout: 10s
-      retries: 3           # Fallar rápido si hay problemas
-      start_period: 90s    # Más tiempo para iniciar
+      interval: 10s        # Más frecuente para detectar problemas rápido
+      timeout: 5s
+      retries: 30          # Más reintentos antes de fallar
+      start_period: 30s    # Tiempo de gracia inicial
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
   postgres_data_prod:

@@ -21,7 +21,7 @@ public class UsuarioSimpleDTO {
     private String telefonoPrincipal;
     private String telefonoSecundario;
     private String direccion;
-    private Boolean activo;
+    private Boolean estado; // true = ACTIVO, false = INACTIVO
     private Boolean bloqueado;
     private LocalDateTime fechaCreacion;
     private LocalDateTime ultimoLogin;

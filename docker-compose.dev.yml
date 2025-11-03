@@ -6,38 +6,40 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-gmarm_dev}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      # Configuración para inicialización limpia
+      # CRÍTICO: PostgreSQL NO crea la BD automáticamente si el volumen existe
+      # Estas variables solo funcionan en la primera inicialización
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
-      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+      - ./scripts/ensure-db-exists.sh:/docker-entrypoint-initdb.d/ensure-db-exists.sh
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/zzz-verify.sh
     command: 
       - "postgres"
       - "-c"
       - "listen_addresses=*"
       - "-c"
-      - "max_connections=20"
+      - "max_connections=10"          # Reducido de 20 a 10
       - "-c"
-      - "shared_buffers=128MB"
+      - "shared_buffers=64MB"          # Reducido de 128MB a 64MB
       - "-c"
-      - "work_mem=2MB"
+      - "work_mem=1MB"                 # Reducido de 2MB a 1MB
       - "-c"
-      - "maintenance_work_mem=32MB"
+      - "maintenance_work_mem=16MB"    # Reducido de 32MB a 16MB
       - "-c"
-      - "effective_cache_size=256MB"
+      - "effective_cache_size=128MB"   # Reducido de 256MB a 128MB
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
-      - "wal_buffers=4MB"
+      - "wal_buffers=2MB"              # Reducido de 4MB a 2MB
       - "-c"
       - "autovacuum=on"
       - "-c"
-      - "log_connections=on"
+      - "log_connections=off"          # Desactivado para ahorrar recursos
       - "-c"
-      - "log_checkpoints=on"
+      - "log_checkpoints=off"          # Desactivado para ahorrar recursos
     networks:
       - gmarm_network
     # CRÍTICO: always en lugar de unless-stopped para que siempre se reinicie
@@ -46,11 +48,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M      # Reducido a 512MB para evitar OOM
+          cpus: '0.5'
+          memory: 768M      # Aumentado a 768MB (era 512MB - CRÍTICO)
         reservations:
           cpus: '0.25'
-          memory: 192M      # Mínimo 192MB
+          memory: 256M      # Mínimo 256MB
     # OOM Score: -500 para que el kernel NO lo mate primero
     oom_score_adj: -500
     # Healthcheck MINIMALISTA: solo verificar que PostgreSQL acepte conexiones
@@ -83,11 +85,11 @@ services:
       SPRING_CORS_ALLOWED_ORIGINS: ${SPRING_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://72.167.52.14:5173,http://72.167.52.14:80}
       SPRING_CORS_ALLOWED_METHODS: GET,POST,PUT,DELETE,OPTIONS
       SPRING_CORS_ALLOWED_HEADERS: "*"
-      # Configuración JVM para limitar uso de memoria
-      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      # Configuración JVM para limitar uso de memoria (REDUCIDO)
+      JAVA_OPTS: "-Xms192m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m"
     depends_on:
       postgres_dev:
-        condition: service_started
+        condition: service_healthy
     networks:
       - gmarm_network
     restart: unless-stopped
@@ -95,11 +97,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'      # Máximo 1.5 CPU
-          memory: 768M     # Máximo 768MB RAM
+          cpus: '1.0'      # Máximo 1.0 CPU (reducido)
+          memory: 512M     # Máximo 512MB RAM (reducido de 768MB)
         reservations:
           cpus: '0.5'      # Mínimo 0.5 CPU
-          memory: 384M     # Mínimo 384MB RAM
+          memory: 256M     # Mínimo 256MB RAM
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
