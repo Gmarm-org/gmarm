@@ -32,7 +32,13 @@ services:
       - "-c"
       - "wal_buffers=4MB"
       - "-c"
-      - "autovacuum=off"
+      - "autovacuum=on"
+      - "-c"
+      - "autovacuum_max_workers=1"              # Solo 1 worker (antes sin límite)
+      - "-c"
+      - "autovacuum_naptime=300s"               # Cada 5 min (antes 60s)
+      - "-c"
+      - "autovacuum_work_mem=8MB"               # Máximo 8MB por autovacuum
       - "-c"
       - "fsync=off"
       - "-c"
