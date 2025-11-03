@@ -1005,9 +1005,12 @@ docker-compose -f docker-compose.dev.yml up -d --build frontend_dev
 
 ---
 
-## 🧹 SCRIPTS ÚTILES (Después de Limpieza - Commit: `TBD`)
+## 🧹 SCRIPTS ÚTILES (Después de Limpieza - Commit: `df14411`)
 
-**Limpieza realizada**: Eliminados 17 scripts obsoletos/redundantes
+**Limpieza realizada**: 
+- ✅ Eliminados 46 archivos obsoletos (17 scripts `.ps1` + 29 documentos `.md`)
+- ✅ -8,450 líneas de código/documentación obsoleta
+- ✅ Repositorio más limpio y mantenible
 
 ### ✅ **Scripts PowerShell para Desarrollo Local (Windows)**:
 
