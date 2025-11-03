@@ -96,9 +96,11 @@ services:
       - "-c"
       - "autovacuum=on"
       - "-c"
-      - "autovacuum_max_workers=2"              # Limitar workers de autovacuum
+      - "autovacuum_max_workers=1"              # Solo 1 worker (previene OOM)
       - "-c"
-      - "autovacuum_naptime=60s"                # Ejecutar cada minuto
+      - "autovacuum_naptime=300s"               # Cada 5 min (no cada 60s)
+      - "-c"
+      - "autovacuum_work_mem=16MB"              # Límite CRÍTICO para PROD (16MB)
       - "-c"
       - "log_min_duration_statement=1000"       # Log queries > 1s
       - "-c"
