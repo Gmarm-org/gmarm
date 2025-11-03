@@ -69,7 +69,34 @@
   - `scripts/ensure-db-exists.sh`
   - `scripts/reset-db-dev-100-funcional.sh` ✅ NUEVO
 
-#### 🚨 **SI LA BD SE MUERE EN DEV (PostgreSQL 100% RAM, I/O Excesivo):**
+#### 🚨 **CAUSA REAL IDENTIFICADA - OOM Killer en DEV:**
+
+**Diagnóstico del 03/11/2024 - 20:01**:
+```bash
+💀 20 eventos OOM Killer entre 12:15-14:37
+Proceso matado: kdevtmpfsi (autovacuum worker de PostgreSQL)
+Consumo: 760-890MB por worker
+Sin uso de BD en 3 horas → autovacuum corriendo en background
+```
+
+**Causa REAL**: 
+- ❌ **Autovacuum sin límites** consumía toda la RAM
+- ❌ `autovacuum_naptime=60s` → ejecutaba cada minuto
+- ❌ Sin `autovacuum_work_mem` → sin límite de RAM por worker
+- ❌ Workers múltiples → varios procesos de 800MB+ simultáneos
+
+**Solución Aplicada** (commit `f365b0a`):
+- ✅ `autovacuum_max_workers=1` (solo 1 worker)
+- ✅ `autovacuum_naptime=300s` (cada 5 minutos, no cada 60s)
+- ✅ `autovacuum_work_mem=8MB` (límite CRÍTICO - máximo 8MB por worker)
+
+**Resultado esperado**:
+- Autovacuum seguirá funcionando (limpia tablas)
+- Pero NUNCA consumirá más de 8MB por operación
+- Solo 1 worker a la vez
+- Se ejecuta cada 5 minutos (no cada minuto)
+
+#### 🚨 **SI LA BD SE MUERE NUEVAMENTE (PostgreSQL 100% RAM, I/O Excesivo):**
 
 **Síntomas**:
 ```bash
@@ -77,7 +104,9 @@ docker stats --no-stream
 # gmarm-postgres-dev: 36.91% CPU, 1.5GiB/1.5GiB (100%), 256GB/199GB I/O
 ```
 
-**Causa**: Backend intenta conectarse a BD que no existe → PostgreSQL entra en loop infinito
+**Posibles causas**:
+1. Backend intenta conectarse a BD que no existe → loop infinito
+2. Autovacuum ejecutándose sin límites (YA CORREGIDO)
 
 **Solución INMEDIATA** (en servidor DEV):
 ```bash
