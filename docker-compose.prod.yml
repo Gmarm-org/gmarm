@@ -24,15 +24,10 @@ services:
     restart: unless-stopped
     networks:
       - gmarm-network
-    # Límites de recursos para producción
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'      # Máximo 2 CPU
-          memory: 1024M    # Máximo 1GB RAM
-        reservations:
-          cpus: '1.0'      # Mínimo 1 CPU
-          memory: 512M     # Mínimo 512MB RAM
+    # 🔥 Límites REALES de Docker (NO Swarm)
+    mem_limit: 1g
+    mem_reservation: 512m
+    cpus: 2.0
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
       interval: 30s
@@ -105,24 +100,16 @@ services:
     restart: always
     networks:
       - gmarm-network
-    # Límites de recursos para producción (OPTIMIZADO)
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1024M    # 1GB para PostgreSQL en producción
-        reservations:
-          cpus: '0.5'
-          memory: 512M     # Reserva mínima 512MB
-    # OOM Score: -500 para que el kernel NO lo mate primero
-    oom_score_adj: -500
+    # 🔥 Límites REALES de Docker (NO Swarm)
+    mem_limit: 1g
+    mem_reservation: 512m
+    cpus: 1.0
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U produser -d gmarm_db"]
-      interval: 10s        # Más frecuente para detectar problemas rápido
+      interval: 10s
       timeout: 5s
-      retries: 30          # Más reintentos antes de fallar
-      start_period: 30s    # Tiempo de gracia inicial
-    # Configuración de logging
+      retries: 30
+      start_period: 60s
     logging:
       driver: "json-file"
       options:

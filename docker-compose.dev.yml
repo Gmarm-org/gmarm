@@ -2,14 +2,10 @@ services:
   postgres_dev:
     image: postgres:15-alpine
     container_name: gmarm-postgres-dev
-    # Entrypoint comentado temporalmente - causa conflicto con command
-    # entrypoint: ["/bin/bash", "/scripts/docker-postgres-entrypoint.sh"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gmarm_dev}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      # CRÍTICO: PostgreSQL NO crea la BD automáticamente si el volumen existe
-      # Por eso usamos entrypoint personalizado
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -17,58 +13,45 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
       - ./scripts/init-postgres-garantizado.sh:/docker-entrypoint-initdb.d/init-postgres-garantizado.sh
-      - ./scripts/docker-postgres-entrypoint.sh:/scripts/docker-postgres-entrypoint.sh
-    command: 
+    command:
       - "postgres"
       - "-c"
       - "listen_addresses=*"
       - "-c"
-      - "max_connections=5"            # ULTRA-REDUCIDO a 5 (solo backend + healthcheck)
+      - "max_connections=10"
       - "-c"
-      - "shared_buffers=32MB"          # MÍNIMO: 32MB (era 64MB)
+      - "shared_buffers=128MB"
       - "-c"
-      - "work_mem=512KB"               # MÍNIMO: 512KB (era 1MB)
+      - "work_mem=1MB"
       - "-c"
-      - "maintenance_work_mem=8MB"     # MÍNIMO: 8MB (era 16MB)
+      - "maintenance_work_mem=16MB"
       - "-c"
-      - "effective_cache_size=64MB"    # MÍNIMO: 64MB (era 128MB)
+      - "effective_cache_size=512MB"
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
-      - "wal_buffers=1MB"              # MÍNIMO: 1MB (era 2MB)
+      - "wal_buffers=4MB"
       - "-c"
-      - "autovacuum=off"               # DESACTIVADO para ahorrar recursos
+      - "autovacuum=off"
+      - "-c"
+      - "fsync=off"
       - "-c"
       - "log_connections=off"
       - "-c"
-      - "log_checkpoints=off"
-      - "-c"
-      - "log_statement=none"           # Sin logs de queries
-      - "-c"
-      - "fsync=off"                    # PELIGROSO pero necesario para desarrollo
+      - "log_statement=none"
     networks:
       - gmarm_network
-    # CRÍTICO: always en lugar de unless-stopped para que siempre se reinicie
     restart: always
-    # Límites DEFINITIVOS para evitar OOM Killer
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1536M     # 1.5GB - DEFINITIVO (kdevtmpfsi necesita >768MB)
-        reservations:
-          cpus: '0.25'
-          memory: 512M      # Mínimo 512MB
-    # OOM Score: -500 para que el kernel NO lo mate primero
-    oom_score_adj: -500
-    # Healthcheck PERMISIVO: solo verificar que PostgreSQL responda
+    # 🔥 Límites REALES de Docker (NO Swarm - estos SÍ funcionan)
+    mem_limit: 1.5g
+    mem_reservation: 512m
+    cpus: 0.5
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
-      interval: 10s         # Verificar cada 10s (menos frecuente)
-      timeout: 5s           # Timeout de 5s
-      retries: 30           # 30 reintentos = 5 minutos máximo
-      start_period: 60s     # 60s de gracia antes de empezar healthchecks
-    # Configuración de logging para debugging
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     logging:
       driver: "json-file"
       options:
@@ -99,15 +82,10 @@ services:
     networks:
       - gmarm_network
     restart: unless-stopped
-    # Límites ULTRA-REDUCIDOS para dar más espacio a PostgreSQL
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'      # Máximo 1.0 CPU
-          memory: 384M     # Reducido a 384MB (backend usa ~320MB)
-        reservations:
-          cpus: '0.5'      # Mínimo 0.5 CPU
-          memory: 192M     # Mínimo 192MB RAM
+    # 🔥 Límites REALES de Docker (NO Swarm)
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 1.0
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -145,15 +123,10 @@ services:
     networks:
       - gmarm_network
     restart: unless-stopped
-    # Límites REDUCIDOS para dar más espacio a PostgreSQL
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'      # Máximo 0.5 CPU
-          memory: 384M     # Reducido a 384MB (era 512MB)
-        reservations:
-          cpus: '0.25'     # Mínimo 0.25 CPU
-          memory: 192M     # Mínimo 192MB RAM
+    # 🔥 Límites REALES de Docker (NO Swarm)
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 0.5
 
 volumes:
   postgres_data_dev:
