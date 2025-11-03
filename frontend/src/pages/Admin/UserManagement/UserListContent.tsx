@@ -5,6 +5,7 @@ import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { userApi, type User } from '../../../services/adminApi';
 import UserEditModal from './UserEditModal';
+import UserViewModal from './UserViewModal';
 
 const UserListContent: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -12,6 +13,7 @@ const UserListContent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('edit');
 
@@ -98,10 +100,8 @@ const UserListContent: React.FC = () => {
   };
 
   const handleView = async (user: User) => {
-    const bloqueadoText = user.bloqueado ? '\n🔒 BLOQUEADO' : '';
-    const ultimoLogin = user.ultimo_login ? `\nÚltimo login: ${new Date(user.ultimo_login).toLocaleString('es-EC')}` : '\nÚltimo login: Nunca';
-    const telefono = user.telefono_principal ? `\nTeléfono: ${user.telefono_principal}` : '';
-    alert(`Usuario: ${user.username}\nEmail: ${user.email}\nEstado: ${user.estado ? 'Activo' : 'Inactivo'}${bloqueadoText}${ultimoLogin}${telefono}\nRoles: ${user.roles?.map((r: any) => r.nombre).join(', ') || 'Sin roles'}`);
+    setSelectedUser(user);
+    setViewModalOpen(true);
   };
 
   const columns: AdminTableColumn[] = [
@@ -243,6 +243,17 @@ const UserListContent: React.FC = () => {
         onView={handleView}
         searchPlaceholder="Buscar usuarios..."
         stats={<AdminStats stats={stats} />}
+      />
+
+      {/* Modal de Vista */}
+      <UserViewModal
+        user={selectedUser}
+        isOpen={viewModalOpen}
+        onClose={() => {
+          setViewModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onEdit={handleEdit}
       />
 
       {/* Modal de Edición/Creación */}
