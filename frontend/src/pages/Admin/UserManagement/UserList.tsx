@@ -158,7 +158,7 @@ const UserList: React.FC = () => {
       label: 'Fecha Creación',
       render: (value) => (
         <div className="text-sm text-gray-900">
-          {new Date(value).toLocaleDateString('es-EC')}
+          {value ? new Date(value).toLocaleDateString('es-EC') : 'Sin fecha'}
         </div>
       )
     }

@@ -256,7 +256,7 @@ const AsignacionSeries: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(reserva.fechaAsignacion).toLocaleDateString('es-ES')}
+                    {reserva.fechaAsignacion ? new Date(reserva.fechaAsignacion).toLocaleDateString('es-ES') : 'Sin fecha'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {reserva.estado === 'RESERVADA' ? (

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { User } from '../../../services/adminApi';
+import { formatDateTime } from '../../../utils/dateUtils';
 
 interface UserViewModalProps {
   user: User | null;
@@ -122,9 +123,7 @@ const UserViewModal: React.FC<UserViewModalProps> = ({ user, isOpen, onClose, on
               <div>
                 <label className="text-xs text-gray-500 uppercase tracking-wide">Último Login</label>
                 <p className="text-sm font-medium text-gray-900 mt-1">
-                  {user.ultimo_login 
-                    ? new Date(user.ultimo_login).toLocaleString('es-EC')
-                    : 'Nunca'}
+                  {formatDateTime(user.ultimo_login, 'Nunca')}
                 </p>
               </div>
               <div>

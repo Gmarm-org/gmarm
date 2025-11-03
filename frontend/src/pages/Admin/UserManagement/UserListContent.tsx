@@ -6,6 +6,7 @@ import type { AdminStat } from '../components/AdminStats';
 import { userApi, type User } from '../../../services/adminApi';
 import UserEditModal from './UserEditModal';
 import UserViewModal from './UserViewModal';
+import { formatDateTime } from '../../../utils/dateUtils';
 
 const UserListContent: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -175,7 +176,7 @@ const UserListContent: React.FC = () => {
       label: 'Último Login',
       render: (value) => (
         <div className="text-xs text-gray-600">
-          {value ? new Date(value).toLocaleString('es-EC') : 'Nunca'}
+          {formatDateTime(value, 'Nunca')}
         </div>
       )
     },

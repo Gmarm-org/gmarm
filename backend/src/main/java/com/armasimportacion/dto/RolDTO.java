@@ -1,6 +1,7 @@
 package com.armasimportacion.dto;
 
 import com.armasimportacion.enums.TipoRolVendedor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,7 +19,10 @@ public class RolDTO {
     private String codigo;
     private String nombre;
     private String descripcion;
+    
+    @JsonProperty("tipo_rol_vendedor")
     private TipoRolVendedor tipoRolVendedor;
+    
     private Boolean estado;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;

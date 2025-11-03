@@ -128,6 +128,23 @@ const RoleList: React.FC = () => {
       )
     },
     {
+      key: 'tipo_rol_vendedor',
+      label: 'Tipo Vendedor',
+      render: (value) => (
+        <div className="text-sm text-gray-900">
+          {value ? (
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              value === 'FIJO' ? 'bg-purple-100 text-purple-800' : 'bg-cyan-100 text-cyan-800'
+            }`}>
+              {value === 'FIJO' ? 'Fijo' : 'Libre'}
+            </span>
+          ) : (
+            <span className="text-gray-400">-</span>
+          )}
+        </div>
+      )
+    },
+    {
       key: 'estado',
       label: 'Estado',
       render: (value) => (
@@ -143,7 +160,7 @@ const RoleList: React.FC = () => {
       label: 'Fecha Creación',
       render: (value) => (
         <div className="text-sm text-gray-900">
-          {new Date(value).toLocaleDateString('es-EC')}
+          {value ? new Date(value).toLocaleDateString('es-EC') : 'Sin fecha'}
         </div>
       )
     }

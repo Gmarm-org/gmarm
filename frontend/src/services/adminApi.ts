@@ -65,6 +65,7 @@ export interface Role {
   descripcion: string;
   estado: boolean;
   fecha_creacion: string;
+  tipo_rol_vendedor?: string; // FIJO o LIBRE (solo para rol VENDEDOR)
 }
 
 export interface User {
