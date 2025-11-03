@@ -218,11 +218,11 @@ jobs:
             git reset --hard origin/$BRANCH
             git clean -fd
             
-            echo "🔐 Dando permisos al script de deployment..."
-            chmod +x deploy-server.sh
+            echo "🔐 Dando permisos a scripts de deployment..."
+            chmod +x scripts/*.sh
             
             echo "🚀 Ejecutando script de deployment..."
-            ./deploy-server.sh
+            bash scripts/deploy-dev.sh
             
             echo "✅ Deployment completado exitosamente!"
           EOF
