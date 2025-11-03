@@ -908,9 +908,14 @@ bash scripts/diagnostico-dev.sh
 
 ---
 
-### Pendientes Menores (no bloqueantes):
-- ⚠️ **Fechas inválidas** (31/12/1969, Invalid Date) - renderizado de fechas null necesita validación
-- ⚠️ **tipo_rol_vendedor** en tabla Roles - falta mostrar en columna cuando rol es VENDEDOR
+### ✅ Pendientes Menores - COMPLETADOS (Commit: `4e7f85e`):
+- ✅ **Fechas inválidas** - Creado `dateUtils.ts` con funciones seguras (`formatDate`, `formatDateTime`, `formatRelativeDate`)
+  - Validación de fechas null/undefined/invalid antes de renderizar
+  - Aplicado en `UserListContent.tsx` y `UserViewModal.tsx`
+  - Evita mostrar "31/12/1969" o "Invalid Date"
+- ✅ **tipo_rol_vendedor** en tabla Roles - Agregado `@JsonProperty("tipo_rol_vendedor")` en `RolDTO.java`
+  - Backend ahora envía el campo en snake_case
+  - Frontend muestra correctamente el tipo de vendedor (FIJO/LIBRE)
 
 **📋 Pendientes Opcionales (Features Avanzadas):**
 1. **Armas - Múltiples Imágenes** - Sistema de gestión de múltiples imágenes por arma (UI compleja)
@@ -935,9 +940,15 @@ bash scripts/diagnostico-dev.sh
 10. Carga masiva de series: Implementada
 11. Password toggle: Mostrar/ocultar contraseña
 12. Timeout inactividad: 10 minutos automático
+13. **Eliminación en catálogos: Cambio a desactivación (10 catálogos)**
+14. **Fechas inválidas: dateUtils creado (formateo seguro)**
+15. **tipo_rol_vendedor: Visible en tabla Roles**
 
-### 📋 **Commits (14 TOTALES)**:
+### 📋 **Commits (17 TOTALES)**:
 ```
+4e7f85e - fix: pendientes menores (fechas inválidas + tipo_rol_vendedor)
+0c5c997 - docs: actualizar ADMIN_PENDIENTES tarea crítica completada
+2ecbf94 - feat: cambiar eliminación a desactivación en todos los catálogos
 8d2aff7 - feat: cierre automático inactividad 10 min
 a092eb8 - fix: CRUD admin (armas, categorías, licencias, tipo cliente)
 12ddc4e - fix: autovacuum PROD
@@ -956,11 +967,12 @@ e3bc4f6 - fix: jefe ventas
 ```
 
 ### 📊 **Estadísticas**:
-- **Archivos modificados**: 30+
-- **Líneas de código**: ~2,000
-- **Errores corregidos**: 9 críticos
-- **Features nuevas**: 3 (carga masiva, timeout, password toggle)
+- **Archivos modificados**: 40+
+- **Líneas de código**: ~2,500
+- **Errores corregidos**: 11 (9 críticos + 2 menores)
+- **Features nuevas**: 4 (carga masiva, timeout, password toggle, dateUtils)
 - **Optimizaciones**: 2 (memoria DEV/PROD, autovacuum)
+- **Mejoras de auditoría**: 10 catálogos con desactivación
 
 ### 🎯 **Estado del Sistema**:
 ✅ **LOCAL**: 100% funcional con todas las correcciones  
