@@ -1461,27 +1461,27 @@ SELECT 'La base de datos está lista para usar con el frontend.' as mensaje;
 -- VENDEDORES PILOTO
 -- ========================================
 
--- 1. Karolina Pazmiï¿½o
+-- 1. Karolina Pazmiño
 INSERT INTO usuario (
     bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, 
     username, apellidos, email, nombres, direccion, password_hash
 ) VALUES (
-    false, 0, NOW(), '0999999999', 'ACTIVO', 
+    false, 0, NOW(), '0999999999', true, 
     'karolina.pazmino', 'Pazmiño', 'karritogeova@hotmail.com', 
     'Karolina', 'Quito, Ecuador', 'admin123'
 ) ON CONFLICT (email) DO UPDATE SET 
-    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = 'ACTIVO';
+    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
 
 -- 2. Rossy Revelo
 INSERT INTO usuario (
     bloqueado, intentos_login, fecha_creacion, telefono_principal, estado,
     username, apellidos, email, nombres, direccion, password_hash
 ) VALUES (
-    false, 0, NOW(), '0999999999', 'ACTIVO',
+    false, 0, NOW(), '0999999999', true,
     'rossy.revelo', 'Revelo', 'rossy-revelo@hotmail.com',
     'Rossy', 'Quito, Ecuador', 'admin123'
 ) ON CONFLICT (email) DO UPDATE SET 
-    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = 'ACTIVO';
+    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
 
 -- Asignar rol VENDOR a vendedores piloto
 INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
