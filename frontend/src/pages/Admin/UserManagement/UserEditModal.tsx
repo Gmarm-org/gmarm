@@ -232,9 +232,9 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        user.estado === 'ACTIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        user.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {user.estado}
+                        {user.estado ? 'Activo' : 'Inactivo'}
                       </span>
                     </div>
                   </div>

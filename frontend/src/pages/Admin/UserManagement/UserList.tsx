@@ -34,7 +34,7 @@ const UserList: React.FC = () => {
           email: 'admin@armasimportacion.com',
           nombres: 'Administrador',
           apellidos: 'Sistema',
-          estado: 'ACTIVO',
+          estado: true,
           roles: ['ADMIN']
         },
         {
@@ -43,7 +43,7 @@ const UserList: React.FC = () => {
           email: 'vendedor@test.com',
           nombres: 'Juan',
           apellidos: 'Vendedor',
-          estado: 'ACTIVO',
+          estado: true,
           roles: ['VENDEDOR']
         }
       ];

@@ -45,11 +45,14 @@ export interface User {
   nombres: string;
   apellidos: string;
   foto?: string;
-  telefonoPrincipal: string;
+  telefonoPrincipal?: string;
   telefonoSecundario?: string;
-  direccion: string;
-  estado: string;
-  roles: string[];
+  direccion?: string;
+  estado: boolean; // true = ACTIVO, false = INACTIVO
+  bloqueado?: boolean;
+  ultimo_login?: string;
+  intentos_login?: number;
+  roles: any[];
 }
 
 // Tipos para pagos

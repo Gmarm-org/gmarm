@@ -14,6 +14,7 @@ export interface Weapon {
   categoriaId: number;
   categoriaNombre: string;
   estado: boolean;
+  expoferia?: boolean; // true = es de expoferia, false/null = no es de expoferia
   fechaCreacion?: string;
   fechaActualizacion?: string;
   codigo: string;
@@ -72,8 +73,15 @@ export interface User {
   email: string;
   nombres: string;
   apellidos: string;
-  estado: string;
-  roles: string[];
+  telefono_principal?: string;
+  telefono_secundario?: string;
+  direccion?: string;
+  foto?: string;
+  estado: boolean; // true = ACTIVO, false = INACTIVO
+  bloqueado?: boolean;
+  ultimo_login?: string;
+  intentos_login?: number;
+  roles: any[]; // Array de objetos {id, nombre, codigo}
 }
 
 export interface ClientType {
@@ -931,7 +939,7 @@ export const systemConfigApi = {
       }
       
       const text = await response.text();
-      return text ? JSON.parse(text) : config;
+      return text ? JSON.parse(text) : (config as SystemConfig);
     } catch (error) {
       console.error('Error updating config:', error);
       throw error;
