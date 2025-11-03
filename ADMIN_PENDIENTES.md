@@ -58,11 +58,49 @@
   - Backend: `JAVA_OPTS` optimizados con StringDeduplication
   - Frontend: `mem_limit=512m` agregado
   - Parámetros adicionales: `random_page_cost=1.1`, `effective_io_concurrency=200` (SSD)
+- ✅ **Script de recuperación definitivo**: `scripts/reset-db-dev-100-funcional.sh`
+  - Startup faseado: PostgreSQL → Crear BD → Cargar datos → Backend/Frontend
+  - Previene loop infinito de CPU/RAM (256GB+ I/O)
+  - Garantiza BD existe ANTES de que backend intente conectarse
 - **Archivos**:
   - `docker-compose.dev.yml`
   - `docker-compose.prod.yml` ✅ ACTUALIZADO
   - `scripts/setup-swap.sh`
   - `scripts/ensure-db-exists.sh`
+  - `scripts/reset-db-dev-100-funcional.sh` ✅ NUEVO
+
+#### 🚨 **SI LA BD SE MUERE EN DEV (PostgreSQL 100% RAM, I/O Excesivo):**
+
+**Síntomas**:
+```bash
+docker stats --no-stream
+# gmarm-postgres-dev: 36.91% CPU, 1.5GiB/1.5GiB (100%), 256GB/199GB I/O
+```
+
+**Causa**: Backend intenta conectarse a BD que no existe → PostgreSQL entra en loop infinito
+
+**Solución INMEDIATA** (en servidor DEV):
+```bash
+cd ~/deploy/dev
+bash scripts/reset-db-dev-100-funcional.sh
+```
+
+Este script:
+1. ✅ Detiene todos los servicios (`down -v`)
+2. ✅ Levanta SOLO PostgreSQL
+3. ✅ Espera a que esté listo (30 reintentos)
+4. ✅ Crea la BD `gmarm_dev`
+5. ✅ Carga el SQL maestro
+6. ✅ Verifica datos (usuarios, armas, series)
+7. ✅ Levanta backend y frontend (`--build`)
+8. ✅ Muestra estado final y uso de memoria
+
+**Tiempo estimado**: ~2-3 minutos
+
+**Resultado esperado**:
+- PostgreSQL: 2-5% CPU, 20-30% RAM
+- Backend: Inicia sin errores
+- BD: Completamente funcional con todos los datos
 
 ### 8. ✅ **Carga Masiva de Series desde Excel (Finanzas)**
 - ✅ Nueva pestaña en Finanzas: "📤 Carga Masiva de Series"
