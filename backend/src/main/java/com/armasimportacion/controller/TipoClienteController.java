@@ -55,4 +55,30 @@ public class TipoClienteController {
         log.info("Configuración de tipos de cliente generada: {} tipos", config.size());
         return ResponseEntity.ok(config);
     }
+    
+    @PostMapping
+    @Operation(summary = "Crear nuevo tipo de cliente", description = "Crea un nuevo tipo de cliente")
+    public ResponseEntity<TipoClienteDTO> createTipoCliente(@RequestBody TipoClienteDTO tipoDTO) {
+        log.info("Solicitud para crear nuevo tipo de cliente: {}", tipoDTO.getNombre());
+        var entity = mapper.toEntity(tipoDTO);
+        var created = service.create(entity);
+        return ResponseEntity.ok(mapper.toDTO(created));
+    }
+    
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar tipo de cliente", description = "Actualiza un tipo de cliente existente")
+    public ResponseEntity<TipoClienteDTO> updateTipoCliente(@PathVariable Long id, @RequestBody TipoClienteDTO tipoDTO) {
+        log.info("Solicitud para actualizar tipo de cliente ID: {}", id);
+        var entity = mapper.toEntity(tipoDTO);
+        var updated = service.update(id, entity);
+        return ResponseEntity.ok(mapper.toDTO(updated));
+    }
+    
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Desactivar tipo de cliente", description = "Cambia el estado a inactivo (no elimina)")
+    public ResponseEntity<Void> deleteTipoCliente(@PathVariable Long id) {
+        log.info("Solicitud para desactivar tipo de cliente ID: {}", id);
+        service.delete(id);
+        return ResponseEntity.ok().build();
+    }
 }

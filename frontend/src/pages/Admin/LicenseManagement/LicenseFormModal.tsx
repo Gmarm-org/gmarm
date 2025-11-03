@@ -59,6 +59,22 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
     e.preventDefault();
     if (mode === 'view') return;
 
+    // Validaciones
+    if (formData.ruc && formData.ruc.length > 13) {
+      alert('El RUC no puede tener más de 13 dígitos');
+      return;
+    }
+    
+    if (formData.telefono && formData.telefono.length > 10) {
+      alert('El teléfono no puede tener más de 10 dígitos');
+      return;
+    }
+    
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      alert('El email no es válido');
+      return;
+    }
+
     try {
       setIsSaving(true);
       await onSave(formData);
@@ -101,16 +117,16 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
                 <input type="text" value={formData.nombre || ''} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" required disabled={isReadOnly} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">RUC</label>
-                <input type="text" value={formData.ruc || ''} onChange={(e) => setFormData({ ...formData, ruc: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">RUC (máx. 13 dígitos)</label>
+                <input type="text" value={formData.ruc || ''} onChange={(e) => setFormData({ ...formData, ruc: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" maxLength={13} pattern="[0-9]*" disabled={isReadOnly} placeholder="1234567890001" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} />
+                <input type="email" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} placeholder="licencia@ejemplo.com" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <input type="text" value={formData.telefono || ''} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (máx. 10 dígitos)</label>
+                <input type="tel" value={formData.telefono || ''} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" maxLength={10} pattern="[0-9]*" disabled={isReadOnly} placeholder="0987654321" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>

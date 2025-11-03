@@ -56,8 +56,8 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
         return;
       }
       
-      if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen es demasiado grande. El tamaño máximo es 5MB');
+      if (file.size > 40 * 1024 * 1024) {
+        alert('La imagen es demasiado grande. El tamaño máximo es 40MB');
         return;
       }
       

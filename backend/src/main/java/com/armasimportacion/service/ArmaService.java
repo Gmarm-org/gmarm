@@ -1,7 +1,9 @@
 package com.armasimportacion.service;
 
 import com.armasimportacion.model.Arma;
+import com.armasimportacion.model.CategoriaArma;
 import com.armasimportacion.repository.ArmaRepository;
+import com.armasimportacion.repository.CategoriaArmaRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.dto.ArmaUpdateDTO;
 import com.armasimportacion.dto.ArmaCreateDTO;
@@ -23,6 +25,7 @@ public class ArmaService {
     
     private final ArmaRepository armaRepository;
     private final ArmaImageService armaImageService;
+    private final CategoriaArmaRepository categoriaArmaRepository;
     
     /**
      * Obtener TODAS las armas (activas e inactivas)
@@ -147,9 +150,10 @@ public class ArmaService {
             arma.setPrecioReferencia(updateDTO.getPrecioReferencia());
         }
         if (updateDTO.getCategoriaId() != null) {
-            // Aquí necesitarías obtener la categoría por ID
-            // Por ahora lo dejamos como está
-            log.warn("Actualización de categoría no implementada aún");
+            CategoriaArma categoria = categoriaArmaRepository.findById(updateDTO.getCategoriaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + updateDTO.getCategoriaId()));
+            arma.setCategoria(categoria);
+            log.info("Categoría actualizada: {} (ID {})", categoria.getNombre(), categoria.getId());
         }
         if (updateDTO.getEstado() != null) {
             arma.setEstado(updateDTO.getEstado());
@@ -205,9 +209,12 @@ public class ArmaService {
         arma.setFechaCreacion(LocalDateTime.now());
         arma.setFechaActualizacion(LocalDateTime.now());
         
-        // TODO: Implementar obtención de categoría por ID
+        // Asignar categoría
         if (createDTO.getCategoriaId() != null) {
-            log.warn("Asignación de categoría no implementada aún");
+            CategoriaArma categoria = categoriaArmaRepository.findById(createDTO.getCategoriaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + createDTO.getCategoriaId()));
+            arma.setCategoria(categoria);
+            log.info("Categoría asignada: {} (ID {})", categoria.getNombre(), categoria.getId());
         }
         
         // Guardar la arma primero para obtener el ID

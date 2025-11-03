@@ -42,4 +42,26 @@ public class TipoClienteMapper {
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
+    
+    public TipoCliente toEntity(TipoClienteDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        TipoCliente entity = new TipoCliente();
+        entity.setId(dto.getId());
+        entity.setNombre(dto.getNombre());
+        entity.setEstado(dto.getEstado() != null ? dto.getEstado() : true);
+        entity.setCodigo(dto.getCodigo());
+        entity.setDescripcion(dto.getDescripcion());
+        entity.setEsMilitar(dto.getEsMilitar());
+        entity.setEsPolicia(dto.getEsPolicia());
+        entity.setEsEmpresa(dto.getEsEmpresa());
+        entity.setEsDeportista(dto.getEsDeportista());
+        entity.setEsCivil(dto.getEsCivil());
+        entity.setRequiereIssfa(dto.getRequiereIssfa());
+        entity.setTipoProcesoId(dto.getTipoProcesoId());
+        
+        return entity;
+    }
 }
