@@ -2,20 +2,22 @@ services:
   postgres_dev:
     image: postgres:15-alpine
     container_name: gmarm-postgres-dev
+    # Entrypoint comentado temporalmente - causa conflicto con command
+    # entrypoint: ["/bin/bash", "/scripts/docker-postgres-entrypoint.sh"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gmarm_dev}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       # CRÍTICO: PostgreSQL NO crea la BD automáticamente si el volumen existe
-      # Estas variables solo funcionan en la primera inicialización
+      # Por eso usamos entrypoint personalizado
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
-      - ./scripts/ensure-db-exists.sh:/docker-entrypoint-initdb.d/ensure-db-exists.sh
-      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/zzz-verify.sh
+      - ./scripts/init-postgres-garantizado.sh:/docker-entrypoint-initdb.d/init-postgres-garantizado.sh
+      - ./scripts/docker-postgres-entrypoint.sh:/scripts/docker-postgres-entrypoint.sh
     command: 
       - "postgres"
       - "-c"

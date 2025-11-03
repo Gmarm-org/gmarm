@@ -44,14 +44,32 @@ echo -e "${YELLOW}🔨 4. Reconstruyendo TODO sin caché (puede tardar 2-3 minut
 docker-compose -f docker-compose.dev.yml build --no-cache
 echo ""
 
-# 6. Levantar servicios
-echo -e "${YELLOW}🚀 5. Levantando servicios con nueva configuración...${NC}"
-docker-compose -f docker-compose.dev.yml up -d
+# 6. Levantar SOLO PostgreSQL primero
+echo -e "${YELLOW}🚀 5. Levantando PostgreSQL primero...${NC}"
+docker-compose -f docker-compose.dev.yml up -d postgres_dev
 echo ""
 
-# 7. Esperar PostgreSQL
-echo -e "${YELLOW}⏳ 6. Esperando a PostgreSQL (30 segundos)...${NC}"
-sleep 30
+# 7. Esperar a que PostgreSQL responda
+echo -e "${YELLOW}⏳ 6. Esperando a que PostgreSQL esté listo...${NC}"
+MAX_WAIT=60
+COUNT=0
+while [ $COUNT -lt $MAX_WAIT ]; do
+    if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
+        echo -e "${GREEN}   ✅ PostgreSQL responde (intento $COUNT)${NC}"
+        break
+    fi
+    COUNT=$((COUNT + 1))
+    echo "   Esperando... ($COUNT/$MAX_WAIT)"
+    sleep 2
+done
+
+if [ $COUNT -eq $MAX_WAIT ]; then
+    echo -e "${RED}   ❌ PostgreSQL no responde después de 2 minutos${NC}"
+    docker logs gmarm-postgres-dev --tail 50
+    exit 1
+fi
+
+sleep 5  # Esperar 5 segundos más para estabilidad
 
 # 8. Verificar que PostgreSQL esté healthy
 echo -e "${YELLOW}🔍 7. Verificando PostgreSQL...${NC}"
@@ -98,6 +116,11 @@ else
         echo -e "${GREEN}   ✅ Base de datos tiene $USUARIO_COUNT usuarios${NC}"
     fi
 fi
+echo ""
+
+# 9.5. Levantar Backend y Frontend
+echo -e "${YELLOW}🚀 8.5. Levantando Backend y Frontend...${NC}"
+docker-compose -f docker-compose.dev.yml up -d backend_dev frontend_dev
 echo ""
 
 # 10. Esperar backend
