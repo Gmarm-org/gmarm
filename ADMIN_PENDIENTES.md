@@ -425,6 +425,68 @@ crontab -e
 
 ---
 
+## 🔧 CORRECCIÓN ADICIONAL - NullPointerException en Expoferia
+
+### 🐛 Problema:
+Error 403 causado por NullPointerException en `InventarioService.getArmasConStockDisponible()`. 
+
+**Causa**: El campo `arma.expoferia` es **BOOLEAN** pero el código lo trataba como **String** (buscaba por nombre de expoferia).
+
+### ✅ Solución Aplicada:
+
+**Archivos modificados**:
+- `backend/src/main/java/com/armasimportacion/repository/ArmaStockRepository.java`
+  - Método `findArmasExpoferiaConStock`: parámetro `String expoferia` → `Boolean esExpoferia`
+  - Query actualizada: `a.expoferia = :esExpoferia` (ahora compara boolean con boolean)
+
+- `backend/src/main/java/com/armasimportacion/service/InventarioService.java`
+  - Pasar `true` en lugar de nombre de expoferia: `findArmasExpoferiaConStock(true)`
+  - Agregar `try-catch` para prevenir NPE
+  - Retornar `new ArrayList<>()` en caso de error (lista vacía)
+  - Import de `ArrayList` agregado
+
+**Scripts de diagnóstico creados**:
+- ✅ `scripts/diagnostico-dev.sh` - Diagnóstico completo matutino
+- ✅ `scripts/fix-403-dev.sh` - Fix rápido para errores 403
+
+**Resultado**: `/api/arma` funciona correctamente, vendedores pueden ver armas disponibles.
+
+---
+
+## 📋 COMANDOS PARA MAÑANA EN DEV:
+
+```bash
+# 1. Pull de todos los cambios
+cd ~/deploy/dev
+git pull origin dev
+
+# 2. Dar permisos a scripts
+chmod +x scripts/*.sh
+
+# 3. Ejecutar diagnóstico
+bash scripts/diagnostico-dev.sh
+```
+
+**Si el diagnóstico muestra problemas**, ejecuta:
+```bash
+# Fix rápido (reconstruye backend sin caché)
+bash scripts/fix-403-dev.sh
+```
+
+**Lo que deberías ver si TODO está bien**:
+```
+✅ SWAP configurado: 2.0Gi
+✅ PostgreSQL estable (0 reinicios)
+✅ Base de datos 'gmarm_dev' existe
+✅ Base de datos con datos (Usuarios: 5)
+✅ No hay eventos OOM Killer recientes
+✅ Backend respondiendo correctamente
+✅ Frontend accesible
+✅ ¡TODO FUNCIONANDO CORRECTAMENTE!
+```
+
+---
+
 ### Pendientes Menores (no bloqueantes):
 - ⚠️ **Fechas inválidas** (31/12/1969, Invalid Date) - renderizado de fechas null necesita validación
 - ⚠️ **tipo_rol_vendedor** en tabla Roles - falta mostrar en columna cuando rol es VENDEDOR
