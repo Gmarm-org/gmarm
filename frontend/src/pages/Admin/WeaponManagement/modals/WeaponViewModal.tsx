@@ -68,6 +68,10 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <h4 className="font-medium text-gray-900 mb-3">🔫 Información de la Arma</h4>
               <div className="space-y-3">
                 <div>
+                  <label className="font-semibold text-gray-700 text-sm">Código:</label>
+                  <p className="text-blue-600 font-mono font-semibold">{weapon.codigo || 'Sin código'}</p>
+                </div>
+                <div>
                   <label className="font-semibold text-gray-700 text-sm">Nombre:</label>
                   <p className="text-gray-900 text-lg font-medium">{weapon.nombre}</p>
                 </div>

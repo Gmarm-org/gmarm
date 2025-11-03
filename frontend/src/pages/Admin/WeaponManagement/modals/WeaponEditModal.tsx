@@ -11,6 +11,7 @@ interface WeaponEditModalProps {
 
 interface EditFormData {
   nombre: string;
+  codigo: string;
   calibre: string;
   capacidad: number;
   precioReferencia: number;
@@ -28,6 +29,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
 }) => {
   const [editForm, setEditForm] = useState<EditFormData>({
     nombre: '',
+    codigo: '',
     calibre: '',
     capacidad: 0,
     precioReferencia: 0,
@@ -43,6 +45,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
     if (weapon && isOpen) {
       setEditForm({
         nombre: weapon.nombre || '',
+        codigo: weapon.codigo || '',
         calibre: weapon.calibre || '',
         capacidad: weapon.capacidad || 0,
         precioReferencia: weapon.precioReferencia || 0,
@@ -100,6 +103,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       
       const formData = new FormData();
       formData.append('nombre', editForm.nombre);
+      formData.append('codigo', editForm.codigo);
       formData.append('calibre', editForm.calibre);
       formData.append('capacidad', editForm.capacidad.toString());
       formData.append('precioReferencia', editForm.precioReferencia.toString());
@@ -146,6 +150,17 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                 onChange={(e) => handleInputChange('nombre', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: CZ 75 B"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Código de la Arma *</label>
+              <input
+                type="text"
+                value={editForm.codigo}
+                onChange={(e) => handleInputChange('codigo', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: CZ-75-B"
               />
             </div>
             

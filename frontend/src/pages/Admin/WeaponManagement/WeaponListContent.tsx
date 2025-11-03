@@ -177,6 +177,11 @@ const WeaponListContent: React.FC = () => {
       )
     },
     {
+      key: 'codigo',
+      label: 'Código',
+      render: (value: any) => <span className="font-mono text-sm text-blue-600 font-semibold">{value || 'Sin código'}</span>
+    },
+    {
       key: 'nombre',
       label: 'Nombre',
       render: (value: any) => <span className="font-medium text-gray-900">{value}</span>
