@@ -6,7 +6,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Run stage
-FROM eclipse-temurin:17-jdk-slim
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Instalar fuentes y curl para healthcheck y generación de PDFs
