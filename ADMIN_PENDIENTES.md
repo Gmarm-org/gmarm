@@ -943,9 +943,11 @@ bash scripts/diagnostico-dev.sh
 13. **Eliminación en catálogos: Cambio a desactivación (10 catálogos)**
 14. **Fechas inválidas: dateUtils creado (formateo seguro)**
 15. **tipo_rol_vendedor: Visible en tabla Roles**
+16. **Pipeline GitHub Actions: Script corregido (deploy-dev.sh)**
 
-### 📋 **Commits (20 TOTALES)**:
+### 📋 **Commits (21 TOTALES)**:
 ```
+7757e4b - fix: pipeline GitHub Actions (deploy-server.sh → scripts/deploy-dev.sh)
 44ae500 - chore: limpieza fase 2 (JSON + SH: 25 archivos, -2,493 líneas)
 9b98fd6 - docs: actualizar hash commit limpieza
 df14411 - chore: limpieza fase 1 (PS1 + MD: 46 archivos, -8,450 líneas)
