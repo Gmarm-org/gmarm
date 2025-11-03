@@ -105,8 +105,8 @@ docker-compose -f $COMPOSE_FILE logs --tail=20 backend_dev 2>&1 || echo "⚠️ 
 # Esperar a que PostgreSQL esté listo
 echo "⏳ Esperando a que PostgreSQL esté listo..."
 for i in {1..30}; do
-if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
-    echo "✅ PostgreSQL está funcionando"
+    if docker exec gmarm-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
+        echo "✅ PostgreSQL está funcionando"
         break
     fi
     echo "⏳ Intento $i/30: PostgreSQL aún no está listo..."
