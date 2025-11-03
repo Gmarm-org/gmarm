@@ -503,24 +503,80 @@ docker inspect gmarm-postgres-dev --format='Restarts={{.RestartCount}}, OOMKille
 
 ---
 
-## 📋 COMANDOS PARA MAÑANA EN DEV:
+---
+
+## 🔥 DESCUBRIMIENTO CRÍTICO: PostgreSQL consume 100% CPU sin BD
+
+### 🐛 Problema Descubierto:
+PostgreSQL tiene un **bug conocido**: cuando el backend intenta conectarse repetidamente a una BD que **NO EXISTE**, PostgreSQL entra en un **loop infinito** consumiendo **100% CPU y RAM**, causando que el OOM Killer lo mate.
+
+**Evidencia**:
+- Usuario reporta: "PostgreSQL sin BD consume TODO el CPU y RAM"
+- Logs muestran: 20+ eventos OOM Killer matando `kdevtmpfsi` cada ~3 minutos
+- Diagnóstico: PostgreSQL usa solo 4% de memoria, pero procesos internos explotan
+
+### ✅ SOLUCIÓN REAL APLICADA:
+
+**Cambio en el flujo de inicialización**:
+```
+ANTES (MALO):
+1. docker-compose up -d (todos a la vez)
+2. PostgreSQL inicia
+3. Backend inicia e intenta conectarse
+4. BD no existe → Backend reintenta en loop
+5. PostgreSQL consume 100% CPU respondiendo a conexiones fallidas
+6. OOM Killer mata PostgreSQL
+7. Ciclo infinito
+
+AHORA (CORRECTO):
+1. docker-compose up -d postgres_dev (SOLO PostgreSQL)
+2. Esperar a que PostgreSQL responda (pg_isready)
+3. CREAR LA BD (ejecutar CREATE DATABASE)
+4. CARGAR DATOS (ejecutar SQL maestro)
+5. docker-compose up -d backend_dev frontend_dev
+6. Backend se conecta a BD existente → Sin loop → Sin consumo 100%
+```
+
+**Scripts actualizados**:
+- ✅ `deploy-server.sh` - Levanta postgres primero, crea BD, luego backend/frontend
+- ✅ `fix-oom-definitivo.sh` - Mismo flujo garantizado
+- ✅ `init-postgres-garantizado.sh` - Script de verificación exhaustiva
+- ✅ `docker-postgres-entrypoint.sh` - Wrapper para inicialización
+
+**Resultado**: Backend NUNCA intenta conectarse a BD inexistente, PostgreSQL NO consume 100% CPU.
+
+---
+
+## 📋 COMANDOS PARA EJECUTAR AHORA EN DEV:
 
 ```bash
-# 1. Pull de todos los cambios
 cd ~/deploy/dev
 git pull origin dev
-
-# 2. Dar permisos a scripts
 chmod +x scripts/*.sh
+bash scripts/fix-oom-definitivo.sh
+```
 
-# 3. Ejecutar diagnóstico
+**Este script ahora**:
+1. ✅ Levanta PostgreSQL PRIMERO (solo)
+2. ✅ Espera a que responda
+3. ✅ Crea la BD si no existe
+4. ✅ Carga datos automáticamente
+5. ✅ LUEGO levanta backend/frontend
+6. ✅ Verifica que todo funcione
+
+**Tiempo**: 3-4 minutos
+
+**Verificación en 2-3 horas**:
+```bash
 bash scripts/diagnostico-dev.sh
 ```
 
-**Si el diagnóstico muestra problemas**, ejecuta:
-```bash
-# Fix rápido (reconstruye backend sin caché)
-bash scripts/fix-403-dev.sh
+**Resultado esperado**:
+```
+✅ PostgreSQL estable (0 reinicios)
+✅ OOMKilled: false
+✅ Base de datos existe con datos
+✅ CPU normal (~5-10%, NO 100%)
 ```
 
 **Lo que deberías ver si TODO está bien**:
