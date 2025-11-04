@@ -1,6 +1,7 @@
 package com.armasimportacion.model;
 
 import com.armasimportacion.enums.TipoRolVendedor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -66,6 +67,7 @@ public class Rol {
 
     // Relaciones
     @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+    @JsonIgnore  // Evitar referencias circulares en JSON
     @Builder.Default
     private Set<Usuario> usuarios = new HashSet<>();
 
