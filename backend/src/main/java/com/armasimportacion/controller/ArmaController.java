@@ -178,7 +178,8 @@ public class ArmaController {
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
-            @RequestParam(value = "urlImagen", required = false) String urlImagen,
+            @RequestParam("codigo") String codigo,
+            @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
         
         log.info("Solicitud para actualizar arma con ID: {} e imagen", id);
@@ -192,7 +193,8 @@ public class ArmaController {
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
                     .categoriaId(categoriaId)
                     .estado(estado)
-                    .urlImagen(urlImagen)
+                    .codigo(codigo)
+                    .urlProducto(urlProducto)
                     .imagen(imagen)
                     .build();
             
