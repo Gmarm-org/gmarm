@@ -22,7 +22,7 @@ services:
       - "-c"
       - "shared_buffers=64MB"                   # Reducido
       - "-c"
-      - "work_mem=512KB"                        # Reducido
+      - "work_mem=512kB"                        # Reducido (kB minúscula)
       - "-c"
       - "maintenance_work_mem=8MB"              # Reducido
       - "-c"
