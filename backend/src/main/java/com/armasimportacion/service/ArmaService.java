@@ -158,6 +158,9 @@ public class ArmaService {
         if (updateDTO.getEstado() != null) {
             arma.setEstado(updateDTO.getEstado());
         }
+        if (updateDTO.getExpoferia() != null) {
+            arma.setExpoferia(updateDTO.getExpoferia());
+        }
         if (updateDTO.getUrlImagen() != null && !updateDTO.getUrlImagen().trim().isEmpty()) {
             arma.setUrlImagen(updateDTO.getUrlImagen());
         }
@@ -204,6 +207,7 @@ public class ArmaService {
         arma.setCapacidad(createDTO.getCapacidad());
         arma.setPrecioReferencia(createDTO.getPrecioReferencia());
         arma.setEstado(createDTO.getEstado() != null ? createDTO.getEstado() : true);
+        arma.setExpoferia(createDTO.getExpoferia() != null ? createDTO.getExpoferia() : false);
         arma.setCodigo(createDTO.getCodigo());
         arma.setUrlProducto(createDTO.getUrlProducto());
         arma.setFechaCreacion(LocalDateTime.now());

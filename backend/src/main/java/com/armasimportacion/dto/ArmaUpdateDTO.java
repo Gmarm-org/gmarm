@@ -20,6 +20,7 @@ public class ArmaUpdateDTO {
     private BigDecimal precioReferencia;
     private Long categoriaId;
     private Boolean estado;
+    private Boolean expoferia;  // Indica si el arma es para Expoferia
     private String urlImagen;
     
     // Campo para la nueva imagen (opcional)

@@ -123,6 +123,7 @@ public class ArmaController {
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
+            @RequestParam(value = "expoferia", required = false, defaultValue = "false") Boolean expoferia,
             @RequestParam("codigo") String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
@@ -138,6 +139,7 @@ public class ArmaController {
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
                     .categoriaId(categoriaId)
                     .estado(estado)
+                    .expoferia(expoferia)
                     .codigo(codigo)
                     .urlProducto(urlProducto)
                     .imagen(imagen)
@@ -178,6 +180,7 @@ public class ArmaController {
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
+            @RequestParam(value = "expoferia", required = false, defaultValue = "false") Boolean expoferia,
             @RequestParam("codigo") String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
@@ -193,6 +196,7 @@ public class ArmaController {
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
                     .categoriaId(categoriaId)
                     .estado(estado)
+                    .expoferia(expoferia)
                     .codigo(codigo)
                     .urlProducto(urlProducto)
                     .imagen(imagen)
