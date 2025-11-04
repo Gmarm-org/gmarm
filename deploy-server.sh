@@ -74,9 +74,9 @@ sleep 2
 echo "🧹 Limpiando imágenes no utilizadas..."
 docker system prune -f --volumes=false
 
-# Construir las imágenes (sin --no-cache para despliegues más rápidos)
+# Construir las imágenes (con --no-cache para evitar errores de caché corrupto)
 echo "🔨 Construyendo imágenes Docker..."
-docker-compose -f $COMPOSE_FILE build
+docker-compose -f $COMPOSE_FILE build --no-cache
 
 # Crear directorio de uploads si no existe
 echo "📁 Creando directorio de uploads..."
