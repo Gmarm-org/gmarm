@@ -4,6 +4,34 @@
 
 ## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04/11/2024)
 
+### 16. ✅ **Fix: Error 400 al Editar/Crear Armas con Campo Expoferia**
+**Estado**: ✅ **RESUELTO** - Campo expoferia agregado en DTOs, Controller y Service
+
+**Problema**: Al intentar editar o crear armas, se obtenía error 400 (Bad Request) porque el frontend enviaba el campo `expoferia` pero el backend no lo esperaba.
+
+**Causa**: Agregamos el campo `expoferia` en el frontend (WeaponEditModal y WeaponCreateModal) pero NO actualizamos el backend para recibirlo y procesarlo.
+
+**Archivos Modificados**:
+- ✅ `backend/src/main/java/com/armasimportacion/dto/ArmaCreateDTO.java`
+  - Campo `expoferia` agregado
+- ✅ `backend/src/main/java/com/armasimportacion/dto/ArmaUpdateDTO.java`
+  - Campo `expoferia` agregado
+- ✅ `backend/src/main/java/com/armasimportacion/controller/ArmaController.java`
+  - Método `createArmaWithImage`: Parámetro `@RequestParam("expoferia")` agregado
+  - Método `updateArmaWithImage`: Parámetro `@RequestParam("expoferia")` agregado
+  - Ambos builders actualizados con `.expoferia(expoferia)`
+- ✅ `backend/src/main/java/com/armasimportacion/service/ArmaService.java`
+  - Método `createWithImage`: `arma.setExpoferia(...)` agregado
+  - Método `updateWithImage`: `arma.setExpoferia(...)` agregado
+
+**Resultado**:
+- ✅ Crear arma con checkbox Expoferia funciona correctamente
+- ✅ Editar arma con checkbox Expoferia funciona correctamente
+- ✅ El campo se guarda en la BD y se puede consultar
+- ✅ Filtro de Expoferia funcional en lista de armas
+
+---
+
 ### 15. ✅ **Fix Crítico: Roles de Usuario no Aparecían al Editar**
 **Estado**: ✅ **RESUELTO** - Referencias circulares JSON corregidas
 
