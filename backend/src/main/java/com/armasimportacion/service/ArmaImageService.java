@@ -19,7 +19,7 @@ public class ArmaImageService {
     @Value("${app.weapons.images-dir:./uploads/images/weapons}")
     private String weaponsImagesDir;
 
-    @Value("${app.weapons.max-image-size:5242880}") // 5MB por defecto
+    @Value("${app.weapons.max-image-size:41943040}") // 40MB por defecto (antes 5MB)
     private long maxImageSize;
 
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList(
