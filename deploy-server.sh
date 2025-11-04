@@ -80,6 +80,11 @@ sudo systemctl restart docker
 sleep 5
 echo "✅ Docker daemon reiniciado"
 
+# Desactivar BuildKit (usar builder clásico para evitar RST_STREAM)
+export DOCKER_BUILDKIT=0
+export COMPOSE_DOCKER_CLI_BUILD=0
+echo "🔧 BuildKit desactivado (usando builder clásico)"
+
 # Construir las imágenes (con --no-cache para evitar errores de caché corrupto)
 echo "🔨 Construyendo imágenes Docker..."
 docker-compose -f $COMPOSE_FILE build --no-cache
