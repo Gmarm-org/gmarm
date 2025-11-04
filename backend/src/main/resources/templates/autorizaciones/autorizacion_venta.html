@@ -252,8 +252,8 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>PISTOLA</td>
-                    <td th:text="${arma.nombre}">PISTOLA MARCA CZ, MODELO CZ P 10 C</td>
+                    <td th:text="${arma.categoria != null ? arma.categoria.nombre : 'PISTOLA'}">PISTOLA</td>
+                    <td th:text="${(arma.categoria != null ? arma.categoria.nombre : 'PISTOLA') + ' MARCA ' + arma.nombre.substring(0, 2).toUpperCase() + ', MODELO ' + arma.nombre + ' CALIBRE ' + arma.calibre + ' SERIE: ' + numeroSerie}">PISTOLA MARCA CZ, MODELO CZ P 10 C CALIBRE 9MM SERIE: K149131</td>
                     <td th:text="${arma.calibre}">9MM</td>
                     <td th:text="${numeroSerie}">K149131</td>
                 </tr>
