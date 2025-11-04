@@ -4,6 +4,34 @@
 
 ## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04/11/2024)
 
+### 17. ✅ **Fix: Límite de Imagen de Armas - Backend 5MB → 40MB**
+**Estado**: ✅ **RESUELTO** - Límite del backend aumentado para coincidir con frontend
+
+**Problema**: Error 400 al intentar editar armas con imágenes mayores a 5MB, con mensaje: `"La imagen excede el tamaño máximo permitido: 5MB"`
+
+**Causa**: Inconsistencia entre frontend y backend
+- Frontend: Aceptaba hasta **40MB** (WeaponEditModal.tsx línea 78)
+- Backend: Solo aceptaba **5MB** (ArmaImageService.java)
+
+**Solución**:
+```java
+// backend/src/main/java/com/armasimportacion/service/ArmaImageService.java
+@Value("${app.weapons.max-image-size:41943040}") // 40MB (antes 5242880 = 5MB)
+private long maxImageSize;
+```
+
+**Archivos Modificados**:
+- ✅ `backend/src/main/java/com/armasimportacion/service/ArmaImageService.java`
+  - Límite: 5242880 bytes (5MB) → 41943040 bytes (40MB)
+
+**Resultado**:
+- ✅ Frontend y backend ahora AMBOS aceptan imágenes de hasta 40MB
+- ✅ Editar armas con imágenes grandes funciona correctamente
+- ✅ Crear armas con imágenes grandes funciona correctamente
+- ✅ Consistencia en validaciones frontend/backend
+
+---
+
 ### 16. ✅ **Fix: Error 400 al Editar/Crear Armas con Campo Expoferia**
 **Estado**: ✅ **RESUELTO** - Campo expoferia agregado en DTOs, Controller y Service
 
