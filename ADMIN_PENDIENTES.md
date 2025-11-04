@@ -2,7 +2,211 @@
 
 ---
 
-## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (03/11/2024)
+## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04/11/2024)
+
+### 14. ✅ **Estrategia de Recursos DEV/PROD - Configuración Final**
+**Estado**: ✅ **IMPLEMENTADO** - DEV usa 1.5GB, PROD usará 2GB cuando DEV esté apagado
+
+**Problema**: Servidor con solo 3.8GB RAM no puede ejecutar DEV y PROD simultáneamente de manera confiable.
+
+#### **Solución Implementada:**
+
+##### **Estrategia de Deployment:**
+```
+FASE ACTUAL (DEV Activo):
+- DEV: PostgreSQL 1.5GB + Backend 256MB + Frontend 384MB = ~2.14GB
+- PROD: Apagado
+- Margen libre: ~1.66GB
+
+FASE PRODUCCIÓN (cuando se lance):
+- DEV: Apagado completamente (libera ~2.14GB)
+- PROD: PostgreSQL 2GB + Backend 512MB + Frontend 512MB = ~3GB
+- Margen libre: ~0.8GB
+```
+
+##### **Configuración DEV Optimizada:**
+
+**PostgreSQL DEV:**
+```yaml
+mem_limit: 1.5g
+mem_reservation: 512m
+cpus: 1.0
+max_connections: 5
+shared_buffers: 64MB
+work_mem: 512KB
+maintenance_work_mem: 8MB
+autovacuum: off                    # CRÍTICO: Desactivado completamente
+fsync: off                         # Solo DEV
+full_page_writes: off              # Solo DEV
+synchronous_commit: off            # Solo DEV
+```
+
+**Backend DEV:**
+```yaml
+mem_limit: 256m
+mem_reservation: 96m
+cpus: 0.5
+JVM: -Xms96m -Xmx192m -XX:MaxMetaspaceSize=64m
+```
+
+**Frontend DEV:**
+```yaml
+mem_limit: 384m
+mem_reservation: 128m
+cpus: 0.5
+```
+
+##### **Scripts Actualizados:**
+
+1. **`scripts/reset-dev-simple.sh`** - Reset rápido de DEV
+   - Down con volúmenes
+   - Limpieza de Docker
+   - Up con nueva configuración
+   - Verificación automática
+
+2. **`scripts/diagnostico-dev.sh`** - Diagnóstico completo
+   - Memoria y SWAP
+   - Estado de contenedores
+   - Eventos OOM Killer
+   - Health checks
+
+##### **Comandos Importantes:**
+
+**Apagar DEV (cuando se lance PROD):**
+```bash
+cd ~/deploy/dev
+docker-compose -f docker-compose.dev.yml down
+```
+
+**Reiniciar DEV (para desarrollo/testing):**
+```bash
+cd ~/deploy/dev
+bash scripts/reset-dev-simple.sh
+```
+
+**Verificar recursos:**
+```bash
+docker stats --no-stream
+free -h
+```
+
+##### **Expectativas Realistas:**
+
+✅ **DEV debe funcionar con:**
+- PostgreSQL usando ~60-80% de 1.5GB (900MB-1.2GB)
+- Sin eventos OOM Killer nuevos
+- Operaciones básicas CRUD funcionales
+- **NO apto para carga pesada o múltiples usuarios simultáneos**
+
+✅ **PROD (cuando se lance) tendrá:**
+- PostgreSQL con 2GB (más del doble que DEV)
+- Backend con 512MB (el doble que DEV)
+- Frontend con 512MB (más que DEV)
+- Mejor rendimiento y estabilidad
+
+##### **Archivos Modificados:**
+- ✅ `docker-compose.dev.yml` - Límites optimizados finales
+- ✅ `scripts/reset-dev-simple.sh` - Script de reset simplificado
+- ✅ `ADMIN_PENDIENTES.md` - Documentación de estrategia
+
+**Resultado**: DEV funcional con recursos limitados, preparado para ceder paso a PROD cuando sea necesario ✅
+
+---
+
+## 🎉 CORRECCIONES ANTERIORES (04/11/2024)
+
+### 13. ✅ **Catálogos Admin - Campos Completos en Edición**
+**Estado**: ✅ **COMPLETADO** - Todos los catálogos ahora muestran/editan TODOS los campos de la BD
+
+**Problema**: Los modales de edición no mostraban todos los campos disponibles en la base de datos, dificultando la administración completa de los catálogos.
+
+#### **Cambios Realizados:**
+
+##### a) **RoleFormModal** - Campo `tipo_rol_vendedor` agregado:
+- ✅ Campo select para `tipo_rol_vendedor` (FIJO/LIBRE)
+- ✅ Solo se muestra si el código del rol es "VENDEDOR"
+- ✅ Permite especificar el tipo de vendedor al crear/editar roles
+- **Archivo**: `frontend/src/pages/Admin/RoleManagement/RoleFormModal.tsx`
+
+##### b) **LicenseFormModal** - Campos bancarios agregados:
+- ✅ Sección "Información Bancaria" agregada con 4 campos:
+  - `cuenta_bancaria`: Número de cuenta bancaria
+  - `nombre_banco`: Nombre del banco (ej: Banco Pichincha)
+  - `tipo_cuenta`: Tipo de cuenta (Ahorros/Corriente)
+  - `cedula_cuenta`: Cédula del titular de la cuenta
+- ✅ Todos los campos opcionales con validaciones adecuadas
+- **Archivo**: `frontend/src/pages/Admin/LicenseManagement/LicenseFormModal.tsx`
+
+##### c) **WeaponEditModal y WeaponCreateModal** - Campo `expoferia` agregado:
+- ✅ Checkbox "Arma disponible para Expoferia"
+- ✅ Permite marcar armas como disponibles para eventos de Expoferia
+- ✅ Campo booleano agregado en ambos modales (crear y editar)
+- ✅ Se envía correctamente al backend en el FormData
+- **Archivos**:
+  - `frontend/src/pages/Admin/WeaponManagement/modals/WeaponEditModal.tsx`
+  - `frontend/src/pages/Admin/WeaponManagement/modals/WeaponCreateModal.tsx`
+
+##### d) **SimpleFormModal** - Soporte para campos `select` agregado:
+- ✅ Nuevo tipo de campo: `select` con opciones dinámicas
+- ✅ Interface `Field` extendida con propiedad `options`
+- ✅ Renderizado condicional para mostrar dropdowns
+- ✅ Conversión automática de valores (string/number)
+- **Archivo**: `frontend/src/pages/Admin/components/SimpleFormModal.tsx`
+
+##### e) **GestionPreguntas** - Campo `tipoProcesoId` agregado:
+- ✅ Dropdown "Tipo de Proceso" agregado al formulario
+- ✅ Carga dinámica de tipos de proceso desde `/api/tipo-proceso`
+- ✅ Campo obligatorio para crear/editar preguntas
+- ✅ Muestra nombre del tipo de proceso en la lista
+- **Archivo**: `frontend/src/pages/Admin/QuestionManagement/GestionPreguntas.tsx`
+
+##### f) **TipoDocumento** - Campos `tipoProcesoId` y `urlDocumento` agregados:
+- ✅ Dropdown "Tipo de Proceso" (obligatorio)
+- ✅ Campo "URL del Documento" (opcional)
+- ✅ Carga dinámica de tipos de proceso desde API
+- ✅ Permite especificar URL de documentos plantilla
+- **Archivo**: `frontend/src/pages/Admin/DocumentManagement/TipoDocumento.tsx`
+
+##### g) **Nueva API** - `tipoProcesoApi` agregada:
+- ✅ `getAll()`: Obtiene todos los tipos de proceso activos
+- ✅ `getById(id)`: Obtiene un tipo de proceso específico
+- ✅ Interface `TipoProceso` definida
+- ✅ Endpoint backend: `/api/tipo-proceso` (ya existía)
+- **Archivo**: `frontend/src/services/adminApi.ts`
+
+#### **Resumen de Campos Agregados:**
+
+| Catálogo | Campos Nuevos | Tipo |
+|----------|--------------|------|
+| **Roles** | `tipo_rol_vendedor` | select (FIJO/LIBRE) |
+| **Licencias** | `cuenta_bancaria`, `nombre_banco`, `tipo_cuenta`, `cedula_cuenta` | text, select |
+| **Armas** | `expoferia` | checkbox (boolean) |
+| **Preguntas** | `tipoProcesoId` | select (dinámico) |
+| **Tipos de Documento** | `tipoProcesoId`, `urlDocumento` | select, text |
+
+#### **Archivos Modificados (10 totales):**
+1. ✅ `frontend/src/pages/Admin/RoleManagement/RoleFormModal.tsx`
+2. ✅ `frontend/src/pages/Admin/LicenseManagement/LicenseFormModal.tsx`
+3. ✅ `frontend/src/pages/Admin/WeaponManagement/modals/WeaponEditModal.tsx`
+4. ✅ `frontend/src/pages/Admin/WeaponManagement/modals/WeaponCreateModal.tsx`
+5. ✅ `frontend/src/pages/Admin/components/SimpleFormModal.tsx`
+6. ✅ `frontend/src/pages/Admin/QuestionManagement/GestionPreguntas.tsx`
+7. ✅ `frontend/src/pages/Admin/DocumentManagement/TipoDocumento.tsx`
+8. ✅ `frontend/src/services/adminApi.ts`
+
+#### **Beneficios:**
+- ✅ Administradores pueden editar TODOS los campos de cada catálogo
+- ✅ No es necesario ir a la BD para modificar campos específicos
+- ✅ Mejor experiencia de usuario y administración más eficiente
+- ✅ Interfaz consistente y completa para todos los catálogos
+- ✅ Validaciones adecuadas en cada campo
+- ✅ Datos completos disponibles para operaciones del negocio
+
+**Resultado**: Panel de administración 100% completo con todos los campos editables ✅
+
+---
+
+## 🎉 CORRECCIONES PREVIAS (03/11/2024)
 
 ### 1. ✅ **Series de Armas - 500 series cargadas**
 - ✅ SQL maestro corregido: campo `estado` de 'ACTIVO' → `true` (Boolean)
