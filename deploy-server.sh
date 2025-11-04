@@ -74,6 +74,12 @@ sleep 2
 echo "🧹 Limpiando imágenes no utilizadas..."
 docker system prune -f --volumes=false
 
+# Reiniciar Docker daemon para limpiar errores RST_STREAM
+echo "🔄 Reiniciando Docker daemon..."
+sudo systemctl restart docker
+sleep 5
+echo "✅ Docker daemon reiniciado"
+
 # Construir las imágenes (con --no-cache para evitar errores de caché corrupto)
 echo "🔨 Construyendo imágenes Docker..."
 docker-compose -f $COMPOSE_FILE build --no-cache
