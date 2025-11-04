@@ -4,6 +4,51 @@
 
 ## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04/11/2024)
 
+### 15. ✅ **Fix Crítico: Roles de Usuario no Aparecían al Editar**
+**Estado**: ✅ **RESUELTO** - Referencias circulares JSON corregidas
+
+**Problema**: Al editar un usuario en el panel de administración, los roles asignados NO aparecían seleccionados en el modal, mostrando "0/6 roles seleccionados" aunque el usuario tuviera roles asignados en la BD.
+
+**Causa Raíz**: Referencias circulares en serialización JSON
+- Modelo `Usuario` tiene `Set<Rol> roles` 
+- Modelo `Rol` tiene `Set<Usuario> usuarios`
+- Al llamar GET `/api/usuarios/{id}/roles`, Jackson intentaba serializar:
+  - Rol → usuarios → roles → usuarios → roles... (bucle infinito)
+- El frontend no recibía los datos correctamente
+
+**Solución**:
+```java
+// backend/src/main/java/com/armasimportacion/model/Rol.java
+@ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+@JsonIgnore  // ← AGREGADO para evitar referencias circulares
+@Builder.Default
+private Set<Usuario> usuarios = new HashSet<>();
+```
+
+**Archivos Modificados**:
+- ✅ `backend/src/main/java/com/armasimportacion/model/Rol.java`
+  - Import agregado: `com.fasterxml.jackson.annotation.JsonIgnore`
+  - Anotación `@JsonIgnore` agregada al campo `usuarios`
+
+**Resultado**: 
+- ✅ Endpoint `/api/usuarios/{id}/roles` ahora retorna correctamente el array de roles sin referencias circulares
+- ✅ Modal de edición de usuario muestra los roles correctamente seleccionados
+- ✅ Frontend puede cargar y mostrar los roles asignados al usuario
+- ✅ Edición de roles funcional
+
+**Ejemplo Visual**:
+```
+ANTES:
+- Lista de usuarios: muestra "cesarwth" con 5 roles ✅
+- Editar usuario: muestra 0 roles seleccionados ❌
+
+DESPUÉS:
+- Lista de usuarios: muestra "cesarwth" con 5 roles ✅
+- Editar usuario: muestra 5 roles seleccionados ✅
+```
+
+---
+
 ### 14. ✅ **Estrategia de Recursos DEV/PROD - Configuración Final**
 **Estado**: ✅ **IMPLEMENTADO** - DEV usa 1.5GB, PROD usará 2GB cuando DEV esté apagado
 
