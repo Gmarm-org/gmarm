@@ -74,10 +74,15 @@ const GestionPreguntas: React.FC = () => {
       } else if (modalMode === 'edit' && selectedQuestion) {
         await questionApi.update(selectedQuestion.id, data);
       }
+      // Recargar lista
       await loadQuestions();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedQuestion(null);
+      alert(modalMode === 'create' ? 'Pregunta creada exitosamente' : 'Pregunta actualizada exitosamente');
     } catch (error) {
       console.error('Error guardando pregunta:', error);
+      alert('Error al guardar la pregunta.');
       throw error;
     }
   };

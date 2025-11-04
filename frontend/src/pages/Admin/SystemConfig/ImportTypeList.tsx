@@ -111,10 +111,15 @@ const ImportTypeList: React.FC = () => {
       } else if (modalMode === 'edit' && selectedType) {
         await importTypeApi.update(selectedType.id, data);
       }
+      // Recargar lista
       await loadImportTypes();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedType(null);
+      alert(modalMode === 'create' ? 'Tipo de importación creado exitosamente' : 'Tipo de importación actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando tipo de importación:', error);
+      alert('Error al guardar el tipo de importación. Verifique que el código sea único.');
       throw error;
     }
   };

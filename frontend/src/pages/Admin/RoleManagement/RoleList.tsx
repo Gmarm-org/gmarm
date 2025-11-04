@@ -92,11 +92,16 @@ const RoleList: React.FC = () => {
       } else if (modalMode === 'edit' && selectedRole) {
         await roleApi.update(selectedRole.id, roleData);
       }
+      // Recargar lista
       await loadRoles();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedRole(null);
+      alert(modalMode === 'create' ? 'Rol creado exitosamente' : 'Rol actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando rol:', error);
-      throw error;
+      alert('Error al guardar el rol. Verifique que el código sea único.');
+      throw error; // Re-lanzar para que el modal no se cierre
     }
   };
 

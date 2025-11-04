@@ -49,10 +49,12 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
     try {
       setIsSaving(true);
       await onSave(formData);
+      // Solo cerrar modal si onSave fue exitoso
       onClose();
     } catch (error) {
       console.error('Error guardando rol:', error);
-      alert('Error al guardar el rol');
+      alert('Error al guardar el rol. Por favor revise los datos e intente nuevamente.');
+      // NO cerrar modal aquí - dejar abierto para que usuario corrija datos
     } finally {
       setIsSaving(false);
     }

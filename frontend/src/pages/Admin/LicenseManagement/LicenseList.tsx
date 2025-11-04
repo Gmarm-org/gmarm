@@ -78,10 +78,15 @@ const LicenseList: React.FC = () => {
       } else if (modalMode === 'edit' && selectedLicense) {
         await licenseApi.update(selectedLicense.id, data);
       }
+      // Recargar lista
       await loadLicenses();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedLicense(null);
+      alert(modalMode === 'create' ? 'Licencia creada exitosamente' : 'Licencia actualizada exitosamente');
     } catch (error) {
       console.error('Error guardando licencia:', error);
+      alert('Error al guardar la licencia. Verifique que el número sea único.');
       throw error;
     }
   };

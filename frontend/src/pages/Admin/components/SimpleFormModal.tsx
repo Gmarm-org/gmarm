@@ -50,10 +50,12 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
     try {
       setIsSaving(true);
       await onSave(formData);
+      // Solo cerrar modal si onSave fue exitoso (no lanzó error)
       onClose();
     } catch (error) {
       console.error('Error guardando:', error);
-      alert('Error al guardar');
+      alert('Error al guardar. Por favor revise los datos e intente nuevamente.');
+      // NO cerrar modal aquí - dejar abierto para que usuario corrija datos
     } finally {
       setIsSaving(false);
     }

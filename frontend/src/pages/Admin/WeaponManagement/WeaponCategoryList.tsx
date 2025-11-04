@@ -77,10 +77,15 @@ const WeaponCategoryList: React.FC = () => {
       } else if (modalMode === 'edit' && selectedCategory) {
         await weaponCategoryApi.update(selectedCategory.id, categoryData);
       }
+      // Recargar lista
       await loadCategories();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedCategory(null);
+      alert(modalMode === 'create' ? 'Categoría creada exitosamente' : 'Categoría actualizada exitosamente');
     } catch (error) {
       console.error('Error guardando categoría:', error);
+      alert('Error al guardar la categoría. Verifique que el código sea único.');
       throw error;
     }
   };

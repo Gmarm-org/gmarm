@@ -77,10 +77,15 @@ const ClientTypeList: React.FC = () => {
       } else if (modalMode === 'edit' && selectedType) {
         await clientTypeApi.update(selectedType.id, data);
       }
+      // Recargar lista
       await loadClientTypes();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedType(null);
+      alert(modalMode === 'create' ? 'Tipo de cliente creado exitosamente' : 'Tipo de cliente actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando tipo de cliente:', error);
+      alert('Error al guardar el tipo de cliente. Verifique que el código sea único.');
       throw error;
     }
   };

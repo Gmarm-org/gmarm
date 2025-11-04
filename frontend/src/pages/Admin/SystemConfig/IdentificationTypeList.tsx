@@ -77,10 +77,15 @@ const IdentificationTypeList: React.FC = () => {
       } else if (modalMode === 'edit' && selectedType) {
         await identificationTypeApi.update(selectedType.id, data);
       }
+      // Recargar lista
       await loadIdentificationTypes();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedType(null);
+      alert(modalMode === 'create' ? 'Tipo de identificación creado exitosamente' : 'Tipo de identificación actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando tipo de identificación:', error);
+      alert('Error al guardar el tipo de identificación. Verifique que el código sea único.');
       throw error;
     }
   };

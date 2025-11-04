@@ -75,10 +75,15 @@ const TipoDocumento: React.FC = () => {
       } else if (modalMode === 'edit' && selectedType) {
         await documentTypeApi.update(selectedType.id, data);
       }
+      // Recargar lista
       await loadDocumentTypes();
+      // Cerrar modal y limpiar selección
       setModalOpen(false);
+      setSelectedType(null);
+      alert(modalMode === 'create' ? 'Tipo de documento creado exitosamente' : 'Tipo de documento actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando tipo de documento:', error);
+      alert('Error al guardar el tipo de documento. Verifique que el código sea único.');
       throw error;
     }
   };
