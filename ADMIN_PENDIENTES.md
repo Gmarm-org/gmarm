@@ -982,11 +982,12 @@ e3bc4f6 - fix: jefe ventas
 
 ### 🧹 **Limpieza de Repositorio (PARCIALMENTE REVERTIDA)**:
 
-#### **⚠️ IMPORTANTE - Limpieza Revertida** (Commit: `d0f6851`):
+#### **⚠️ IMPORTANTE - Limpieza Revertida** (Commits: `d0f6851`, `f344da2`):
 - ❌ La limpieza masiva causó problemas en el pipeline
 - ❌ Scripts eliminados eran necesarios para deployment
-- ✅ Restaurado `deploy-server.sh` (script funcional original)
-- ✅ Pipeline vuelve a usar script probado
+- ✅ Restaurado `deploy-server.sh` con `git checkout` (encoding correcto)
+- ✅ Pipeline ejecuta script correctamente (sin errores de formato)
+- ✅ Script funcional original probado
 
 #### **Cambios que SÍ se mantienen**:
 - ✅ Eliminados 29 documentos `.md` de sesiones antiguas (útil)
@@ -999,6 +1000,14 @@ e3bc4f6 - fix: jefe ventas
 - ⚠️ **NO eliminar scripts sin probar el pipeline primero**
 - ⚠️ Scripts antiguos pueden tener configuraciones críticas
 - ⚠️ Limpieza debe hacerse DESPUÉS de validar que todo funciona
+- ⚠️ Usar `git checkout` en lugar de `git show` para restaurar archivos (evita corrupción)
+
+#### **Estado Actual del Pipeline**:
+- ✅ Script `deploy-server.sh` se ejecuta correctamente (sin errores de formato)
+- ✅ Docker down y cleanup funcionan
+- ⚠️ Error temporal de Docker: "RST_STREAM INTERNAL_ERROR" al construir imágenes
+  - **Causa**: Posible problema de red/memoria del servidor
+  - **Solución**: Reintentar deployment o ejecutar `docker system prune -a` en servidor
 
 ### 🎯 **Estado del Sistema**:
 ✅ **LOCAL**: 100% funcional con todas las correcciones  
