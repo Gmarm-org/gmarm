@@ -988,9 +988,12 @@ e3bc4f6 - fix: jefe ventas
 - ✅ Restaurado `deploy-server.sh` (script funcional original)
 - ✅ Pipeline vuelve a usar script probado
 
-#### **Limpieza que SÍ se mantiene**:
+#### **Cambios que SÍ se mantienen**:
 - ✅ Eliminados 29 documentos `.md` de sesiones antiguas (útil)
-- ✅ Imagen Docker actualizada: `openjdk` → `eclipse-temurin:17-jre` (necesario)
+- ✅ Imagen Docker actualizada: `openjdk:17-jdk-slim` → `eclipse-temurin:17-jre` ✅ **FUNCIONAL**
+  - Commit `2193c9a` probado en pipeline #202 - exitoso
+  - JRE más ligero que JDK (suficiente para ejecutar JAR)
+- ✅ Script `deploy-server.sh` restaurado (funcional original)
 
 #### **Lección Aprendida**:
 - ⚠️ **NO eliminar scripts sin probar el pipeline primero**
