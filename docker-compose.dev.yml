@@ -49,8 +49,8 @@ services:
       - gmarm_network
     restart: always
     # 🔥 Límites REALES de Docker (NO Swarm - estos SÍ funcionan)
-    mem_limit: 1.5g
-    mem_reservation: 512m
+    mem_limit: 1g       # Reducido de 1.5g (DEV temporal, dejar recursos para PROD)
+    mem_reservation: 384m  # Reducido de 512m
     cpus: 0.5
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
@@ -89,9 +89,9 @@ services:
       - gmarm_network
     restart: unless-stopped
     # 🔥 Límites REALES de Docker (NO Swarm)
-    mem_limit: 384m
-    mem_reservation: 192m
-    cpus: 1.0
+    mem_limit: 256m    # Reducido de 384m (DEV temporal)
+    mem_reservation: 128m  # Reducido de 192m
+    cpus: 0.75        # Reducido de 1.0
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -130,8 +130,8 @@ services:
       - gmarm_network
     restart: unless-stopped
     # 🔥 Límites REALES de Docker (NO Swarm)
-    mem_limit: 384m
-    mem_reservation: 192m
+    mem_limit: 256m    # Reducido de 384m (DEV temporal)
+    mem_reservation: 128m  # Reducido de 192m
     cpus: 0.5
 
 volumes:
