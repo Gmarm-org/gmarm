@@ -944,9 +944,64 @@ bash scripts/diagnostico-dev.sh
 14. **Fechas inválidas: dateUtils creado (formateo seguro)**
 15. **tipo_rol_vendedor: Visible en tabla Roles**
 16. **Pipeline GitHub Actions: Script corregido (deploy-dev.sh)**
+17. **Pool de Conexiones Optimizado: HikariCP + Tomcat (CRÍTICO)**
 
-### 📋 **Commits (21 TOTALES)**:
+### 13. ✅ **Pool de Conexiones Optimizado (HikariCP + Tomcat)** - NUEVO
+**Problema identificado**: PostgreSQL consumiendo 100% memoria en DEV por pool de conexiones excesivo
+
+**Causa raíz**:
+- Backend con pool de 8 conexiones (cada una usa 15-20MB en PostgreSQL)
+- Tomcat con 50 threads (abre muchas conexiones simultáneas)
+- Conexiones idle no se cierran rápidamente
+- BD no existe → Backend loop infinito → PostgreSQL 100% RAM
+
+**Optimizaciones aplicadas** (Commit: `262347d`):
+
+#### **DEV (Servidor 3.8GB RAM)**:
 ```
+HikariCP:
+- maximum-pool-size: 8 → 3 (-62% conexiones)
+- minimum-idle: 2 → 1 (-50% conexiones idle)  
+- idle-timeout: 10min → 2min (cierra rápido)
+- max-lifetime: 10min (recicla frecuente)
+
+Tomcat:
+- max-threads: 50 → 10 (-80% threads)
+- max-connections: 50 → 15 (-70%)
+```
+
+#### **PROD (Más recursos)**:
+```
+HikariCP:
+- maximum-pool-size: 10 → 5
+- minimum-idle: 3 → 2
+
+Tomcat:
+- max-threads: 200 → 20 (-90%)
+```
+
+**Script urgente**: `scripts/crear-bd-dev-urgente.sh` para crear BD en DEV
+
+**Resultado esperado**:
+- PostgreSQL: 100% → 30-40% memoria ✅
+- Sin OOM Killer de autovacuum ✅
+- Pool eficiente sin pérdida de performance ✅
+
+**Archivos**:
+- `backend/src/main/resources/application-docker.properties`
+- `backend/src/main/resources/application-prod.properties`
+- `scripts/crear-bd-dev-urgente.sh` (NUEVO)
+
+### 📋 **Commits (28 TOTALES)**:
+```
+878c6b3 - feat: script urgente crear BD DEV
+262347d - perf: optimizar pool HikariCP + Tomcat (CRÍTICO -60% RAM)
+719d62e - fix: parametros codigo y urlProducto en updateArmaWithImage
+b8e57a6 - fix: Dockerfile restaurado + eclipse-temurin:17-jre
+b557946 - fix: desactivar BuildKit (RST_STREAM)
+d1e77e6 - fix: reiniciar Docker daemon antes build
+f344da2 - fix: deploy-server.sh git checkout (encoding correcto)
+d0f6851 - fix: restaurar deploy-server.sh original
 7757e4b - fix: pipeline GitHub Actions (deploy-server.sh → scripts/deploy-dev.sh)
 44ae500 - chore: limpieza fase 2 (JSON + SH: 25 archivos, -2,493 líneas)
 9b98fd6 - docs: actualizar hash commit limpieza
@@ -1019,15 +1074,35 @@ e3bc4f6 - fix: jefe ventas
 
 ## 🚀 PRÓXIMOS PASOS:
 
-### 1️⃣ **Aplicar en DEV** (ahora):
+### 1️⃣ **URGENTE - Crear BD en DEV** (AHORA):
 ```bash
 cd ~/deploy/dev
 git pull origin dev
-docker-compose -f docker-compose.dev.yml up -d --force-recreate postgres_dev
-sleep 30
-docker-compose -f docker-compose.dev.yml restart backend_dev
-docker-compose -f docker-compose.dev.yml up -d --build frontend_dev
+chmod +x scripts/crear-bd-dev-urgente.sh
+bash scripts/crear-bd-dev-urgente.sh
 ```
+
+**Este script**:
+1. ✅ Crea BD `gmarm_dev` si no existe
+2. ✅ Carga datos del SQL maestro
+3. ✅ Verifica que datos existan (usuarios, armas, series)
+4. ✅ Reinicia backend para reconectar
+
+**Tiempo**: ~30 segundos  
+**Resultado esperado**: PostgreSQL baja de 100% → 30-40% memoria
+
+### 2️⃣ **Aplicar optimizaciones de pool** (después de crear BD):
+```bash
+cd ~/deploy/dev
+git pull origin dev
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+**Optimizaciones aplicadas** (Commit: `262347d`):
+- **HikariCP**: Pool 8→3 conexiones, idle 2→1, timeout 10min→2min
+- **Tomcat**: Threads 50→10, conexiones 50→15
+- **Resultado**: PostgreSQL usará 60-70% menos RAM
 
 ### 2️⃣ **Monitorear estabilidad** (12 horas):
 - Verificar consumo memoria PostgreSQL cada 2h
