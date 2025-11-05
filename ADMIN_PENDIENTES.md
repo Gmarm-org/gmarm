@@ -31,7 +31,7 @@
 - ✅ Contraseñas no se autocomplelan
 - ✅ Mejor UX al crear usuarios
 
-#### b) **Tipo de Cliente - Campo Código Agregado** ✅
+#### b) **Tipo de Cliente - Campo Código y Banderas Agregadas** ✅
 ```typescript
 // ANTES (Error 403 - faltaba código obligatorio):
 formFields = [
@@ -43,13 +43,37 @@ formFields = [
 formFields = [
   { key: 'nombre', ... },
   { key: 'codigo', label: 'Código', required: true, placeholder: 'Ej: CIV, MIL' },
-  { key: 'descripcion', ... }
+  { key: 'descripcion', ... },
+  { key: 'esCivil', label: 'Es Civil', type: 'checkbox' },
+  { key: 'esMilitar', label: 'Es Militar', type: 'checkbox' },
+  { key: 'esPolicia', label: 'Es Policía', type: 'checkbox' },
+  { key: 'esEmpresa', label: 'Es Empresa', type: 'checkbox' },
+  { key: 'esDeportista', label: 'Es Deportista', type: 'checkbox' },
+  { key: 'requiereIssfa', label: 'Requiere Código ISSFA', type: 'checkbox' },
+  { key: 'estado', label: 'Activo', type: 'checkbox' }
 ]
 ```
 
+**Backend actualizado:**
+```java
+// TipoClienteService.java - update() method ahora incluye:
+- setEsCivil()
+- setEsMilitar()
+- setEsPolicia()
+- setEsEmpresa()
+- setEsDeportista()
+- setRequiereIssfa()
+- setDescripcion() (corregido - estaba faltando)
+```
+
+**Frontend actualizado:**
+- ✅ `adminApi.ts`: Tipo `ClientType` incluye todas las banderas
+- ✅ `ClientTypeList.tsx`: Formulario con checkboxes para banderas
+- ✅ `SimpleFormModal.tsx`: Soporte mejorado para checkboxes (muestra "Sí/No" dinámicamente)
+
 **Resultado:**
-- ✅ Crear tipo de cliente funciona
-- ⚠️ Actualizar tipo de cliente: funciona en backend (verificado con curl), posible problema de refresco en frontend
+- ✅ Crear tipo de cliente funciona con todas las banderas
+- ✅ Actualizar tipo de cliente funciona (backend y frontend corregidos)
 
 #### c) **Fechas de Creación Eliminadas** (7/7 componentes) ✅
 ```typescript
@@ -103,9 +127,10 @@ formFields = [
 1. ✅ Crear usuario nuevo (sin autocompletado del navegador)
 2. ✅ Validar teléfonos (solo 10 dígitos)
 3. ✅ Crear tipo de cliente (con campo código)
-4. ⚠️ Editar tipo de cliente (verificar refresco)
+4. ✅ Editar tipo de cliente (con descripción y banderas)
 5. ⚠️ Editar licencia (investigar 403)
-6. ⚠️ Verificar último login en lista de usuarios
+6. ⚠️ Editar tipo importación (investigar 403)
+7. ⚠️ Verificar último login en lista de usuarios
 
 ---
 

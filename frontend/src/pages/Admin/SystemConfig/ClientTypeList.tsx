@@ -160,7 +160,13 @@ const ClientTypeList: React.FC = () => {
     { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
     { key: 'codigo', label: 'Código', type: 'text' as const, required: true, placeholder: 'Ej: CIV, MIL, EMP' },
     { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
-    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+    { key: 'esCivil', label: 'Es Civil', type: 'checkbox' as const },
+    { key: 'esMilitar', label: 'Es Militar', type: 'checkbox' as const },
+    { key: 'esPolicia', label: 'Es Policía', type: 'checkbox' as const },
+    { key: 'esEmpresa', label: 'Es Empresa', type: 'checkbox' as const },
+    { key: 'esDeportista', label: 'Es Deportista', type: 'checkbox' as const },
+    { key: 'requiereIssfa', label: 'Requiere Código ISSFA', type: 'checkbox' as const },
+    { key: 'estado', label: 'Activo', type: 'checkbox' as const }
   ];
 
   return (

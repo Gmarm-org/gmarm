@@ -88,7 +88,14 @@ export interface User {
 export interface ClientType {
   id: number;
   nombre: string;
+  codigo: string;
   descripcion: string;
+  esCivil: boolean;
+  esMilitar: boolean;
+  esPolicia: boolean;
+  esEmpresa: boolean;
+  esDeportista: boolean;
+  requiereIssfa: boolean;
   estado: boolean;
   fecha_creacion: string;
 }

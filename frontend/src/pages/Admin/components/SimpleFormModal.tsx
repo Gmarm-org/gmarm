@@ -38,7 +38,8 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
     } else {
       const initialData: any = {};
       fields.forEach(field => {
-        initialData[field.key] = field.type === 'checkbox' ? true : '';
+        // Para checkboxes: estado = true por defecto, otros = false
+        initialData[field.key] = field.type === 'checkbox' ? (field.key === 'estado' ? true : false) : '';
       });
       setFormData(initialData);
     }
@@ -106,7 +107,9 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     disabled={isReadOnly || field.disabled}
                   />
-                  <span className="ml-2 text-sm text-gray-600">Activo</span>
+                  <span className="ml-2 text-sm text-gray-600">
+                    {field.key === 'estado' ? 'Activo' : (formData[field.key] ? 'Sí' : 'No')}
+                  </span>
                 </div>
               ) : field.type === 'select' ? (
                 <select

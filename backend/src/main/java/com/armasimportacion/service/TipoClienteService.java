@@ -47,14 +47,29 @@ public class TipoClienteService {
         if (tipoCliente.getCodigo() != null) {
             existing.setCodigo(tipoCliente.getCodigo());
         }
-        if (tipoCliente.getEstado() != null) {
-            existing.setEstado(tipoCliente.getEstado());
+        if (tipoCliente.getDescripcion() != null) {
+            existing.setDescripcion(tipoCliente.getDescripcion());
+        }
+        if (tipoCliente.getEsCivil() != null) {
+            existing.setEsCivil(tipoCliente.getEsCivil());
+        }
+        if (tipoCliente.getEsMilitar() != null) {
+            existing.setEsMilitar(tipoCliente.getEsMilitar());
+        }
+        if (tipoCliente.getEsPolicia() != null) {
+            existing.setEsPolicia(tipoCliente.getEsPolicia());
+        }
+        if (tipoCliente.getEsEmpresa() != null) {
+            existing.setEsEmpresa(tipoCliente.getEsEmpresa());
+        }
+        if (tipoCliente.getEsDeportista() != null) {
+            existing.setEsDeportista(tipoCliente.getEsDeportista());
         }
         if (tipoCliente.getRequiereIssfa() != null) {
             existing.setRequiereIssfa(tipoCliente.getRequiereIssfa());
         }
-        if (tipoCliente.getEsMilitar() != null) {
-            existing.setEsMilitar(tipoCliente.getEsMilitar());
+        if (tipoCliente.getEstado() != null) {
+            existing.setEstado(tipoCliente.getEstado());
         }
         
         return repository.save(existing);
