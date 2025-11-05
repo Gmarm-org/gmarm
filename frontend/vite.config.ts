@@ -22,6 +22,19 @@ export default defineConfig(({ mode }) => {
         host: wsHost,
         port: parseInt(wsPort),
         protocol: 'ws'
+      },
+      // Proxy para servir imágenes y archivos desde el backend
+      proxy: {
+        '/images': {
+          target: apiBaseUrl,
+          changeOrigin: true,
+          secure: false
+        },
+        '/uploads': {
+          target: apiBaseUrl,
+          changeOrigin: true,
+          secure: false
+        }
       }
     },
     preview: {
