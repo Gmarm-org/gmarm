@@ -4,6 +4,75 @@
 
 ## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (05/11/2024)
 
+### 22. 🚧 **PENDIENTE: Problemas Admin Panel UX + Errores 403**
+**Estado**: 🚧 **EN PROGRESO** - Problemas identificados, correcciones pendientes
+
+**Problemas Reportados:**
+
+#### a) **Usuarios - Problemas en Formulario**
+- ❌ Último login NO aparece (debe mostrarse si estoy logueado como admin)
+- ❌ Al crear usuario: autocompletado del navegador llena dirección con `admin@armasimportacion.com`
+- ❌ Al crear usuario: autocompletado del navegador llena contraseña
+- ❌ Teléfono principal no se guarda (debe validar máximo 10 caracteres)
+
+#### b) **Licencias - Error 403**
+- ❌ Al editar licencia precargada: `PUT /api/licencia/1 403 Forbidden`
+- ❌ Error en backend o DTO mal formado
+
+#### c) **Tipo de Cliente - Error 403**
+- ❌ No actualiza nada
+- ❌ `POST /api/tipo-cliente 403 Forbidden` al crear
+- ❌ `PUT /api/tipo-cliente/{id} 403 Forbidden` al editar
+
+#### d) **Tipo de Importación - Error 403**
+- ❌ `PUT /api/tipo-importacion/{id} 403 Forbidden` al editar
+
+#### e) **Fecha de Creación - Campo Irrelevante**
+- ❌ Eliminar campo "Fecha Creación" de TODAS las pestañas del admin
+- ✅ ClientTypeList.tsx corregido (1/8)
+- ⏳ Pendiente: 7 componentes más
+
+**Archivos con Fecha Creación a Corregir:**
+1. ✅ `ClientTypeList.tsx` - CORREGIDO
+2. ⏳ `ImportTypeList.tsx`
+3. ⏳ `IdentificationTypeList.tsx`
+4. ⏳ `WeaponCategoryList.tsx`
+5. ⏳ `RoleList.tsx`
+6. ⏳ `UserList.tsx`
+7. ⏳ `WeaponEditModal.tsx`
+8. ⏳ `WeaponViewModal.tsx`
+
+**Soluciones Planificadas:**
+
+**Usuarios - Autocompletado:**
+```typescript
+// Agregar autocomplete="off" o valores específicos:
+<input name="direccion" autoComplete="new-email" />
+<input type="password" autoComplete="new-password" />
+```
+
+**Usuarios - Teléfono:**
+```typescript
+<input
+  type="tel"
+  maxLength={10}
+  pattern="[0-9]{10}"
+  placeholder="0987654321"
+/>
+```
+
+**Errores 403:**
+- Investigar logs del backend
+- Verificar DTOs y controllers
+- Verificar referencias circulares en JSON
+
+**Prioridad**:
+- 🔴 CRÍTICA: Errores 403 (bloquean CRUD completo)
+- 🟡 ALTA: Formulario usuarios (UX)
+- 🟢 MEDIA: Fechas de creación (estético)
+
+---
+
 ### 21. ✅ **CRÍTICO: Migración de Imágenes al Backend + Manejo de Errores 500**
 **Estado**: ✅ **RESUELTO** - Imágenes centralizadas en backend con manejo robusto de errores
 
