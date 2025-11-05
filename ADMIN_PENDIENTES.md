@@ -2,7 +2,52 @@
 
 ---
 
-## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04/11/2024)
+## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04-05/11/2024)
+
+### 18. ✅ **SQL Maestro - Usuario Franklin + Limpieza de Archivos Redundantes**
+**Estado**: ✅ **COMPLETADO** - SQL maestro es la única fuente de verdad
+
+**Problema**: Usuario Franklin se perdía al resetear BD porque estaba en archivo separado, y había archivos SQL duplicados.
+
+**Cambios Aplicados**:
+
+1. **Usuario Franklin integrado al SQL maestro**:
+   - Agregado en `datos/00_gmarm_completo.sql` (líneas 1501-1514)
+   - Username: `franklin.endara`
+   - Email: `franklin.endara@hotmail.com`
+   - Roles: FINANCE + SALES_CHIEF
+   - Password: `admin123` (por defecto)
+
+2. **Archivos SQL eliminados** (redundantes):
+   - ❌ `crear_usuario_franklin.sql` (-86 líneas)
+   - ❌ `datos/insert_series_cz_p09.sql` (-503 líneas, solo 272 series de 500)
+   - ❌ `datos/template_insert_series.sql` (-96 líneas, plantilla de ejemplo)
+
+3. **Scripts de reset de BD creados**:
+   - ✅ `scripts/reset-bd-dev-completo.sh` - Reset completo con fix de secuencias
+   - ✅ `scripts/reset-bd-dev.sh` - Reset simple de BD
+   - ✅ `scripts/fix-sequences-all-tables.sh` - Solo resetea secuencias
+
+**SQL Maestro Completo**:
+```
+datos/00_gmarm_completo.sql (2113 líneas) - ÚNICA fuente de verdad
+├── Esquema completo (36 tablas)
+├── Catálogos y configuraciones
+├── 8 usuarios (admin, vendedor, jefe, finanzas, operaciones, karolina, rossy, franklin)
+├── 47 armas
+├── 500 series de armas ✅
+└── Reset automático de secuencias (IDs consecutivos) ✅
+```
+
+**Resultado**:
+- ✅ Un solo archivo SQL para crear TODO
+- ✅ No más archivos separados que se pierden
+- ✅ Franklin se crea automáticamente con cada reset
+- ✅ IDs siempre consecutivos (secuencias reseteadas)
+- ✅ Listo para PROD (ejecutar una vez y listo)
+- ✅ Limpieza: -685 líneas de código duplicado
+
+---
 
 ### 17. ✅ **Fix: Límite de Imagen de Armas - Backend 5MB → 40MB**
 **Estado**: ✅ **RESUELTO** - Límite del backend aumentado para coincidir con frontend
