@@ -158,6 +158,7 @@ const ClientTypeList: React.FC = () => {
 
   const formFields = [
     { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
+    { key: 'codigo', label: 'Código', type: 'text' as const, required: true, placeholder: 'Ej: CIV, MIL, EMP' },
     { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
     { key: 'estado', label: 'Estado', type: 'checkbox' as const }
   ];

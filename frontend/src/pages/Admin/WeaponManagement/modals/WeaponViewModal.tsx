@@ -57,8 +57,6 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <h4 className="font-medium text-gray-900 mb-2">📊 Información del Sistema</h4>
               <div className="text-sm text-gray-700 space-y-1">
                 <p><strong>ID:</strong> {weapon.id}</p>
-                <p><strong>Fecha de Creación:</strong> {weapon.fechaCreacion || 'No disponible'}</p>
-                <p><strong>Última Modificación:</strong> {new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
           </div>

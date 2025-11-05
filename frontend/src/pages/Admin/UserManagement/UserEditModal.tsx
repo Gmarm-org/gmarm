@@ -227,10 +227,12 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                       <input
                         type="email"
+                        name="user_email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         placeholder="email@ejemplo.com"
+                        autoComplete="off"
                         required
                       />
                     </div>
@@ -264,20 +266,28 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                       <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Principal</label>
                       <input
                         type="tel"
+                        name="telefono_principal"
                         value={formData.telefono_principal}
                         onChange={(e) => setFormData({ ...formData, telefono_principal: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0999999999"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        autoComplete="off"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Secundario</label>
                       <input
                         type="tel"
+                        name="telefono_secundario"
                         value={formData.telefono_secundario}
                         onChange={(e) => setFormData({ ...formData, telefono_secundario: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0999999999"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        autoComplete="off"
                       />
                     </div>
                   </div>
@@ -285,10 +295,12 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                     <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
                     <input
                       type="text"
+                      name="user_address"
                       value={formData.direccion}
                       onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Quito, Ecuador"
+                      autoComplete="off"
                     />
                   </div>
                   <div>
@@ -296,10 +308,12 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
+                        name="new_password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Contraseña (mínimo 8 caracteres)"
+                        autoComplete="new-password"
                         required
                         minLength={8}
                       />

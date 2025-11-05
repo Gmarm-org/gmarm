@@ -129,15 +129,6 @@ const WeaponCategoryList: React.FC = () => {
           {value ? 'Activa' : 'Inactiva'}
         </span>
       )
-    },
-    {
-      key: 'fecha_creacion',
-      label: 'Fecha Creación',
-      render: (value) => (
-        <div className="text-sm text-gray-900">
-          {value ? new Date(value).toLocaleDateString('es-EC') : 'Sin fecha'}
-        </div>
-      )
     }
   ];
 
