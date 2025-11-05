@@ -1498,6 +1498,21 @@ CROSS JOIN rol r
 WHERE u.email = 'rossy-revelo@hotmail.com' AND r.codigo = 'VENDOR'
 ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
 
+-- Usuario: Franklin Endara (Finanzas y Jefe de Ventas)
+INSERT INTO usuario (
+    bloqueado, intentos_login, fecha_creacion, telefono_principal, estado,
+    username, apellidos, email, nombres, direccion, password_hash
+) VALUES (
+    false, 0, NOW(), '0999999998', true,
+    'franklin.endara', 'Endara', 'franklin.endara@hotmail.com',
+    'Franklin', 'Quito, Ecuador', 'admin123'
+) ON CONFLICT (username) DO UPDATE
+SET 
+    email = 'franklin.endara@hotmail.com',
+    nombres = 'Franklin',
+    apellidos = 'Endara',
+    estado = true;
+
 -- Asignar roles a franklin.endara (FINANCE y SALES_CHIEF)
 INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
 SELECT u.id, r.id, true, NOW()
