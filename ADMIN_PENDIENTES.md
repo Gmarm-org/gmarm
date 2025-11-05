@@ -4,6 +4,59 @@
 
 ## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (05/11/2024)
 
+### 20. ✅ **Fix: Imagen de Armas No Se Actualizaba - Cache del Navegador**
+**Estado**: ✅ **RESUELTO** - Imágenes se actualizan correctamente con cache-busting
+
+**Problema**: Al editar un arma y subir una nueva imagen, la imagen no se actualizaba en el frontend. La imagen anterior seguía apareciendo aunque el backend guardó correctamente la nueva imagen.
+
+**Causa**: El navegador cacheaba la imagen porque la URL era la misma (`/images/weapons/weapon_47.png`). El backend elimina y reemplaza el archivo físico con el mismo nombre, pero el navegador no detectaba el cambio.
+
+**Solución Aplicada**:
+
+1. **Frontend - Cache-Busting Agregado**:
+```typescript
+// Antes (imagen cacheada):
+src={weapon.urlImagen || '/images/weapons/placeholder.png'}
+
+// Después (siempre actualiza):
+src={weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : '/images/weapons/placeholder.png'}
+```
+
+2. **Texto Actualizado** (5MB → 40MB):
+```tsx
+// frontend/src/pages/Admin/WeaponManagement/modals/WeaponEditModal.tsx
+// frontend/src/pages/Admin/WeaponManagement/modals/WeaponCreateModal.tsx
+<p className="text-xs text-gray-500">
+  Formatos soportados: PNG, JPG, JPEG, WEBP, SVG. Máximo 40MB. // Antes: 5MB
+</p>
+```
+
+**Archivos Modificados**:
+- ✅ `frontend/src/pages/Admin/WeaponManagement/modals/WeaponEditModal.tsx`
+  - Cache-busting agregado a imagen actual (línea 278)
+  - Texto actualizado: "Máximo 5MB" → "Máximo 40MB" (línea 299)
+- ✅ `frontend/src/pages/Admin/WeaponManagement/modals/WeaponCreateModal.tsx`
+  - Texto actualizado: "Máximo 5MB" → "Máximo 40MB" (línea 335)
+- ✅ `frontend/src/pages/Admin/WeaponManagement/modals/WeaponViewModal.tsx`
+  - Cache-busting agregado a imagen de visualización (línea 44)
+
+**Resultado**:
+```
+✅ Imágenes se actualizan instantáneamente al guardar
+✅ No se requiere Ctrl+F5 o limpiar caché del navegador
+✅ Frontend y backend ambos muestran límite de 40MB (consistencia)
+✅ Cache-busting con timestamp previene caché del navegador
+✅ Funciona en todos los modales: View, Edit, Create
+```
+
+**Cómo Funciona**:
+- URL sin cache-busting: `/images/weapons/weapon_47.png` (cacheada por navegador)
+- URL con cache-busting: `/images/weapons/weapon_47.png?t=1730819145892` (siempre nueva)
+- Cada vez que se carga la imagen, `Date.now()` genera un timestamp único
+- El navegador ve una URL "diferente" y descarga la imagen actualizada
+
+---
+
 ### 19. ✅ **CRÍTICO: Problema OOM Killer en DEV - Memoria PostgreSQL Optimizada**
 **Estado**: ✅ **RESUELTO** - Sistema DEV estable, sin OOM, BD con IDs consecutivos
 
