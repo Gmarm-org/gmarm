@@ -909,6 +909,24 @@ export interface SystemConfig {
   fechaActualizacion?: string;
 }
 
+export interface TipoProceso {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  estado: boolean;
+}
+
+export const tipoProcesoApi = {
+  getAll: async (): Promise<TipoProceso[]> => {
+    const response = await api.get('/api/tipo-proceso');
+    return response.data;
+  },
+  getById: async (id: number): Promise<TipoProceso> => {
+    const response = await api.get(`/api/tipo-proceso/${id}`);
+    return response.data;
+  }
+};
+
 export const systemConfigApi = {
   getAll: async (): Promise<SystemConfig[]> => {
     try {

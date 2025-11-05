@@ -41,7 +41,7 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Imagen de la Arma</label>
               <div className="flex justify-center">
                 <img
-                  src={weapon.urlImagen || '/images/weapons/placeholder.png'}
+                  src={weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : '/images/weapons/placeholder.png'}
                   alt={weapon.nombre}
                   className="h-64 w-64 object-cover rounded-lg border border-gray-200 shadow-lg"
                   onError={(e) => {

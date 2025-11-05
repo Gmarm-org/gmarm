@@ -3,7 +3,7 @@ import AdminDataTable from '../components/AdminDataTable';
 import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
-import { questionApi, type Question } from '../../../services/adminApi';
+import { questionApi, tipoProcesoApi, type Question, type TipoProceso } from '../../../services/adminApi';
 import SimpleFormModal from '../components/SimpleFormModal';
 
 const GestionPreguntas: React.FC = () => {
@@ -14,9 +14,11 @@ const GestionPreguntas: React.FC = () => {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
+  const [tiposProceso, setTiposProceso] = useState<TipoProceso[]>([]);
 
   useEffect(() => {
     loadQuestions();
+    loadTiposProceso();
   }, []);
 
   useEffect(() => {
@@ -33,6 +35,15 @@ const GestionPreguntas: React.FC = () => {
       console.error('Error cargando preguntas:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadTiposProceso = async () => {
+    try {
+      const data = await tipoProcesoApi.getAll();
+      setTiposProceso(data);
+    } catch (error) {
+      console.error('Error cargando tipos de proceso:', error);
     }
   };
 
@@ -189,6 +200,7 @@ const GestionPreguntas: React.FC = () => {
 
   const formFields = [
     { key: 'pregunta', label: 'Pregunta', type: 'textarea' as const, required: true },
+    { key: 'tipoProcesoId', label: 'Tipo de Proceso', type: 'select' as const, required: true, options: tiposProceso.map(tp => ({ value: tp.id, label: tp.nombre })) },
     { key: 'tipoRespuesta', label: 'Tipo de Respuesta', type: 'text' as const, required: true, placeholder: 'text, number, date, etc.' },
     { key: 'orden', label: 'Orden', type: 'number' as const, required: true },
     { key: 'obligatoria', label: 'Obligatoria', type: 'checkbox' as const },

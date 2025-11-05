@@ -26,7 +26,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
     telefono_principal: '',
     telefono_secundario: '',
     direccion: '',
-    foto: '',
     estado: true
   });
 
@@ -43,12 +42,16 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           telefono_principal: '',
           telefono_secundario: '',
           direccion: '',
-          foto: '',
           estado: true
         });
         setSelectedRoleIds(new Set());
       } else if (mode === 'edit' && user) {
         // Cargar datos del usuario en modo edit
+        console.log('🔍 UserEditModal - Usuario recibido para editar:', user);
+        console.log('🔍 UserEditModal - Teléfonos:', {
+          principal: user.telefono_principal,
+          secundario: user.telefono_secundario
+        });
         setFormData({
           username: user.username || '',
           email: user.email || '',
@@ -58,9 +61,9 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           telefono_principal: user.telefono_principal || '',
           telefono_secundario: user.telefono_secundario || '',
           direccion: user.direccion || '',
-          foto: user.foto || '',
           estado: user.estado !== undefined ? user.estado : true
         });
+        console.log('✅ UserEditModal - FormData cargado:', formData);
       }
       loadData();
     }
@@ -76,8 +79,11 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
 
       // Solo cargar roles actuales si estamos en modo edit
       if (mode === 'edit' && user) {
+        console.log('🔍 UserEditModal - Cargando roles del usuario ID:', user.id);
         const currentRoles = await userApi.getUserRoles(user.id);
+        console.log('✅ UserEditModal - Roles del usuario:', currentRoles);
         const roleIds = new Set(currentRoles.map((r: any) => r.id));
+        console.log('✅ UserEditModal - Role IDs seleccionados:', Array.from(roleIds));
         setSelectedRoleIds(roleIds);
       }
       
@@ -124,7 +130,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           telefonoPrincipal: formData.telefono_principal || null,
           telefonoSecundario: formData.telefono_secundario || null,
           direccion: formData.direccion || null,
-          foto: formData.foto || null,
           estado: formData.estado
         };
         
@@ -142,7 +147,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           telefonoPrincipal: formData.telefono_principal || null,
           telefonoSecundario: formData.telefono_secundario || null,
           direccion: formData.direccion || null,
-          foto: formData.foto || null,
           estado: formData.estado
         };
         
@@ -288,16 +292,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Foto (URL)</label>
-                    <input
-                      type="text"
-                      value={formData.foto}
-                      onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="https://ejemplo.com/foto.jpg (opcional)"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
                     <div className="relative">
                       <input
@@ -421,16 +415,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                       value={formData.direccion}
                       onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Foto (URL)</label>
-                    <input
-                      type="text"
-                      value={formData.foto}
-                      onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="https://ejemplo.com/foto.jpg (opcional)"
                     />
                   </div>
                   <div>

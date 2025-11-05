@@ -15,6 +15,7 @@ interface CreateFormData {
   precioReferencia: number;
   categoriaId: number;
   estado: boolean;
+  expoferia: boolean;
   codigo: string;
   urlProducto: string;
 }
@@ -32,6 +33,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
     precioReferencia: 0,
     categoriaId: categories.length > 0 ? categories[0].id : 1,
     estado: true,
+    expoferia: false,
     codigo: '',
     urlProducto: ''
   });
@@ -107,6 +109,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       formData.append('precioReferencia', createForm.precioReferencia.toString());
       formData.append('categoriaId', createForm.categoriaId.toString());
       formData.append('estado', createForm.estado.toString());
+      formData.append('expoferia', createForm.expoferia.toString());
       formData.append('codigo', createForm.codigo);
       formData.append('urlProducto', createForm.urlProducto);
       
@@ -135,6 +138,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
         precioReferencia: 0,
         categoriaId: categories.length > 0 ? categories[0].id : 1,
         estado: true,
+        expoferia: false,
         codigo: '',
         urlProducto: ''
       });
@@ -157,6 +161,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       precioReferencia: 0,
       categoriaId: categories.length > 0 ? categories[0].id : 1,
       estado: true,
+      expoferia: false,
       codigo: '',
       urlProducto: ''
     });
@@ -286,6 +291,24 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
             </div>
             
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Expoferia</label>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={createForm.expoferia}
+                  onChange={(e) => handleInputChange('expoferia', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">
+                  Arma disponible para Expoferia
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Marque esta opción si el arma está disponible para venta en eventos de Expoferia
+              </p>
+            </div>
+            
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">URL del Producto</label>
               <input
                 type="url"
@@ -309,7 +332,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
                 <p className="text-xs text-gray-500">
-                  Formatos soportados: PNG, JPG, JPEG, WEBP, SVG. Máximo 5MB.
+                  Formatos soportados: PNG, JPG, JPEG, WEBP, SVG. Máximo 40MB.
                 </p>
               </div>
             </div>

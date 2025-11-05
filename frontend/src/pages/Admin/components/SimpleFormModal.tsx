@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 interface Field {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'checkbox';
+  type: 'text' | 'textarea' | 'number' | 'checkbox' | 'select';
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  options?: Array<{value: string | number, label: string}>; // Para select
 }
 
 interface SimpleFormModalProps {
@@ -107,6 +108,21 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
                   />
                   <span className="ml-2 text-sm text-gray-600">Activo</span>
                 </div>
+              ) : field.type === 'select' ? (
+                <select
+                  value={formData[field.key] || ''}
+                  onChange={(e) => setFormData({ ...formData, [field.key]: parseInt(e.target.value) || e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  required={field.required}
+                  disabled={isReadOnly || field.disabled}
+                >
+                  <option value="">Seleccionar...</option>
+                  {field.options?.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               ) : (
                 <input
                   type={field.type}

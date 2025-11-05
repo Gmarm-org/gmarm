@@ -29,7 +29,11 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
     cupo_civil: 0,
     cupo_militar: 0,
     cupo_empresa: 0,
-    cupo_deportista: 0
+    cupo_deportista: 0,
+    cuenta_bancaria: '',
+    nombre_banco: '',
+    tipo_cuenta: '',
+    cedula_cuenta: ''
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,7 +54,11 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
         cupo_civil: 0,
         cupo_militar: 0,
         cupo_empresa: 0,
-        cupo_deportista: 0
+        cupo_deportista: 0,
+        cuenta_bancaria: '',
+        nombre_banco: '',
+        tipo_cuenta: '',
+        cedula_cuenta: ''
       });
     }
   }, [license, mode, isOpen]);
@@ -135,6 +143,33 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
                   <option value="VENCIDA">Vencida</option>
                   <option value="SUSPENDIDA">Suspendida</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Información Bancaria */}
+          <div className="border-b pb-4">
+            <h3 className="text-lg font-semibold mb-3">Información Bancaria</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número de Cuenta</label>
+                <input type="text" value={formData.cuenta_bancaria || ''} onChange={(e) => setFormData({ ...formData, cuenta_bancaria: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} placeholder="1234567890" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Banco</label>
+                <input type="text" value={formData.nombre_banco || ''} onChange={(e) => setFormData({ ...formData, nombre_banco: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} placeholder="Banco Pichincha" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Cuenta</label>
+                <select value={formData.tipo_cuenta || ''} onChange={(e) => setFormData({ ...formData, tipo_cuenta: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly}>
+                  <option value="">Seleccionar tipo</option>
+                  <option value="AHORRO">Ahorros</option>
+                  <option value="CORRIENTE">Corriente</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cédula del Titular</label>
+                <input type="text" value={formData.cedula_cuenta || ''} onChange={(e) => setFormData({ ...formData, cedula_cuenta: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" maxLength={10} pattern="[0-9]*" disabled={isReadOnly} placeholder="1234567890" />
               </div>
             </div>
           </div>

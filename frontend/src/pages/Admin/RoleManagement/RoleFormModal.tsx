@@ -20,7 +20,8 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
     nombre: '',
     codigo: '',
     descripcion: '',
-    estado: true
+    estado: true,
+    tipo_rol_vendedor: undefined
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -30,14 +31,16 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
         nombre: role.nombre,
         codigo: role.codigo,
         descripcion: role.descripcion,
-        estado: role.estado
+        estado: role.estado,
+        tipo_rol_vendedor: role.tipo_rol_vendedor
       });
     } else {
       setFormData({
         nombre: '',
         codigo: '',
         descripcion: '',
-        estado: true
+        estado: true,
+        tipo_rol_vendedor: undefined
       });
     }
   }, [role, mode, isOpen]);
@@ -129,6 +132,28 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
               disabled={isReadOnly}
             />
           </div>
+
+          {/* Tipo Rol Vendedor (solo si el rol es VENDEDOR) */}
+          {formData.codigo === 'VENDEDOR' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Rol Vendedor
+              </label>
+              <select
+                value={formData.tipo_rol_vendedor || ''}
+                onChange={(e) => setFormData({ ...formData, tipo_rol_vendedor: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                disabled={isReadOnly}
+              >
+                <option value="">Seleccionar tipo</option>
+                <option value="FIJO">FIJO</option>
+                <option value="LIBRE">LIBRE</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                FIJO: Vendedor con salario fijo. LIBRE: Vendedor con comisión variable.
+              </p>
+            </div>
+          )}
 
           {/* Estado */}
           <div className="flex items-center">

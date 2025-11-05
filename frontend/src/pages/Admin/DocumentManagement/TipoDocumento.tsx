@@ -3,7 +3,7 @@ import AdminDataTable from '../components/AdminDataTable';
 import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
-import { documentTypeApi, type DocumentType } from '../../../services/adminApi';
+import { documentTypeApi, tipoProcesoApi, type DocumentType, type TipoProceso } from '../../../services/adminApi';
 import SimpleFormModal from '../components/SimpleFormModal';
 
 const TipoDocumento: React.FC = () => {
@@ -14,9 +14,11 @@ const TipoDocumento: React.FC = () => {
   const [selectedType, setSelectedType] = useState<DocumentType | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
+  const [tiposProceso, setTiposProceso] = useState<TipoProceso[]>([]);
 
   useEffect(() => {
     loadDocumentTypes();
+    loadTiposProceso();
   }, []);
 
   useEffect(() => {
@@ -33,6 +35,15 @@ const TipoDocumento: React.FC = () => {
       console.error('Error cargando tipos de documento:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadTiposProceso = async () => {
+    try {
+      const data = await tipoProcesoApi.getAll();
+      setTiposProceso(data);
+    } catch (error) {
+      console.error('Error cargando tipos de proceso:', error);
     }
   };
 
@@ -184,6 +195,8 @@ const TipoDocumento: React.FC = () => {
   const formFields = [
     { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
     { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
+    { key: 'tipoProcesoId', label: 'Tipo de Proceso', type: 'select' as const, required: true, options: tiposProceso.map(tp => ({ value: tp.id, label: tp.nombre })) },
+    { key: 'urlDocumento', label: 'URL del Documento (opcional)', type: 'text' as const, placeholder: 'https://ejemplo.com/documento.pdf' },
     { key: 'obligatorio', label: 'Obligatorio', type: 'checkbox' as const },
     { key: 'estado', label: 'Estado', type: 'checkbox' as const }
   ];

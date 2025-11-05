@@ -17,6 +17,7 @@ interface EditFormData {
   precioReferencia: number;
   categoriaId: number;
   estado: boolean;
+  expoferia: boolean;
   urlImagen: string;
 }
 
@@ -35,6 +36,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
     precioReferencia: 0,
     categoriaId: 0,
     estado: true,
+    expoferia: false,
     urlImagen: ''
   });
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -51,6 +53,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
         precioReferencia: weapon.precioReferencia || 0,
         categoriaId: weapon.categoriaId || 1,
         estado: weapon.estado !== undefined ? weapon.estado : true,
+        expoferia: weapon.expoferia || false,
         urlImagen: weapon.urlImagen || ''
       });
       setSelectedImageFile(null);
@@ -109,6 +112,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       formData.append('precioReferencia', editForm.precioReferencia.toString());
       formData.append('categoriaId', editForm.categoriaId.toString());
       formData.append('estado', editForm.estado.toString());
+      formData.append('expoferia', editForm.expoferia.toString());
       
       if (selectedImageFile) {
         formData.append('imagen', selectedImageFile);
@@ -245,6 +249,24 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                 </label>
               </div>
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Expoferia</label>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={editForm.expoferia}
+                  onChange={(e) => handleInputChange('expoferia', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">
+                  Arma disponible para Expoferia
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Marque esta opción si el arma está disponible para venta en eventos de Expoferia
+              </p>
+            </div>
           </div>
           
           {/* Columna Derecha - Imagen */}
@@ -253,7 +275,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Imagen Actual</label>
               <div className="flex justify-center">
                 <img
-                  src={weapon.urlImagen || '/images/weapons/placeholder.png'}
+                  src={weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : '/images/weapons/placeholder.png'}
                   alt={weapon.nombre}
                   className="h-48 w-48 object-cover rounded-lg border border-gray-200"
                   onError={(e) => {
@@ -274,7 +296,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
                 <p className="text-xs text-gray-500">
-                  Formatos soportados: PNG, JPG, JPEG, WEBP, SVG. Máximo 5MB.
+                  Formatos soportados: PNG, JPG, JPEG, WEBP, SVG. Máximo 40MB.
                 </p>
               </div>
             </div>

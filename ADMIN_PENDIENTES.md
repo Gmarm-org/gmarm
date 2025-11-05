@@ -2,7 +2,113 @@
 
 ---
 
-## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (04-05/11/2024)
+## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (05/11/2024)
+
+### 19. ✅ **CRÍTICO: Problema OOM Killer en DEV - Memoria PostgreSQL Optimizada**
+**Estado**: ✅ **RESUELTO** - Sistema DEV estable, sin OOM, BD con IDs consecutivos
+
+**Problema**: PostgreSQL en DEV era asesinado por OOM Killer cada ~1 minuto. Backend unhealthy, base de datos desaparecía constantemente.
+
+**Diagnóstico Inicial**:
+```
+❌ PostgreSQL: OOMKilled: true (cada ~1 minuto)
+❌ Configuración excesiva para 3.8GB RAM total
+   - max_connections: 100
+   - work_mem: 4MB
+   - autovacuum_workers: 6
+   - autovacuum_naptime: 10s
+❌ Límite de memoria: 1GB (insuficiente)
+❌ Base de datos desaparecía después de reinicios
+❌ IDs no consecutivos (secuencias no reseteadas)
+```
+
+**Solución Aplicada** (`docker-compose.dev.yml`):
+
+1. **PostgreSQL - Recursos Optimizados**:
+```yaml
+postgres_dev:
+  mem_limit: 1536m           # 1.5GB (antes 1GB)
+  mem_reservation: 1024m     # 1GB reservado
+  cpus: '1.5'               # 1.5 CPUs
+  environment:
+    POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+  command:
+    - "postgres"
+    - "-c" "max_connections=30"           # Reducido de 100
+    - "-c" "shared_buffers=256MB"         # Optimizado para 1.5GB
+    - "-c" "work_mem=512kB"               # Reducido de 4MB
+    - "-c" "maintenance_work_mem=64MB"    # Reducido de 256MB
+    - "-c" "autovacuum=off"               # OFF en DEV
+    - "-c" "effective_cache_size=1GB"     # Optimizado
+```
+
+2. **Backend - Recursos Optimizados**:
+```yaml
+backend_dev:
+  mem_limit: 256m            # Backend ligero
+  mem_reservation: 128m
+  cpus: '0.5'
+  environment:
+    JAVA_OPTS: "-Xmx200m -Xms128m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+```
+
+3. **Frontend - Recursos Optimizados**:
+```yaml
+frontend_dev:
+  mem_limit: 384m            # 384MB para Vite
+  mem_reservation: 256m
+  cpus: '0.5'
+```
+
+4. **Límite de Imagen de Armas Aumentado**:
+```properties
+# backend/src/main/resources/application.properties
+# app.weapons.max-image-size=5242880  ← Comentado (usar del perfil activo)
+
+# backend/src/main/resources/application-docker.properties
+app.weapons.max-image-size=41943040  # 40MB (antes 5MB)
+app.uploads.max-size=52428800        # 50MB
+spring.servlet.multipart.max-file-size=50MB
+spring.servlet.multipart.max-request-size=50MB
+
+# backend/src/main/resources/application-prod.properties
+app.weapons.max-image-size=41943040  # 40MB (antes 5MB)
+spring.servlet.multipart.max-file-size=50MB
+spring.servlet.multipart.max-request-size=50MB
+```
+
+5. **Script de Reset BD Completo Creado**:
+```bash
+scripts/reset-bd-dev-completo.sh  # Reset completo + fix secuencias
+```
+
+**Resultado**:
+```
+✅ PostgreSQL: OOMKilled: false (0 eventos desde 05/11/2024)
+✅ PostgreSQL estable: Usando ~1.5GB (99.78% de límite, sin crashes)
+✅ Backend: UP & HEALTHY (respondiendo correctamente)
+✅ Frontend: UP (sin problemas de memoria)
+✅ Base de datos: gmarm_dev con UTF8, 8 usuarios, 47 armas, 500 series
+✅ IDs consecutivos: 1-8 (secuencias reseteadas correctamente)
+✅ Franklin.endara: Creado automáticamente (ID 8)
+✅ Imágenes de armas: Ahora acepta hasta 40MB
+✅ Sistema estable por 12+ horas sin reinicios
+```
+
+**Estrategia de Recursos DEV vs PROD**:
+- **DEV (con PROD apagado)**: PostgreSQL 1.5GB + Backend 256MB + Frontend 384MB = ~2.1GB
+- **PROD (con DEV apagado)**: PostgreSQL 2GB + Backend 512MB + Frontend 512MB = ~3GB
+- **Servidor**: 3.8GB RAM total + 2GB SWAP
+
+**Lecciones Aprendidas**:
+1. ⚠️ **SIEMPRE reiniciar TODO el sistema después de cambios en backend** (no solo backend)
+2. ✅ Autovacuum OFF en DEV ahorra ~200MB de memoria
+3. ✅ `max_connections=30` suficiente para DEV/testing
+4. ✅ `work_mem=512kB` evita picos de memoria en queries complejos
+5. ✅ Docker `mem_reservation` asegura memoria mínima garantizada
+6. ✅ Límites consistentes entre frontend (40MB) y backend (40MB) evitan errores
+
+---
 
 ### 18. ✅ **SQL Maestro - Usuario Franklin + Limpieza de Archivos Redundantes**
 **Estado**: ✅ **COMPLETADO** - SQL maestro es la única fuente de verdad
