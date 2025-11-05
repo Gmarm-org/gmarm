@@ -42,7 +42,7 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=${API_URL}
+      - VITE_API_BASE_URL=${API_URL}
       - VITE_APP_NAME=Sistema de Importación de Armas
       - VITE_DEV_MODE=false
     depends_on:

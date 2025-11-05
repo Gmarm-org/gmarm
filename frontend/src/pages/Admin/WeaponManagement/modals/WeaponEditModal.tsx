@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Weapon } from '../../../../services/adminApi';
+import { getWeaponImageUrlWithCacheBusting } from '../../../../utils/imageUtils';
 
 interface WeaponEditModalProps {
   weapon: Weapon;
@@ -116,8 +117,6 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       
       if (selectedImageFile) {
         formData.append('imagen', selectedImageFile);
-      } else if (editForm.urlImagen && editForm.urlImagen.trim() !== '') {
-        formData.append('urlImagen', editForm.urlImagen);
       }
       
       await onSave(formData);
@@ -275,12 +274,12 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Imagen Actual</label>
               <div className="flex justify-center">
                 <img
-                  src={weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : '/images/weapons/placeholder.png'}
+                  src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
                   alt={weapon.nombre}
                   className="h-48 w-48 object-cover rounded-lg border border-gray-200"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/images/weapons/placeholder.png';
+                    target.src = getWeaponImageUrlWithCacheBusting(null);
                   }}
                 />
               </div>
@@ -326,20 +325,6 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                 </p>
               </div>
             )}
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">URL de Imagen (Alternativa)</label>
-              <input
-                type="url"
-                value={editForm.urlImagen}
-                onChange={(e) => handleInputChange('urlImagen', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://ejemplo.com/imagen.jpg"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Usa esta opción si prefieres especificar una URL en lugar de cargar un archivo
-              </p>
-            </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-2">📝 Información del Sistema</h4>

@@ -7,6 +7,7 @@ import type { AdminStat } from '../components/AdminStats';
 import { weaponApi, weaponCategoryApi } from '../../../services/adminApi';
 import type { Weapon } from '../../../services/adminApi';
 import { WeaponViewModal, WeaponEditModal, WeaponDeleteModal, WeaponCreateModal } from './modals';
+import { getWeaponImageUrl } from '../../../utils/imageUtils';
 import Header from '../../../components/Header';
 
 const WeaponList: React.FC = () => {
@@ -218,12 +219,12 @@ const WeaponList: React.FC = () => {
       render: (value: any) => (
         <div className="flex justify-center">
           <img
-            src={value || '/images/weapons/placeholder.png'}
+            src={getWeaponImageUrl(value)}
             alt="Arma"
             className="h-12 w-12 object-cover rounded-lg border border-gray-200"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.src = '/images/weapons/placeholder.png';
+              target.src = getWeaponImageUrl(null);
             }}
           />
         </div>

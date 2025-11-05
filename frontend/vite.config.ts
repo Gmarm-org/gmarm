@@ -23,17 +23,21 @@ export default defineConfig(({ mode }) => {
         port: parseInt(wsPort),
         protocol: 'ws'
       },
-      // Proxy para servir imágenes y archivos desde el backend
+      // Proxy para desarrollo local (solo activo con 'npm run dev')
+      // Redirige peticiones a /images y /uploads al backend
+      // En producción, estas rutas se sirven directamente desde el backend
       proxy: {
         '/images': {
           target: apiBaseUrl,
           changeOrigin: true,
-          secure: false
+          secure: false,
+          rewrite: (path) => path // Mantener la ruta original
         },
         '/uploads': {
           target: apiBaseUrl,
           changeOrigin: true,
-          secure: false
+          secure: false,
+          rewrite: (path) => path // Mantener la ruta original
         }
       }
     },

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Weapon } from '../../../../services/adminApi';
+import { getWeaponImageUrlWithCacheBusting } from '../../../../utils/imageUtils';
 
 interface WeaponViewModalProps {
   weapon: Weapon;
@@ -41,12 +42,12 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Imagen de la Arma</label>
               <div className="flex justify-center">
                 <img
-                  src={weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : '/images/weapons/placeholder.png'}
+                  src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
                   alt={weapon.nombre}
                   className="h-64 w-64 object-cover rounded-lg border border-gray-200 shadow-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/images/weapons/placeholder.png';
+                    target.src = getWeaponImageUrlWithCacheBusting(null);
                   }}
                 />
               </div>

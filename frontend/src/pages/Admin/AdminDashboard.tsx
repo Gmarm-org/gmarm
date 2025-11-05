@@ -83,7 +83,7 @@ const AdminDashboard: React.FC = () => {
         subtitle="Gestión integral del sistema de armas de importación"
       />
       
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="w-full px-6 py-6">
         {/* Navegación de pestañas */}
         <div className="flex flex-wrap gap-2 mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           {tabs.map((tab) => (

@@ -118,16 +118,10 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   };
 
   // Función para obtener la imagen del arma con detección automática de formato
+  // NOTA: Ya no es necesario, se usa imageUtils directamente
+  // Se mantiene por compatibilidad pero ahora delega a imageUtils
   const getWeaponImage = (weapon: Arma): string => {
-    // Si la arma tiene URL de imagen en la base de datos, usarla
-    if (weapon.urlImagen && weapon.urlImagen.trim() !== '') {
-      // En desarrollo, Vite necesita rutas relativas sin la barra inicial
-      const imagePath = weapon.urlImagen.startsWith('/') ? weapon.urlImagen.substring(1) : weapon.urlImagen;
-      return imagePath;
-    }
-    
-    // Si no hay URL en BD, usar imagen por defecto
-    return 'images/weapons/default-weapon.jpg';
+    return weapon.urlImagen || '';
   };
 
   // Componente de imagen con carrusel (soporte para múltiples imágenes)

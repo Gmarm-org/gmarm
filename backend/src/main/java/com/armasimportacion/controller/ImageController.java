@@ -1,7 +1,5 @@
 package com.armasimportacion.controller;
 
-import com.armasimportacion.service.ArmaImageService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -9,90 +7,94 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Controlador para servir imágenes de forma segura
+ * 
+ * Si la imagen no existe, retorna un placeholder en lugar de error 500.
+ * Esto previene que el sistema se caiga por imágenes faltantes.
+ */
 @RestController
 @RequestMapping("/images")
-@RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000", "http://localhost:8080"})
 public class ImageController {
 
-    @Value("${app.weapons.images-dir:./uploads/images/weapons}")
-    private String weaponsImagesDir;
+    @Value("${app.upload.dir:./uploads}")
+    private String uploadDir;
 
-    private final ArmaImageService armaImageService;
-
-    /**
-     * Sirve imágenes de armas
-     */
     @GetMapping("/weapons/{filename:.+}")
-    public ResponseEntity<Resource> serveWeaponImage(@PathVariable String filename) {
-        log.info("Solicitud para servir imagen de arma: {}", filename);
-        
+    public ResponseEntity<Resource> getWeaponImage(@PathVariable String filename) {
         try {
-            Path imagePath = Paths.get(weaponsImagesDir, filename);
+            // Intentar cargar la imagen solicitada
+            Path imagePath = Paths.get(uploadDir).resolve("images/weapons").resolve(filename).normalize();
             Resource resource = new UrlResource(imagePath.toUri());
-            
+
             if (resource.exists() && resource.isReadable()) {
-                // Determinar el tipo de contenido basado en la extensión
-                String contentType = determineContentType(filename);
+                // Imagen encontrada - servirla
+                log.debug("✅ Imagen encontrada: {}", filename);
                 
-                log.info("Imagen de arma servida exitosamente: {}", filename);
+                // Detectar tipo de contenido
+                String contentType = Files.probeContentType(imagePath);
+                if (contentType == null) {
+                    contentType = "application/octet-stream";
+                }
+                
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(contentType))
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                        .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
                         .body(resource);
             } else {
-                log.warn("Imagen de arma no encontrada o no legible: {}", filename);
-                return ResponseEntity.notFound().build();
+                // Imagen no encontrada - retornar placeholder
+                log.warn("⚠️ Imagen no encontrada: {} - Sirviendo placeholder", filename);
+                return getPlaceholderImage();
             }
-            
-        } catch (MalformedURLException e) {
-            log.error("Error formando URL para imagen: {}", filename, e);
-            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            // Error inesperado - retornar placeholder (NO error 500)
+            log.error("❌ Error cargando imagen {}: {} - Sirviendo placeholder", filename, e.getMessage());
+            return getPlaceholderImage();
         }
     }
 
     /**
-     * Verifica si una imagen existe
+     * Retorna imagen placeholder cuando la imagen solicitada no existe
+     * Esto previene errores 500 y caídas del sistema
      */
-    @GetMapping("/weapons/{filename:.+}/exists")
-    public ResponseEntity<Boolean> checkImageExists(@PathVariable String filename) {
-        log.info("Verificando existencia de imagen: {}", filename);
-        
+    private ResponseEntity<Resource> getPlaceholderImage() {
         try {
-            Path imagePath = Paths.get(weaponsImagesDir, filename);
-            Resource resource = new UrlResource(imagePath.toUri());
-            boolean exists = resource.exists() && resource.isReadable();
+            // Buscar default-weapon.jpg en uploads/images/weapons
+            Path placeholderPath = Paths.get(uploadDir)
+                    .resolve("images/weapons")
+                    .resolve("default-weapon.jpg")
+                    .normalize();
             
-            log.info("Imagen {} existe: {}", filename, exists);
-            return ResponseEntity.ok(exists);
+            Resource placeholder = new UrlResource(placeholderPath.toUri());
             
-        } catch (MalformedURLException e) {
-            log.error("Error verificando imagen: {}", filename, e);
-            return ResponseEntity.badRequest().build();
+            if (placeholder.exists() && placeholder.isReadable()) {
+                log.debug("✅ Sirviendo placeholder: default-weapon.jpg");
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
+                        .body(placeholder);
+            } else {
+                // Si ni siquiera existe el placeholder, crear respuesta vacía con 404
+                // pero NO romper el sistema (error 500)
+                log.warn("⚠️ Placeholder default-weapon.jpg no existe - Retornando 404 silencioso");
+                return ResponseEntity.notFound()
+                        .header(HttpHeaders.CACHE_CONTROL, "no-cache")
+                        .build();
+            }
+        } catch (Exception e) {
+            // Último recurso - 404 silencioso sin romper el sistema
+            log.error("❌ Error crítico sirviendo placeholder: {} - Retornando 404", e.getMessage());
+            return ResponseEntity.notFound().build();
         }
-    }
-
-    /**
-     * Determina el tipo de contenido basado en la extensión del archivo
-     */
-    private String determineContentType(String filename) {
-        String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
-        
-        return switch (extension) {
-            case "png" -> "image/png";
-            case "jpg", "jpeg" -> "image/jpeg";
-            case "webp" -> "image/webp";
-            case "svg" -> "image/svg+xml";
-            case "gif" -> "image/gif";
-            default -> "application/octet-stream";
-        };
     }
 }
