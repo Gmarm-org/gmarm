@@ -918,12 +918,10 @@ export interface TipoProceso {
 
 export const tipoProcesoApi = {
   getAll: async (): Promise<TipoProceso[]> => {
-    const response = await api.get('/api/tipo-proceso');
-    return response.data;
+    return await apiService.getTiposProceso();
   },
   getById: async (id: number): Promise<TipoProceso> => {
-    const response = await api.get(`/api/tipo-proceso/${id}`);
-    return response.data;
+    return await apiService.getTipoProcesoById(id);
   }
 };
 

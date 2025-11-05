@@ -91,6 +91,27 @@ git push origin dev
 - ✅ Volver a probar
 - ✅ Push solo cuando ambos pasen
 
+**🔴 ERRORES COMUNES DE COMPILACIÓN:**
+
+1. **Frontend - Error TypeScript**: `error TS2304: Cannot find name 'X'`
+   - **Causa**: Falta importación, typo en nombre de variable, uso de API incorrecta
+   - **Ejemplo**: `Cannot find name 'api'` → Usar `apiService` en lugar de `api`
+   - **Solución**: Verificar imports, nombres de variables, y métodos disponibles
+
+2. **Frontend - Error TypeScript**: `error TS2339: Property 'X' does not exist on type 'Y'`
+   - **Causa**: Método/propiedad no existe en la clase/interfaz
+   - **Ejemplo**: `Property 'get' does not exist on type 'ApiService'` → `ApiService` no tiene método público `get`, usar `request()` o crear método específico
+   - **Solución**: Verificar la definición de la clase, agregar método si es necesario
+
+3. **Backend - Compilación Maven falla**
+   - **Solución alternativa**: Si `mvn` no funciona localmente (problemas de ruta), usar Docker:
+   ```powershell
+   docker-compose -f docker-compose.local.yml build backend_local --no-cache
+   ```
+   - ✅ Si la imagen se construye exitosamente, el código compila correctamente
+
+**⚠️ NUNCA hacer push si el build falla. Los errores de compilación rompen el pipeline CI/CD y el trabajo de otros desarrolladores.**
+
 **Excepciones (aún así, preguntar):**
 - Correcciones de documentación (.md)
 - Fixes de SQL maestro ya validados

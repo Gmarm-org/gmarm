@@ -773,6 +773,20 @@ class ApiService {
   }
 
   // ========================================
+  // GESTIÓN DE TIPOS DE PROCESO
+  // ========================================
+
+  // Obtener todos los tipos de proceso
+  async getTiposProceso(): Promise<any[]> {
+    return this.request<any[]>('/api/tipo-proceso');
+  }
+
+  // Obtener tipo de proceso por ID
+  async getTipoProcesoById(id: number): Promise<any> {
+    return this.request<any>(`/api/tipo-proceso/${id}`);
+  }
+
+  // ========================================
   // DOCUMENTOS DE CLIENTE
   // ========================================
 
