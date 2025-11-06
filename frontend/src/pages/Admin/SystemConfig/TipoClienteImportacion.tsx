@@ -8,7 +8,7 @@ import { clientImportTypeApi, clientTypeApi, importTypeApi, type ClientImportTyp
 interface RelationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { tipoClienteId: number; tipoImportacionId: number; cupoMaximo: number }) => Promise<void>;
+  onSave: (data: { tipoClienteId: number; tipoImportacionId: number }) => Promise<void>;
   clientTypes: ClientType[];
   importTypes: ImportType[];
   mode: 'create' | 'view';
@@ -16,14 +16,14 @@ interface RelationFormModalProps {
 }
 
 const RelationFormModal: React.FC<RelationFormModalProps> = ({ isOpen, onClose, onSave, clientTypes, importTypes, mode, data }) => {
-  const [formData, setFormData] = useState({ tipoClienteId: 0, tipoImportacionId: 0, cupoMaximo: 0 });
+  const [formData, setFormData] = useState({ tipoClienteId: 0, tipoImportacionId: 0 });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (data && mode === 'view') {
-      setFormData({ tipoClienteId: data.tipoClienteId, tipoImportacionId: data.tipoImportacionId, cupoMaximo: data.cupoMaximo });
+      setFormData({ tipoClienteId: data.tipoClienteId, tipoImportacionId: data.tipoImportacionId });
     } else {
-      setFormData({ tipoClienteId: 0, tipoImportacionId: 0, cupoMaximo: 0 });
+      setFormData({ tipoClienteId: 0, tipoImportacionId: 0 });
     }
   }, [data, mode, isOpen]);
 
@@ -73,10 +73,6 @@ const RelationFormModal: React.FC<RelationFormModalProps> = ({ isOpen, onClose, 
               <option value={0}>Seleccione...</option>
               {importTypes.map(it => <option key={it.id} value={it.id}>{it.nombre}</option>)}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Máximo *</label>
-            <input type="number" value={formData.cupoMaximo} onChange={(e) => setFormData({ ...formData, cupoMaximo: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-md" required disabled={mode === 'view'} min={0} />
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
@@ -167,7 +163,7 @@ const TipoClienteImportacion: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleSave = async (data: { tipoClienteId: number; tipoImportacionId: number; cupoMaximo: number }) => {
+  const handleSave = async (data: { tipoClienteId: number; tipoImportacionId: number }) => {
     try {
       await clientImportTypeApi.create(data);
       await loadRelations();
@@ -207,13 +203,6 @@ const TipoClienteImportacion: React.FC = () => {
         <span className="inline-flex px-3 py-1 text-sm font-medium bg-purple-100 text-purple-800 rounded-full">
           {value}
         </span>
-      )
-    },
-    {
-      key: 'cupoMaximo',
-      label: 'Cupo Máximo',
-      render: (value) => (
-        <span className="text-sm font-semibold text-gray-900">{value}</span>
       )
     }
   ];

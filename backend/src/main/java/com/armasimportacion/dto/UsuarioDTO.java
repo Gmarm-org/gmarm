@@ -1,5 +1,6 @@
 package com.armasimportacion.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,14 +18,34 @@ public class UsuarioDTO {
     private Long id;
     private String username;
     private String email;
-    private String nombre;
-    private String apellido;
+    private String nombres;  // Cambiado de 'nombre' a 'nombres' para consistencia
+    private String apellidos; // Cambiado de 'apellido' a 'apellidos' para consistencia
+    
+    @JsonProperty("telefono_principal")
+    private String telefonoPrincipal;
+    
+    @JsonProperty("telefono_secundario")
+    private String telefonoSecundario;
+    
+    private String direccion;
+    private String foto;
     private Boolean estado; // true = ACTIVO, false = INACTIVO
-    private LocalDateTime ultimoAcceso;
+    private Boolean bloqueado;
+    
+    @JsonProperty("ultimo_login")
+    private LocalDateTime ultimoLogin;
+    
+    @JsonProperty("intentos_login")
+    private Integer intentosLogin;
+    
+    @JsonProperty("fecha_creacion")
     private LocalDateTime fechaCreacion;
+    
+    @JsonProperty("fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
     
-    // Información de roles (solo nombres, no entidades completas)
+    // Información de roles
+    private List<Object> roles; // Array de objetos {id, nombre, codigo}
     private List<String> rolesNombres;
     private List<String> rolesCodigos;
     private Integer totalRoles;
@@ -36,7 +57,7 @@ public class UsuarioDTO {
     
     // Métodos de utilidad
     public String getNombreCompleto() {
-        return nombre + " " + apellido;
+        return (nombres != null ? nombres : "") + " " + (apellidos != null ? apellidos : "");
     }
     
     public boolean esActivo() {

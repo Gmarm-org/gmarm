@@ -67,13 +67,16 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> getUsuarioById(@PathVariable Long id) {
-        log.info("Obteniendo usuario con ID: {}", id);
+    public ResponseEntity<UsuarioSimpleDTO> getUsuarioById(@PathVariable Long id) {
+        log.info("📋 GET /api/usuarios/{} - Obteniendo usuario", id);
         try {
             Usuario usuario = usuarioService.findById(id);
-            return ResponseEntity.ok(usuario);
+            UsuarioSimpleDTO usuarioDTO = usuarioMapper.toDTO(usuario);
+            log.info("✅ Usuario encontrado: {} - Teléfono: {}, Último Login: {}", 
+                     usuario.getUsername(), usuario.getTelefonoPrincipal(), usuario.getUltimoLogin());
+            return ResponseEntity.ok(usuarioDTO);
         } catch (ResourceNotFoundException e) {
-            log.error("Usuario no encontrado con ID: {}", id);
+            log.error("⚠️ Usuario no encontrado con ID: {}", id);
             return ResponseEntity.notFound().build();
         }
     }

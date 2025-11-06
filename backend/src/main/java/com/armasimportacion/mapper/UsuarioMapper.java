@@ -39,10 +39,12 @@ public class UsuarioMapper {
                 .telefonoPrincipal(usuario.getTelefonoPrincipal())
                 .telefonoSecundario(usuario.getTelefonoSecundario())
                 .direccion(usuario.getDireccion())
+                .foto(usuario.getFoto())
                 .estado(usuario.getEstado()) // estado ya es Boolean
                 .bloqueado(usuario.getBloqueado())
                 .fechaCreacion(usuario.getFechaCreacion())
                 .ultimoLogin(usuario.getUltimoLogin())
+                .intentosLogin(usuario.getIntentosLogin())
                 .roles(rolesDTO)
                 .build();
     }
@@ -71,8 +73,10 @@ public class UsuarioMapper {
         usuario.setTelefonoPrincipal(dto.getTelefonoPrincipal());
         usuario.setTelefonoSecundario(dto.getTelefonoSecundario());
         usuario.setDireccion(dto.getDireccion());
+        usuario.setFoto(dto.getFoto());
         usuario.setEstado(dto.getEstado()); // estado ya es Boolean
         usuario.setBloqueado(dto.getBloqueado());
+        usuario.setIntentosLogin(dto.getIntentosLogin());
         return usuario;
     }
 }
