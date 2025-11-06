@@ -23,7 +23,7 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
     email: '',
     telefono: '',
     descripcion: '',
-    estado: 'ACTIVA',
+    estado: true,
     cupo_total: 0,
     cupo_disponible: 0,
     cupo_civil: 0,
@@ -48,7 +48,7 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
         email: '',
         telefono: '',
         descripcion: '',
-        estado: 'ACTIVA',
+        estado: true,
         cupo_total: 0,
         cupo_disponible: 0,
         cupo_civil: 0,
@@ -137,12 +137,19 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
                 <input type="tel" value={formData.telefono || ''} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" maxLength={10} pattern="[0-9]*" disabled={isReadOnly} placeholder="0987654321" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
-                <select value={formData.estado || 'ACTIVA'} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly}>
-                  <option value="ACTIVA">Activa</option>
-                  <option value="VENCIDA">Vencida</option>
-                  <option value="SUSPENDIDA">Suspendida</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.estado || false}
+                    onChange={(e) => setFormData({ ...formData, estado: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={isReadOnly}
+                  />
+                  <span className="ml-2 text-sm text-gray-600">
+                    {formData.estado ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -174,33 +181,72 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
             </div>
           </div>
 
-          {/* Cupos */}
+          {/* Cupos - Solo lectura, valores FIJOS inicializados automáticamente */}
           <div className="border-b pb-4">
-            <h3 className="text-lg font-semibold mb-3">Cupos de Importación</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900">Cupos de Importación</h3>
+              <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded font-medium">
+                🔒 Valores FIJOS - No editables
+              </span>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+              <p className="text-xs text-blue-700 font-medium mb-2">
+                ℹ️ Los cupos se inicializan automáticamente con valores FIJOS al crear la licencia:
+              </p>
+              <ul className="text-xs text-blue-600 list-disc list-inside space-y-1">
+                <li><strong>Civil:</strong> 25 armas</li>
+                <li><strong>Uniformados (Militar/Policía):</strong> 1,000 armas</li>
+                <li><strong>Empresas de Seguridad:</strong> 1,000 armas</li>
+                <li><strong>Deportistas:</strong> 1,000 armas</li>
+              </ul>
+              <p className="text-xs text-blue-600 mt-2 italic">
+                🔄 Los cupos se resetean automáticamente cuando la licencia se libera de un grupo de importación completado.
+              </p>
+            </div>
+
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Total</label>
-                <input type="number" value={formData.cupo_total || 0} onChange={(e) => setFormData({ ...formData, cupo_total: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} min={0} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupo Total
+                  <span className="ml-2 text-xs text-gray-500">(suma de todos)</span>
+                </label>
+                <input type="number" value={formData.cupo_total || 3025} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled={true} min={0} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Disponible</label>
-                <input type="number" value={formData.cupo_disponible || 0} onChange={(e) => setFormData({ ...formData, cupo_disponible: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} min={0} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupo Disponible
+                  <span className="ml-2 text-xs text-gray-500">(restante)</span>
+                </label>
+                <input type="number" value={formData.cupo_disponible || 3025} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled={true} min={0} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Civil</label>
-                <input type="number" value={formData.cupo_civil || 0} onChange={(e) => setFormData({ ...formData, cupo_civil: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} min={0} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupo Civil
+                  <span className="ml-2 text-xs text-blue-600 font-medium">(fijo: 25)</span>
+                </label>
+                <input type="number" value={formData.cupo_civil || 25} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled={true} min={0} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Militar</label>
-                <input type="number" value={formData.cupo_militar || 0} onChange={(e) => setFormData({ ...formData, cupo_militar: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} min={0} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupo Uniformados
+                  <span className="ml-2 text-xs text-blue-600 font-medium">(fijo: 1000)</span>
+                </label>
+                <input type="number" value={formData.cupo_militar || 1000} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled={true} min={0} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Empresa</label>
-                <input type="number" value={formData.cupo_empresa || 0} onChange={(e) => setFormData({ ...formData, cupo_empresa: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} min={0} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupo Empresas
+                  <span className="ml-2 text-xs text-blue-600 font-medium">(fijo: 1000)</span>
+                </label>
+                <input type="number" value={formData.cupo_empresa || 1000} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled={true} min={0} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Deportista</label>
-                <input type="number" value={formData.cupo_deportista || 0} onChange={(e) => setFormData({ ...formData, cupo_deportista: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} min={0} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupo Deportistas
+                  <span className="ml-2 text-xs text-blue-600 font-medium">(fijo: 1000)</span>
+                </label>
+                <input type="number" value={formData.cupo_deportista || 1000} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled={true} min={0} />
               </div>
             </div>
           </div>

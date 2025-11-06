@@ -23,6 +23,7 @@ public class LicenciaService {
 
     private final LicenciaRepository licenciaRepository;
     private final GrupoImportacionCupoRepository grupoImportacionCupoRepository;
+    private final ConfiguracionSistemaService configuracionSistemaService;
 
     // Métodos CRUD básicos
     public Licencia crearLicencia(Licencia licencia, Long usuarioId) {
@@ -31,7 +32,12 @@ public class LicenciaService {
             throw new RuntimeException("Ya existe una licencia con el número: " + licencia.getNumero());
         }
         
+        // Inicializar cupos con valores por defecto desde configuración del sistema
+        inicializarCuposPorDefecto(licencia);
+        
         licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);
+        log.info("✅ Licencia creada con cupos por defecto - Civil: {}, Militar: {}, Empresa: {}, Deportista: {}", 
+            licencia.getCupoCivil(), licencia.getCupoMilitar(), licencia.getCupoEmpresa(), licencia.getCupoDeportista());
         return licenciaRepository.save(licencia);
     }
 
@@ -74,7 +80,7 @@ public class LicenciaService {
     }
 
     public List<Licencia> obtenerLicenciasActivas() {
-        return licenciaRepository.findByEstado(com.armasimportacion.enums.EstadoLicencia.ACTIVA);
+        return licenciaRepository.findByEstado(true); // true = ACTIVA
     }
 
     public List<Licencia> obtenerLicenciasConCupoCivilDisponible() {
@@ -99,7 +105,7 @@ public class LicenciaService {
     }
 
     public Page<Licencia> buscarLicencias(String numero, String nombre, String ruc, 
-                                        com.armasimportacion.enums.EstadoLicencia estado, 
+                                        Boolean estado, 
                                         String tipoCliente, org.springframework.data.domain.Pageable pageable) {
         return licenciaRepository.findWithFilters(numero, nombre, estado, ruc, pageable);
     }
@@ -108,7 +114,7 @@ public class LicenciaService {
         return licenciaRepository.countByEstado();
     }
 
-    public void cambiarEstado(Long id, com.armasimportacion.enums.EstadoLicencia nuevoEstado) {
+    public void cambiarEstado(Long id, Boolean nuevoEstado) {
         Licencia licencia = obtenerLicencia(id);
         licencia.setEstado(nuevoEstado);
         licenciaRepository.save(licencia);
@@ -218,5 +224,71 @@ public class LicenciaService {
                 licencia.getEstadoOcupacion());
         }
         return "Licencia no encontrada";
+    }
+
+    /**
+     * Inicializa los cupos de una licencia con los valores por defecto del sistema.
+     * Los valores se obtienen de configuracion_sistema.
+     * - CUPO_DEFAULT_CIVIL: 25
+     * - CUPO_DEFAULT_MILITAR: 1000
+     * - CUPO_DEFAULT_EMPRESA: 1000
+     * - CUPO_DEFAULT_DEPORTISTA: 1000
+     */
+    private void inicializarCuposPorDefecto(Licencia licencia) {
+        try {
+            int cupoCivil = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_CIVIL"));
+            int cupoMilitar = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_MILITAR"));
+            int cupoEmpresa = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_EMPRESA"));
+            int cupoDeportista = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_DEPORTISTA"));
+            
+            licencia.setCupoCivil(cupoCivil);
+            licencia.setCupoMilitar(cupoMilitar);
+            licencia.setCupoEmpresa(cupoEmpresa);
+            licencia.setCupoDeportista(cupoDeportista);
+            
+            // Calcular cupo total
+            int cupoTotal = cupoCivil + cupoMilitar + cupoEmpresa + cupoDeportista;
+            licencia.setCupoTotal(cupoTotal);
+            licencia.setCupoDisponible(cupoTotal);
+            
+            log.info("✅ Cupos inicializados: Civil={}, Militar={}, Empresa={}, Deportista={}, Total={}", 
+                cupoCivil, cupoMilitar, cupoEmpresa, cupoDeportista, cupoTotal);
+        } catch (Exception e) {
+            log.error("❌ Error al inicializar cupos por defecto. Usando valores fallback.", e);
+            // Valores fallback en caso de error
+            licencia.setCupoCivil(25);
+            licencia.setCupoMilitar(1000);
+            licencia.setCupoEmpresa(1000);
+            licencia.setCupoDeportista(1000);
+            licencia.setCupoTotal(3025);
+            licencia.setCupoDisponible(3025);
+        }
+    }
+
+    /**
+     * Resetea los cupos de una licencia a los valores por defecto del sistema.
+     * Este método se debe llamar cuando una licencia se libera de un grupo de importación
+     * (cuando el grupo está completo y ya no necesita la licencia).
+     * 
+     * @param licenciaId ID de la licencia a resetear
+     * @return La licencia con los cupos reseteados
+     */
+    @Transactional
+    public Licencia resetearCuposLicencia(Long licenciaId) {
+        log.info("🔄 Reseteando cupos de licencia ID: {}", licenciaId);
+        
+        Licencia licencia = licenciaRepository.findById(licenciaId)
+            .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + licenciaId));
+        
+        // Reinicializar con valores por defecto
+        inicializarCuposPorDefecto(licencia);
+        
+        // Cambiar estado a DISPONIBLE
+        licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);
+        
+        Licencia licenciaActualizada = licenciaRepository.save(licencia);
+        
+        log.info("✅ Cupos reseteados exitosamente para licencia: {}. Ahora está DISPONIBLE", licencia.getNumero());
+        return licenciaActualizada;
     }
 } 

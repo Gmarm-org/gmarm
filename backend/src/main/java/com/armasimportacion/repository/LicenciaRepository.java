@@ -1,7 +1,6 @@
 package com.armasimportacion.repository;
 
 import com.armasimportacion.model.Licencia;
-import com.armasimportacion.enums.EstadoLicencia;
 import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,27 +19,27 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     
     // Búsquedas básicas
     Optional<Licencia> findByNumero(String numero);
-    List<Licencia> findByEstado(EstadoLicencia estado);
+    List<Licencia> findByEstado(Boolean estado); // true = ACTIVA, false = INACTIVA
     
     // Búsquedas por fecha
     List<Licencia> findByFechaVencimientoBefore(LocalDate fecha);
     List<Licencia> findByFechaEmisionBetween(LocalDate fechaInicio, LocalDate fechaFin);
     
     // Licencias activas
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND (l.fechaVencimiento IS NULL OR l.fechaVencimiento > :fecha)")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND (l.fechaVencimiento IS NULL OR l.fechaVencimiento > :fecha)")
     List<Licencia> findLicenciasActivas(@Param("fecha") LocalDate fecha);
     
     // Licencias con cupo disponible por tipo
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.cupoCivil > 0")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND l.cupoCivil > 0")
     List<Licencia> findLicenciasConCupoCivilDisponible();
     
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.cupoMilitar > 0")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND l.cupoMilitar > 0")
     List<Licencia> findLicenciasConCupoMilitarDisponible();
     
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.cupoEmpresa > 0")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND l.cupoEmpresa > 0")
     List<Licencia> findLicenciasConCupoEmpresaDisponible();
     
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.cupoDeportista > 0")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND l.cupoDeportista > 0")
     List<Licencia> findLicenciasConCupoDeportistaDisponible();
     
     // Búsquedas con filtros
@@ -52,7 +51,7 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     Page<Licencia> findWithFilters(
             @Param("numero") String numero,
             @Param("nombre") String nombre,
-            @Param("estado") EstadoLicencia estado,
+            @Param("estado") Boolean estado,
             @Param("ruc") String ruc,
             Pageable pageable);
     
@@ -64,7 +63,7 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     List<Object[]> countByEstado();
     
     // Licencias próximas a vencer
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.fechaVencimiento BETWEEN :fechaInicio AND :fechaFin")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND l.fechaVencimiento BETWEEN :fechaInicio AND :fechaFin")
     List<Licencia> findLicenciasProximasAVencer(
             @Param("fechaInicio") LocalDate fechaInicio,
             @Param("fechaFin") LocalDate fechaFin);
@@ -80,7 +79,7 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     List<Licencia> findLicenciasVencidas(@Param("fecha") LocalDate fecha);
     
     // Licencias con cupo disponible total
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND l.cupoDisponible > 0")
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND l.cupoDisponible > 0")
     List<Licencia> findLicenciasConCupoDisponible();
     
     // Estadísticas de cupos
@@ -91,17 +90,17 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
            "SUM(l.cupoMilitar) as militar, " +
            "SUM(l.cupoEmpresa) as empresa, " +
            "SUM(l.cupoDeportista) as deportista " +
-           "FROM Licencia l WHERE l.estado = 'ACTIVA'")
+           "FROM Licencia l WHERE l.estado = true")
     List<Object[]> getEstadisticasCupos();
     
     // Licencias con cupo disponible (todas son del mismo tipo: IMPORTACION_ARMAS)
-    @Query("SELECT l FROM Licencia l WHERE l.estado = 'ACTIVA' AND " +
+    @Query("SELECT l FROM Licencia l WHERE l.estado = true AND " +
            "(l.cupoDisponible > 0 OR l.cupoCivil > 0 OR l.cupoMilitar > 0 OR l.cupoEmpresa > 0 OR l.cupoDeportista > 0)")
     List<Licencia> findLicenciasDisponibles();
 
     // Licencias disponibles por estado de ocupación y tipo de cliente
     @Query("SELECT l FROM Licencia l WHERE l.estadoOcupacion = :estadoOcupacion AND " +
-           "l.estado = 'ACTIVA' AND " +
+           "l.estado = true AND " +
            "(:tipoCliente = 'CIVIL' AND l.cupoCivil > 0 OR " +
            ":tipoCliente = 'MILITAR' AND l.cupoMilitar > 0 OR " +
            ":tipoCliente = 'EMPRESA' AND l.cupoEmpresa > 0 OR " +

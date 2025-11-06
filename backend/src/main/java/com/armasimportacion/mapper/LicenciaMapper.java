@@ -28,6 +28,9 @@ public class LicenciaMapper {
                 .telefono(licencia.getTelefono())
                 .descripcion(licencia.getDescripcion())
                 .tipoLicencia("IMPORTACION_ARMAS")
+                .estado(licencia.getEstado())
+                .estadoOcupacion(licencia.getEstadoOcupacion())
+                .observaciones(licencia.getObservaciones())
                 .cupoTotal(licencia.getCupoTotal())
                 .cupoDisponible(licencia.getCupoDisponible())
                 .cupoCivil(licencia.getCupoCivil())
@@ -36,6 +39,8 @@ public class LicenciaMapper {
                 .cupoDeportista(licencia.getCupoDeportista())
                 .fechaVencimiento(licencia.getFechaVencimiento())
                 .fechaEmision(licencia.getFechaEmision())
+                .fechaCreacion(licencia.getFechaCreacion())
+                .fechaActualizacion(licencia.getFechaActualizacion())
                 .build();
     }
 
@@ -66,7 +71,14 @@ public class LicenciaMapper {
         licencia.setEmail(dto.getEmail());
         licencia.setTelefono(dto.getTelefono());
         licencia.setDescripcion(dto.getDescripcion());
+        licencia.setObservaciones(dto.getObservaciones());
         // tipoLicencia siempre es IMPORTACION_ARMAS
+        if (dto.getEstado() != null) {
+            licencia.setEstado(dto.getEstado());
+        }
+        if (dto.getEstadoOcupacion() != null) {
+            licencia.setEstadoOcupacion(dto.getEstadoOcupacion());
+        }
         licencia.setCupoTotal(dto.getCupoTotal());
         licencia.setCupoDisponible(dto.getCupoDisponible());
         licencia.setCupoCivil(dto.getCupoCivil());

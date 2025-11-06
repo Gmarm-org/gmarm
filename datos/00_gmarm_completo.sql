@@ -456,7 +456,7 @@ CREATE TABLE IF NOT EXISTS licencia (
     descripcion TEXT,
     fecha_emision DATE,
     observaciones TEXT,
-    estado VARCHAR(20) DEFAULT 'ACTIVA',
+    estado BOOLEAN DEFAULT true, -- true = ACTIVA, false = INACTIVA
     estado_ocupacion VARCHAR(20) DEFAULT 'DISPONIBLE', -- DISPONIBLE, BLOQUEADA
     fecha_vencimiento DATE,
     usuario_creador_id BIGINT REFERENCES usuario(id),
@@ -917,12 +917,12 @@ END $$;
 
 -- Insertar licencias
 INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, cupo_total, cupo_disponible, cupo_civil, cupo_militar, cupo_empresa, cupo_deportista, estado, estado_ocupacion, fecha_vencimiento) VALUES
-('LIC001', 'LEITON PORTILLA CORALIA SALOME', '1725781254', '2200614031', 'PICHINCHA', 'AHORROS', '1725781254', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC002', 'SILVA ACOSTA FRANCISCO JAVIER', '1714597414', '3020513304', 'PICHINCHA', 'AHORROS', '1714597414', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC003', 'MULLER BENITEZ NICOLE PAMELA', '1713978540', '2212737882', 'PICHINCHA', 'AHORROS', '1713978540', 'vbenitez@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC004', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORROS', '0993392212001', 'simogue.sas@gmail.com', '0000000000', 100, 100, 0, 0, 100, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC005', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922', '8151263', 'INTERNACIONAL', 'AHORROS', '1707815922', 'joseluis@guerreromartinez.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC006', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31')
+('LIC001', 'LEITON PORTILLA CORALIA SALOME', '1725781254', '2200614031', 'PICHINCHA', 'AHORROS', '1725781254', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC002', 'SILVA ACOSTA FRANCISCO JAVIER', '1714597414', '3020513304', 'PICHINCHA', 'AHORROS', '1714597414', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC003', 'MULLER BENITEZ NICOLE PAMELA', '1713978540', '2212737882', 'PICHINCHA', 'AHORROS', '1713978540', 'vbenitez@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC004', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORROS', '0993392212001', 'simogue.sas@gmail.com', '0000000000', 100, 100, 0, 0, 100, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC005', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922', '8151263', 'INTERNACIONAL', 'AHORROS', '1707815922', 'joseluis@guerreromartinez.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC006', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
 -- Insertar configuración del sistema
@@ -940,7 +940,12 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ('EXPOFERIA_NOMBRE', 'EXPOFERIA_2025', 'Nombre de la expoferia actual', true),
 ('COORDINADOR_NOMBRE_EXPOFERIA', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar de expoferia', true),
 ('COORDINADOR_CARGO_EXPOFERIA', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar de expoferia', true),
-('COORDINADOR_DIRECCION_EXPOFERIA', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección/cargo del coordinador militar de expoferia', true)
+('COORDINADOR_DIRECCION_EXPOFERIA', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección/cargo del coordinador militar de expoferia', true),
+-- Cupos por defecto de licencias de importación (valores constantes)
+('CUPO_DEFAULT_CIVIL', '25', 'Cupo por defecto para clientes civiles en licencias de importación', false),
+('CUPO_DEFAULT_MILITAR', '1000', 'Cupo por defecto para clientes uniformados (militares) en licencias de importación', false),
+('CUPO_DEFAULT_EMPRESA', '1000', 'Cupo por defecto para empresas de seguridad en licencias de importación', false),
+('CUPO_DEFAULT_DEPORTISTA', '1000', 'Cupo por defecto para deportistas en licencias de importación', false)
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================

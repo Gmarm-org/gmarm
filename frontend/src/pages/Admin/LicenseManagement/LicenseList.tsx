@@ -92,10 +92,10 @@ const LicenseList: React.FC = () => {
   };
 
   const handleDelete = async (license: License) => {
-    if (window.confirm(`¿Desactivar la licencia "${license.numero}"? No se eliminará de la base de datos, solo cambiará su estado a INACTIVA para mantener auditoría.`)) {
+    if (window.confirm(`¿Desactivar la licencia "${license.numero}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        // No eliminar, solo cambiar estado a INACTIVA
-        await licenseApi.update(license.id, { ...license, estado: 'INACTIVA' });
+        // No eliminar, solo cambiar estado a false (inactivo)
+        await licenseApi.update(license.id, { ...license, estado: false });
         await loadLicenses();
         alert('Licencia desactivada exitosamente');
       } catch (error) {
@@ -105,17 +105,10 @@ const LicenseList: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVA':
-        return 'bg-green-100 text-green-800';
-      case 'VENCIDA':
-        return 'bg-red-100 text-red-800';
-      case 'SUSPENDIDA':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (status: boolean) => {
+    return status 
+      ? 'bg-green-100 text-green-800'  // Activo
+      : 'bg-red-100 text-red-800';      // Inactivo
   };
 
   const columns: AdminTableColumn[] = [
@@ -159,7 +152,7 @@ const LicenseList: React.FC = () => {
       label: 'Estado',
       render: (value) => (
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(value)}`}>
-          {value}
+          {value ? 'Activo' : 'Inactivo'}
         </span>
       )
     }
@@ -175,24 +168,17 @@ const LicenseList: React.FC = () => {
     },
     {
       label: 'Activas',
-      value: licenses.filter(l => l.estado === 'ACTIVA').length,
+      value: licenses.filter(l => l.estado === true).length,
       icon: '✅',
       color: 'green',
       description: 'Licencias activas'
     },
     {
-      label: 'Vencidas',
-      value: licenses.filter(l => l.estado === 'VENCIDA').length,
+      label: 'Inactivas',
+      value: licenses.filter(l => l.estado === false).length,
       icon: '❌',
       color: 'red',
-      description: 'Licencias vencidas'
-    },
-    {
-      label: 'Suspendidas',
-      value: licenses.filter(l => l.estado === 'SUSPENDIDA').length,
-      icon: '⚠️',
-      color: 'orange',
-      description: 'Licencias suspendidas'
+      description: 'Licencias inactivas'
     }
   ];
 

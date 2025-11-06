@@ -38,6 +38,12 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 public class Licencia {
 
+    // 🔒 CONSTANTES: Valores FIJOS de cupos por tipo de cliente
+    public static final int CUPO_FIJO_CIVIL = 25;
+    public static final int CUPO_FIJO_UNIFORMADO = 1000; // Militar/Policía
+    public static final int CUPO_FIJO_EMPRESA = 1000;
+    public static final int CUPO_FIJO_DEPORTISTA = 1000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -104,9 +110,8 @@ public class Licencia {
     @JoinColumn(name = "usuario_actualizador_id")
     private Usuario usuarioActualizador;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado", length = 20)
-    private EstadoLicencia estado = EstadoLicencia.ACTIVA;
+    @Column(name = "estado")
+    private Boolean estado = true; // true = ACTIVA, false = INACTIVA
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_ocupacion", length = 20)
@@ -201,10 +206,34 @@ public class Licencia {
 
     public void liberar() {
         this.estadoOcupacion = EstadoOcupacionLicencia.DISPONIBLE;
+        // 🔄 Al liberar una licencia, resetear los cupos a valores fijos
+        resetearCupos();
+    }
+
+    /**
+     * Inicializa los cupos con valores FIJOS según reglas de negocio.
+     * Se usa al crear una nueva licencia.
+     */
+    public void inicializarCupos() {
+        this.cupoCivil = CUPO_FIJO_CIVIL;
+        this.cupoMilitar = CUPO_FIJO_UNIFORMADO;
+        this.cupoEmpresa = CUPO_FIJO_EMPRESA;
+        this.cupoDeportista = CUPO_FIJO_DEPORTISTA;
+        // El cupo total es la suma de todos los cupos individuales
+        this.cupoTotal = this.cupoCivil + this.cupoMilitar + this.cupoEmpresa + this.cupoDeportista;
+        this.cupoDisponible = this.cupoTotal;
+    }
+
+    /**
+     * Resetea los cupos a valores FIJOS.
+     * Se usa cuando una licencia se libera de un grupo de importación completado.
+     */
+    public void resetearCupos() {
+        inicializarCupos();
     }
 
     // Método para verificar si la licencia puede ser asignada a un nuevo grupo
     public boolean puedeSerAsignada() {
-        return isDisponible() && !isVencida() && estado == EstadoLicencia.ACTIVA;
+        return isDisponible() && !isVencida() && Boolean.TRUE.equals(estado);
     }
 } 

@@ -70,6 +70,9 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
+            // Actualizar último login
+            usuarioService.updateLastLogin(usuario.getId());
+            
             // Generar token JWT
             String token = tokenProvider.generateToken(email);
 

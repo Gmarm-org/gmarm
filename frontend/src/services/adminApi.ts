@@ -51,7 +51,7 @@ export interface License {
   descripcion?: string;
   fecha_emision?: string;
   observaciones?: string;
-  estado: string; // ACTIVA, VENCIDA, SUSPENDIDA
+  estado: boolean; // true = ACTIVA, false = INACTIVA
   estado_ocupacion?: string; // DISPONIBLE, BLOQUEADA
   fecha_vencimiento?: string;
   fecha_creacion?: string;

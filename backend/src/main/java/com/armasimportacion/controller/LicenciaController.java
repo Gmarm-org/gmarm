@@ -29,22 +29,26 @@ public class LicenciaController {
     @GetMapping
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todas las licencias", description = "Devuelve la lista completa de licencias")
-    public ResponseEntity<List<Licencia>> getAllLicencias() {
+    public ResponseEntity<List<LicenciaDTO>> getAllLicencias() {
         log.info("📋 GET /api/licencia - Obteniendo todas las licencias");
         List<Licencia> licencias = licenciaRepository.findAll();
-        log.info("✅ Licencias encontradas: {}", licencias.size());
-        return ResponseEntity.ok(licencias);
+        List<LicenciaDTO> licenciaDTOs = licencias.stream()
+                .map(licenciaMapper::toDTO)
+                .collect(Collectors.toList());
+        log.info("✅ Licencias encontradas: {}", licenciaDTOs.size());
+        return ResponseEntity.ok(licenciaDTOs);
     }
 
     @GetMapping("/{id}")
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener licencia por ID", description = "Devuelve una licencia específica por su ID")
-    public ResponseEntity<Licencia> getLicenciaById(@PathVariable Long id) {
+    public ResponseEntity<LicenciaDTO> getLicenciaById(@PathVariable Long id) {
         log.info("📋 GET /api/licencia/{} - Obteniendo licencia", id);
         return licenciaRepository.findById(id)
                 .map(licencia -> {
-                    log.info("✅ Licencia encontrada: {}", licencia.getNumero());
-                    return ResponseEntity.ok(licencia);
+                    log.info("✅ Licencia encontrada: {} - Banco: {}, Cuenta: {}", 
+                             licencia.getNumero(), licencia.getNombreBanco(), licencia.getCuentaBancaria());
+                    return ResponseEntity.ok(licenciaMapper.toDTO(licencia));
                 })
                 .orElseGet(() -> {
                     log.warn("⚠️ Licencia no encontrada con ID: {}", id);
@@ -57,15 +61,30 @@ public class LicenciaController {
     @Operation(summary = "Crear nueva licencia", description = "Crea una nueva licencia en el sistema")
     public ResponseEntity<LicenciaDTO> createLicencia(@RequestBody LicenciaDTO licenciaDTO) {
         log.info("📝 POST /api/licencia - Creando nueva licencia: {}", licenciaDTO.getNumero());
+        log.info("📦 Datos bancarios recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
+                  licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(), 
+                  licenciaDTO.getTipoCuenta(), licenciaDTO.getCedulaCuenta());
         
         Licencia licencia = licenciaMapper.toEntity(licenciaDTO);
+        
+        // 🏦 Verificar que los campos bancarios se mapearon correctamente
+        log.info("🔍 Después del mapper - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
+                  licencia.getCuentaBancaria(), licencia.getNombreBanco(), 
+                  licencia.getTipoCuenta(), licencia.getCedulaCuenta());
         
         if (licencia.getFechaCreacion() == null) {
             licencia.setFechaCreacion(LocalDateTime.now());
         }
         
+        // 🔒 Inicializar cupos con valores FIJOS al crear una licencia
+        licencia.inicializarCupos();
+        log.info("✅ Cupos inicializados: Civil={}, Militar={}, Empresa={}, Deportista={}", 
+                 licencia.getCupoCivil(), licencia.getCupoMilitar(), 
+                 licencia.getCupoEmpresa(), licencia.getCupoDeportista());
+        
         Licencia savedLicencia = licenciaRepository.save(licencia);
-        log.info("✅ Licencia creada con ID: {}", savedLicencia.getId());
+        log.info("✅ Licencia creada con ID: {} - Banco: {}, Cuenta: {}", 
+                 savedLicencia.getId(), savedLicencia.getNombreBanco(), savedLicencia.getCuentaBancaria());
         return ResponseEntity.ok(licenciaMapper.toDTO(savedLicencia));
     }
 
@@ -74,31 +93,75 @@ public class LicenciaController {
     @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente")
     public ResponseEntity<LicenciaDTO> updateLicencia(@PathVariable Long id, @RequestBody LicenciaDTO licenciaDTO) {
         log.info("📝 PUT /api/licencia/{} - Actualizando licencia", id);
+        log.debug("📦 Datos recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
+                  licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(), 
+                  licenciaDTO.getTipoCuenta(), licenciaDTO.getCedulaCuenta());
+        log.debug("📦 Cupos recibidos - Civil: {}, Militar: {}, Empresa: {}, Deportista: {}", 
+                  licenciaDTO.getCupoCivil(), licenciaDTO.getCupoMilitar(), 
+                  licenciaDTO.getCupoEmpresa(), licenciaDTO.getCupoDeportista());
+        
         return licenciaRepository.findById(id)
                 .map(existingLicencia -> {
-                    // Actualizar campos desde DTO
-                    if (licenciaDTO.getNumero() != null) existingLicencia.setNumero(licenciaDTO.getNumero());
-                    if (licenciaDTO.getNombre() != null) existingLicencia.setNombre(licenciaDTO.getNombre());
-                    if (licenciaDTO.getRuc() != null) existingLicencia.setRuc(licenciaDTO.getRuc());
-                    if (licenciaDTO.getCuentaBancaria() != null) existingLicencia.setCuentaBancaria(licenciaDTO.getCuentaBancaria());
-                    if (licenciaDTO.getNombreBanco() != null) existingLicencia.setNombreBanco(licenciaDTO.getNombreBanco());
-                    if (licenciaDTO.getTipoCuenta() != null) existingLicencia.setTipoCuenta(licenciaDTO.getTipoCuenta());
-                    if (licenciaDTO.getCedulaCuenta() != null) existingLicencia.setCedulaCuenta(licenciaDTO.getCedulaCuenta());
-                    if (licenciaDTO.getEmail() != null) existingLicencia.setEmail(licenciaDTO.getEmail());
-                    if (licenciaDTO.getTelefono() != null) existingLicencia.setTelefono(licenciaDTO.getTelefono());
-                    if (licenciaDTO.getFechaVencimiento() != null) existingLicencia.setFechaVencimiento(licenciaDTO.getFechaVencimiento());
-                    if (licenciaDTO.getDescripcion() != null) existingLicencia.setDescripcion(licenciaDTO.getDescripcion());
-                    if (licenciaDTO.getFechaEmision() != null) existingLicencia.setFechaEmision(licenciaDTO.getFechaEmision());
-                    if (licenciaDTO.getCupoTotal() != null) existingLicencia.setCupoTotal(licenciaDTO.getCupoTotal());
-                    if (licenciaDTO.getCupoDisponible() != null) existingLicencia.setCupoDisponible(licenciaDTO.getCupoDisponible());
-                    if (licenciaDTO.getCupoCivil() != null) existingLicencia.setCupoCivil(licenciaDTO.getCupoCivil());
-                    if (licenciaDTO.getCupoMilitar() != null) existingLicencia.setCupoMilitar(licenciaDTO.getCupoMilitar());
-                    if (licenciaDTO.getCupoEmpresa() != null) existingLicencia.setCupoEmpresa(licenciaDTO.getCupoEmpresa());
-                    if (licenciaDTO.getCupoDeportista() != null) existingLicencia.setCupoDeportista(licenciaDTO.getCupoDeportista());
+                    // Actualizar campos básicos
+                    if (licenciaDTO.getNumero() != null) {
+                        existingLicencia.setNumero(licenciaDTO.getNumero());
+                    }
+                    if (licenciaDTO.getNombre() != null) {
+                        existingLicencia.setNombre(licenciaDTO.getNombre());
+                    }
+                    if (licenciaDTO.getRuc() != null) {
+                        existingLicencia.setRuc(licenciaDTO.getRuc());
+                    }
+                    
+                    // 🏦 Actualizar SIEMPRE campos bancarios (permitir vacíos)
+                    existingLicencia.setCuentaBancaria(licenciaDTO.getCuentaBancaria());
+                    existingLicencia.setNombreBanco(licenciaDTO.getNombreBanco());
+                    existingLicencia.setTipoCuenta(licenciaDTO.getTipoCuenta());
+                    existingLicencia.setCedulaCuenta(licenciaDTO.getCedulaCuenta());
+                    
+                    // Actualizar otros campos
+                    if (licenciaDTO.getEmail() != null) {
+                        existingLicencia.setEmail(licenciaDTO.getEmail());
+                    }
+                    if (licenciaDTO.getTelefono() != null) {
+                        existingLicencia.setTelefono(licenciaDTO.getTelefono());
+                    }
+                    if (licenciaDTO.getFechaVencimiento() != null) {
+                        existingLicencia.setFechaVencimiento(licenciaDTO.getFechaVencimiento());
+                    }
+                    if (licenciaDTO.getDescripcion() != null) {
+                        existingLicencia.setDescripcion(licenciaDTO.getDescripcion());
+                    }
+                    if (licenciaDTO.getObservaciones() != null) {
+                        existingLicencia.setObservaciones(licenciaDTO.getObservaciones());
+                    }
+                    if (licenciaDTO.getFechaEmision() != null) {
+                        existingLicencia.setFechaEmision(licenciaDTO.getFechaEmision());
+                    }
+                    
+                    // 🔒 NOTA: Los cupos individuales NO deben editarse manualmente
+                    // Se inicializan automáticamente al crear y se resetean al liberar
+                    // Solo permitir actualizar cupo_total y cupo_disponible si es necesario
+                    if (licenciaDTO.getCupoTotal() != null) {
+                        existingLicencia.setCupoTotal(licenciaDTO.getCupoTotal());
+                    }
+                    if (licenciaDTO.getCupoDisponible() != null) {
+                        existingLicencia.setCupoDisponible(licenciaDTO.getCupoDisponible());
+                    }
+                    
+                    // Estado y estado de ocupación
+                    if (licenciaDTO.getEstado() != null) {
+                        existingLicencia.setEstado(licenciaDTO.getEstado());
+                    }
+                    if (licenciaDTO.getEstadoOcupacion() != null) {
+                        existingLicencia.setEstadoOcupacion(licenciaDTO.getEstadoOcupacion());
+                    }
+                    
                     existingLicencia.setFechaActualizacion(LocalDateTime.now());
                     
                     Licencia updated = licenciaRepository.save(existingLicencia);
-                    log.info("✅ Licencia actualizada: {}", updated.getNumero());
+                    log.info("✅ Licencia actualizada: {} - Banco: {}, Cuenta: {}", 
+                             updated.getNumero(), updated.getNombreBanco(), updated.getCuentaBancaria());
                     return ResponseEntity.ok(licenciaMapper.toDTO(updated));
                 })
                 .orElseGet(() -> {

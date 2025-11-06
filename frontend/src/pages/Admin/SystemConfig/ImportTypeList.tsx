@@ -208,9 +208,10 @@ const ImportTypeList: React.FC = () => {
 
   const formFields = [
     { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
+    { key: 'codigo', label: 'Código', type: 'text' as const, required: true, placeholder: 'Ej: IMP_CIV, IMP_MIL' },
     { key: 'cupo_maximo', label: 'Cupo Máximo', type: 'number' as const, required: true },
     { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
-    { key: 'estado', label: 'Estado', type: 'checkbox' as const }
+    { key: 'estado', label: 'Activo', type: 'checkbox' as const }
   ];
 
   return (

@@ -20,7 +20,7 @@ services:
       - "-c"
       - "max_connections=5"                     # Mínimo necesario
       - "-c"
-      - "shared_buffers=64MB"                   # Reducido
+      - "shared_buffers=256MB"                  # Aumentado (de 1.5GB total)
       - "-c"
       - "work_mem=512kB"                        # Reducido (kB minúscula)
       - "-c"
@@ -32,7 +32,11 @@ services:
       - "-c"
       - "wal_buffers=2MB"                       # Reducido
       - "-c"
-      - "autovacuum=off"                        # DESACTIVADO completamente
+      - "autovacuum=on"                         # ✅ ACTIVADO - CRÍTICO para estabilidad
+      - "-c"
+      - "autovacuum_max_workers=1"              # Solo 1 worker (reduce CPU/RAM)
+      - "-c"
+      - "autovacuum_naptime=60s"                # Ejecutar cada 60s (más frecuente)
       - "-c"
       - "fsync=off"                             # Solo para DEV
       - "-c"
