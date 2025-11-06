@@ -445,6 +445,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
           return 'border-red-500'; // Teléfono debe tener 10 dígitos
         }
         return 'border-green-500'; // Válido
+      case 'codigoIssfa':
+        if (value.length !== 10) {
+          return 'border-red-500'; // Código ISSFA debe tener 10 dígitos
+        }
+        return 'border-green-500'; // Válido
       case 'email':
         if (!validateEmail(value)) {
           return 'border-red-500'; // Email inválido
@@ -1193,19 +1198,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Validar código ISSFA para militares activos y pasivos
       if (formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO') {
         if (!formData.codigoIssfa || formData.codigoIssfa.trim() === '') {
-          alert('El código ISSFA es obligatorio para militares activos y pasivos');
+          // No mostrar alert, solo validar con borde rojo
           return false;
         }
         
-        // Validar que tenga exactamente 10 dígitos
+        // Validar que tenga exactamente 10 dígitos (solo borde rojo, sin alert)
         if (formData.codigoIssfa.length !== 10) {
-          alert('El código ISSFA debe tener exactamente 10 dígitos');
           return false;
         }
         
-        // Validar que sea solo números
+        // Validar que sea solo números (solo borde rojo, sin alert)
         if (!/^\d{10}$/.test(formData.codigoIssfa)) {
-          alert('El código ISSFA debe contener solo números (10 dígitos)');
           return false;
         }
       }
@@ -1613,8 +1616,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                           required={formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO'}
                           maxLength={10}
                           pattern="\d{10}"
-                          title="El código ISSFA debe tener exactamente 10 dígitos numéricos"
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                          className={`w-full px-4 py-3 border-2 ${getBorderColor('codigoIssfa', formData.codigoIssfa || '')} rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200`}
                         />
                       )}
                     </div>
