@@ -11,7 +11,6 @@ import ImportTypeList from './SystemConfig/ImportTypeList';
 import ConfiguracionSistema from './SystemConfig/ConfiguracionSistema';
 import GestionPreguntas from './QuestionManagement/GestionPreguntas';
 import TipoDocumento from './DocumentManagement/TipoDocumento';
-import TipoClienteImportacion from './SystemConfig/TipoClienteImportacion';
 
 type AdminTab = 
   | 'usuarios' 
@@ -24,8 +23,7 @@ type AdminTab =
   | 'tipos-importacion'
   | 'config-sistema'
   | 'preguntas'
-  | 'tipos-documento'
-  | 'tipo-cliente-import';
+  | 'tipos-documento';
 
 const AdminDashboard: React.FC = () => {
   const [tabActual, setTabActual] = useState<AdminTab>('usuarios');
@@ -39,7 +37,6 @@ const AdminDashboard: React.FC = () => {
     { id: 'tipos-cliente' as AdminTab, label: '👤 Tipos de Cliente', icon: '👤', name: 'Tipos Cliente' },
     { id: 'tipos-identificacion' as AdminTab, label: '🆔 Tipos de Identificación', icon: '🆔', name: 'Tipos ID' },
     { id: 'tipos-importacion' as AdminTab, label: '📦 Tipos de Importación', icon: '📦', name: 'Tipos Import.' },
-    { id: 'tipo-cliente-import' as AdminTab, label: '🔗 Cliente-Importación', icon: '🔗', name: 'Cliente-Import.' },
     { id: 'preguntas' as AdminTab, label: '❓ Preguntas', icon: '❓', name: 'Preguntas' },
     { id: 'tipos-documento' as AdminTab, label: '📄 Tipos Documento', icon: '📄', name: 'Tipos Doc.' },
     { id: 'config-sistema' as AdminTab, label: '⚙️ Configuración Sistema', icon: '⚙️', name: 'Config. Sistema' }
@@ -67,8 +64,6 @@ const AdminDashboard: React.FC = () => {
         return <GestionPreguntas />;
       case 'tipos-documento':
         return <TipoDocumento />;
-      case 'tipo-cliente-import':
-        return <TipoClienteImportacion />;
       case 'config-sistema':
         return <ConfiguracionSistema />;
       default:
