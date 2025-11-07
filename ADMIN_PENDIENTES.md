@@ -4,6 +4,107 @@
 
 ## 🎉 ÚLTIMAS CORRECCIONES APLICADAS (06/11/2024)
 
+### 25. ✅ **Admin - Integración Completa: Tipos Cliente + Tipos Importación**
+**Estado**: ✅ **RESUELTO** - Pantalla redundante eliminada, UX mejorada
+
+**Problema Identificado:**
+- Existían **DOS pantallas separadas** para gestionar relaciones Cliente-Importación:
+  1. Pestaña "👤 Tipos de Cliente" (gestión básica)
+  2. Pestaña "🔗 Cliente-Importación" (gestión de relaciones) ← **Redundante**
+- El usuario debía navegar entre 2 pantallas para una sola tarea
+- Error 403 al crear tipos de importación (DTO sin `@JsonIgnoreProperties`)
+- Warning NaN en columna de tipos de importación (renderizado incorrecto)
+
+**Solución Aplicada:**
+
+#### 1️⃣ **Pantalla "Cliente-Importación" ELIMINADA** ✅
+- ❌ Pestaña completa eliminada del `AdminDashboard.tsx`
+- ✅ Toda la funcionalidad ahora está en "Tipos de Cliente"
+
+#### 2️⃣ **Tipos de Cliente con Multi-Select Integrado** ✅
+```typescript
+// ClientTypeList.tsx - Nueva funcionalidad
+// ✅ Multi-select de tipos de importación (checkboxes)
+// ✅ Carga relaciones existentes en modo editar
+// ✅ Guarda/elimina relaciones con clientImportTypeApi
+// ✅ Nueva columna muestra tipos asociados (badges púrpura)
+```
+
+**Características:**
+- ✅ Formulario ahora incluye checkboxes de "Tipos de Importación"
+- ✅ Similar a la gestión Usuario-Roles (UX consistente)
+- ✅ Columna nueva en tabla muestra tipos asociados visualmente
+- ✅ Si no hay tipos: muestra "Sin tipos asignados" (texto gris)
+- ✅ Si hay tipos: muestra badges púrpura con nombres
+
+#### 3️⃣ **SimpleFormModal Extendido** ✅
+```typescript
+// SimpleFormModal.tsx - Nuevos parámetros
+hideHeader?: boolean;        // Oculta header del modal
+customSection?: ReactNode;   // Sección personalizada (multi-select)
+```
+
+**Beneficios:**
+- ✅ Modal ahora puede ser "embebido" en otros modals
+- ✅ Permite agregar contenido custom (checkboxes, multi-select, etc.)
+
+#### 4️⃣ **Fix Error 403 en Tipos de Importación** ✅
+```java
+// TipoImportacionDTO.java
+@JsonIgnoreProperties(ignoreUnknown = true)  // ← Fix 403
+public class TipoImportacionDTO {
+    @JsonProperty("cupo_maximo")
+    private Integer cupoMaximo;  // ← snake_case
+    
+    @JsonProperty("fecha_creacion")
+    private LocalDateTime fechaCreacion;  // ← snake_case
+}
+```
+
+**Problema:**
+- Frontend enviaba campos que el DTO no reconocía → Error 403 (disfrazado como error de JSON)
+
+**Solución:**
+- ✅ `@JsonIgnoreProperties(ignoreUnknown = true)` ignora campos extra
+- ✅ `@JsonProperty` para snake_case (compatibilidad con frontend)
+
+#### 5️⃣ **Fix Warning NaN en Columna** ✅
+```typescript
+// ClientTypeList.tsx - Columna "Tipos de Importación"
+if (importTypeNames === 'Sin tipos asignados') {
+  return <span className="text-xs text-gray-400 italic">{importTypeNames}</span>;
+}
+// Si hay tipos, renderizar badges
+```
+
+**Problema:**
+- `split(', ')` sobre "Sin tipos asignados" generaba array con string vacío → Warning NaN
+
+**Solución:**
+- ✅ Validación condicional antes de renderizar badges
+- ✅ Texto gris cursiva para "Sin tipos asignados"
+- ✅ Badges púrpura solo si hay tipos válidos
+
+**Archivos Modificados:**
+- ✅ `frontend/src/pages/Admin/AdminDashboard.tsx` (pestaña eliminada)
+- ✅ `frontend/src/pages/Admin/SystemConfig/ClientTypeList.tsx` (multi-select integrado)
+- ✅ `frontend/src/pages/Admin/components/SimpleFormModal.tsx` (extendido)
+- ✅ `frontend/src/pages/Admin/SystemConfig/TipoClienteImportacion.tsx` (deprecado - eliminar si no se usa)
+- ✅ `backend/src/main/java/com/armasimportacion/dto/TipoImportacionDTO.java` (fix 403)
+
+**Resultado:**
+- ✅ **11 pestañas** en Admin (antes eran 12)
+- ✅ **1 pantalla** para gestionar tipos de cliente + relaciones (antes eran 2)
+- ✅ **UX más limpia** y consistente con Usuario-Roles
+- ✅ **Sin errores 403** al crear tipos de importación
+- ✅ **Sin warnings NaN** en columna de tipos
+
+**Commits:**
+- `9dd8a73` - fix(admin): usuarios view/edit completo y tipos cliente con importacion integrada
+- `0a53204` - fix(admin): tipo importacion DTO con @JsonIgnoreProperties y snake_case + warning NaN en tipos cliente
+
+---
+
 ### 24. ✅ **CRÍTICO: PostgreSQL - Memoria Infinita Resuelto (Autovacuum Desactivado)**
 **Estado**: ✅ **RESUELTO** - Configuración corregida, estabilidad restaurada
 

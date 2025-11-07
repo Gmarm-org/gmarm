@@ -195,6 +195,9 @@ const ClientTypeList: React.FC = () => {
       label: 'Tipos de Importación',
       render: (value, row) => {
         const importTypeNames = getImportTypesNamesForClient(value as number);
+        if (importTypeNames === 'Sin tipos asignados') {
+          return <span className="text-xs text-gray-400 italic">{importTypeNames}</span>;
+        }
         return (
           <div className="text-xs text-gray-700">
             {importTypeNames.split(', ').map((name, idx) => (
