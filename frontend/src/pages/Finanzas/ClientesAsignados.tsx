@@ -284,7 +284,11 @@ const ClientesAsignados: React.FC = () => {
                         {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0 ? (
+                        {(() => {
+                          const tieneAutorizacion = autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0;
+                          console.log('🔍 DEBUG Cliente:', cliente.id, '- Autorizaciones:', autorizaciones[cliente.id], '- Tiene:', tieneAutorizacion);
+                          return tieneAutorizacion;
+                        })() ? (
                           <div className="flex flex-col gap-2">
                             {/* Botón Ver Autorización */}
                             <button

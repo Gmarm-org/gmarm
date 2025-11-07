@@ -14,10 +14,10 @@ const Finanzas: React.FC = () => {
       
       <div className="max-w-7xl mx-auto p-6">
         {/* Navegación de pestañas */}
-        <div className="flex space-x-2 mb-6">
+        <div className="flex gap-2 mb-6 w-full">
           <button
             onClick={() => setVistaActual('pagos')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
               vistaActual === 'pagos'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -28,7 +28,7 @@ const Finanzas: React.FC = () => {
           
           <button
             onClick={() => setVistaActual('clientes-asignados')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
               vistaActual === 'clientes-asignados'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -39,7 +39,7 @@ const Finanzas: React.FC = () => {
           
           <button
             onClick={() => setVistaActual('series')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
               vistaActual === 'series'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -50,7 +50,7 @@ const Finanzas: React.FC = () => {
 
           <button
             onClick={() => setVistaActual('carga-series')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
               vistaActual === 'carga-series'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
