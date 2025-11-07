@@ -928,6 +928,13 @@ ON CONFLICT (numero) DO NOTHING;
 -- Insertar configuración del sistema
 INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ('EMAIL_NOTIFICACIONES', 'notificaciones@gmarm.com', 'Email para enviar notificaciones', true),
+-- Configuración SMTP para envío de emails
+('SMTP_HOST', 'smtp.gmail.com', 'Servidor SMTP para envío de emails', true),
+('SMTP_PORT', '587', 'Puerto del servidor SMTP (587=TLS, 465=SSL)', true),
+('SMTP_USERNAME', 'tu-email@gmail.com', 'Usuario SMTP (email de la cuenta)', true),
+('SMTP_PASSWORD', 'tu-password-app', 'Contraseña de aplicación SMTP (NO la contraseña normal)', true),
+('SMTP_AUTH', 'true', 'Requiere autenticación SMTP (true/false)', true),
+('SMTP_STARTTLS', 'true', 'Habilitar STARTTLS (true/false)', true),
 ('DIAS_VALIDEZ_DOCUMENTOS', '30', 'Días de validez para documentos subidos', true),
 ('PORCENTAJE_ANTICIPO', '40', 'Porcentaje de anticipo requerido', true),
 ('IVA', '15', 'Porcentaje de IVA aplicable', true),

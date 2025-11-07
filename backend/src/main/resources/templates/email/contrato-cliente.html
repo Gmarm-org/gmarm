@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            margin: 0;
+            padding: 0;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            background-color: #2563eb; 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+            border-radius: 8px 8px 0 0; 
+        }
+        .content { 
+            background-color: #f9fafb; 
+            padding: 30px; 
+            border: 1px solid #e5e7eb; 
+        }
+        .footer { 
+            background-color: #1f2937; 
+            color: #9ca3af; 
+            padding: 15px; 
+            text-align: center; 
+            font-size: 12px; 
+            border-radius: 0 0 8px 8px; 
+        }
+        .button { 
+            background-color: #2563eb; 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            display: inline-block; 
+            margin-top: 20px; 
+        }
+        .warning { 
+            background-color: #fef3c7; 
+            border-left: 4px solid #f59e0b; 
+            padding: 12px; 
+            margin: 15px 0; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔫 GMARM</h1>
+            <p style="margin: 0;">Sistema de Importación de Armas</p>
+        </div>
+        
+        <div class="content">
+            <h2 th:text="'Estimado/a ' + ${nombreCliente} + ','">Estimado/a Cliente,</h2>
+            
+            <p>Nos complace informarle que su <strong>contrato de compra de arma</strong> ha sido generado exitosamente.</p>
+            
+            <p>Adjunto a este correo encontrará el documento PDF con todos los detalles de su compra.</p>
+            
+            <div class="warning">
+                <strong>⚠️ Importante:</strong>
+                <ul style="margin: 10px 0;">
+                    <li>Por favor, revise cuidadosamente todos los datos del contrato</li>
+                    <li>Conserve este documento para sus registros</li>
+                    <li>Si encuentra algún error, contacte inmediatamente con su vendedor asignado</li>
+                </ul>
+            </div>
+            
+            <p><strong>Próximos pasos:</strong></p>
+            <ol>
+                <li>Revisar y firmar el contrato</li>
+                <li>Completar los pagos según lo acordado</li>
+                <li>Esperar la asignación de número de serie</li>
+                <li>Recoger el arma con la documentación correspondiente</li>
+            </ol>
+            
+            <p style="margin-top: 30px;">Si tiene alguna pregunta, no dude en contactarnos.</p>
+            
+            <p style="margin-top: 20px;">
+                <strong>Atentamente,</strong><br>
+                Equipo GMARM
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Este es un correo automático, por favor no responder.</p>
+            <p>© 2025 GMARM - Sistema de Importación de Armas</p>
+        </div>
+    </div>
+</body>
+</html>
+

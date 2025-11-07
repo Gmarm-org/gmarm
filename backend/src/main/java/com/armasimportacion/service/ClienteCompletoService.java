@@ -28,6 +28,7 @@ public class ClienteCompletoService {
     private final GestionPagosServiceHelper pagosHelper;
     private final GestionArmasServiceHelper armasHelper;
     private final GestionRespuestasServiceHelper respuestasHelper;
+    private final EmailService emailService;
 
     /**
      * Actualiza un cliente completo con todos sus datos relacionados
@@ -194,6 +195,26 @@ public class ClienteCompletoService {
             // Generar y guardar el contrato usando Thymeleaf
             var documento = documentosHelper.generarYGuardarContrato(cliente, pago);
             log.info("✅ Contrato generado y guardado exitosamente: ID={}", documento.getId());
+            
+            // 📧 Enviar email con el contrato adjunto
+            if (cliente.getEmail() != null && !cliente.getEmail().isEmpty()) {
+                try {
+                    log.info("📧 Enviando contrato por email a: {}", cliente.getEmail());
+                    String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
+                    emailService.enviarContratoAdjunto(
+                        cliente.getEmail(),
+                        nombreCompleto,
+                        documento.getRutaArchivo()
+                    );
+                    log.info("✅ Email enviado exitosamente a: {}", cliente.getEmail());
+                } catch (Exception emailError) {
+                    log.error("❌ Error enviando email: {}", emailError.getMessage());
+                    // No interrumpir el flujo si falla el email
+                }
+            } else {
+                log.warn("⚠️ Cliente sin email, no se puede enviar contrato por correo");
+            }
+            
         } catch (Exception e) {
             log.error("❌ Error generando contrato: {}", e.getMessage(), e);
             // No lanzar la excepción para no interrumpir el flujo de creación del cliente
