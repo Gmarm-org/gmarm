@@ -166,7 +166,7 @@ const ClientTypeList: React.FC = () => {
       try {
         // No eliminar, solo cambiar estado a false (inactivo)
         await clientTypeApi.update(clientType.id, { ...clientType, estado: false });
-        await loadClientTypes();
+        await loadAllData();
         alert('Tipo de cliente desactivado exitosamente');
       } catch (error) {
         console.error('Error desactivando tipo de cliente:', error);
@@ -193,7 +193,7 @@ const ClientTypeList: React.FC = () => {
     {
       key: 'id',
       label: 'Tipos de Importación',
-      render: (value, row) => {
+      render: (value, _row) => {
         const importTypeNames = getImportTypesNamesForClient(value as number);
         if (importTypeNames === 'Sin tipos asignados') {
           return <span className="text-xs text-gray-400 italic">{importTypeNames}</span>;
