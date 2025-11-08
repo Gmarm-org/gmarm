@@ -2261,128 +2261,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 </div>
               )}
 
-              {/* Botones */}
-              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-8 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                
-                {mode === 'view' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onEdit) {
-                        onEdit();
-                      } else {
-                        // Fallback: Cambiar a modo edit con evento
-                        const event = new Event('edit-mode');
-                        window.dispatchEvent(event);
-                      }
-                    }}
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg"
-                  >
-                    Editar Cliente
-                  </button>
-                )}
-                
-                {mode !== 'view' && (
-                  <>
-                    {/* Alerta de cliente inhabilitado */}
-                    {mode === 'create' && (!edadValida || clienteBloqueado) && (
-                      <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0">
-                            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                          </div>
-                          <div className="ml-3">
-                            <h3 className="text-lg font-bold text-red-800">Cliente Inhabilitado para Compra de Armas</h3>
-                            <div className="mt-2 text-sm text-red-700">
-                              {!edadValida && (
-                                <p>• Edad insuficiente: Debe tener al menos 25 años para adquirir armas.</p>
-                              )}
-                              {clienteBloqueado && (
-                                <p>• {motivoBloqueo}</p>
-                              )}
-                              <p className="mt-2 font-medium">El cliente se guardará en la base de datos, pero NO podrá seleccionar armas ni generar contrato hasta que se resuelvan estas restricciones.</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Botón para continuar con selección de armas (solo en modo create) */}
-                    {!clienteBloqueado && edadValida && mode === 'create' && (
-                      <button
-                        type="button"
-                        onClick={() => onConfirmData?.({...formData, uploadedDocuments})}
-                        disabled={!canContinueWithWeapons()}
-                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                      >
-                        Continuar con Selección de Armas
-                      </button>
-                    )}
-                    
-                    {/* Botón para guardar cliente bloqueado (cuando hay restricciones de edad o violencia) */}
-                    {(clienteBloqueado || !edadValida) && mode === 'create' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const clientDataForBackend = {
-                            nombres: formData.nombres,
-                            apellidos: formData.apellidos,
-                            numeroIdentificacion: formData.numeroIdentificacion,
-                            tipoIdentificacionCodigo: mapTipoIdentificacionToCode(formData.tipoIdentificacion),
-                            tipoClienteCodigo: mapTipoClienteToCode(formData.tipoCliente),
-                            fechaNacimiento: formData.fechaNacimiento,
-                            direccion: formData.direccion,
-                            provincia: formData.provincia,
-                            canton: formData.canton,
-                            email: formData.email,
-                            telefonoPrincipal: formData.telefonoPrincipal,
-                            telefonoSecundario: formData.telefonoSecundario,
-                            representanteLegal: formData.representanteLegal || '',
-                            ruc: formData.ruc || '',
-                            nombreEmpresa: formData.nombreEmpresa || '',
-                            direccionFiscal: formData.direccionFiscal || '',
-                            telefonoReferencia: formData.telefonoReferencia || '',
-                            correoEmpresa: formData.correoEmpresa || '',
-                            provinciaEmpresa: formData.provinciaEmpresa || '',
-                            cantonEmpresa: formData.cantonEmpresa || '',
-                            estadoMilitar: formData.estadoMilitar || '',
-                            codigoIssfa: formData.codigoIssfa || '',
-                            rango: formData.rango || '',
-                            usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
-                          };
-                          onSave(clientDataForBackend as any);
-                        }}
-                        disabled={!validateForm()}
-                        className="px-8 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                      >
-                        💾 Guardar Cliente Inhabilitado (Sin Arma)
-                      </button>
-                    )}
-                    
-                    {/* Botón para actualizar cliente existente */}
-                    {mode === 'edit' && !clienteBloqueado && (
-                      <button
-                        type="submit"
-                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                        disabled={!validateForm()}
-                      >
-                        ✅ Actualizar Cliente
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-
-
               {/* Sección de Contratos Generados - Solo en modo view */}
               {mode === 'view' && (
                 <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
@@ -2607,6 +2485,127 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Botones - Al final después de todas las secciones */}
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-6">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-8 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                
+                {mode === 'view' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onEdit) {
+                        onEdit();
+                      } else {
+                        // Fallback: Cambiar a modo edit con evento
+                        const event = new Event('edit-mode');
+                        window.dispatchEvent(event);
+                      }
+                    }}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg"
+                  >
+                    Editar Cliente
+                  </button>
+                )}
+                
+                {mode !== 'view' && (
+                  <>
+                    {/* Alerta de cliente inhabilitado */}
+                    {mode === 'create' && (!edadValida || clienteBloqueado) && (
+                      <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-lg font-bold text-red-800">Cliente Inhabilitado para Compra de Armas</h3>
+                            <div className="mt-2 text-sm text-red-700">
+                              {!edadValida && (
+                                <p>• Edad insuficiente: Debe tener al menos 25 años para adquirir armas.</p>
+                              )}
+                              {clienteBloqueado && (
+                                <p>• {motivoBloqueo}</p>
+                              )}
+                              <p className="mt-2 font-medium">El cliente se guardará en la base de datos, pero NO podrá seleccionar armas ni generar contrato hasta que se resuelvan estas restricciones.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Botón para continuar con selección de armas (solo en modo create) */}
+                    {!clienteBloqueado && edadValida && mode === 'create' && (
+                      <button
+                        type="button"
+                        onClick={() => onConfirmData?.({...formData, uploadedDocuments})}
+                        disabled={!canContinueWithWeapons()}
+                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        Continuar con Selección de Armas
+                      </button>
+                    )}
+                    
+                    {/* Botón para guardar cliente bloqueado (cuando hay restricciones de edad o violencia) */}
+                    {(clienteBloqueado || !edadValida) && mode === 'create' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const clientDataForBackend = {
+                            nombres: formData.nombres,
+                            apellidos: formData.apellidos,
+                            numeroIdentificacion: formData.numeroIdentificacion,
+                            tipoIdentificacionCodigo: mapTipoIdentificacionToCode(formData.tipoIdentificacion),
+                            tipoClienteCodigo: mapTipoClienteToCode(formData.tipoCliente),
+                            fechaNacimiento: formData.fechaNacimiento,
+                            direccion: formData.direccion,
+                            provincia: formData.provincia,
+                            canton: formData.canton,
+                            email: formData.email,
+                            telefonoPrincipal: formData.telefonoPrincipal,
+                            telefonoSecundario: formData.telefonoSecundario,
+                            representanteLegal: formData.representanteLegal || '',
+                            ruc: formData.ruc || '',
+                            nombreEmpresa: formData.nombreEmpresa || '',
+                            direccionFiscal: formData.direccionFiscal || '',
+                            telefonoReferencia: formData.telefonoReferencia || '',
+                            correoEmpresa: formData.correoEmpresa || '',
+                            provinciaEmpresa: formData.provinciaEmpresa || '',
+                            cantonEmpresa: formData.cantonEmpresa || '',
+                            estadoMilitar: formData.estadoMilitar || '',
+                            codigoIssfa: formData.codigoIssfa || '',
+                            rango: formData.rango || '',
+                            usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
+                          };
+                          onSave(clientDataForBackend as any);
+                        }}
+                        disabled={!validateForm()}
+                        className="px-8 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        💾 Guardar Cliente Inhabilitado (Sin Arma)
+                      </button>
+                    )}
+                    
+                    {/* Botón para actualizar cliente existente */}
+                    {mode === 'edit' && !clienteBloqueado && (
+                      <button
+                        type="submit"
+                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                        disabled={!validateForm()}
+                      >
+                        ✅ Actualizar Cliente
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
 
             </form>
           </div>
