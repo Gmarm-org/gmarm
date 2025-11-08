@@ -201,10 +201,15 @@ public class ClienteCompletoService {
                 try {
                     log.info("📧 Enviando contrato por email a: {}", cliente.getEmail());
                     String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
+                    
+                    // Construir path completo del archivo: directorio + nombre del archivo
+                    String rutaCompleta = documento.getRutaArchivo() + documento.getNombreArchivo();
+                    log.info("📄 Path completo del contrato: {}", rutaCompleta);
+                    
                     emailService.enviarContratoAdjunto(
                         cliente.getEmail(),
                         nombreCompleto,
-                        documento.getRutaArchivo()
+                        rutaCompleta
                     );
                     log.info("✅ Email enviado exitosamente a: {}", cliente.getEmail());
                 } catch (Exception emailError) {
