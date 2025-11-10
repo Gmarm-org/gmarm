@@ -7,16 +7,18 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_prod:5432/gmarm_db
-      - SPRING_DATASOURCE_USERNAME=produser
-      - SPRING_DATASOURCE_PASSWORD=prodpass
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_prod:5432/${POSTGRES_DB:-gmarm_prod}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - APP_JWT_SECRET=${JWT_SECRET}
       - APP_JWT_EXPIRATION=86400000
-      # Configuración JVM optimizada para producción (ajustada para mem_limit de 1GB)
-      - JAVA_OPTS=-Xms256m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:+UseStringDeduplication
+      # 🔒 CORS en producción (SOLO dominios permitidos)
+      - SPRING_CORS_ALLOWED_ORIGINS=${CORS_ORIGINS:-https://gmarm.com,https://www.gmarm.com}
+      # Configuración JVM optimizada para producción (768MB límite)
+      - JAVA_OPTS=-Xms256m -Xmx640m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:+UseStringDeduplication -XX:+UseCompressedOops
     depends_on:
       postgres_prod:
-        condition: service_started  # Cambio de healthy a started para evitar loops de CPU
+        condition: service_healthy  # ✅ Esperar a que PostgreSQL esté healthy
     volumes:
       - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
@@ -24,48 +26,68 @@ services:
     restart: unless-stopped
     networks:
       - gmarm-network
-    # 🔥 Límites REALES de Docker (NO Swarm)
-    mem_limit: 1g
-    mem_reservation: 512m
-    cpus: 2.0
+    # 🔥 PRODUCCIÓN: 768MB para Backend (DEV apagado, toda la RAM disponible)
+    mem_limit: 768m
+    mem_reservation: 384m
+    cpus: 1.5
+    # 🔒 Seguridad: Usuario no-root
+    user: "1000:1000"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${API_URL:-https://api.gmarm.com}
     image: gmarm-frontend-prod
     container_name: gmarm-frontend-prod
     ports:
       - "80:80"
+      - "443:443"  # HTTPS en producción
     environment:
-      - VITE_API_BASE_URL=${API_URL}
-      - VITE_APP_NAME=Sistema de Importación de Armas
+      - VITE_API_BASE_URL=${API_URL:-https://api.gmarm.com}
+      - VITE_APP_NAME=Sistema GMARM - Importación de Armas
       - VITE_DEV_MODE=false
+      - NODE_ENV=production
     depends_on:
       - backend
     restart: unless-stopped
     networks:
       - gmarm-network
-    # 🔥 Límites REALES de Docker (NO Swarm)
-    mem_limit: 512m
-    mem_reservation: 256m
-    cpus: 1.0
+    # 🔥 PRODUCCIÓN: 384MB para Frontend (archivos estáticos)
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 0.5
+    # 🔒 Seguridad: Usuario no-root
+    user: "1000:1000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   postgres_prod:
     image: postgres:15-alpine
     container_name: gmarm-postgres-prod
     environment:
-      POSTGRES_DB: gmarm_db
-      POSTGRES_USER: produser
-      POSTGRES_PASSWORD: prodpass
+      POSTGRES_DB: ${POSTGRES_DB:-gmarm_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # ✅ OBLIGATORIO desde .env
       # Configuración para inicialización limpia
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
-      - "5433:5432"
+      - "5432:5432"  # Puerto estándar en producción
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
       - ./datos/00_gmarm_completo.sql:/docker-entrypoint-initdb.d/00_gmarm_completo.sql
@@ -76,15 +98,15 @@ services:
       - "-c"
       - "listen_addresses=*"
       - "-c"
-      - "max_connections=30"                    # Optimizado para producción
+      - "max_connections=50"                    # Incrementado para producción
       - "-c"
-      - "shared_buffers=384MB"                  # 25% de 1.5GB RAM disponible
+      - "shared_buffers=640MB"                  # 25% de 2.5GB RAM
       - "-c"
-      - "work_mem=4MB"                          # Conservador para múltiples conexiones
+      - "work_mem=8MB"                          # Mayor para queries complejas
       - "-c"
-      - "maintenance_work_mem=96MB"             # Mayor para VACUUM, ANALYZE
+      - "maintenance_work_mem=160MB"            # Mayor para VACUUM, ANALYZE
       - "-c"
-      - "effective_cache_size=1GB"              # ~66% de memoria disponible
+      - "effective_cache_size=1.8GB"            # ~72% de 2.5GB disponible
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
@@ -96,30 +118,41 @@ services:
       - "-c"
       - "autovacuum=on"
       - "-c"
-      - "autovacuum_max_workers=1"              # Solo 1 worker (previene OOM)
+      - "autovacuum_max_workers=2"              # 2 workers para producción
       - "-c"
-      - "autovacuum_naptime=300s"               # Cada 5 min (no cada 60s)
+      - "autovacuum_naptime=300s"               # Cada 5 minutos
       - "-c"
-      - "autovacuum_work_mem=16MB"              # Límite CRÍTICO para PROD (16MB)
+      - "autovacuum_work_mem=64MB"              # Mayor para autovacuum
       - "-c"
-      - "log_min_duration_statement=1000"       # Log queries > 1s
+      - "log_min_duration_statement=2000"       # Log queries > 2s
       - "-c"
-      - "log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+      - "log_line_prefix=%t [%p]: user=%u,db=%d,client=%h "
       - "-c"
       - "log_checkpoints=on"
       - "-c"
-      - "log_connections=off"
+      - "log_connections=on"                    # ✅ Log conexiones en PROD
       - "-c"
-      - "log_disconnections=off"
-    restart: always
+      - "log_disconnections=on"                 # ✅ Log desconexiones en PROD
+      - "-c"
+      - "log_lock_waits=on"                     # ✅ Log deadlocks
+      - "-c"
+      - "log_temp_files=10240"                  # Log archivos temp > 10MB
+      - "-c"
+      - "fsync=on"                              # ✅ OBLIGATORIO en producción
+      - "-c"
+      - "synchronous_commit=on"                 # ✅ OBLIGATORIO en producción
+      - "-c"
+      - "full_page_writes=on"                   # ✅ OBLIGATORIO en producción
+    restart: unless-stopped  # ✅ unless-stopped en producción (evita reinicio en shutdown manual)
     networks:
       - gmarm-network
-    # 🔥 Límites REALES de Docker (NO Swarm) - Optimizados para Producción
-    mem_limit: 1.5g
-    mem_reservation: 768m
-    cpus: 1.0
+    # 🔥 PRODUCCIÓN: 2.5GB para PostgreSQL (MÁXIMA PRIORIDAD - DEV apagado)
+    # Total asignado: 2.5GB + 768MB + 384MB = 3.65GB (de 3.8GB disponibles)
+    mem_limit: 2.5g
+    mem_reservation: 1g
+    cpus: 2.0  # Prioridad máxima de CPU
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U produser -d gmarm_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gmarm_prod}"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -127,8 +160,8 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
-        max-file: "5"
+        max-size: "100m"  # Mayor tamaño para producción
+        max-file: "10"    # Más archivos para auditoría
 
 volumes:
   postgres_data_prod:
