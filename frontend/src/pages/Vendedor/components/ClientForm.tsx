@@ -426,16 +426,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
     
     switch (fieldName) {
       case 'numeroIdentificacion':
-        if ((formData.tipoIdentificacion === 'Cédula' || formData.tipoIdentificacion === 'Cédula de Identidad') && value.length !== 10) {
-          return 'border-red-500'; // Cédula debe tener 10 dígitos
-        }
-        if (formData.tipoIdentificacion === 'RUC' && value.length !== 13) {
-          return 'border-red-500'; // RUC debe tener 13 dígitos
+        // Validar con los algoritmos oficiales de Ecuador
+        if (!formData.tipoIdentificacion) return 'border-gray-200'; // Sin tipo seleccionado
+        if (!validateIdentificacion(value, formData.tipoIdentificacion)) {
+          return 'border-red-500'; // Identificación inválida
         }
         return 'border-green-500'; // Válido
       case 'ruc':
-        if (value.length !== 13) {
-          return 'border-red-500'; // RUC debe tener 13 dígitos
+        // Validar RUC con algoritmo oficial
+        if (!validateIdentificacion(value, 'RUC')) {
+          return 'border-red-500'; // RUC inválido
         }
         return 'border-green-500'; // Válido
       case 'telefonoPrincipal':
@@ -1123,12 +1123,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   const getMaxLength = () => {
     switch (formData.tipoIdentificacion) {
-      case 'Cédula':
-      case 'Cédula de Identidad': return 10;
-      case 'RUC': return 13;
-      case 'Pasaporte': return 20;
+      case 'CED': return 10; // Código de Cédula
+      case 'RUC': return 13; // Código de RUC
+      case 'PAS': return 20; // Código de Pasaporte
       default: return 20;
     }
+  };
+
+  // Helper para obtener el nombre del tipo de identificación desde el código
+  const getNombreTipoIdentificacion = (codigo: string): string => {
+    const tipo = tiposIdentificacion.find(t => t.codigo === codigo);
+    return tipo ? tipo.nombre : codigo;
   };
 
   const validateForm = () => {
@@ -1319,7 +1324,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Identificación *</label>
                     {mode === 'view' ? (
                       <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.tipoIdentificacion || 'No especificado'}
+                        {formData.tipoIdentificacion ? getNombreTipoIdentificacion(formData.tipoIdentificacion) : 'No especificado'}
                       </div>
                     ) : (
                       <select
@@ -1330,7 +1335,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       >
                         <option value="">Seleccionar tipo</option>
                         {tiposIdentificacion.map(tipo => (
-                          <option key={tipo.id} value={tipo.nombre}>{tipo.nombre}</option>
+                          <option key={tipo.id} value={tipo.codigo}>{tipo.nombre}</option>
                         ))}
                       </select>
                     )}
@@ -1350,7 +1355,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                          required
                          maxLength={getMaxLength()}
                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('numeroIdentificacion', formData.numeroIdentificacion)}`}
-                         placeholder={`Ingrese ${formData.tipoIdentificacion ? formData.tipoIdentificacion.toLowerCase() : 'número de identificación'}`}
+                         placeholder={`Ingrese ${formData.tipoIdentificacion ? getNombreTipoIdentificacion(formData.tipoIdentificacion).toLowerCase() : 'número de identificación'}`}
                        />
                     )}
                   </div>

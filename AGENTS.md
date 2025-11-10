@@ -23,7 +23,247 @@ gmarm/
 
 ## 📋 Principios de Desarrollo
 
-### 0. ⚠️ **NUNCA PUSHEAR SIN PROBAR** ⚠️
+### 0. 🔒 **SEGURIDAD PRIMERO** 🔒
+
+**REGLA DE ORO:** La seguridad NO es opcional. SIEMPRE implementar desde el inicio.
+
+**✅ OBLIGATORIO en TODO desarrollo:**
+
+#### 1. **Límites de Recursos en Docker**
+```yaml
+# ✅ SIEMPRE incluir en docker-compose
+services:
+  postgres:
+    mem_limit: 2g              # OBLIGATORIO
+    mem_reservation: 512m      # OBLIGATORIO
+    cpus: 1.0                  # OBLIGATORIO
+    restart: unless-stopped    # OBLIGATORIO (NO always en producción)
+    
+  backend:
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 0.5
+    read_only: true           # ✅ Filesystem read-only cuando sea posible
+    user: "1000:1000"         # ✅ NO ejecutar como root
+    
+  frontend:
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 0.5
+```
+
+#### 2. **Validación de Entrada (Backend)**
+```java
+// ✅ SIEMPRE validar TODO input del usuario
+@PostMapping("/cliente")
+public ResponseEntity<?> createCliente(@Valid @RequestBody ClienteDTO dto) {
+    
+    // ✅ Sanitizar strings
+    String nombreLimpio = StringUtils.stripToEmpty(dto.getNombres())
+        .replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "");
+    
+    // ✅ Validar longitud
+    if (nombreLimpio.length() < 2 || nombreLimpio.length() > 100) {
+        throw new ValidationException("Nombre inválido");
+    }
+    
+    // ✅ Validar formato de cédula/RUC
+    if (!validarCedula(dto.getNumeroIdentificacion())) {
+        throw new ValidationException("Cédula inválida");
+    }
+    
+    // ✅ Prevenir SQL Injection (usar JPA/JPQL, NO queries raw)
+    // ❌ NUNCA: "SELECT * FROM usuario WHERE email = '" + email + "'"
+    // ✅ SIEMPRE: repository.findByEmail(email)
+}
+```
+
+#### 3. **Rate Limiting y Protección DDoS**
+```java
+// ✅ SIEMPRE implementar rate limiting
+@Configuration
+public class SecurityConfig {
+    
+    @Bean
+    public RateLimiter rateLimiter() {
+        return RateLimiter.create(100); // 100 requests por segundo
+    }
+}
+
+// ✅ En endpoints públicos
+@PostMapping("/login")
+@RateLimited(maxRequests = 5, per = "1m") // 5 intentos por minuto
+public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    // ...
+}
+```
+
+#### 4. **Secrets y Variables de Entorno**
+```yaml
+# ❌ NUNCA hardcodear en código
+DATABASE_PASSWORD=postgres123
+
+# ✅ SIEMPRE usar variables de entorno
+environment:
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Desde .env
+  JWT_SECRET: ${JWT_SECRET}                # Desde .env
+  
+# ✅ .env NO debe estar en git (agregar a .gitignore)
+```
+
+#### 5. **Headers de Seguridad HTTP**
+```java
+// ✅ SIEMPRE configurar security headers
+@Configuration
+public class SecurityHeadersConfig {
+    
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.httpBasic()
+            .headers()
+                .contentSecurityPolicy("default-src 'self'")
+                .and()
+                .xssProtection()
+                .and()
+                .frameOptions().deny()
+                .and()
+                .httpStrictTransportSecurity()
+                    .maxAgeInSeconds(31536000)
+                    .includeSubDomains(true);
+    }
+}
+```
+
+#### 6. **Logging y Auditoría**
+```java
+// ✅ SIEMPRE loggear acciones críticas
+@Service
+public class ClienteService {
+    
+    @Autowired
+    private AuditLogger auditLogger;
+    
+    public Cliente create(ClienteDTO dto, Long usuarioId) {
+        // ✅ Log con contexto
+        log.info("👤 Usuario {} creando cliente con cédula {}", 
+            usuarioId, 
+            maskCedula(dto.getNumeroIdentificacion())
+        );
+        
+        Cliente cliente = save(dto);
+        
+        // ✅ Auditoría de acción crítica
+        auditLogger.log(
+            AuditAction.CLIENTE_CREATED,
+            usuarioId,
+            cliente.getId(),
+            "Cliente creado exitosamente"
+        );
+        
+        return cliente;
+    }
+    
+    // ✅ Enmascarar datos sensibles en logs
+    private String maskCedula(String cedula) {
+        return cedula.substring(0, 4) + "******";
+    }
+}
+```
+
+#### 7. **Dependencias Actualizadas**
+```bash
+# ✅ SIEMPRE mantener dependencias actualizadas
+# Backend
+mvn versions:display-dependency-updates
+
+# Frontend
+npm audit
+npm audit fix
+
+# ✅ NUNCA usar dependencias con vulnerabilidades críticas
+```
+
+#### 8. **CORS Restrictivo**
+```java
+// ❌ NUNCA permitir todos los orígenes en producción
+@CrossOrigin(origins = "*") // ❌ MAL
+
+// ✅ SIEMPRE especificar orígenes permitidos
+@CrossOrigin(origins = {
+    "https://produccion.com",
+    "https://www.produccion.com"
+})
+
+// ✅ O mejor, configuración centralizada
+@Configuration
+public class CorsConfig {
+    @Value("${cors.allowed.origins}")
+    private String[] allowedOrigins;
+    
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
+        config.setAllowCredentials(true);
+        return source;
+    }
+}
+```
+
+#### 9. **Contraseñas Seguras**
+```java
+// ✅ SIEMPRE usar bcrypt/argon2 para passwords
+@Service
+public class AuthService {
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder; // BCrypt
+    
+    public Usuario register(RegisterDTO dto) {
+        // ✅ Hash del password
+        String hashedPassword = passwordEncoder.encode(dto.getPassword());
+        
+        // ✅ Validar fuerza del password
+        if (!isPasswordStrong(dto.getPassword())) {
+            throw new WeakPasswordException();
+        }
+        
+        usuario.setPassword(hashedPassword);
+        return repository.save(usuario);
+    }
+    
+    private boolean isPasswordStrong(String password) {
+        // Mínimo 8 caracteres, 1 mayúscula, 1 número, 1 especial
+        return password.length() >= 8 
+            && password.matches(".*[A-Z].*")
+            && password.matches(".*[0-9].*")
+            && password.matches(".*[!@#$%^&*].*");
+    }
+}
+```
+
+#### 10. **Monitoreo y Alertas**
+```yaml
+# ✅ SIEMPRE configurar healthchecks
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+# ✅ Logging estructurado
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+
+---
+
+### 0.1. ⚠️ **NUNCA PUSHEAR SIN PROBAR** ⚠️
 
 **REGLA DE ORO:** El código SIEMPRE se debe probar antes de hacer push a cualquier rama.
 

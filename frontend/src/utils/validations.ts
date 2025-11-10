@@ -1,54 +1,140 @@
 // ===== VALIDACIONES DE IDENTIFICACIÓN =====
 
+/**
+ * Valida una cédula ecuatoriana
+ * - Debe tener 10 dígitos
+ * - Los primeros 2 dígitos deben representar una provincia válida (01-24)
+ * - El tercer dígito debe ser menor a 6 (para personas naturales)
+ * - El décimo dígito es un dígito verificador calculado con algoritmo módulo 10
+ */
 export const validateCedula = (cedula: string): boolean => {
+  // Validar longitud
   if (!cedula || cedula.length !== 10) return false;
   
-  // Validación de cédula ecuatoriana
+  // Verificar que todos sean números
+  if (!/^\d{10}$/.test(cedula)) return false;
+  
   const digits = cedula.split('').map(Number);
   
-  // Verificar que todos sean números
-  if (digits.some(isNaN)) return false;
+  // Validar código de provincia (primeros 2 dígitos: 01-24)
+  const provincia = parseInt(cedula.substring(0, 2));
+  if (provincia < 1 || provincia > 24) return false;
   
-  // Algoritmo de validación de cédula ecuatoriana
+  // Validar tercer dígito (debe ser menor a 6 para personas naturales)
+  if (digits[2] >= 6) return false;
+  
+  // Algoritmo de validación de cédula ecuatoriana (módulo 10)
   let sum = 0;
   for (let i = 0; i < 9; i++) {
     let digit = digits[i];
+    // Los dígitos en posiciones pares (0, 2, 4, 6, 8) se multiplican por 2
     if (i % 2 === 0) {
       digit *= 2;
+      // Si el resultado es mayor a 9, se resta 9
       if (digit > 9) digit -= 9;
     }
     sum += digit;
   }
   
+  // Calcular dígito verificador
   const checkDigit = (10 - (sum % 10)) % 10;
+  
+  // Comparar con el décimo dígito
   return checkDigit === digits[9];
 };
 
+/**
+ * Valida un RUC (Registro Único de Contribuyentes) ecuatoriano
+ * Tipos de RUC:
+ * - Persona Natural: 10 dígitos de cédula + "001" (13 dígitos total)
+ * - Sociedad Privada: tercer dígito = 9, algoritmo módulo 11
+ * - Sociedad Pública: tercer dígito = 6, algoritmo módulo 11
+ */
 export const validateRUC = (ruc: string): boolean => {
+  // Validar longitud
   if (!ruc || ruc.length !== 13) return false;
   
   // Verificar que todos sean números
   if (!/^\d{13}$/.test(ruc)) return false;
   
-  // Validar tipo de contribuyente (tercer dígito)
-  const thirdDigit = parseInt(ruc[2]);
-  if (![6, 9].includes(thirdDigit)) return false;
+  const digits = ruc.split('').map(Number);
   
-  // Validar cédula/RUC base (primeros 10 dígitos)
-  const base = ruc.substring(0, 10);
-  if (!validateCedula(base)) return false;
+  // Validar código de provincia (primeros 2 dígitos: 01-24)
+  const provincia = parseInt(ruc.substring(0, 2));
+  if (provincia < 1 || provincia > 24) return false;
   
-  return true;
+  // Validar según el tercer dígito (tipo de contribuyente)
+  const thirdDigit = digits[2];
+  
+  // RUC de Persona Natural (tercer dígito < 6, termina en 001)
+  if (thirdDigit < 6) {
+    // Validar que termine en 001
+    if (ruc.substring(10) !== '001') return false;
+    
+    // Validar cédula (primeros 10 dígitos)
+    const cedula = ruc.substring(0, 10);
+    return validateCedula(cedula);
+  }
+  
+  // RUC de Sociedad Pública (tercer dígito = 6)
+  else if (thirdDigit === 6) {
+    // Validar que termine en 0001
+    if (ruc.substring(9) !== '0001') return false;
+    
+    // Algoritmo módulo 11 para sociedades públicas
+    const coefficients = [3, 2, 7, 6, 5, 4, 3, 2];
+    let sum = 0;
+    
+    for (let i = 0; i < 8; i++) {
+      sum += digits[i] * coefficients[i];
+    }
+    
+    const remainder = sum % 11;
+    const checkDigit = remainder === 0 ? 0 : 11 - remainder;
+    
+    return checkDigit === digits[8];
+  }
+  
+  // RUC de Sociedad Privada (tercer dígito = 9)
+  else if (thirdDigit === 9) {
+    // Validar que termine en 001
+    if (ruc.substring(10) !== '001') return false;
+    
+    // Algoritmo módulo 11 para sociedades privadas
+    const coefficients = [4, 3, 2, 7, 6, 5, 4, 3, 2];
+    let sum = 0;
+    
+    for (let i = 0; i < 9; i++) {
+      sum += digits[i] * coefficients[i];
+    }
+    
+    const remainder = sum % 11;
+    const checkDigit = remainder === 0 ? 0 : 11 - remainder;
+    
+    return checkDigit === digits[9];
+  }
+  
+  // Tercer dígito no válido
+  return false;
 };
 
+/**
+ * Valida identificación según el tipo
+ * Usa algoritmos oficiales de Ecuador para cédula y RUC
+ */
 export const validateIdentificacion = (identificacion: string, tipo: string): boolean => {
+  // Limpiar espacios
+  const cleaned = identificacion?.trim() || '';
+  
   switch (tipo) {
-    case 'Cédula':
-      return validateCedula(identificacion);
-    case 'RUC':
-      return validateRUC(identificacion);
+    case 'CED': // Código de Cédula (de tipo_identificacion)
+      return validateCedula(cleaned);
+    case 'RUC': // Código de RUC (de tipo_identificacion)
+      return validateRUC(cleaned);
+    case 'PAS': // Código de Pasaporte (de tipo_identificacion)
+      return cleaned.length >= 6 && cleaned.length <= 20;
     default:
-      return identificacion.length > 0;
+      return cleaned.length > 0;
   }
 };
 
