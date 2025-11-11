@@ -31,6 +31,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [tipoPago, setTipoPago] = useState<'CONTADO' | 'CUOTAS'>('CONTADO');
   const [numeroCuotas, setNumeroCuotas] = useState<number>(2);
   const [cuotas, setCuotas] = useState<CuotaData[]>([]);
+  const [inputValues, setInputValues] = useState<Record<number, string>>({});
   
   // Obtener IVA dinámicamente desde la BD
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
@@ -351,10 +352,19 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                                 <input
                                   type="text"
                                   inputMode="decimal"
-                                  value={cuota.monto.toFixed(2)}
+                                  value={inputValues[index] !== undefined ? inputValues[index] : cuota.monto.toFixed(2)}
                                   onChange={(e) => {
+                                    // Permitir borrar completamente
+                                    let value = e.target.value;
+                                    
+                                    // Si está vacío, permitirlo
+                                    if (value === '') {
+                                      setInputValues(prev => ({ ...prev, [index]: '' }));
+                                      return;
+                                    }
+                                    
                                     // Permitir solo números, punto y coma
-                                    let value = e.target.value.replace(/[^0-9.,]/g, '');
+                                    value = value.replace(/[^0-9.,]/g, '');
                                     
                                     // Reemplazar coma por punto
                                     value = value.replace(',', '.');
@@ -370,20 +380,36 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                                       value = parts[0] + '.' + parts[1].substring(0, 2);
                                     }
                                     
-                                    // Convertir a número
+                                    // Guardar el valor del input (como texto)
+                                    setInputValues(prev => ({ ...prev, [index]: value }));
+                                    
+                                    // Convertir a número y actualizar cuota
                                     const numValue = parseFloat(value) || 0;
                                     handleCuotaChange(index, 'monto', numValue);
                                   }}
-                                  onBlur={(e) => {
-                                    // Formatear al perder foco
-                                    const value = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
-                                    e.target.value = value.toFixed(2);
+                                  onFocus={(e) => {
+                                    // Al hacer foco, mostrar valor sin formato para fácil edición
+                                    const value = cuota.monto > 0 ? cuota.monto.toString() : '';
+                                    setInputValues(prev => ({ ...prev, [index]: value }));
+                                    e.target.select(); // Seleccionar todo para fácil reemplazo
                                   }}
-                                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono"
+                                  onBlur={(e) => {
+                                    // Al perder foco, formatear con .00
+                                    const value = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
+                                    setInputValues(prev => ({ ...prev, [index]: value.toFixed(2) }));
+                                  }}
+                                  className={`w-full pl-7 pr-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono ${
+                                    cuota.monto > total ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                  }`}
                                   placeholder="0.00"
                                   required
                                 />
                               </div>
+                              {cuota.monto > total && (
+                                <p className="text-xs text-red-600 mt-1">
+                                  ⚠️ El monto excede el total (${total.toFixed(2)})
+                                </p>
+                              )}
                             </div>
                             <div className="flex items-end">
                               <span className="text-sm text-gray-500">
