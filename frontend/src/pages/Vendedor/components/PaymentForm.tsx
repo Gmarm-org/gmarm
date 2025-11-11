@@ -346,27 +346,44 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                               <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Monto a Pagar
                               </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max="9999999999.99"
-                                value={cuota.monto}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  // Redondear a 2 decimales
-                                  const rounded = Math.round(value * 100) / 100;
-                                  handleCuotaChange(index, 'monto', rounded);
-                                }}
-                                onBlur={(e) => {
-                                  // Asegurar formato correcto al perder foco
-                                  const value = parseFloat(e.target.value) || 0;
-                                  const rounded = Math.round(value * 100) / 100;
-                                  e.target.value = rounded.toFixed(2);
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                required
-                              />
+                              <div className="relative">
+                                <span className="absolute left-3 top-2.5 text-gray-500 font-medium">$</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={cuota.monto.toFixed(2)}
+                                  onChange={(e) => {
+                                    // Permitir solo números, punto y coma
+                                    let value = e.target.value.replace(/[^0-9.,]/g, '');
+                                    
+                                    // Reemplazar coma por punto
+                                    value = value.replace(',', '.');
+                                    
+                                    // Permitir solo un punto decimal
+                                    const parts = value.split('.');
+                                    if (parts.length > 2) {
+                                      value = parts[0] + '.' + parts.slice(1).join('');
+                                    }
+                                    
+                                    // Limitar a 2 decimales
+                                    if (parts.length === 2 && parts[1].length > 2) {
+                                      value = parts[0] + '.' + parts[1].substring(0, 2);
+                                    }
+                                    
+                                    // Convertir a número
+                                    const numValue = parseFloat(value) || 0;
+                                    handleCuotaChange(index, 'monto', numValue);
+                                  }}
+                                  onBlur={(e) => {
+                                    // Formatear al perder foco
+                                    const value = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
+                                    e.target.value = value.toFixed(2);
+                                  }}
+                                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono"
+                                  placeholder="0.00"
+                                  required
+                                />
+                              </div>
                             </div>
                             <div className="flex items-end">
                               <span className="text-sm text-gray-500">
