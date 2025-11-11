@@ -80,12 +80,50 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   }, [total, numeroCuotas, tipoPago]);
 
   const handleCuotaChange = (index: number, field: 'fecha' | 'monto', value: string | number) => {
-    setCuotas(prev => prev.map((cuota, i) => 
-      i === index ? { 
-        ...cuota, 
-        [field]: field === 'fecha' ? value as string : value as number 
-      } : cuota
-    ));
+    if (field === 'fecha') {
+      // Si solo cambia la fecha, actualizar sin recalcular montos
+      setCuotas(prev => prev.map((cuota, i) => 
+        i === index ? { ...cuota, fecha: value as string } : cuota
+      ));
+    } else {
+      // Si cambia el monto, recalcular automáticamente las cuotas restantes
+      const nuevoMonto = value as number;
+      
+      setCuotas(prev => {
+        const nuevasCuotas = [...prev];
+        
+        // Actualizar la cuota que cambió
+        nuevasCuotas[index] = { ...nuevasCuotas[index], monto: nuevoMonto };
+        
+        // Calcular saldo restante
+        const cuotasPagadas = nuevasCuotas.slice(0, index + 1);
+        const totalCuotasPagadas = cuotasPagadas.reduce((sum, c) => sum + c.monto, 0);
+        const saldoRestante = total - totalCuotasPagadas;
+        
+        // Distribuir saldo en cuotas restantes
+        const cuotasRestantes = numeroCuotas - (index + 1);
+        
+        if (cuotasRestantes > 0) {
+          const montoPorCuotaRestante = Math.round((saldoRestante / cuotasRestantes) * 100) / 100;
+          
+          // Actualizar cuotas restantes
+          for (let i = index + 1; i < nuevasCuotas.length; i++) {
+            // La última cuota lleva el ajuste exacto para evitar diferencias de redondeo
+            if (i === nuevasCuotas.length - 1) {
+              const totalAnteriores = nuevasCuotas.slice(0, i).reduce((sum, c) => sum + c.monto, 0);
+              nuevasCuotas[i] = { 
+                ...nuevasCuotas[i], 
+                monto: Math.round((total - totalAnteriores) * 100) / 100
+              };
+            } else {
+              nuevasCuotas[i] = { ...nuevasCuotas[i], monto: montoPorCuotaRestante };
+            }
+          }
+        }
+        
+        return nuevasCuotas;
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
