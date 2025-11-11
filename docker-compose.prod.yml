@@ -14,6 +14,12 @@ services:
       - APP_JWT_EXPIRATION=86400000
       # 🔒 CORS en producción (SOLO dominios permitidos)
       - SPRING_CORS_ALLOWED_ORIGINS=${CORS_ORIGINS:-https://gmarm.com,https://www.gmarm.com}
+      # 📧 Configuración de Email (OBLIGATORIO)
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM:-noreply@gmarm.com}
       # Configuración JVM optimizada para producción (768MB límite)
       - JAVA_OPTS=-Xms256m -Xmx640m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:+UseStringDeduplication -XX:+UseCompressedOops
     depends_on:
