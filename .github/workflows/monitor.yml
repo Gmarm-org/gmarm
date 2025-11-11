@@ -7,32 +7,22 @@ on:
   workflow_dispatch:  # Permitir ejecución manual
 
 env:
-  BACKEND_DEV_URL: "http://72.167.52.14:8080"
-  FRONTEND_DEV_URL: "http://72.167.52.14:5173"
-  BACKEND_PROD_URL: "https://gmarm.com"
+  BACKEND_PROD_URL: "https://api.gmarm.com"
   FRONTEND_PROD_URL: "https://gmarm.com"
 
 jobs:
   # ========================================
-  # JOB: HEALTH MONITORING
+  # JOB: HEALTH MONITORING - SOLO PRODUCCIÓN
   # ========================================
   health-check:
-    name: 🏥 Health Check
+    name: 🏥 Health Check - Production
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        environment: [development, production]
     
     steps:
       - name: 🏥 Check Backend Health
         id: backend-health
         run: |
-          if [ "${{ matrix.environment }}" = "development" ]; then
-            URL="${{ env.BACKEND_DEV_URL }}/api/health"
-          else
-            URL="${{ env.BACKEND_PROD_URL }}/api/health"
-          fi
+          URL="${{ env.BACKEND_PROD_URL }}/api/health"
           
           echo "🔍 Checking backend health: $URL"
           
@@ -49,11 +39,7 @@ jobs:
       - name: 🌐 Check Frontend Availability
         id: frontend-health
         run: |
-          if [ "${{ matrix.environment }}" = "development" ]; then
-            URL="${{ env.FRONTEND_DEV_URL }}"
-          else
-            URL="${{ env.FRONTEND_PROD_URL }}"
-          fi
+          URL="${{ env.FRONTEND_PROD_URL }}"
           
           echo "🔍 Checking frontend availability: $URL"
           
@@ -69,22 +55,22 @@ jobs:
 
       - name: 📊 Health Summary
         run: |
-          echo "## 🏥 Health Check - ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏥 Health Check - Production" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ steps.backend-health.outputs.status == 'healthy' && '✅ Healthy' || '❌ Unhealthy' }} | ${{ steps.backend-health.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ steps.frontend-health.outputs.status == 'available' && '✅ Available' || '❌ Unavailable' }} | ${{ steps.frontend-health.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ steps.backend-health.outputs.status }}" != "healthy" ] || [ "${{ steps.frontend-health.outputs.status }}" != "available" ]; then
-            echo "⚠️ **Issues detected in ${{ matrix.environment }}**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Issues detected in production**" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
   # ========================================
-  # JOB: PERFORMANCE MONITORING
+  # JOB: PERFORMANCE MONITORING - SOLO PRODUCCIÓN
   # ========================================
   performance-check:
-    name: ⚡ Performance Check
+    name: ⚡ Performance Check - Production
     runs-on: ubuntu-latest
     needs: health-check
     
@@ -92,22 +78,14 @@ jobs:
       - name: ⚡ Backend Response Time
         id: backend-perf
         run: |
-          # Check development environment
-          DEV_TIME=$(curl -w "%{time_total}" -s -o /dev/null "${{ env.BACKEND_DEV_URL }}/api/health" || echo "999")
+          # Check production environment only
           PROD_TIME=$(curl -w "%{time_total}" -s -o /dev/null "${{ env.BACKEND_PROD_URL }}/api/health" || echo "999")
           
-          echo "🕐 Development response time: ${DEV_TIME}s"
           echo "🕐 Production response time: ${PROD_TIME}s"
           
-          echo "dev-time=$DEV_TIME" >> $GITHUB_OUTPUT
           echo "prod-time=$PROD_TIME" >> $GITHUB_OUTPUT
           
-          # Alert if response time is too high
-          if (( $(echo "$DEV_TIME > 5" | bc -l) )); then
-            echo "⚠️ Development backend is slow: ${DEV_TIME}s"
-            echo "dev-slow=true" >> $GITHUB_OUTPUT
-          fi
-          
+          # Alert if response time is too high (> 3 seconds)
           if (( $(echo "$PROD_TIME > 3" | bc -l) )); then
             echo "⚠️ Production backend is slow: ${PROD_TIME}s"
             echo "prod-slow=true" >> $GITHUB_OUTPUT
@@ -115,74 +93,44 @@ jobs:
 
       - name: 📊 Performance Summary
         run: |
-          echo "## ⚡ Performance Check" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | Response Time | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------------|---------------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Development | ${{ steps.backend-perf.outputs.dev-time }}s | ${{ steps.backend-perf.outputs.dev-slow == 'true' && '⚠️ Slow' || '✅ OK' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Production | ${{ steps.backend-perf.outputs.prod-time }}s | ${{ steps.backend-perf.outputs.prod-slow == 'true' && '⚠️ Slow' || '✅ OK' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚡ Performance Check - Production" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Response Time | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ steps.backend-perf.outputs.prod-time }}s | ${{ steps.backend-perf.outputs.prod-slow == 'true' && '⚠️ Slow' || '✅ OK' }} |" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ steps.backend-perf.outputs.dev-slow }}" = "true" ] || [ "${{ steps.backend-perf.outputs.prod-slow }}" = "true" ]; then
+          if [ "${{ steps.backend-perf.outputs.prod-slow }}" = "true" ]; then
             echo "⚠️ **Performance issues detected**" >> $GITHUB_STEP_SUMMARY
           fi
 
   # ========================================
-  # JOB: ALERT ON FAILURES
+  # JOB: ALERT ON FAILURES - SOLO LOGS (SIN CREAR ISSUES)
   # ========================================
   alert:
-    name: 🚨 Alert on Issues
+    name: 🚨 Alert Summary
     runs-on: ubuntu-latest
     needs: [health-check, performance-check]
     if: always() && (needs.health-check.result == 'failure' || needs.performance-check.result == 'failure')
     
     steps:
-      - name: 🚨 Create Issue for Critical Problems
+      - name: 🚨 Log Critical Problems
         if: needs.health-check.result == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = `🚨 Critical: Service Health Issues Detected - ${new Date().toISOString()}`;
-            const body = `
-            ## 🚨 Critical Health Issues Detected
-            
-            **Time:** ${new Date().toISOString()}
-            **Environment:** Development and/or Production
-            
-            ### Issues:
-            - One or more services are unhealthy
-            - Backend or Frontend is not responding
-            
-            ### Actions Required:
-            1. Check server logs
-            2. Verify Docker containers are running
-            3. Check database connectivity
-            4. Verify network connectivity
-            
-            ### Quick Commands:
-            \`\`\`bash
-            # Check Docker status
-            docker ps
-            
-            # Check logs
-            docker-compose -f docker-compose.dev.yml logs
-            
-            # Restart services
-            docker-compose -f docker-compose.dev.yml restart
-            \`\`\`
-            
-            ---
-            *This issue was automatically created by the monitoring workflow.*
-            `;
-            
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['critical', 'monitoring', 'health-check']
-            });
+        run: |
+          echo "## 🚨 Critical Health Issues Detected" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Required:" >> $GITHUB_STEP_SUMMARY
+          echo "1. SSH al servidor y verificar servicios" >> $GITHUB_STEP_SUMMARY
+          echo "2. Ejecutar: \`docker ps\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Ver logs: \`docker-compose -f docker-compose.prod.yml logs\`" >> $GITHUB_STEP_SUMMARY
+          echo "4. Verificar conectividad de red" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Verifica manualmente el servidor de producción**" >> $GITHUB_STEP_SUMMARY
 
       - name: 📢 Performance Alert
         if: needs.performance-check.result == 'failure'
         run: |
-          echo "⚠️ Performance issues detected but not critical enough for automatic issue creation"
-          echo "Consider investigating if performance issues persist"
+          echo "## ⚠️ Performance Issues" >> $GITHUB_STEP_SUMMARY
+          echo "Backend response time is above acceptable threshold" >> $GITHUB_STEP_SUMMARY
+          echo "Consider investigating server resources and database performance" >> $GITHUB_STEP_SUMMARY
