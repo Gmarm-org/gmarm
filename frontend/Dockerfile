@@ -1,6 +1,11 @@
 # Build stage
 FROM node:20 AS build
 WORKDIR /app
+
+# Recibir ARG del build
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 COPY package*.json ./
 RUN npm ci
 COPY . .
