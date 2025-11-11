@@ -20,6 +20,54 @@ gmarm/
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
 - **Base de Datos**: PostgreSQL con script maestro
 - **Contenedores**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions con workflows automatizados
+
+## 🛠️ Herramientas Disponibles (MCP - Model Context Protocol)
+
+### GitHub MCP Server
+
+**Acceso a GitHub Actions en tiempo real:**
+
+```typescript
+// Ver workflows en ejecución
+github.list_workflows()
+
+// Ver runs de un workflow específico
+github.get_workflow_runs("deploy.yml")
+
+// Ver logs de un run
+github.get_workflow_run_logs(run_id)
+
+// Ver status de un job
+github.get_workflow_job(job_id)
+```
+
+**Cuándo usar:**
+- ✅ Verificar estado de deploys automáticos
+- ✅ Ver logs de CI/CD en tiempo real
+- ✅ Diagnosticar errores de build
+- ✅ Monitorear progreso de workflows
+
+**Ejemplo de uso:**
+```typescript
+// Verificar si el deploy a producción está corriendo
+const runs = await github.get_workflow_runs("deploy.yml");
+const latestRun = runs.workflow_runs[0];
+console.log(`Estado: ${latestRun.status}`);
+console.log(`Conclusión: ${latestRun.conclusion}`);
+
+// Ver logs si falló
+if (latestRun.conclusion === 'failure') {
+  const logs = await github.get_workflow_run_logs(latestRun.id);
+  console.log(logs);
+}
+```
+
+**Beneficios:**
+- 🚀 No necesitar ir a GitHub UI
+- 📊 Ver logs directamente en el chat
+- ⚡ Respuesta más rápida a errores
+- 🔍 Mejor diagnóstico de problemas
 
 ## 📋 Principios de Desarrollo
 
