@@ -53,8 +53,7 @@ services:
     image: gmarm-frontend-prod
     container_name: gmarm-frontend-prod
     ports:
-      - "80:80"
-      - "443:443"  # HTTPS en producción
+      - "3000:80"  # Puerto interno 3000 (Nginx hace proxy desde 80/443)
     environment:
       - VITE_API_BASE_URL=${API_URL:-https://api.gmarm.com}
       - VITE_APP_NAME=Sistema GMARM - Importación de Armas
