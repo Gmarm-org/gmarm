@@ -213,10 +213,25 @@ jobs:
             echo "📁 Navegando a directorio de deployment: $DEPLOY_DIR"
             cd "$DEPLOY_DIR"
             
+            echo "🔒 Protegiendo archivo .env antes de git operations..."
+            if [ -f ".env" ]; then
+              cp .env /tmp/.env.protected
+              echo "✅ .env respaldado en /tmp/.env.protected"
+            fi
+            
             echo "🔄 Obteniendo cambios más recientes..."
             git fetch origin
             git reset --hard origin/$BRANCH
             git clean -fd
+            
+            echo "🔒 Restaurando archivo .env..."
+            if [ -f "/tmp/.env.protected" ]; then
+              cp /tmp/.env.protected .env
+              chmod 600 .env
+              echo "✅ .env restaurado y protegido"
+            else
+              echo "⚠️  No había .env previo (primera vez)"
+            fi
             
             echo "🔐 Dando permisos al script de deployment..."
             chmod +x deploy-server.sh

@@ -34,23 +34,46 @@ echo -e "${YELLOW}🌍 Ambiente detectado: $ENV${NC}"
 echo -e "${YELLOW}🐳 Compose file: $COMPOSE_FILE${NC}"
 echo ""
 
+# 🔒 PROTEGER .env ANTES DE CUALQUIER OPERACIÓN GIT
+echo -e "${YELLOW}🔒 Paso 0: Protegiendo archivo .env...${NC}"
+
+if [ -f ".env" ]; then
+  # Hacer backup temporal del .env
+  cp .env .env.backup
+  echo -e "${GREEN}✅ Backup de .env creado (.env.backup)${NC}"
+  ENV_EXISTED=true
+else
+  echo -e "${YELLOW}⚠️  Archivo .env no existe (primera vez)${NC}"
+  ENV_EXISTED=false
+fi
+
 # Verificar que el compose file existe
 if [ ! -f "$COMPOSE_FILE" ]; then
   echo -e "${RED}❌ ERROR: $COMPOSE_FILE no encontrado${NC}"
   exit 1
 fi
 
-# PRODUCCIÓN: Verificar que .env existe
+# PRODUCCIÓN: Verificar que .env existe o existió
 if [ "$ENV" = "production" ]; then
-  if [ ! -f ".env" ]; then
+  if [ "$ENV_EXISTED" = false ]; then
     echo -e "${RED}❌ ERROR: Archivo .env no encontrado en producción${NC}"
     echo "   Crea .env desde env.prod.example"
     exit 1
   fi
-  echo -e "${GREEN}✅ Archivo .env encontrado${NC}"
+  echo -e "${GREEN}✅ Archivo .env protegido${NC}"
 fi
 
 echo ""
+
+# 🔒 RESTAURAR .env SI EXISTÍA (después de git operations)
+if [ "$ENV_EXISTED" = true ] && [ -f ".env.backup" ]; then
+  echo -e "${YELLOW}🔒 Restaurando .env protegido...${NC}"
+  cp .env.backup .env
+  chmod 600 .env
+  echo -e "${GREEN}✅ Archivo .env restaurado y protegido${NC}"
+  echo ""
+fi
+
 echo -e "${YELLOW}💾 Paso 1: Backup pre-deployment (si aplica)...${NC}"
 
 if [ "$ENV" = "production" ]; then
