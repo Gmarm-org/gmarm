@@ -193,10 +193,33 @@ const JefeVentas: React.FC = () => {
       setContratosCliente(contratos);
       console.log('📋 Contratos del cliente:', contratos);
       
-      // Cargar pagos
+      // Cargar pagos y sus cuotas
       const pagos = await apiService.getPagosCliente(Number(cliente.id));
-      setPagosCliente(pagos);
-      console.log('💰 Pagos del cliente:', pagos);
+      
+      // Para cada pago, cargar sus cuotas
+      const cuotasTemp: any[] = [];
+      for (const pago of pagos) {
+        if (pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') {
+          try {
+            const cuotas = await apiService.getCuotasPorPago(pago.id);
+            cuotasTemp.push(...cuotas);
+          } catch (error) {
+            console.warn(`No se pudieron cargar cuotas para pago ${pago.id}`);
+          }
+        } else {
+          // Si es contado, crear una "cuota" única
+          cuotasTemp.push({
+            numeroCuota: 1,
+            monto: pago.montoTotal,
+            estado: pago.estado,
+            fechaVencimiento: null,
+            fechaPago: pago.fechaCreacion
+          });
+        }
+      }
+      
+      setPagosCliente(cuotasTemp);
+      console.log('💰 Cuotas del cliente:', cuotasTemp);
       
     } catch (error) {
       console.error('Error cargando detalle del cliente:', error);
