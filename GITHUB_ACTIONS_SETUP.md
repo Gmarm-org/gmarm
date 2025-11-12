@@ -127,8 +127,8 @@ Ir a: **Repository Settings → Secrets and variables → Actions → New reposi
 | Secret | Descripción | Ejemplo |
 |--------|-------------|---------|
 | `SSH_PRIVATE_KEY` | Clave privada SSH para deployment | `-----BEGIN OPENSSH PRIVATE KEY-----\n...` |
-| `SERVER_USER` | Usuario del servidor | `ubuntu` |
-| `SERVER_HOST` | IP o hostname del servidor | `72.167.52.14` |
+| `SERVER_USER` | Usuario del servidor | `usuario-servidor` |
+| `SERVER_HOST` | IP o hostname del servidor de producción | `servidor.gmarm.com` |
 
 ### Generar y Configurar SSH Key
 
@@ -136,11 +136,11 @@ Ir a: **Repository Settings → Secrets and variables → Actions → New reposi
 # 1. Generar nueva clave SSH
 ssh-keygen -t rsa -b 4096 -C "gmarm-github-actions" -f ~/.ssh/gmarm_deploy
 
-# 2. Copiar clave pública al servidor
-ssh-copy-id -i ~/.ssh/gmarm_deploy.pub ubuntu@72.167.52.14
+# 2. Copiar clave pública al servidor de producción
+ssh-copy-id -i ~/.ssh/gmarm_deploy.pub usuario@servidor-produccion
 
 # 3. Probar conexión
-ssh -i ~/.ssh/gmarm_deploy ubuntu@72.167.52.14
+ssh -i ~/.ssh/gmarm_deploy usuario@servidor-produccion
 
 # 4. Copiar clave privada para GitHub Secret
 cat ~/.ssh/gmarm_deploy
@@ -204,9 +204,8 @@ git push origin dev
 3. GitHub Actions automáticamente:
    ✅ Compila backend y frontend
    ✅ Ejecuta tests
-   ✅ Deploya al servidor de dev
    ✅ Verifica que todo funciona
-4. Revisar en: http://72.167.52.14:5173
+4. Deployment manual a producción después de verificar
 ```
 
 ### Monitoreo Automático
@@ -249,12 +248,12 @@ Cada 30 minutos:
 
 3. **Server Monitoring (Local)**
    ```bash
-   # SSH al servidor
-   ssh ubuntu@72.167.52.14
+   # SSH al servidor de producción
+   ssh usuario@servidor-produccion
    
    # Verificar servicios
    docker ps
-   docker-compose -f docker-compose.dev.yml logs -f
+   docker-compose -f docker-compose.prod.yml logs -f
    ```
 
 ---
@@ -281,8 +280,8 @@ cat .github/workflows/deploy.yml | head -20
 # Ir a: Repository Settings → Secrets → Actions
 # Verificar que existen: SSH_PRIVATE_KEY, SERVER_USER, SERVER_HOST
 
-# Probar SSH manualmente
-ssh ubuntu@72.167.52.14
+# Probar SSH manualmente al servidor de producción
+ssh usuario@servidor-produccion
 ```
 
 ### Problema: Health check falla
@@ -293,8 +292,8 @@ ssh ubuntu@72.167.52.14
 ./scripts/monitor-system.sh
 
 # Si todo está bien localmente, puede ser problema de red
-# Verificar que el servidor es accesible desde internet
-curl -I http://72.167.52.14:8080/api/health
+# Verificar que el servidor de producción es accesible
+curl -I https://api.gmarm.com/api/health
 ```
 
 ---

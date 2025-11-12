@@ -503,19 +503,12 @@ CREATE TABLE IF NOT EXISTS cliente (
 ✅ frontend/env.local → localhost
 ```
 
-**Ejemplo - Ambiente DEV (Servidor):**
+**Ejemplo - Ambiente PRODUCCIÓN:**
 ```
-✅ docker-compose.dev.yml → Variables de entorno
-✅ backend/application-docker.properties → Variables de entorno
-✅ frontend/env.development → IP del servidor (72.167.52.14)
+✅ docker-compose.prod.yml → URLs de producción
+✅ backend/application-prod.properties → Variables de entorno
+✅ frontend/.env.prod → URLs de producción
 ```
-
-**❌ ERROR COMÚN:**
-```
-❌ docker-compose.local.yml → localhost
-❌ frontend/env.development → 72.167.52.14  (← INCORRECTO!)
-```
-**Resultado**: Error 400 en login, endpoints no accesibles, CORS errors.
 
 #### **🔧 Configuración de URLs por Entorno**
 
@@ -526,16 +519,11 @@ CREATE TABLE IF NOT EXISTS cliente (
 docker-compose -f docker-compose.local.yml up -d --build
 ```
 
-**Para desarrollo en SERVIDOR REMOTO:**
+**Para PRODUCCIÓN:**
 ```powershell
-# Configurar variables de entorno ANTES de levantar servicios
-$env:BACKEND_URL="http://72.167.52.14:8080"
-$env:FRONTEND_URL="http://72.167.52.14:5173"
-$env:WS_HOST="72.167.52.14"
-$env:WS_PORT="5173"
-
-# Luego levantar servicios
-docker-compose -f docker-compose.dev.yml up -d --build
+# Configurar variables de entorno desde .env.prod
+# O usar docker-compose con archivo de producción:
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### 2. ⚠️ OBLIGATORIO: Reinicio Total Después de Cambios en Backend ⚠️
@@ -612,16 +600,9 @@ npm run lint
 docker-compose -f docker-compose.local.yml up -d
 
 # DESARROLLO - Variables de entorno configurables
-$env:BACKEND_URL="http://localhost:8080"      # Para desarrollo local
-$env:FRONTEND_URL="http://localhost:5173"     # Para desarrollo local
+$env:BACKEND_URL="http://localhost:8080"
+$env:FRONTEND_URL="http://localhost:5173"
 $env:WS_HOST="localhost"
-$env:WS_PORT="5173"
-docker-compose -f docker-compose.dev.yml up -d
-
-# DESARROLLO EN SERVIDOR - Usar env.dev.server
-$env:BACKEND_URL="http://72.167.52.14:8080"   # Para servidor remoto
-$env:FRONTEND_URL="http://72.167.52.14:5173"  # Para servidor remoto
-$env:WS_HOST="72.167.52.14"
 $env:WS_PORT="5173"
 docker-compose -f docker-compose.dev.yml up -d
 

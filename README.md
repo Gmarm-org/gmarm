@@ -96,7 +96,7 @@ chmod +x scripts/monitor-system.sh
 
 Verifica el estado en tiempo real:
 - **GitHub Actions**: [Ver workflows](https://github.com/Gmarm-org/gmarm/actions)
-- **Development**: http://72.167.52.14:5173
+- **Local**: http://localhost:5173
 - **Production**: https://gmarm.com (cuando esté disponible)
 
 ## 📝 **Notas**

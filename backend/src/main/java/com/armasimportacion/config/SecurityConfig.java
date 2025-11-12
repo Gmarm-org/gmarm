@@ -123,9 +123,7 @@ public class SecurityConfig {
                 "http://localhost:5173", 
                 "http://localhost:3000", 
                 "http://127.0.0.1:5173", 
-                "http://127.0.0.1:3000",
-                "http://72.167.52.14:5173",  // IP del servidor de desarrollo
-                "http://72.167.52.14:80"     // Puerto 80 del servidor
+                "http://127.0.0.1:3000"
             ));
         }
         

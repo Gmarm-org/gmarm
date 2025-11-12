@@ -6,8 +6,7 @@
  * 
  * La URL del backend se configura mediante variables de entorno:
  * - LOCAL: VITE_API_BASE_URL=http://localhost:8080
- * - DEV:   VITE_API_BASE_URL=http://72.167.52.14:8080
- * - PROD:  VITE_API_BASE_URL=http://IP_PROD:8080
+ * - PROD:  VITE_API_BASE_URL=https://api.gmarm.com
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';

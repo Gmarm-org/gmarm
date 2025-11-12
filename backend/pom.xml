@@ -139,6 +139,12 @@
 			<version>7.4</version>
 		</dependency>
 
+		<!-- Spring Boot Actuator - Monitoreo y Métricas -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

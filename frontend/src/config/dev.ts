@@ -7,28 +7,18 @@ export const devConfig = {
   // URLs del backend
   backend: {
     local: 'http://localhost:8080',
-    server: 'http://72.167.52.14:8080',
-    // Determinar automáticamente la URL correcta
+    // Usar variable de entorno o localhost por defecto
     get url() {
-      // Si estamos en el servidor (IP externa), usar la IP del servidor
-      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return this.server;
-      }
-      // Si estamos en localhost, usar localhost
-      return this.local;
+      return process.env.VITE_API_BASE_URL || this.local;
     }
   },
 
   // URLs del frontend
   frontend: {
     local: 'http://localhost:5173',
-    server: 'http://72.167.52.14:5173',
-    // Determinar automáticamente la URL correcta
+    // Usar variable de entorno o localhost por defecto
     get url() {
-      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return this.server;
-      }
-      return this.local;
+      return process.env.VITE_FRONTEND_URL || this.local;
     }
   },
 
@@ -79,7 +69,6 @@ export const getCORSConfig = () => {
   return {
     allowedOrigins: [
       devConfig.frontend.local,
-      devConfig.frontend.server,
       'http://localhost:3000',
       'http://127.0.0.1:3000'
     ],
