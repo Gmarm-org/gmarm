@@ -4,7 +4,6 @@ import type { Arma } from '../hooks/useArmas';
 import { validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
 import { useIVA } from '../../../hooks/useConfiguracion';
 import { apiService } from '../../../services/api';
-import ImageCarousel from '../../../components/ImageCarousel';
 import { getWeaponImageUrlWithCacheBusting } from '../../../utils/imageUtils';
 
 interface WeaponReserveProps {
@@ -118,23 +117,20 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
     return precio.toFixed(2);
   };
 
-  // Componente de imagen con carrusel (soporte para múltiples imágenes)
+  // Componente de imagen SIMPLE (igual que Admin - SIN carrusel por ahora)
   const WeaponImage = ({ weapon }: { weapon: Arma }) => {
-    // Agregar cache-busting REAL (runtime) a todas las imágenes
-    const imagenesConCache = (weapon.imagenes || []).map(img => ({
-      ...img,
-      urlImagen: getWeaponImageUrlWithCacheBusting(img.urlImagen)
-    }));
-    const imagenLegacyConCache = getWeaponImageUrlWithCacheBusting(weapon.urlImagen);
-    
-    // Usar el nuevo componente ImageCarousel que soporta múltiples imágenes
     return (
-      <ImageCarousel
-        imagenes={imagenesConCache}
-        imagenLegacy={imagenLegacyConCache}
-        armaNombre={weapon.nombre}
-        className=""
-      />
+      <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
+        <img
+          src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
+          alt={weapon.nombre}
+          className="max-w-full max-h-full object-contain"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = getWeaponImageUrlWithCacheBusting(null);
+          }}
+        />
+      </div>
     );
   };
 
