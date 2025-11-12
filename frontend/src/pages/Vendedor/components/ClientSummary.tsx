@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { Client, Weapon } from '../types';
 import { toUpperCase, validateCedula, validateRUC, validateTelefono } from '../utils/clientUtils';
 import { useIVA } from '../../../hooks/useConfiguracion';
-import { getWeaponImageUrl } from '../../../utils/imageUtils';
+import { getWeaponImageUrlWithCacheBusting } from '../../../utils/imageUtils';
 
 interface ClientSummaryProps {
   clienteParaResumen: Client | null;
@@ -303,7 +303,7 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
           <h3>Arma Seleccionada</h3>
           {armaSeleccionada && (
             <div className="weapon-summary">
-              <img src={`${getWeaponImageUrl(armaSeleccionada.urlImagen)}?t=${Date.now()}`} alt={armaSeleccionada.nombre} />
+              <img src={getWeaponImageUrlWithCacheBusting(armaSeleccionada.urlImagen)} alt={armaSeleccionada.nombre} />
               <div className="weapon-details">
                 <p style={{ 
                   margin: '0.2rem 0', 

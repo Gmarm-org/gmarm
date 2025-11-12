@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Client, Weapon, ClientFormMode } from '../types';
 import { isCupoCivil } from '../utils/clientUtils';
-import { getWeaponImageUrl } from '../../../utils/imageUtils';
+import { getWeaponImageUrlWithCacheBusting } from '../../../utils/imageUtils';
 
 interface ClientTableProps {
   clients: Client[];
@@ -73,7 +73,7 @@ const ClientTable: React.FC<ClientTableProps> = ({
                   <td>
                     {arma ? (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <img src={`${getWeaponImageUrl(arma.urlImagen)}?t=${Date.now()}`} alt={arma.nombre} style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb', background: '#f3f4f6' }} />
+                        <img src={getWeaponImageUrlWithCacheBusting(arma.urlImagen)} alt={arma.nombre} style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb', background: '#f3f4f6' }} />
                         <span style={{ fontSize: '0.95rem', color: '#374151' }}>{arma.nombre}</span>
                       </span>
                     ) : (
@@ -173,7 +173,7 @@ const ClientTable: React.FC<ClientTableProps> = ({
                     <div className="client-card-value">
                       {arma ? (
                         <div className="client-card-weapon">
-                          <img src={getWeaponImageUrl(arma.urlImagen)} alt={arma.nombre} />
+                          <img src={getWeaponImageUrlWithCacheBusting(arma.urlImagen)} alt={arma.nombre} />
                           <span>{arma.nombre}</span>
                         </div>
                       ) : (

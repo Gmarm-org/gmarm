@@ -5,6 +5,7 @@ import { validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageVa
 import { useIVA } from '../../../hooks/useConfiguracion';
 import { apiService } from '../../../services/api';
 import ImageCarousel from '../../../components/ImageCarousel';
+import { getWeaponImageUrlWithCacheBusting } from '../../../utils/imageUtils';
 
 interface WeaponReserveProps {
   weapons: Arma[];
@@ -117,23 +118,14 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
     return precio.toFixed(2);
   };
 
-  // Función para obtener la imagen del arma con detección automática de formato
-  // NOTA: Ya no es necesario, se usa imageUtils directamente
-  // Se mantiene por compatibilidad pero ahora delega a imageUtils
-  const getWeaponImage = (weapon: Arma): string => {
-    const url = weapon.urlImagen || '';
-    // Agregar timestamp para evitar caché de imágenes
-    return url ? `${url}?t=${Date.now()}` : url;
-  };
-
   // Componente de imagen con carrusel (soporte para múltiples imágenes)
   const WeaponImage = ({ weapon }: { weapon: Arma }) => {
-    // Agregar cache-busting a todas las imágenes manteniendo el tipo ArmaImagen
+    // Agregar cache-busting REAL (runtime) a todas las imágenes
     const imagenesConCache = (weapon.imagenes || []).map(img => ({
       ...img,
-      urlImagen: `${img.urlImagen}?t=${Date.now()}`
+      urlImagen: getWeaponImageUrlWithCacheBusting(img.urlImagen)
     }));
-    const imagenLegacyConCache = weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : getWeaponImage(weapon);
+    const imagenLegacyConCache = getWeaponImageUrlWithCacheBusting(weapon.urlImagen);
     
     // Usar el nuevo componente ImageCarousel que soporta múltiples imágenes
     return (
