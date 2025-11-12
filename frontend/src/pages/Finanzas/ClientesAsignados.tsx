@@ -294,7 +294,8 @@ const ClientesAsignados: React.FC = () => {
                             <button
                               onClick={() => {
                                 const autorizacion = autorizaciones[cliente.id][0];
-                                window.open(`http://localhost:8080/api/documentos/serve-generated/${autorizacion.id}`, '_blank');
+                                const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                                window.open(`${baseUrl}/api/documentos/serve-generated/${autorizacion.id}`, '_blank');
                               }}
                               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
                             >

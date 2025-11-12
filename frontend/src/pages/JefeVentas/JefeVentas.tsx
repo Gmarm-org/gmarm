@@ -623,7 +623,7 @@ const JefeVentas: React.FC = () => {
         {/* Modal de Detalle de Cliente */}
         {clienteSeleccionado && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full my-8">
+            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full my-8 max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
@@ -803,7 +803,7 @@ const JefeVentas: React.FC = () => {
                               </div>
                               {contrato.rutaArchivo && (
                                 <a
-                                  href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${contrato.rutaArchivo}`}
+                                  href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${contrato.rutaArchivo}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"

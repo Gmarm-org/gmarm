@@ -18,55 +18,28 @@
             font-size: 11pt;
         }
 
-        /* Logo superior - Ocupa ~35% del ancho, prominente */
+        /* Logo superior - Solo la imagen, ocupa ~40% del ancho de la página */
         .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            width: 35%;
-            max-width: 250px;
+            margin-bottom: 20px;
+            width: 40%;
+            max-width: 300px;
         }
 
         .logo-image {
-            width: 60px;
-            height: 60px;
+            width: 100%;
+            height: auto;
             object-fit: contain;
-            flex-shrink: 0;
+            display: block;
         }
 
-        .logo-text-container {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .logo-text {
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: 24pt;
-            color: #333;
-            margin: 0;
-            line-height: 1;
-        }
-
-        .logo-subtitle {
-            font-family: Arial, sans-serif;
-            font-size: 9pt;
-            color: #666;
-            margin: 0;
-            font-style: italic;
-            line-height: 1.2;
-        }
-
-        /* Marca de agua inferior derecha - Más grande y visible */
+        /* Marca de agua inferior derecha - Como en la imagen 2 */
         .watermark {
             position: fixed;
-            bottom: 0.75in;
-            right: 0.75in;
-            width: 180px;
-            height: 180px;
-            opacity: 0.15;
+            bottom: 0.5in;
+            right: 0.5in;
+            width: 120px;
+            height: 120px;
+            opacity: 0.12;
             z-index: -1;
         }
 
@@ -196,13 +169,9 @@
         <img th:src="${watermarkImageUrl}" alt="CZ Watermark" class="watermark-image" />
     </div>
 
-    <!-- Logo superior - Prominente con texto "For those who know" -->
+    <!-- Logo superior - Solo la imagen ocupa ~40% del ancho -->
     <div class="logo-container">
         <img th:src="${logoImageUrl}" alt="CZ Logo" class="logo-image" />
-        <div class="logo-text-container">
-            <div class="logo-text">CZ</div>
-            <div class="logo-subtitle">For those who know</div>
-        </div>
     </div>
 
     <!-- Código del oficio - Alineado a la derecha -->
