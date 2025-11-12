@@ -128,8 +128,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
   // Componente de imagen con carrusel (soporte para múltiples imágenes)
   const WeaponImage = ({ weapon }: { weapon: Arma }) => {
-    // Agregar cache-busting a todas las imágenes
-    const imagenesConCache = (weapon.imagenes || []).map(img => `${img}?t=${Date.now()}`);
+    // Agregar cache-busting a todas las imágenes manteniendo el tipo ArmaImagen
+    const imagenesConCache = (weapon.imagenes || []).map(img => ({
+      ...img,
+      urlImagen: `${img.urlImagen}?t=${Date.now()}`
+    }));
     const imagenLegacyConCache = weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : getWeaponImage(weapon);
     
     // Usar el nuevo componente ImageCarousel que soporta múltiples imágenes
