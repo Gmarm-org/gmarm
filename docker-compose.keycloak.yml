@@ -1,0 +1,104 @@
+version: '3.8'
+
+#########################################
+# GMARM - KEYCLOAK STACK
+# Identity & Access Management
+#########################################
+
+services:
+  # ========================================
+  # KEYCLOAK - Identity & Access Management
+  # ========================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.5
+    container_name: gmarm-keycloak
+    environment:
+      # Admin inicial
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      
+      # Base de datos (PostgreSQL)
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres_keycloak:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-postgres}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # Hostname (producción: auth.gmarm.com, local: localhost)
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost}
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      
+      # Proxy (si usas Nginx)
+      KC_PROXY: edge
+      KC_HTTP_ENABLED: true
+      
+      # Features
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
+      
+      # Logging
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-info}
+      
+    command: start-dev  # Producción: start
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+    networks:
+      - gmarm_keycloak_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: 127.0.0.1\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: '1.0'
+        reservations:
+          memory: 512m
+          cpus: '0.5'
+
+  # ========================================
+  # POSTGRESQL - Base de Datos de Keycloak
+  # ========================================
+  postgres_keycloak:
+    image: postgres:15-alpine
+    container_name: gmarm-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Puerto diferente para no conflicto con BD principal
+    networks:
+      - gmarm_keycloak_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: '0.5'
+        reservations:
+          memory: 256m
+          cpus: '0.25'
+
+volumes:
+  keycloak_db_data:
+    driver: local
+
+networks:
+  gmarm_keycloak_network:
+    driver: bridge
+
