@@ -763,7 +763,7 @@ const JefeVentas: React.FC = () => {
                                 </div>
                                 {doc.rutaArchivo && (
                                   <a
-                                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${doc.rutaArchivo}`}
+                                    href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${doc.rutaArchivo}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 text-sm"
