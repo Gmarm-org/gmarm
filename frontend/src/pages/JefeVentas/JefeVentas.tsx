@@ -799,11 +799,13 @@ const JefeVentas: React.FC = () => {
                             <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between">
                               <div>
                                 <p className="font-semibold text-blue-600">Contrato de Compra-Venta</p>
-                                <p className="text-sm text-gray-600">Fecha: {contrato.fechaCreacion ? new Date(contrato.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}</p>
+                                {contrato.fechaCreacion && (
+                                  <p className="text-sm text-gray-600">Fecha: {new Date(contrato.fechaCreacion).toLocaleDateString('es-ES')}</p>
+                                )}
                               </div>
                               {contrato.rutaArchivo && (
                                 <a
-                                  href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${contrato.rutaArchivo.startsWith('/') ? '' : '/'}${contrato.rutaArchivo}`}
+                                  href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${contrato.rutaArchivo}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
