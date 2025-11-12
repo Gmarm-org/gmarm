@@ -2391,7 +2391,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                             {arma.armaImagen && (
                               <div className="flex-shrink-0">
                                 <img 
-                                  src={arma.armaImagen} 
+                                  src={`${arma.armaImagen}?t=${Date.now()}`} 
                                   alt={arma.armaNombre}
                                   className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                                   onError={(e) => {

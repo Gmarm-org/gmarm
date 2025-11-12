@@ -763,7 +763,7 @@ const JefeVentas: React.FC = () => {
                                 </div>
                                 {doc.rutaArchivo && (
                                   <a
-                                    href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${doc.rutaArchivo}`}
+                                    href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${doc.rutaArchivo.startsWith('/') ? '' : '/'}${doc.rutaArchivo}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 text-sm"
@@ -803,7 +803,7 @@ const JefeVentas: React.FC = () => {
                               </div>
                               {contrato.rutaArchivo && (
                                 <a
-                                  href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${contrato.rutaArchivo}`}
+                                  href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${contrato.rutaArchivo.startsWith('/') ? '' : '/'}${contrato.rutaArchivo}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"

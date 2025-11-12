@@ -303,7 +303,7 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
           <h3>Arma Seleccionada</h3>
           {armaSeleccionada && (
             <div className="weapon-summary">
-              <img src={getWeaponImageUrl(armaSeleccionada.urlImagen)} alt={armaSeleccionada.nombre} />
+              <img src={`${getWeaponImageUrl(armaSeleccionada.urlImagen)}?t=${Date.now()}`} alt={armaSeleccionada.nombre} />
               <div className="weapon-details">
                 <p style={{ 
                   margin: '0.2rem 0', 

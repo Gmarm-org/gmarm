@@ -121,16 +121,22 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   // NOTA: Ya no es necesario, se usa imageUtils directamente
   // Se mantiene por compatibilidad pero ahora delega a imageUtils
   const getWeaponImage = (weapon: Arma): string => {
-    return weapon.urlImagen || '';
+    const url = weapon.urlImagen || '';
+    // Agregar timestamp para evitar caché de imágenes
+    return url ? `${url}?t=${Date.now()}` : url;
   };
 
   // Componente de imagen con carrusel (soporte para múltiples imágenes)
   const WeaponImage = ({ weapon }: { weapon: Arma }) => {
+    // Agregar cache-busting a todas las imágenes
+    const imagenesConCache = (weapon.imagenes || []).map(img => `${img}?t=${Date.now()}`);
+    const imagenLegacyConCache = weapon.urlImagen ? `${weapon.urlImagen}?t=${Date.now()}` : getWeaponImage(weapon);
+    
     // Usar el nuevo componente ImageCarousel que soporta múltiples imágenes
     return (
       <ImageCarousel
-        imagenes={weapon.imagenes || []}
-        imagenLegacy={weapon.urlImagen || getWeaponImage(weapon)}
+        imagenes={imagenesConCache}
+        imagenLegacy={imagenLegacyConCache}
         armaNombre={weapon.nombre}
         className=""
       />
