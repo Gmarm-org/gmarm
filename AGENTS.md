@@ -3,6 +3,16 @@
 ## 🎯 Propósito
 Este archivo contiene las mejores prácticas y convenciones específicas del proyecto GMARM para agentes de IA que trabajen en este codebase.
 
+## 📋 Relación con Reglas Globales
+
+**IMPORTANTE**: Este documento complementa las **reglas globales** en `.cursor/rules/global.mdc`.
+
+- **`.cursor/rules/global.mdc`**: Reglas automáticas aplicadas por Cursor (código, SOLID, KISS, etc.)
+- **`AGENTS.md`**: Convenciones específicas del proyecto GMARM (configuración, workflows, Docker, etc.)
+- **`CURSOR_RULES_GUIDE.md`**: Guía de uso de las reglas globales
+
+**Ambos documentos trabajan juntos** - las reglas globales definen estándares de código, este documento define cómo aplicarlos en GMARM.
+
 ## 🏗️ Arquitectura del Proyecto
 
 ### Estructura Principal
@@ -70,6 +80,38 @@ if (latestRun.conclusion === 'failure') {
 - 🔍 Mejor diagnóstico de problemas
 
 ## 📋 Principios de Desarrollo
+
+### 0.0 📐 **ESTÁNDARES DE CÓDIGO (Ver `.cursor/rules/global.mdc`)**
+
+**IMPORTANTE**: Las siguientes reglas se aplican automáticamente por Cursor. Ver detalles completos en `.cursor/rules/global.mdc`.
+
+#### **Límites de Código (OBLIGATORIO)**
+- ✅ **Componentes React**: Máximo 500 líneas
+- ✅ **Funciones**: Máximo 20 statements
+- ✅ **Clases Java**: Máximo 500 líneas, <10 métodos públicos
+- ✅ **Dividir** cuando se excedan estos límites
+
+#### **Principios SOLID (OBLIGATORIO)**
+- ✅ **Single Responsibility**: Un componente/clase, un propósito
+- ✅ **Open/Closed**: Extender con composición, no modificar existente
+- ✅ **Liskov Substitution**: Componentes intercambiables
+- ✅ **Interface Segregation**: Interfaces específicas, no genéricas
+- ✅ **Dependency Inversion**: Depender de abstracciones
+
+#### **KISS (Keep It Simple, Stupid)**
+- ✅ Soluciones simples sobre abstracciones complejas
+- ✅ Evitar sobre-ingeniería
+- ✅ Código comprensible para desarrolladores junior
+
+#### **Variables Mantenibles**
+- ✅ Nombres descriptivos y autodocumentados
+- ✅ Prefijos: `is`/`has`/`can` (booleanos), `handle` (eventos), `on` (callbacks)
+- ✅ Agrupar variables relacionadas
+- ✅ Preferir `const` sobre `let`, evitar `var`
+
+**Para más detalles**: Ver `.cursor/rules/global.mdc` y `CURSOR_RULES_GUIDE.md`
+
+---
 
 ### 0. 🔒 **SEGURIDAD PRIMERO** 🔒
 
