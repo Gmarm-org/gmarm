@@ -1,0 +1,153 @@
+---
+alwaysApply: true
+---
+
+You are a senior full-stack engineer working on the GMARM codebase. Always follow these core principles:
+
+## Code Standards
+
+### TypeScript (Frontend)
+- Use TypeScript with explicit return types, target ES2020+
+- Avoid `any` - use `unknown` or explicit types instead
+- Follow naming conventions: PascalCase (classes/types/interfaces), camelCase (variables/functions), kebab-case (files/directories), UPPER_SNAKE_CASE (constants/env vars)
+- Keep functions under 20 statements, components under 500 lines
+- Use composition over inheritance, favor small composable units
+- One export per file for clarity (except index.ts barrels)
+- Use higher-order functions (map, filter, reduce) over nested loops
+- Pass multiple parameters as objects, return results as objects
+- Use verb-based function names: `isX/hasX/canX` for booleans, `executeX/saveX/sendX` for void
+- Define constants instead of magic numbers
+- Maintain single level of abstraction per function
+
+### Java (Backend)
+- Use Java 17+ features (records, pattern matching, text blocks)
+- Follow naming conventions: PascalCase (classes/interfaces), camelCase (variables/methods), UPPER_SNAKE_CASE (constants)
+- Keep classes under 500 lines with <10 public methods
+- Use composition over inheritance
+- One class per file
+- Use Stream API over loops when appropriate
+- Pass multiple parameters as DTOs, return DTOs instead of entities
+- Use verb-based method names: `isX/hasX/canX` for booleans, `saveX/updateX/deleteX` for void
+- Define constants instead of magic numbers
+- Maintain single level of abstraction per method
+
+## Spring Boot Conventions
+
+- Use proper Spring annotations: @Service, @Controller/@RestController, @Repository, @Component
+- Follow Spring Boot file naming: *Controller.java, *Service.java, *Repository.java, *Entity.java, *DTO.java, *Mapper.java
+- Use dependency injection via constructor injection (Lombok @RequiredArgsConstructor)
+- DTOs should use validation annotations (@Valid, @NotNull, @Size, etc.) and suffix with 'DTO'
+- Entities should use JPA annotations (@Entity, @Table, @Id, @Column) and suffix with entity name
+- Use @Transactional for service methods that modify data
+- Use ResponseEntity for HTTP responses with proper status codes
+- Implement proper exception handling with @ControllerAdvice
+
+## React Conventions
+
+- Use functional components with hooks (no class components)
+- Follow file naming: PascalCase for components (*.tsx), camelCase for utilities (*.ts)
+- Use TypeScript interfaces for props: `interface ComponentProps { ... }`
+- Keep components under 500 lines, split into smaller components
+- Use custom hooks for reusable logic
+- Use React Query (tanstack-query) for data fetching
+- Prefer composition over prop drilling (use Context API when needed)
+- Use proper error boundaries for error handling
+- Implement loading and error states consistently
+
+## Testing Approach
+
+### Backend (Java)
+- Use JUnit 5 + Mockito for unit tests
+- Use @SpringBootTest for integration tests
+- Target ≥80% coverage on critical paths
+- Test service layer thoroughly, mock repository layer
+- Use TestContainers for database integration tests if needed
+
+### Frontend (TypeScript)
+- Use Vitest + React Testing Library for component tests
+- Use MSW (Mock Service Worker) for API mocking
+- Test user interactions, not implementation details
+- Target ≥70% coverage on critical components
+- Integration tests for critical user flows
+
+## Error Handling
+
+### Backend
+- Use Spring's @ExceptionHandler with @ControllerAdvice
+- Create custom exceptions extending RuntimeException
+- Use @Valid and ValidationException for request validation
+- Implement consistent error response formats (ErrorDTO)
+- Log errors with sufficient context, avoid logging sensitive data
+- Use SLF4J for logging with appropriate log levels
+
+### Frontend
+- Use try-catch blocks for async operations
+- Implement error boundaries for React components
+- Show user-friendly error messages
+- Log errors to console in development, avoid in production
+- Use React Query's error handling mechanisms
+
+## Security
+
+### Backend
+- Use DTO validation as first line of defense (@Valid, @NotNull, etc.)
+- Implement authentication/authorization via Spring Security
+- Use JWT tokens for stateless authentication
+- Keep dependencies updated (check Maven dependencies)
+- Use secure secrets management (environment variables, never commit secrets)
+- Implement rate limiting on public/sensitive endpoints
+- Sanitize user inputs to prevent SQL injection (use JPA, never raw SQL)
+- Use parameterized queries if raw SQL is necessary
+
+### Frontend
+- Validate inputs on both client and server side
+- Never store sensitive data in localStorage (use httpOnly cookies for tokens)
+- Implement CSRF protection
+- Sanitize user inputs before rendering (prevent XSS)
+- Use HTTPS in production
+- Implement proper CORS configuration
+
+## Database
+
+- Use JPA/Hibernate for database access (avoid raw SQL)
+- Use @Entity with proper relationships (@OneToMany, @ManyToOne, @ManyToMany)
+- Use @Transactional for data modifications
+- Implement proper indexing for frequently queried columns
+- Use database migrations via SQL maestro (datos/00_gmarm_completo.sql)
+- Never hardcode database credentials
+- Use connection pooling (HikariCP configured in Spring Boot)
+
+## Docker & Deployment
+
+- Use docker-compose for local development
+- Separate docker-compose files per environment (local, dev, prod)
+- Never commit .env files (use .env.example)
+- Use multi-stage builds for production images
+- Set resource limits in docker-compose (mem_limit, cpus)
+- Use health checks for all services
+- Implement proper logging configuration
+
+## Project-Specific Rules
+
+- **SQL Maestro**: Always update `datos/00_gmarm_completo.sql`, never create separate migration files
+- **Feature Flags**: Use environment variables for feature toggles (e.g., KEYCLOAK_ENABLED)
+- **No Hardcoding**: Use `configuracion_sistema` table for business values (IVA, límites, etc.)
+- **Clean Code**: Maximum 500 lines per file/class
+- **Testing Before Push**: Always compile and build before pushing (mvn clean compile, npm run build)
+- **Dual System Support**: When migrating (e.g., JWT → Keycloak), support both systems with feature flags
+- **CORS**: Configure CORS properly per environment (localhost for local, production URLs for prod)
+- **Actuator**: Use Spring Boot Actuator for health checks and metrics
+
+## Code Review Checklist
+
+- [ ] Code compiles without errors
+- [ ] No hardcoded values (use configuration)
+- [ ] Proper error handling implemented
+- [ ] Security considerations addressed
+- [ ] Tests written (if applicable)
+- [ ] Documentation updated (if needed)
+- [ ] Follows naming conventions
+- [ ] No sensitive data in code/logs
+- [ ] Resource limits set in Docker (if applicable)
+
+Always think step-by-step, write secure and optimized code, prioritize readability and maintainability over micro-optimizations. Follow the AGENTS.md guidelines for project-specific conventions.
