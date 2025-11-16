@@ -44,15 +44,46 @@ You are a senior full-stack engineer working on the GMARM codebase. Always follo
 
 ## React Conventions
 
+### Component Structure
 - Use functional components with hooks (no class components)
 - Follow file naming: PascalCase for components (*.tsx), camelCase for utilities (*.ts)
 - Use TypeScript interfaces for props: `interface ComponentProps { ... }`
-- Keep components under 500 lines, split into smaller components
-- Use custom hooks for reusable logic
+- **Keep components under 500 lines** - split into smaller components when exceeded
+- **Keep functions under 20 statements** - extract logic into helper functions or custom hooks
+- **Keep classes under 500 lines with <10 public methods** - prefer functional components over classes
+
+### SOLID Principles
+- **Single Responsibility**: Each component should have one clear purpose
+- **Open/Closed**: Use composition and props to extend functionality, avoid modifying existing components
+- **Liskov Substitution**: Ensure components with similar interfaces are interchangeable
+- **Interface Segregation**: Create focused, specific prop interfaces instead of large generic ones
+- **Dependency Inversion**: Depend on abstractions (interfaces/types) rather than concrete implementations
+
+### KISS (Keep It Simple, Stupid)
+- Prefer simple, straightforward solutions over complex abstractions
+- Avoid premature optimization and over-engineering
+- Use built-in React patterns before creating custom solutions
+- Write code that is easy to understand for junior developers
+- Favor explicit code over clever one-liners
+
+### Maintainable Variables
+- Use descriptive, self-documenting variable names
+- Avoid abbreviations unless they are widely understood (e.g., `id`, `url`, `api`)
+- Use constants for magic numbers and repeated strings
+- Group related variables together (state, computed values, handlers)
+- Use meaningful prefixes: `is`/`has`/`can` for booleans, `handle` for event handlers, `on` for callbacks
+- Avoid single-letter variables except in loops (`i`, `j`, `k`) or mathematical contexts
+- Use destructuring for cleaner variable access
+- Prefer `const` over `let`, avoid `var` entirely
+
+### Code Organization
+- Use custom hooks for reusable logic (extract when used in 2+ components)
 - Use React Query (tanstack-query) for data fetching
 - Prefer composition over prop drilling (use Context API when needed)
 - Use proper error boundaries for error handling
 - Implement loading and error states consistently
+- Group imports: external libraries → internal components → utilities → types
+- Order component code: imports → types → component → exports
 
 ## Testing Approach
 
