@@ -4,6 +4,9 @@ import type { Client } from '../Vendedor/types';
 import Header from '../../components/Header';
 import AsignacionSeries from '../AsignacionSeries';
 import { useAuth } from '../../contexts/AuthContext';
+import { useJefeVentasExport } from './hooks/useJefeVentasExport';
+import { useTableFilters } from '../../hooks/useTableFilters';
+import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 
 interface StockArma {
   armaId: number;
@@ -25,6 +28,9 @@ interface ClienteConVendedor extends Client {
 const JefeVentas: React.FC = () => {
   const { user } = useAuth();
   const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'asignar' | 'series'>('clientes');
+  
+  // Hook para exportación a Excel
+  const { exportarClientesAExcel } = useJefeVentasExport();
   
   // Verificar si el usuario tiene permisos para ver Asignación de Series
   const puedeVerAsignacionSeries = user?.roles?.some(
@@ -55,6 +61,19 @@ const JefeVentas: React.FC = () => {
   const [contratosCliente, setContratosCliente] = useState<any[]>([]);
   const [pagosCliente, setPagosCliente] = useState<any[]>([]);
   const [loadingDetalleCliente, setLoadingDetalleCliente] = useState(false);
+
+  // Hooks para filtros y ordenamiento
+  const {
+    filteredAndSortedData: clientesFiltrados,
+    sortConfig: sortConfigClientes,
+    handleSort: handleSortClientes,
+  } = useTableFilters<ClienteConVendedor>(clientes);
+
+  const {
+    filteredAndSortedData: clientesAsignadosFiltrados,
+    sortConfig: sortConfigAsignados,
+    handleSort: handleSortAsignados,
+  } = useTableFilters<ClienteConVendedor>(clientesAsignados);
 
   // Cargar estado de expoferia al inicio
   useEffect(() => {
@@ -435,12 +454,24 @@ const JefeVentas: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-800">Todos los Clientes del Sistema</h2>
                 <p className="text-sm text-gray-600 mt-1">Todos los clientes creados por los vendedores</p>
               </div>
-              <button
-                onClick={cargarClientes}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                🔄 Actualizar
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={exportarClientesAExcel}
+                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md flex items-center space-x-2 text-sm font-semibold"
+                  title="Exportar todos los clientes a Excel"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Exportar a Excel</span>
+                </button>
+                <button
+                  onClick={cargarClientes}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  🔄 Actualizar
+                </button>
+              </div>
             </div>
 
             {loadingClientes ? (
@@ -453,25 +484,69 @@ const JefeVentas: React.FC = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">CI/RUC</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Cliente</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Tipo</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Vendedor</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Email</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Estado</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Fecha</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Acciones</th>
+                      <TableHeaderWithFilters
+                        column="numeroIdentificacion"
+                        label="CI/RUC"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="nombres"
+                        label="Cliente"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="tipoClienteNombre"
+                        label="Tipo"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="vendedorNombre"
+                        label="Vendedor"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="email"
+                        label="Email"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="estado"
+                        label="Estado"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                        align="center"
+                      />
+                      <TableHeaderWithFilters
+                        column="fechaCreacion"
+                        label="Fecha"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                        align="center"
+                      />
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {clientes.length === 0 ? (
+                    {clientesFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                           No hay clientes registrados
                         </td>
                       </tr>
                     ) : (
-                      clientes.map((cliente) => (
+                      clientesFiltrados.map((cliente) => (
                         <tr key={cliente.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
                           <td className="px-4 py-3 text-sm font-medium">
@@ -546,31 +621,64 @@ const JefeVentas: React.FC = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">CI/RUC</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Cliente</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Tipo</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Arma Asignada</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Serie</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Vendedor</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Fecha</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Acciones</th>
+                      <TableHeaderWithFilters
+                        column="numeroIdentificacion"
+                        label="CI/RUC"
+                        sortKey={sortConfigAsignados.key}
+                        sortDirection={sortConfigAsignados.direction}
+                        onSort={handleSortAsignados}
+                      />
+                      <TableHeaderWithFilters
+                        column="nombres"
+                        label="Cliente"
+                        sortKey={sortConfigAsignados.key}
+                        sortDirection={sortConfigAsignados.direction}
+                        onSort={handleSortAsignados}
+                      />
+                      <TableHeaderWithFilters
+                        column="tipoClienteNombre"
+                        label="Tipo"
+                        sortKey={sortConfigAsignados.key}
+                        sortDirection={sortConfigAsignados.direction}
+                        onSort={handleSortAsignados}
+                      />
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Arma Asignada</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Serie</th>
+                      <TableHeaderWithFilters
+                        column="vendedorNombre"
+                        label="Vendedor"
+                        sortKey={sortConfigAsignados.key}
+                        sortDirection={sortConfigAsignados.direction}
+                        onSort={handleSortAsignados}
+                      />
+                      <TableHeaderWithFilters
+                        column="fechaCreacion"
+                        label="Fecha"
+                        sortKey={sortConfigAsignados.key}
+                        sortDirection={sortConfigAsignados.direction}
+                        onSort={handleSortAsignados}
+                        align="center"
+                      />
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {clientesAsignados.length === 0 ? (
+                    {clientesAsignadosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-4 py-12 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <p className="text-gray-500 text-lg font-medium">No hay clientes con armas asignadas</p>
+                            <p className="text-gray-500 text-lg font-medium">
+                              No hay clientes con armas asignadas
+                            </p>
                             <p className="text-gray-400 text-sm mt-2">Los clientes aparecerán aquí cuando se les asigne un número de serie</p>
                           </div>
                         </td>
                       </tr>
                     ) : (
-                      clientesAsignados.map((cliente) => {
+                      clientesAsignadosFiltrados.map((cliente) => {
                         const weaponAssignment = clientWeaponAssignments[cliente.id];
                         return (
                           <tr key={cliente.id} className="border-b hover:bg-gray-50">
@@ -580,12 +688,13 @@ const JefeVentas: React.FC = () => {
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                cliente.tipoProcesoNombre === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                                cliente.tipoProcesoNombre === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
-                                cliente.tipoProcesoNombre === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
+                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
+                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Militar Expoferia' ? 'bg-purple-100 text-purple-800' :
+                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
+                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
-                                {cliente.tipoProcesoNombre || cliente.tipoClienteNombre}
+                                {cliente.tipoClienteNombre || cliente.tipoProcesoNombre}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -775,27 +884,47 @@ const JefeVentas: React.FC = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {documentosCliente.map((doc, index) => (
                               <div key={index} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
-                                <div className="flex items-center">
+                                <div className="flex items-center flex-1">
                                   <svg className="w-8 h-8 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
-                                  <div>
+                                  <div className="flex-1">
                                     <p className="font-medium text-sm">{doc.tipoDocumentoNombre || 'Documento'}</p>
                                     <p className="text-xs text-gray-500">{doc.nombreArchivo || 'archivo.pdf'}</p>
+                                    {doc.descripcion && (
+                                      <p className="text-xs text-gray-400 mt-1">{doc.descripcion}</p>
+                                    )}
                                   </div>
                                 </div>
-                                {doc.rutaArchivo && (
-                                  <a
-                                    href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${doc.rutaArchivo.startsWith('/') ? '' : '/'}${doc.rutaArchivo}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 text-sm"
-                                  >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                  </a>
+                                {doc.id && (
+                                  <div className="flex space-x-2 ml-3">
+                                    <button
+                                      onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve/${doc.id}`, '_blank')}
+                                      className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs flex items-center"
+                                      title="Ver documento"
+                                    >
+                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                      Ver
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve/${doc.id}`;
+                                        link.download = doc.nombreArchivo || 'documento.pdf';
+                                        link.click();
+                                      }}
+                                      className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs flex items-center"
+                                      title="Descargar documento"
+                                    >
+                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      Descargar
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -821,24 +950,41 @@ const JefeVentas: React.FC = () => {
                           {contratosCliente.map((contrato, index) => (
                             <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between">
                               <div>
-                                <p className="font-semibold text-blue-600">Contrato de Compra-Venta</p>
+                                <p className="font-semibold text-blue-600">{contrato.nombreArchivo || 'Contrato de Compra-Venta'}</p>
                                 {contrato.fechaCreacion && (
                                   <p className="text-sm text-gray-600">Fecha: {new Date(contrato.fechaCreacion).toLocaleDateString('es-ES')}</p>
                                 )}
+                                {contrato.descripcion && (
+                                  <p className="text-sm text-gray-500 mt-1">{contrato.descripcion}</p>
+                                )}
                               </div>
-                              {contrato.rutaArchivo && (
-                                <a
-                                  href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${contrato.rutaArchivo}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
-                                >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                  Ver PDF
-                                </a>
+                              {contrato.id && (
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
+                                  >
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Ver PDF
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`;
+                                      link.download = contrato.nombreArchivo || 'contrato.pdf';
+                                      link.click();
+                                    }}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center"
+                                  >
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Descargar
+                                  </button>
+                                </div>
                               )}
                             </div>
                           ))}

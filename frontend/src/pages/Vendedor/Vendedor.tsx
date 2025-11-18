@@ -6,6 +6,8 @@ import PaymentForm from './components/PaymentForm';
 import SeriesAssignment from './components/SeriesAssignment';
 
 import { useVendedorLogic } from './hooks/useVendedorLogic';
+import { useTableFilters } from '../../hooks/useTableFilters';
+import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 
 const Vendedor: React.FC = React.memo(() => {
   // Componente Vendedor inicializado
@@ -72,6 +74,7 @@ const Vendedor: React.FC = React.memo(() => {
     expoferiaActiva,
 
     getClientCountByType,
+    exportarClientesAExcel,
   } = useVendedorLogic();
   
   // Filtrar clientes según el tab activo
@@ -91,6 +94,14 @@ const Vendedor: React.FC = React.memo(() => {
       });
     }
   };
+
+  // Hook para filtros y ordenamiento
+  const clientsByTab = getClientsByTab();
+  const {
+    filteredAndSortedData: clientsFiltrados,
+    sortConfig,
+    handleSort,
+  } = useTableFilters(clientsByTab);
 
   if (isLoading) {
     return (
@@ -268,38 +279,64 @@ const Vendedor: React.FC = React.memo(() => {
 
             {/* Tabla de clientes */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Lista de Clientes</h3>
+                <button
+                  onClick={exportarClientesAExcel}
+                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md flex items-center space-x-2 text-sm font-semibold"
+                  title="Exportar todos los clientes a Excel"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Exportar a Excel</span>
+                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        CLIENTE
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        TIPO
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        IDENTIFICACIÓN
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        TELÉFONO
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <TableHeaderWithFilters
+                        column="nombres"
+                        label="CLIENTE"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                      />
+                      <TableHeaderWithFilters
+                        column="tipoClienteNombre"
+                        label="TIPO"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                      />
+                      <TableHeaderWithFilters
+                        column="numeroIdentificacion"
+                        label="IDENTIFICACIÓN"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                      />
+                      <TableHeaderWithFilters
+                        column="telefonoPrincipal"
+                        label="TELÉFONO"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                      />
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
                         MODELO DE ARMA
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
                         ESTADO
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
                         ACCIONES
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {getClientsByTab().length === 0 ? (
+                    {clientsFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center">
@@ -320,7 +357,7 @@ const Vendedor: React.FC = React.memo(() => {
                         </td>
                       </tr>
                     ) : (
-                      getClientsByTab().map((client, index) => {
+                      clientsFiltrados.map((client, index) => {
                         const weaponAssignment = getWeaponForClient(client.id);
                         return (
                           <tr key={client.id} className={`hover:bg-gray-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
@@ -334,13 +371,14 @@ const Vendedor: React.FC = React.memo(() => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              client.tipoProcesoNombre === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                              client.tipoProcesoNombre === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
-                              client.tipoProcesoNombre === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
-                              client.tipoProcesoNombre === 'Cupo Deportista' ? 'bg-red-100 text-red-800' :
+                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
+                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Militar Expoferia' ? 'bg-purple-100 text-purple-800' :
+                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
+                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
+                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Cupo Deportista' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {client.tipoProcesoNombre || client.tipoCliente}
+                              {client.tipoClienteNombre || client.tipoProcesoNombre || client.tipoCliente}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

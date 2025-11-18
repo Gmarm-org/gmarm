@@ -66,8 +66,8 @@ const ClientTable: React.FC<ClientTableProps> = ({
                     {client.tipoCliente === 'Compañía de Seguridad' ? client.telefonoReferencia : client.telefonoPrincipal}
                   </td>
                   <td>
-                    <span className={`badge badge-${client.tipoProcesoNombre?.toLowerCase().replace(/\s+/g, '-') || 'default'}`}>
-                      {client.tipoProcesoNombre || client.tipoClienteNombre || 'Sin tipo'}
+                    <span className={`badge badge-${(client.tipoClienteNombre || client.tipoProcesoNombre)?.toLowerCase().replace(/\s+/g, '-') || 'default'}`}>
+                      {client.tipoClienteNombre || client.tipoProcesoNombre || 'Sin tipo'}
                     </span>
                   </td>
                   <td>
@@ -150,8 +150,8 @@ const ClientTable: React.FC<ClientTableProps> = ({
                   <div className="client-card-name">
                     {client.nombres} {client.tipoCliente === 'Compañía de Seguridad' ? '' : client.apellidos}
                   </div>
-                  <span className={`client-card-badge badge-${client.tipoProcesoNombre?.toLowerCase().replace(/\s+/g, '-') || 'default'}`}>
-                    {client.tipoProcesoNombre || client.tipoClienteNombre || 'Sin tipo'}
+                  <span className={`client-card-badge badge-${(client.tipoClienteNombre || client.tipoProcesoNombre)?.toLowerCase().replace(/\s+/g, '-') || 'default'}`}>
+                    {client.tipoClienteNombre || client.tipoProcesoNombre || 'Sin tipo'}
                   </span>
                 </div>
                 
