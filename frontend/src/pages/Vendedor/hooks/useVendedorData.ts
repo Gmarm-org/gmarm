@@ -1,0 +1,146 @@
+import { useCallback, useEffect } from 'react';
+import { apiService } from '../../../services/api';
+import type { User } from '../../../types';
+
+/**
+ * Hook para cargar datos (clientes y armas)
+ * Separado para cumplir con límite de 500 líneas por archivo
+ */
+export const useVendedorData = (
+  user: User | null,
+  currentPageNumber: number,
+  pageSize: number,
+  setClients: (clients: any[]) => void,
+  setAvailableWeapons: (weapons: any[]) => void,
+  setClientWeaponAssignments: (assignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>) => void,
+  setClientsLoading: (loading: boolean) => void,
+  setWeaponsLoading: (loading: boolean) => void,
+  setTotalPages: (pages: number) => void,
+  setTotalClients: (total: number) => void,
+  setCurrentPageNumber: (page: number) => void,
+  setExpoferiaActiva: (activa: boolean) => void,
+  setProvinciasCompletas: (provincias: Array<{codigo: string, nombre: string}>) => void
+) => {
+  // Cargar provincias completas al inicializar
+  useEffect(() => {
+    const cargarProvinciasCompletas = async () => {
+      try {
+        const provincias = await apiService.getProvinciasCompletas();
+        setProvinciasCompletas(provincias);
+      } catch (error) {
+        console.error('Error cargando provincias completas:', error);
+      }
+    };
+    cargarProvinciasCompletas();
+  }, [setProvinciasCompletas]);
+
+  // Cargar estado de expoferia al inicializar
+  useEffect(() => {
+    const cargarEstadoExpoferia = async () => {
+      try {
+        const config = await apiService.getConfiguracion('EXPOFERIA_ACTIVA');
+        const estado = config.valor === 'true' || config.valor === '1';
+        console.log('🎯 Estado de expoferia cargado desde configuracion_sistema:', estado);
+        setExpoferiaActiva(estado);
+      } catch (error) {
+        console.error('Error cargando estado de expoferia:', error);
+        setExpoferiaActiva(false);
+      }
+    };
+    cargarEstadoExpoferia();
+  }, [setExpoferiaActiva]);
+
+  const loadClients = useCallback(async (page: number = currentPageNumber) => {
+    try {
+      setClientsLoading(true);
+      
+      if (!user || !user.id) {
+        console.error('❌ No se puede cargar clientes sin usuario autenticado');
+        setClientsLoading(false);
+        return;
+      }
+      
+      console.log(`📋 Cargando clientes del vendedor ID: ${user.id}`);
+      const clientsData = await apiService.getClientesPorVendedor(user.id);
+      
+      const totalElements = clientsData.length;
+      const totalPagesCalc = Math.ceil(totalElements / pageSize);
+      const startIndex = page * pageSize;
+      const endIndex = startIndex + pageSize;
+      const clientsPaginados = clientsData.slice(startIndex, endIndex);
+      
+      setClients(clientsPaginados as any);
+      setTotalPages(totalPagesCalc);
+      setTotalClients(totalElements);
+      setCurrentPageNumber(page);
+      
+      console.log(`✅ Clientes cargados: ${clientsPaginados.length} de ${totalElements} total`);
+      
+      const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
+      
+      for (const client of clientsPaginados) {
+        try {
+          const armasResponse = await apiService.getArmasCliente(client.id);
+          if (armasResponse && armasResponse.length > 0) {
+            const arma = armasResponse[0];
+            weaponAssignments[client.id] = {
+              weapon: {
+                id: arma.armaId,
+                nombre: arma.armaNombre,
+                calibre: arma.armaModelo || 'N/A',
+                codigo: arma.armaCodigo,
+                urlImagen: arma.armaImagen,
+                precioReferencia: parseFloat(arma.precioUnitario) || 0
+              },
+              precio: parseFloat(arma.precioUnitario) || 0,
+              cantidad: parseInt(arma.cantidad) || 1,
+              numeroSerie: arma.numeroSerie,
+              estado: arma.estado
+            };
+          }
+        } catch (error) {
+          console.warn(`No se pudieron cargar armas para cliente ${client.id}:`, error);
+        }
+      }
+      
+      setClientWeaponAssignments(weaponAssignments);
+    } catch (error) {
+      console.error('Error al cargar clientes:', error);
+    } finally {
+      setClientsLoading(false);
+    }
+  }, [user, currentPageNumber, pageSize, setClients, setClientWeaponAssignments, setClientsLoading, setTotalPages, setTotalClients, setCurrentPageNumber]);
+
+  const loadWeapons = useCallback(async () => {
+    try {
+      setWeaponsLoading(true);
+      const armas = await apiService.getArmas();
+      
+      if (Array.isArray(armas)) {
+        const armasSinNombre = armas.filter(arma => !arma.nombre);
+        if (armasSinNombre.length > 0) {
+          console.error('🔫 Vendedor - ❌ ARMAS SIN NOMBRE ENCONTRADAS:', armasSinNombre);
+        }
+        
+        const armasSinId = armas.filter(arma => !arma.id);
+        if (armasSinId.length > 0) {
+          console.error('🔫 Vendedor - ❌ ARMAS SIN ID ENCONTRADAS:', armasSinId);
+        }
+        
+        setAvailableWeapons(armas);
+      } else {
+        console.error('🔫 Vendedor - ❌ RESPUESTA NO ES ARRAY:', armas);
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar armas:', error);
+    } finally {
+      setWeaponsLoading(false);
+    }
+  }, [setAvailableWeapons, setWeaponsLoading]);
+
+  return {
+    loadClients,
+    loadWeapons,
+  };
+};
+

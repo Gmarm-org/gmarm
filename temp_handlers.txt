@@ -1,0 +1,500 @@
+﻿  const handleCreateClient = useCallback(() => {
+    // Cambiar a la pÃ¡gina del formulario de cliente
+    setCurrentPage('clientForm');
+    setClientFormMode('create');
+    setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
+  }, []);
+
+  const handleAssignWeaponWithoutClient = useCallback(() => {
+    setCurrentPage('weaponSelection');
+    setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
+  }, []);
+
+  const handleClientSaved = useCallback(async (client: Client) => {
+    console.log('ðŸ”„ Cliente guardado callback ejecutado:', client);
+    
+    // Limpiar filtro inmediatamente
+    setClientFilter(null);
+    
+    // Limpiar selecciones
+    setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
+    
+    // Cambiar al dashboard PRIMERO
+    setCurrentPage('dashboard');
+    setClientFormMode('create');
+    
+    // Luego recargar en segundo plano
+    console.log('ðŸ“¥ Recargando lista de clientes en segundo plano...');
+    loadClients().then(() => {
+      console.log('âœ… Lista de clientes actualizada');
+    }).catch((error) => {
+      console.error('âŒ Error recargando clientes:', error);
+    });
+  }, [loadClients]);
+
+  const handleClienteBloqueado = useCallback((clientId: string, bloqueado: boolean, motivo: string) => {
+    if (bloqueado) {
+      setClientesBloqueados(prev => ({
+        ...prev,
+        [clientId]: { bloqueado, motivo }
+      }));
+      
+      if (currentPage !== 'clientForm') {
+        setCurrentPage('dashboard');
+        setSelectedClient(null);
+        setSelectedWeapon(null);
+        setPrecioModificado(0);
+        setCantidad(1);
+      }
+    } else {
+      setClientesBloqueados(prev => {
+        const newBlockedClients = { ...prev };
+        delete newBlockedClients[clientId];
+        return newBlockedClients;
+      });
+    }
+  }, [currentPage]);
+
+  const handleCloseForm = useCallback(() => {
+    setCurrentPage('dashboard');
+    setClientFormMode('create');
+    setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
+  }, []);
+
+  const handleWeaponSelected = useCallback((weapon: any | null) => {
+    if (weapon) {
+      console.log('ðŸ”« Arma seleccionada:', weapon);
+      console.log('ðŸ’° Precio de referencia:', weapon.precioReferencia);
+      console.log('ðŸ’° Precio actual en estado:', precioModificado);
+      
+      // Si es la misma arma que ya estÃ¡ seleccionada, no cambiar nada
+      if (selectedWeapon && selectedWeapon.id === weapon.id) {
+        console.log('âœ… Misma arma ya seleccionada, manteniendo precio actual:', precioModificado);
+        return;
+      }
+      
+      // Verificar si ya hay un precio modificado para esta arma
+      let precioAUsar = weapon.precioReferencia || 0;
+      
+      // Primero verificar si hay un precio especÃ­fico para esta arma en weaponPrices
+      if (weaponPrices[weapon.id]) {
+        precioAUsar = weaponPrices[weapon.id];
+        console.log('ðŸ’° Usando precio especÃ­fico de weaponPrices:', precioAUsar);
+      }
+      // Luego verificar si hay una asignaciÃ³n existente para este cliente
+      else if (selectedClient && clientWeaponAssignments[selectedClient.id]) {
+        const asignacionExistente = clientWeaponAssignments[selectedClient.id];
+        if (asignacionExistente.weapon.id === weapon.id) {
+          precioAUsar = asignacionExistente.precio;
+          console.log('ðŸ’° Usando precio modificado existente:', precioAUsar);
+        }
+      }
+      
+      setSelectedWeapon(weapon);
+      setPrecioModificado(precioAUsar);
+      setCantidad(1);
+      
+      console.log('âœ… Estado actualizado - precioModificado:', precioAUsar);
+      
+      if (selectedClient) {
+        setClientWeaponAssignments(prev => ({
+          ...prev,
+          [selectedClient.id]: {
+            weapon: weapon,
+            precio: precioAUsar,
+            cantidad: 1
+          }
+        }));
+      }
+    } else {
+      setSelectedWeapon(null);
+      setPrecioModificado(0);
+      setCantidad(1);
+      
+      if (selectedClient) {
+        setClientWeaponAssignments(prev => {
+          const newAssignments = { ...prev };
+          delete newAssignments[selectedClient.id];
+          return newAssignments;
+        });
+      }
+    }
+  }, [selectedClient, clientWeaponAssignments, selectedWeapon, precioModificado, weaponPrices]);
+
+  const handlePriceChange = useCallback((weaponId: number, newPrice: number) => {
+    console.log('ðŸ”§ handlePriceChange llamado:', { weaponId, newPrice, selectedClient: selectedClient?.id, selectedWeapon: selectedWeapon?.id });
+    
+    // Actualizar el precio para la arma especÃ­fica
+    setWeaponPrices(prev => ({
+      ...prev,
+      [weaponId]: newPrice
+    }));
+    console.log('âœ… Precio actualizado para arma:', weaponId, 'a', newPrice);
+    
+    // Si es la arma actualmente seleccionada, actualizar el estado global
+    if (selectedWeapon && selectedWeapon.id === weaponId) {
+      setPrecioModificado(newPrice);
+      console.log('âœ… Precio global actualizado para arma seleccionada');
+    }
+    
+    // Actualizar la asignaciÃ³n del cliente si existe
+    if (selectedClient) {
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [selectedClient.id]: {
+          weapon: selectedWeapon || { id: weaponId }, // Usar arma seleccionada o crear referencia
+          precio: newPrice,
+          cantidad: cantidad
+        }
+      }));
+      console.log('âœ… AsignaciÃ³n de cliente actualizada');
+    }
+    
+    console.log('âœ… Precio actualizado exitosamente para arma:', weaponId);
+  }, [selectedClient, selectedWeapon, cantidad]);
+
+  const handleQuantityChange = useCallback((weaponId: number, newQuantity: number) => {
+    // Solo cambiar la cantidad si es para el cliente actualmente seleccionado
+    if (selectedClient && selectedWeapon && selectedWeapon.id === weaponId) {
+      setCantidad(newQuantity);
+      
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [selectedClient.id]: {
+          weapon: selectedWeapon,
+          precio: precioModificado,
+          cantidad: newQuantity
+        }
+      }));
+    }
+  }, [selectedClient, selectedWeapon, precioModificado]);
+
+  const handleFinishProcess = useCallback(() => {
+    if (selectedClient && selectedWeapon) {
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [selectedClient.id]: {
+          weapon: selectedWeapon,
+          precio: precioModificado,
+          cantidad: cantidad
+        }
+      }));
+    }
+    
+    setCurrentPage('dashboard');
+    setSelectedClient(null);
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
+  }, [selectedClient, selectedWeapon, precioModificado, cantidad]);
+
+  // FunciÃ³n para manejar cuando se confirman los datos del cliente
+  const handleClientDataConfirm = useCallback((formData: any) => {
+    console.log('ðŸ‘¤ Datos del cliente confirmados:', formData);
+    console.log('ðŸ“„ Documentos subidos:', formData.uploadedDocuments);
+    
+    // Mapear tipoIdentificacion a cÃ³digo
+    const mapTipoIdentificacionToCode = (tipoIdentificacion: string | undefined): string => {
+      if (!tipoIdentificacion) return 'CED';
+      switch (tipoIdentificacion) {
+        case 'CÃ©dula':
+        case 'CÃ©dula de Identidad':
+        case 'CEDULA':
+          return 'CED';
+        case 'RUC':
+          return 'RUC';
+        case 'Pasaporte':
+          return 'PAS';
+        default:
+          return 'CED';
+      }
+    };
+    
+    // Mapear respuestas para incluir preguntaId - CORREGIDO: usar questionId del frontend
+    const respuestasMapeadas = formData.respuestas?.map((respuesta: any) => {
+      // El frontend usa questionId, el backend espera preguntaId
+      const preguntaId = respuesta.questionId || respuesta.preguntaId || respuesta.id || null;
+      return {
+        ...respuesta,
+        preguntaId: preguntaId
+      };
+    }) || [];
+
+    // Crear objeto con cÃ³digos mapeados usando configuraciÃ³n dinÃ¡mica
+    const clientDataMapeado = {
+      ...formData,
+      tipoIdentificacionCodigo: mapTipoIdentificacionToCode(formData.tipoIdentificacion),
+      tipoClienteCodigo: getCodigoTipoCliente(formData.tipoCliente),
+      provincia: mapearProvinciaACodigo(formData.provincia),
+      canton: formData.canton, // El cantÃ³n se guarda como nombre
+      direccion: formData.direccion, // Asegurar que la direcciÃ³n se incluya
+      telefonoSecundario: formData.telefonoSecundario, // Asegurar que el telÃ©fono secundario se incluya
+      respuestas: respuestasMapeadas
+    };
+    
+    console.log('ðŸ‘¤ Datos mapeados para backend:', clientDataMapeado);
+    console.log('ðŸ‘¤ Datos originales del formulario:', formData);
+    console.log('ðŸ‘¤ Provincia original:', formData.provincia);
+    console.log('ðŸ‘¤ Provincia mapeada:', clientDataMapeado.provincia);
+    console.log('ðŸ‘¤ CantÃ³n:', clientDataMapeado.canton);
+    console.log('ðŸ‘¤ DirecciÃ³n:', clientDataMapeado.direccion);
+    console.log('ðŸ‘¤ TelÃ©fono secundario:', clientDataMapeado.telefonoSecundario);
+    console.log('ðŸ‘¤ Estableciendo clientFormData con datos mapeados');
+    setClientFormData(clientDataMapeado);
+    setCurrentPage('weaponSelection');
+    console.log('ðŸ‘¤ Navegando a weaponSelection');
+  }, []);
+
+  // FunciÃ³n para manejar cuando se confirma la selecciÃ³n de arma
+  const handleWeaponSelectionConfirm = useCallback(() => {
+    console.log('ðŸ”« SelecciÃ³n de arma confirmada');
+    console.log('ðŸ”« clientFormData actual:', clientFormData);
+    console.log('ðŸ”« selectedClient actual:', selectedClient);
+    console.log('ðŸŽ¯ expoferiaActiva:', expoferiaActiva);
+    
+    // Si no hay clientFormData pero hay selectedClient, usar selectedClient
+    if (!clientFormData && selectedClient) {
+      console.log('ðŸ”« Usando selectedClient como clientFormData');
+      setClientFormData(selectedClient);
+    }
+    
+    // Si no hay ninguno de los dos, mostrar error
+    if (!clientFormData && !selectedClient) {
+      console.error('âŒ No hay datos del cliente disponibles para continuar');
+      alert('âŒ Error: No hay datos del cliente. Por favor, completa el proceso desde el inicio.');
+      return;
+    }
+    
+    // Si expoferia estÃ¡ activa y hay un nuevo cliente (clientFormData), ir a asignaciÃ³n de series
+    if (expoferiaActiva && clientFormData && !clientFormData.id) {
+      console.log('ðŸŽ¯ Expoferia activa - Navegando a asignaciÃ³n de series');
+      setCurrentPage('seriesAssignment');
+    } else {
+      console.log('ðŸ’° Navegando directamente a forma de pago');
+      setCurrentPage('paymentForm');
+    }
+  }, [clientFormData, selectedClient, expoferiaActiva]);
+
+  // FunciÃ³n para volver al formulario del cliente desde weaponSelection
+  const handleBackToClientForm = useCallback(() => {
+    console.log('â¬…ï¸ Volviendo al formulario del cliente');
+    console.log('ðŸ“„ clientFormData preservado:', clientFormData);
+    
+    // Si hay datos del cliente guardados, volver al formulario en modo ediciÃ³n
+    if (clientFormData) {
+      setClientFormMode('create'); // Mantener en modo creaciÃ³n
+      setCurrentPage('clientForm');
+    } else {
+      // Si no hay datos, volver al dashboard
+      setCurrentPage('dashboard');
+    }
+  }, [clientFormData]);
+
+  // FunciÃ³n para manejar cuando se selecciona una serie
+  const handleSerieSelected = useCallback((serieId: number, numeroSerie: string) => {
+    console.log('ðŸ”¢ Serie seleccionada:', { serieId, numeroSerie });
+    
+    // CRÃTICO: Guardar en ref INMEDIATAMENTE (no espera renders)
+    selectedSerieNumeroRef.current = numeroSerie;
+    
+    // TambiÃ©n actualizar estados para el UI
+    setSelectedSerieId(serieId);
+    setSelectedSerieNumero(numeroSerie);
+    
+    // Navegar inmediatamente - React batchearÃ¡ las actualizaciones
+    console.log('ðŸ’° Navegando a forma de pago con serie asignada');
+    console.log('ðŸ”¢ Serie guardada en ref:', selectedSerieNumeroRef.current);
+    console.log('ðŸ”¢ Serie guardada en estado - ID:', serieId, 'Numero:', numeroSerie);
+    setCurrentPage('paymentForm');
+  }, []);
+
+  // FunciÃ³n para volver de seriesAssignment a weaponSelection
+  const handleBackToWeaponSelection = useCallback(() => {
+    console.log('â¬…ï¸ Volviendo a selecciÃ³n de armas');
+    console.log('ðŸ“„ clientFormData preservado:', clientFormData);
+    console.log('ðŸ”« selectedWeapon preservado:', selectedWeapon);
+    
+    // Limpiar la serie seleccionada
+    setSelectedSerieId(null);
+    setSelectedSerieNumero(null);
+    
+    setCurrentPage('weaponSelection');
+  }, [clientFormData, selectedWeapon]);
+
+  // Nueva funciÃ³n para manejar la finalizaciÃ³n del proceso de pago
+  const handlePaymentComplete = useCallback(async (paymentData: any) => {
+    try {
+      // VALIDACIÃ“N INICIAL: Verificar que tenemos todos los datos necesarios
+      if (!clientFormData) {
+        throw new Error('No hay datos del cliente para procesar');
+      }
+
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado. No se puede crear el cliente sin un vendedor vÃ¡lido.');
+      }
+      if (!selectedWeapon) {
+        throw new Error('No hay arma seleccionada');
+      }
+      if (!paymentData) {
+        throw new Error('No hay datos de pago');
+      }
+      
+      // Crear objeto completo para enviar al backend
+      console.log('ðŸ’° Preparando datos completos para el backend...');
+      
+      // Limpiar el ID vacÃ­o del cliente si existe
+      const clienteDataToSend = { ...clientFormData };
+      delete clienteDataToSend.id;
+      
+      // Preparar datos de pago
+      const pagoData = {
+        clienteId: null, // Se llenarÃ¡ en el backend
+        montoTotal: paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100, // Con IVA
+        tipoPago: paymentData.tipoPago || 'CONTADO',
+        numeroCuotas: paymentData.numeroCuotas || 1,
+        montoCuota: paymentData.montoPorCuota || Math.round((precioModificado * cantidad * 1.15) * 100) / 100,
+        montoPagado: 0,
+        montoPendiente: paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100
+      };
+      
+      // Preparar datos de arma - USAR numeroSerie con prioridad: ref > paymentData > estado
+      const numeroSerieDesdeRef = selectedSerieNumeroRef.current;
+      const numeroSerieDesdePayment = paymentData.numeroSerie;
+      const numeroSerieFinal = numeroSerieDesdeRef || numeroSerieDesdePayment || selectedSerieNumero || null;
+      
+      const armaData = selectedWeapon ? {
+        armaId: selectedWeapon.id,
+        cantidad: cantidad,
+        precioUnitario: precioModificado,
+        numeroSerie: numeroSerieFinal // CRÃTICO: Usar el valor de la ref (mÃ¡s confiable)
+      } : null;
+      
+      // Preparar datos de documentos del usuario (si existen)
+      const documentosUsuario = clientFormData.uploadedDocuments || {};
+      
+      // Preparar cuotas si es pago a crÃ©dito
+      const cuotasData = [];
+      if (paymentData.tipoPago === 'CUOTAS' && paymentData.cuotas && paymentData.cuotas.length > 0) {
+        for (const cuota of paymentData.cuotas) {
+          cuotasData.push({
+            numeroCuota: cuota.numeroCuota,
+            fechaVencimiento: cuota.fecha,
+            monto: cuota.monto,
+            estado: 'PENDIENTE'
+          });
+        }
+      }
+      
+      // Crear objeto estructurado segÃºn ClienteCompletoCreateDTO
+      const requestData = {
+        cliente: {
+          nombres: clienteDataToSend.nombres,
+          apellidos: clienteDataToSend.apellidos,
+          numeroIdentificacion: clienteDataToSend.numeroIdentificacion,
+          tipoIdentificacionCodigo: clienteDataToSend.tipoIdentificacionCodigo,
+          tipoClienteCodigo: clienteDataToSend.tipoClienteCodigo,
+          fechaNacimiento: clienteDataToSend.fechaNacimiento,
+          direccion: clienteDataToSend.direccion,
+          provincia: mapearProvinciaACodigo(clienteDataToSend.provincia),
+          canton: clienteDataToSend.canton, // El cantÃ³n se guarda como nombre
+          email: clienteDataToSend.email,
+          telefonoPrincipal: clienteDataToSend.telefonoPrincipal,
+          telefonoSecundario: clienteDataToSend.telefonoSecundario,
+          representanteLegal: clienteDataToSend.representanteLegal,
+          ruc: clienteDataToSend.ruc,
+          nombreEmpresa: clienteDataToSend.nombreEmpresa,
+          direccionFiscal: clienteDataToSend.direccionFiscal,
+          telefonoReferencia: clienteDataToSend.telefonoReferencia,
+          correoEmpresa: clienteDataToSend.correoEmpresa,
+          provinciaEmpresa: mapearProvinciaACodigo(clienteDataToSend.provinciaEmpresa),
+          cantonEmpresa: clienteDataToSend.cantonEmpresa,
+          estadoMilitar: clienteDataToSend.estadoMilitar,
+          codigoIssfa: clienteDataToSend.codigoIssfa,
+          rango: clienteDataToSend.rango,
+          usuarioCreadorId: user?.id
+        },
+        pago: {
+          clienteId: null, // Se llenarÃ¡ en el backend
+          montoTotal: pagoData.montoTotal,
+          tipoPago: pagoData.tipoPago,
+          numeroCuotas: pagoData.numeroCuotas,
+          montoCuota: pagoData.montoCuota,
+          montoPagado: pagoData.montoPagado,
+          montoPendiente: pagoData.montoPendiente
+        },
+        arma: armaData ? {
+          armaId: armaData.armaId,
+          cantidad: armaData.cantidad,
+          precioUnitario: armaData.precioUnitario,
+          numeroSerie: armaData.numeroSerie // CRÃTICO: Incluir nÃºmero de serie para expoferia
+        } : null,
+        respuestas: (clientFormData.respuestas || []).map((respuesta: any) => ({
+          ...respuesta,
+          preguntaId: respuesta.questionId || respuesta.preguntaId || respuesta.id
+        })),
+        cuotas: cuotasData,
+        documentos: documentosUsuario
+      };
+      
+      // UNA SOLA LLAMADA AL BACKEND - Usar endpoint de crear cliente que ya funciona
+      const resultado = await apiService.createCliente(requestData as any);
+      console.log('ðŸ’° Proceso completado exitosamente:', resultado);
+      
+      // SUBIR DOCUMENTOS POR SEPARADO (si existen)
+      if (documentosUsuario && Object.keys(documentosUsuario).length > 0) {
+        console.log('ðŸ“„ Subiendo documentos por separado...');
+        const clienteId = (resultado as any).clienteId || resultado.id;
+        
+        for (const [tipoDocumentoId, file] of Object.entries(documentosUsuario)) {
+          try {
+            console.log(`ðŸ“„ Subiendo documento tipo ${tipoDocumentoId} para cliente ${clienteId}`);
+            const docResult = await apiService.cargarDocumentoCliente(
+              clienteId, 
+              parseInt(tipoDocumentoId), 
+              file as File
+            );
+            console.log(`âœ… Documento ${tipoDocumentoId} subido exitosamente:`, docResult);
+          } catch (error) {
+            console.error(`âŒ Error subiendo documento ${tipoDocumentoId}:`, error);
+          }
+        }
+      }
+      
+
+      
+      // Mostrar mensaje de Ã©xito
+      alert('ðŸŽ‰ Â¡Proceso completado exitosamente! Cliente, arma, plan de pago creados y contrato enviado por email.');
+      
+      // Recargar lista de clientes en la primera pÃ¡gina para mostrar el nuevo cliente
+      await loadClients(0);
+      
+      // Volver al dashboard
+      setCurrentPage('dashboard');
+      setSelectedClient(null);
+      setSelectedWeapon(null);
+      setPrecioModificado(0);
+      setCantidad(1);
+      setClientFormData(null);
+      
+    } catch (error) {
+      console.error('âŒ Error procesando pago:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      alert(`Error al crear el cliente: ${errorMessage}. El proceso se ha detenido y no se han guardado datos parciales.`);
+      
+      // NO limpiar el estado para que el usuario pueda intentar nuevamente
+      // setCurrentPage('dashboard');
+      // setSelectedClient(null);
+      // setSelectedWeapon(null);
+      // setPrecioModificado(0);
