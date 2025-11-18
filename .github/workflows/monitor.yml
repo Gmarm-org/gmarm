@@ -27,8 +27,9 @@ jobs:
           
           if curl -f -s --max-time 30 "$URL" > /dev/null; then
             echo "status=healthy" >> $GITHUB_OUTPUT
+            # No mostrar ningún log cuando está saludable
           else
-            echo "❌ ALERTA: Backend no responde en $URL"
+            echo "❌ ALERTA: Backend no responde en $URL" >&2
             echo "status=unhealthy" >> $GITHUB_OUTPUT
           fi
           
@@ -41,14 +42,15 @@ jobs:
           
           if curl -f -s --max-time 30 "$URL" > /dev/null; then
             echo "status=available" >> $GITHUB_OUTPUT
+            # No mostrar ningún log cuando está disponible
           else
-            echo "❌ ALERTA: Frontend no disponible en $URL"
+            echo "❌ ALERTA: Frontend no disponible en $URL" >&2
             echo "status=unavailable" >> $GITHUB_OUTPUT
           fi
           
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: 📊 Health Summary
+      - name: 📊 Health Summary (Solo si hay fallos)
         if: steps.backend-health.outputs.status != 'healthy' || steps.frontend-health.outputs.status != 'available'
         run: |
           echo "## 🚨 ALERTA: Problemas Detectados en Producción" >> $GITHUB_STEP_SUMMARY
@@ -86,11 +88,14 @@ jobs:
           
           # Alert if response time is too high (> 3 seconds)
           if (( $(echo "$PROD_TIME > 3" | bc -l) )); then
-            echo "⚠️ ALERTA: Backend lento - ${PROD_TIME}s (límite: 3s)"
+            echo "⚠️ ALERTA: Backend lento - ${PROD_TIME}s (límite: 3s)" >&2
             echo "prod-slow=true" >> $GITHUB_OUTPUT
+          else
+            echo "prod-slow=false" >> $GITHUB_OUTPUT
+            # No mostrar ningún log cuando el performance es aceptable
           fi
 
-      - name: 📊 Performance Summary
+      - name: 📊 Performance Summary (Solo si hay problemas)
         if: steps.backend-perf.outputs.prod-slow == 'true'
         run: |
           echo "## ⚠️ ALERTA: Problemas de Performance" >> $GITHUB_STEP_SUMMARY
@@ -108,10 +113,10 @@ jobs:
           exit 1
 
   # ========================================
-  # JOB: ALERT ON FAILURES - SOLO LOGS (SIN CREAR ISSUES)
+  # JOB: ALERT ON FAILURES - SOLO SE EJECUTA SI HAY FALLOS
   # ========================================
   alert:
-    name: 🚨 Alert Summary
+    name: 🚨 Alert Summary (Solo si hay fallos)
     runs-on: ubuntu-latest
     needs: [health-check, performance-check]
     if: always() && (needs.health-check.result == 'failure' || needs.performance-check.result == 'failure')
