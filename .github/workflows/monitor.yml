@@ -1,11 +1,10 @@
-name: 🔍 GMARM Monitoring & Alerts
+name: 🔍 GMARM Monitoring & Alerts (Solo Alertas - Manual)
 
 on:
-  schedule:
-    # Ejecutar 2 veces al día (6:00 AM y 6:00 PM UTC) para monitoreo
-    # Horario Ecuador: 1:00 AM y 1:00 PM (UTC-5)
-    - cron: '0 6,18 * * *'
-  workflow_dispatch:  # Permitir ejecución manual
+  # Schedule desactivado - Solo alertar cuando hay errores manualmente o mediante integración externa
+  # schedule:
+  #   - cron: '0 6,18 * * *'
+  workflow_dispatch:  # Permitir ejecución manual cuando sea necesario
 
 env:
   BACKEND_PROD_URL: "https://api.gmarm.com"
@@ -113,10 +112,10 @@ jobs:
           exit 1
 
   # ========================================
-  # JOB: ALERT ON FAILURES - SOLO SE EJECUTA SI HAY FALLOS
+  # JOB: ALERT ON FAILURES - SOLO SE EJECUTA SI HAY FALLOS (MITIGACIÓN)
   # ========================================
   alert:
-    name: 🚨 Alert Summary (Solo si hay fallos)
+    name: 🚨 Alert Summary (Solo si hay fallos - Ejecutar mitigación)
     runs-on: ubuntu-latest
     needs: [health-check, performance-check]
     if: always() && (needs.health-check.result == 'failure' || needs.performance-check.result == 'failure')
