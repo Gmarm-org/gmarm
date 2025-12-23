@@ -121,25 +121,76 @@ jobs:
     if: always() && (needs.health-check.result == 'failure' || needs.performance-check.result == 'failure')
     
     steps:
-      - name: 🚨 Log Critical Problems
+      - name: 🚨 Log Critical Problems & Mitigation Steps
         if: needs.health-check.result == 'failure'
         run: |
-          echo "## 🚨 Critical Health Issues Detected" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚨 Critical Health Issues Detected - Acción Requerida" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Actions Required:" >> $GITHUB_STEP_SUMMARY
-          echo "1. SSH al servidor y verificar servicios" >> $GITHUB_STEP_SUMMARY
-          echo "2. Ejecutar: \`docker ps\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. Ver logs: \`docker-compose -f docker-compose.prod.yml logs\`" >> $GITHUB_STEP_SUMMARY
-          echo "4. Verificar conectividad de red" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Pasos de Mitigación Inmediata:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ **Verifica manualmente el servidor de producción**" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Conectar al servidor:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   ssh ubuntu@72.167.52.14" >> $GITHUB_STEP_SUMMARY
+          echo "   cd ~/deploy/prod" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Verificar estado de contenedores:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   docker ps -a" >> $GITHUB_STEP_SUMMARY
+          echo "   docker stats --no-stream" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Revisar logs recientes:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   docker-compose -f docker-compose.prod.yml logs --tail=100 backend" >> $GITHUB_STEP_SUMMARY
+          echo "   docker-compose -f docker-compose.prod.yml logs --tail=50 postgres_prod" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Reiniciar servicios si es necesario:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   docker-compose -f docker-compose.prod.yml restart backend" >> $GITHUB_STEP_SUMMARY
+          echo "   # O si el backend está caído:" >> $GITHUB_STEP_SUMMARY
+          echo "   docker-compose -f docker-compose.prod.yml up -d backend" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "5. **Verificar conectividad:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   curl http://localhost:8080/api/health" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Ejecutar estos pasos en orden hasta identificar y resolver el problema**" >> $GITHUB_STEP_SUMMARY
 
-      - name: 📢 Performance Alert
+      - name: 📢 Performance Alert & Mitigation
         if: needs.performance-check.result == 'failure'
         run: |
-          echo "## ⚠️ Performance Issues" >> $GITHUB_STEP_SUMMARY
-          echo "Backend response time is above acceptable threshold" >> $GITHUB_STEP_SUMMARY
-          echo "Consider investigating server resources and database performance" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚠️ Performance Issues - Acción Requerida" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_STEP_SUMMARY
+          echo "Backend response time is above acceptable threshold (>3s)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Pasos de Mitigación:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Verificar recursos del servidor:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   ssh ubuntu@72.167.52.14" >> $GITHUB_STEP_SUMMARY
+          echo "   docker stats --no-stream" >> $GITHUB_STEP_SUMMARY
+          echo "   top" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Revisar queries lentas en PostgreSQL:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c \"SELECT query, state, wait_event_type FROM pg_stat_activity WHERE state != 'idle';\"" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Limpiar conexiones inactivas si hay muchas:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`sql" >> $GITHUB_STEP_SUMMARY
+          echo "   SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'gmarm_prod' AND state = 'idle' AND state_change < now() - interval '10 minutes';" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Reiniciar backend si es necesario:**" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   docker-compose -f docker-compose.prod.yml restart backend" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
