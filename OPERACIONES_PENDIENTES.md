@@ -229,12 +229,14 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
 - [x] `getTiposDocumentoGruposImportacion()`
 
 ### Funcionalidades Pendientes (Operaciones)
-- [ ] ⏳ **VERIFICAR** que el flujo completo funcione:
-  - [ ] Verificar que los grupos aparecen correctamente cuando cambian a `SOLICITAR_PROFORMA_FABRICA`
-  - [ ] Verificar carga de documentos
-  - [ ] Verificar notificación de pago
-  - [ ] Verificar registro de fechas y números de previa
-  - [ ] Verificar transición de estados
+- [ ] ⏳ **CONTINUAR** - Completar flujo completo de Operaciones:
+  - [x] ✅ Verificar que los grupos aparecen correctamente cuando cambian a `SOLICITAR_PROFORMA_FABRICA`
+  - [x] ✅ Verificar carga de documentos
+  - [x] ✅ Verificar notificación de pago
+  - [x] ✅ Verificar registro de fechas y números de previa
+  - [ ] ⏳ **PENDIENTE** - Verificar y completar transición de estados finales
+  - [ ] ⏳ **PENDIENTE** - Finalizar gestión de documentos por cliente
+  - [ ] ⏳ **PENDIENTE** - Implementar proceso de entrega y cierre de cliente
 - [ ] Validación de tipo de archivo en frontend (opcional)
 - [ ] Preview del documento cargado (opcional)
 
