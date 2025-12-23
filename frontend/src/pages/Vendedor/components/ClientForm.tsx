@@ -3,6 +3,7 @@ import { apiService } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { calcularEdad, validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
 import { validateIdentificacion, validateTelefono, validateEmail } from '../../../utils/validations';
+import { mapTipoIdentificacionToCode, getMaxLengthIdentificacion } from '../../../utils/typeMappers';
 import { useTiposClienteConfig } from '../../../contexts/TiposClienteContext';
 import { useIVA } from '../../../hooks/useConfiguracion';
 import type { Client } from '../types';
@@ -845,7 +846,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
       
       // Para identificación, limitar según el tipo seleccionado
       if (field === 'numeroIdentificacion' && formData.tipoIdentificacion) {
-        const maxLength = getMaxLength();
+        const tipoIdentificacionCodigo = mapTipoIdentificacionToCode(formData.tipoIdentificacion);
+        const maxLength = getMaxLengthIdentificacion(tipoIdentificacionCodigo);
         numericValue = numericValue.slice(0, maxLength);
       }
       
@@ -870,20 +872,107 @@ const ClientForm: React.FC<ClientFormProps> = ({
     return getCodigoTipoCliente(tipoCliente);
   };
 
-  // Función para mapear tipoIdentificacion descriptivo a código
-  const mapTipoIdentificacionToCode = (tipoIdentificacion: string | undefined): string => {
-    if (!tipoIdentificacion) return 'CED'; // Por defecto Cédula
-    
-    switch (tipoIdentificacion) {
-      case 'Cédula':
-      case 'Cédula de Identidad':
-        return 'CED';
-      case 'RUC':
-        return 'RUC';
-      case 'Pasaporte':
-        return 'PAS';
-      default:
-        return 'CED'; // Por defecto Cédula
+  // Función helper para construir clientDataForBackend (evita duplicación)
+  const buildClientDataForBackend = () => {
+    return {
+      nombres: formData.nombres,
+      apellidos: formData.apellidos,
+      numeroIdentificacion: formData.numeroIdentificacion,
+      tipoIdentificacionCodigo: mapTipoIdentificacionToCode(formData.tipoIdentificacion),
+      tipoClienteCodigo: mapTipoClienteToCode(formData.tipoCliente),
+      fechaNacimiento: formData.fechaNacimiento,
+      direccion: formData.direccion,
+      provincia: formData.provincia,
+      canton: formData.canton,
+      email: formData.email,
+      telefonoPrincipal: formData.telefonoPrincipal,
+      telefonoSecundario: formData.telefonoSecundario,
+      representanteLegal: formData.representanteLegal || '',
+      ruc: formData.ruc || '',
+      nombreEmpresa: formData.nombreEmpresa || '',
+      direccionFiscal: formData.direccionFiscal || '',
+      telefonoReferencia: formData.telefonoReferencia || '',
+      correoEmpresa: formData.correoEmpresa || '',
+      provinciaEmpresa: formData.provinciaEmpresa || '',
+      cantonEmpresa: formData.cantonEmpresa || '',
+      estadoMilitar: formData.estadoMilitar || '',
+      codigoIssfa: formData.codigoIssfa || '',
+      rango: formData.rango || '',
+      usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
+    };
+  };
+
+  // Función helper para guardar documentos, respuestas y arma después de crear/actualizar cliente
+  const guardarDatosAdicionales = async (clienteId: number, esCreacion: boolean = false) => {
+    try {
+      // 1. Subir documentos si existen
+      if (Object.keys(uploadedDocuments).length > 0) {
+        console.log('📄 Subiendo documentos...');
+        console.log('📄 Documentos a subir:', uploadedDocuments);
+        for (const [documentoId, file] of Object.entries(uploadedDocuments)) {
+          console.log(`📄 Subiendo documento ID: ${documentoId}, Cliente ID: ${clienteId}, Archivo:`, file);
+          try {
+            const result = await apiService.cargarDocumentoCliente(
+              clienteId, 
+              parseInt(documentoId), 
+              file
+            );
+            console.log(`✅ Documento ${documentoId} subido exitosamente:`, result);
+          } catch (error) {
+            console.error(`❌ Error subiendo documento ${documentoId}:`, error);
+            throw error;
+          }
+        }
+      } else {
+        console.log('📄 No hay documentos para subir');
+      }
+
+      // 2. Guardar respuestas a preguntas si existen
+      if (formData.respuestas && formData.respuestas.length > 0) {
+        console.log('❓ Guardando respuestas...');
+        for (const respuesta of formData.respuestas) {
+          // Buscar el ID de la pregunta en clientQuestions
+          const pregunta = clientQuestions.find(q => q.pregunta === respuesta.pregunta);
+          if (pregunta) {
+            await apiService.guardarRespuestaCliente(
+              clienteId,
+              pregunta.id,
+              respuesta.respuesta,
+              user?.id || 1 // Usar el ID del usuario autenticado
+            );
+            console.log(`✅ Respuesta guardada exitosamente`);
+          }
+        }
+      }
+
+      // 3. Asignar arma seleccionada si existe
+      if (currentSelectedWeapon) {
+        console.log('🔫 Asignando arma seleccionada...');
+        try {
+          // Crear reserva de arma para el cliente
+          const precioTotal = precioModificado * cantidad;
+          await apiService.crearReservaArma(
+            clienteId,
+            parseInt(currentSelectedWeapon.id.toString()),
+            cantidad,
+            precioModificado,
+            precioTotal
+          );
+          console.log('✅ Arma asignada exitosamente');
+        } catch (error: any) {
+          console.error('❌ Error asignando arma:', error);
+          const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al asignar arma';
+          if (esCreacion) {
+            alert(`⚠️ Cliente creado pero hubo un error al asignar el arma: ${errorMessage}`);
+          }
+          // No fallar la creación/edición del cliente por errores en la asignación de arma
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error guardando datos adicionales:', error);
+      throw error;
     }
   };
 
@@ -916,32 +1005,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         tipoClienteCodigo: mapTipoClienteToCode(formData.tipoCliente)
       });
       
-      const clientDataForBackend = {
-        nombres: formData.nombres,
-        apellidos: formData.apellidos,
-        numeroIdentificacion: formData.numeroIdentificacion,
-        tipoIdentificacionCodigo: mapTipoIdentificacionToCode(formData.tipoIdentificacion),
-        tipoClienteCodigo: mapTipoClienteToCode(formData.tipoCliente),
-        fechaNacimiento: formData.fechaNacimiento,
-        direccion: formData.direccion,
-        provincia: formData.provincia,
-        canton: formData.canton,
-        email: formData.email,
-        telefonoPrincipal: formData.telefonoPrincipal,
-        telefonoSecundario: formData.telefonoSecundario,
-        representanteLegal: formData.representanteLegal || '',
-        ruc: formData.ruc || '',
-        nombreEmpresa: formData.nombreEmpresa || '',
-        direccionFiscal: formData.direccionFiscal || '',
-        telefonoReferencia: formData.telefonoReferencia || '',
-        correoEmpresa: formData.correoEmpresa || '',
-        provinciaEmpresa: formData.provinciaEmpresa || '',
-        cantonEmpresa: formData.cantonEmpresa || '',
-        estadoMilitar: formData.estadoMilitar || '',
-        codigoIssfa: formData.codigoIssfa || '',
-        rango: formData.rango || '',
-        usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
-      };
+      const clientDataForBackend = buildClientDataForBackend();
 
       let updatedClient;
       if (mode === 'edit' && client) {
@@ -955,68 +1019,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
         
         // En modo edit, también guardar documentos, respuestas y arma
         console.log('🔄 Guardando datos adicionales para cliente editado...');
-        
         try {
-          // 1. Subir documentos si existen
-          if (Object.keys(uploadedDocuments).length > 0) {
-            console.log('📄 Subiendo documentos...');
-            console.log('📄 Documentos a subir:', uploadedDocuments);
-            for (const [documentoId, file] of Object.entries(uploadedDocuments)) {
-              console.log(`📄 Subiendo documento ID: ${documentoId}, Cliente ID: ${updatedClient.id}, Archivo:`, file);
-              try {
-                const result = await apiService.cargarDocumentoCliente(
-                  parseInt(updatedClient.id.toString()), 
-                  parseInt(documentoId), 
-                  file
-                );
-                console.log(`✅ Documento ${documentoId} subido exitosamente:`, result);
-              } catch (error) {
-                console.error(`❌ Error subiendo documento ${documentoId}:`, error);
-                throw error;
-              }
-            }
-          } else {
-            console.log('📄 No hay documentos para subir');
-          }
-
-          // 2. Guardar respuestas a preguntas si existen
-          if (formData.respuestas && formData.respuestas.length > 0) {
-            console.log('❓ Guardando respuestas...');
-            for (const respuesta of formData.respuestas) {
-              // Buscar el ID de la pregunta en clientQuestions
-              const pregunta = clientQuestions.find(q => q.pregunta === respuesta.pregunta);
-              if (pregunta) {
-                await apiService.guardarRespuestaCliente(
-                  parseInt(updatedClient.id.toString()),
-                  pregunta.id,
-                  respuesta.respuesta,
-                  user?.id || 1 // Usar el ID del usuario autenticado
-                );
-                console.log(`✅ Respuesta guardada exitosamente`);
-              }
-            }
-          }
-
-          // 3. Asignar arma seleccionada si existe
-          if (currentSelectedWeapon) {
-            console.log('🔫 Asignando arma seleccionada...');
-            try {
-              // Crear reserva de arma para el cliente
-              const precioTotal = precioModificado * cantidad;
-              await apiService.crearReservaArma(
-                parseInt(updatedClient.id.toString()),
-                parseInt(currentSelectedWeapon.id.toString()),
-                cantidad,
-                precioModificado,
-                precioTotal
-              );
-              console.log('✅ Arma asignada exitosamente');
-            } catch (error) {
-              console.error('❌ Error asignando arma:', error);
-              // No fallar la edición del cliente por errores en la asignación de arma
-            }
-          }
-          
+          await guardarDatosAdicionales(parseInt(updatedClient.id.toString()), false);
           console.log('✅ Cliente editado con todos los datos adicionales');
         } catch (processError) {
           console.error('❌ Error guardando datos adicionales:', processError);
@@ -1031,71 +1035,62 @@ const ClientForm: React.FC<ClientFormProps> = ({
             respuesta: r.respuesta
           }));
         
-        const clientData = {
-          ...clientDataForBackend,
-          estado: clientStatus,
+        // Construir requestData con formato esperado por ClienteCompletoService
+        const requestData: any = {
+          cliente: {
+            ...clientDataForBackend,
+            estado: clientStatus
+          },
           respuestas: respuestasParaBackend
         };
-        console.log('🔍 Enviando datos completos al backend:', clientData);
-        console.log('🔍 Respuestas filtradas:', respuestasParaBackend);
-        console.log('🔍 Respuestas originales:', formData.respuestas);
-        updatedClient = await apiService.createCliente(clientData as any);
         
-        // Si es un cliente nuevo, implementar el proceso básico
-        if (updatedClient) {
-          console.log('🔄 Proceso básico completado para nuevo cliente...');
+        // Si hay arma seleccionada, incluirla en el requestData para que se guarde en la misma transacción
+        if (currentSelectedWeapon) {
+          console.log('🔫 Incluyendo arma en requestData para guardado transaccional');
+          const precioTotal = precioModificado * cantidad;
+          requestData.arma = {
+            armaId: parseInt(currentSelectedWeapon.id.toString()),
+            cantidad: cantidad,
+            precioUnitario: precioModificado,
+            precioTotal: precioTotal
+          };
+        }
+        
+        console.log('🔍 Enviando datos completos al backend (transaccional):', requestData);
+        const response = await apiService.createCliente(requestData);
+        
+        // El backend ahora maneja TODO en una transacción, incluyendo cliente, respuestas y arma (si está)
+        // Los documentos deben subirse después porque son archivos (multipart), pero el cliente ya está creado
+        if (response) {
+          const clienteId = (response as any).clienteId || (response as any).id;
+          console.log('✅ Cliente creado exitosamente con transacción completa. ID:', clienteId);
           
-          try {
-            // 1. Subir documentos si existen
-            if (Object.keys(uploadedDocuments).length > 0) {
-              console.log('📄 Subiendo documentos...');
-              console.log('📄 Documentos a subir:', uploadedDocuments);
+          // Solo después de que el cliente esté creado, subir documentos (si hay)
+          // NOTA: Los documentos no pueden estar en la misma transacción porque son archivos multipart
+          // pero el cliente ya está creado correctamente con respuestas y arma
+          if (Object.keys(uploadedDocuments).length > 0) {
+            console.log('📄 Subiendo documentos después de crear cliente...');
+            try {
               for (const [documentoId, file] of Object.entries(uploadedDocuments)) {
-                console.log(`📄 Subiendo documento ID: ${documentoId}, Cliente ID: ${updatedClient.id}, Archivo:`, file);
-                try {
-                  const result = await apiService.cargarDocumentoCliente(
-                    parseInt(updatedClient.id.toString()), 
-                    parseInt(documentoId), 
-                    file
-                  );
-                  console.log(`✅ Documento ${documentoId} subido exitosamente:`, result);
-                } catch (error) {
-                  console.error(`❌ Error subiendo documento ${documentoId}:`, error);
-                  throw error;
-                }
+                await apiService.cargarDocumentoCliente(
+                  parseInt(clienteId.toString()), 
+                  parseInt(documentoId), 
+                  file
+                );
+                console.log(`✅ Documento ${documentoId} subido exitosamente`);
               }
-            } else {
-              console.log('📄 No hay documentos para subir');
+              console.log('✅ Todos los documentos subidos exitosamente');
+            } catch (docError) {
+              console.error('❌ Error subiendo documentos:', docError);
+              // Los documentos son opcionales en este punto, el cliente ya está creado
+              alert('⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos. Puedes subirlos más tarde.');
+              return; // No continuar si falla subir documentos
             }
-
-            // 2. Guardar respuestas a preguntas si existen
-            if (formData.respuestas && formData.respuestas.length > 0) {
-              console.log('❓ Guardando respuestas...');
-              for (const respuesta of formData.respuestas) {
-                // Buscar el ID de la pregunta en clientQuestions
-                const pregunta = clientQuestions.find(q => q.pregunta === respuesta.pregunta);
-                if (pregunta) {
-                  await apiService.guardarRespuestaCliente(
-                    parseInt(updatedClient.id.toString()),
-                    pregunta.id,
-                    respuesta.respuesta,
-                    user?.id || 1 // Usar el ID del usuario autenticado
-                  );
-                  console.log(`✅ Respuesta guardada exitosamente`);
-                }
-              }
-            }
-
-            console.log('✅ Cliente creado con documentos y respuestas guardados');
-            
-            // Mostrar mensaje de éxito simple
-            alert('✅ Cliente creado exitosamente con todos los datos.');
-            
-          } catch (processError) {
-            console.error('❌ Error en proceso básico:', processError);
-            // No fallar la creación del cliente por errores en el proceso
-            alert('⚠️ Cliente creado pero hubo problemas guardando documentos/respuestas. Contacte al administrador.');
           }
+          
+          // Si llegamos aquí, todo está completo
+          alert('✅ Cliente creado exitosamente con todos los datos.');
+          updatedClient = response as any;
         }
       }
       
@@ -1110,7 +1105,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Si el cliente está listo para importación, ir a la selección de arma
       if (clientStatus === 'LISTO_IMPORTACION') {
         console.log('✅ Cliente listo para importación, navegando a selección de arma...');
-        onNavigateToWeaponSelection?.();
+        // Actualizar clientFormData con el cliente recién creado (con su ID) antes de navegar
+        if (onConfirmData && updatedClient) {
+          const clientDataWithId = {
+            ...formData,
+            ...updatedClient,
+            id: updatedClient.id.toString() // Asegurar que el ID esté como string
+          };
+          onConfirmData(clientDataWithId);
+        } else {
+          onNavigateToWeaponSelection?.();
+        }
       } else {
         // Si no está listo, solo guardar
         onSave(updatedClient as any);
@@ -1121,13 +1126,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   };
 
+  // Función helper para obtener longitud máxima según tipo de identificación
   const getMaxLength = () => {
-    switch (formData.tipoIdentificacion) {
-      case 'CED': return 10; // Código de Cédula
-      case 'RUC': return 13; // Código de RUC
-      case 'PAS': return 20; // Código de Pasaporte
-      default: return 20;
-    }
+    const tipoIdentificacionCodigo = mapTipoIdentificacionToCode(formData.tipoIdentificacion);
+    return getMaxLengthIdentificacion(tipoIdentificacionCodigo);
   };
 
   // Helper para obtener el nombre del tipo de identificación desde el código
@@ -2563,32 +2565,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const clientDataForBackend = {
-                            nombres: formData.nombres,
-                            apellidos: formData.apellidos,
-                            numeroIdentificacion: formData.numeroIdentificacion,
-                            tipoIdentificacionCodigo: mapTipoIdentificacionToCode(formData.tipoIdentificacion),
-                            tipoClienteCodigo: mapTipoClienteToCode(formData.tipoCliente),
-                            fechaNacimiento: formData.fechaNacimiento,
-                            direccion: formData.direccion,
-                            provincia: formData.provincia,
-                            canton: formData.canton,
-                            email: formData.email,
-                            telefonoPrincipal: formData.telefonoPrincipal,
-                            telefonoSecundario: formData.telefonoSecundario,
-                            representanteLegal: formData.representanteLegal || '',
-                            ruc: formData.ruc || '',
-                            nombreEmpresa: formData.nombreEmpresa || '',
-                            direccionFiscal: formData.direccionFiscal || '',
-                            telefonoReferencia: formData.telefonoReferencia || '',
-                            correoEmpresa: formData.correoEmpresa || '',
-                            provinciaEmpresa: formData.provinciaEmpresa || '',
-                            cantonEmpresa: formData.cantonEmpresa || '',
-                            estadoMilitar: formData.estadoMilitar || '',
-                            codigoIssfa: formData.codigoIssfa || '',
-                            rango: formData.rango || '',
-                            usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
-                          };
+                          const clientDataForBackend = buildClientDataForBackend();
                           onSave(clientDataForBackend as any);
                         }}
                         disabled={!validateForm()}

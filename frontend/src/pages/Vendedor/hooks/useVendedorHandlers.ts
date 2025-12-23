@@ -3,6 +3,7 @@ import type { Client } from '../types';
 import { apiService } from '../../../services/api';
 import type { User } from '../../../types';
 import { useTiposClienteConfig } from '../../../contexts/TiposClienteContext';
+import { mapTipoIdentificacionToCode } from '../../../utils/typeMappers';
 
 /**
  * Hook para todos los handlers de eventos del módulo vendedor
@@ -198,22 +199,6 @@ export const useVendedorHandlers = (
   }, [selectedClient, selectedWeapon, precioModificado, cantidad, setClientWeaponAssignments, setCurrentPage, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad]);
 
   const handleClientDataConfirm = useCallback((formData: any) => {
-    const mapTipoIdentificacionToCode = (tipoIdentificacion: string | undefined): string => {
-      if (!tipoIdentificacion) return 'CED';
-      switch (tipoIdentificacion) {
-        case 'Cédula':
-        case 'Cédula de Identidad':
-        case 'CEDULA':
-          return 'CED';
-        case 'RUC':
-          return 'RUC';
-        case 'Pasaporte':
-          return 'PAS';
-        default:
-          return 'CED';
-      }
-    };
-    
     const respuestasMapeadas = formData.respuestas?.map((respuesta: any) => {
       const preguntaId = respuesta.questionId || respuesta.preguntaId || respuesta.id || null;
       return { ...respuesta, preguntaId };
@@ -234,7 +219,7 @@ export const useVendedorHandlers = (
     setCurrentPage('weaponSelection');
   }, [getCodigoTipoCliente, mapearProvinciaACodigo, provinciasCompletas, setClientFormData, setCurrentPage]);
 
-  const handleWeaponSelectionConfirm = useCallback(() => {
+  const handleWeaponSelectionConfirm = useCallback(async () => {
     if (!clientFormData && selectedClient) {
       setClientFormData(selectedClient);
     }
@@ -242,12 +227,40 @@ export const useVendedorHandlers = (
       alert('❌ Error: No hay datos del cliente. Por favor, completa el proceso desde el inicio.');
       return;
     }
+    
+    // Si el cliente ya existe (tiene ID) y hay arma seleccionada, guardar la reserva
+    const clienteActual = clientFormData || selectedClient;
+    if (clienteActual?.id && selectedWeapon) {
+      try {
+        console.log('🔫 Guardando reserva de arma para cliente:', clienteActual.id);
+        const precioTotal = precioModificado * cantidad;
+        await apiService.crearReservaArma(
+          parseInt(clienteActual.id.toString()),
+          parseInt(selectedWeapon.id.toString()),
+          cantidad,
+          precioModificado,
+          precioTotal
+        );
+        console.log('✅ Reserva de arma guardada exitosamente al confirmar selección');
+      } catch (error: any) {
+        console.error('❌ Error guardando reserva de arma:', error);
+        const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al guardar reserva';
+        alert(`⚠️ Error al guardar la reserva del arma: ${errorMessage}`);
+        return; // No continuar si falla guardar la reserva
+      }
+    } else {
+      console.log('⚠️ No se puede guardar reserva:', { 
+        clienteId: clienteActual?.id, 
+        tieneArma: !!selectedWeapon 
+      });
+    }
+    
     if (expoferiaActiva && clientFormData && !clientFormData.id) {
       setCurrentPage('seriesAssignment');
     } else {
       setCurrentPage('paymentForm');
     }
-  }, [clientFormData, selectedClient, expoferiaActiva, setClientFormData, setCurrentPage]);
+  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, expoferiaActiva, setClientFormData, setCurrentPage]);
 
   const handleBackToClientForm = useCallback(() => {
     if (clientFormData) {

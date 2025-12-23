@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Pedido de Armas - Grupo de Importación</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1in;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+            color: #000;
+            font-size: 11pt;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 6.5in;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24pt;
+            border-bottom: 2px solid #000;
+            padding-bottom: 12pt;
+        }
+
+        .title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 8pt;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 12pt;
+            margin-bottom: 4pt;
+        }
+
+        .info-section {
+            margin-bottom: 18pt;
+        }
+
+        .info-row {
+            margin-bottom: 8pt;
+        }
+
+        .info-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 180px;
+        }
+
+        .info-value {
+            display: inline-block;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 12pt;
+            margin: 18pt 0 10pt 0;
+            padding-bottom: 6pt;
+            border-bottom: 1px solid #000;
+            text-transform: uppercase;
+        }
+
+        .resumen-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 18pt;
+        }
+
+        .resumen-table th,
+        .resumen-table td {
+            border: 1px solid #000;
+            padding: 6pt;
+            text-align: left;
+        }
+
+        .resumen-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .resumen-table td {
+            text-align: center;
+        }
+
+        .armas-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 18pt;
+        }
+
+        .armas-table th,
+        .armas-table td {
+            border: 1px solid #000;
+            padding: 6pt;
+            text-align: left;
+            font-size: 10pt;
+        }
+
+        .armas-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .armas-table td {
+            vertical-align: top;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+
+        .footer {
+            margin-top: 30pt;
+            padding-top: 12pt;
+            border-top: 1px solid #000;
+            text-align: center;
+            font-size: 9pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">Pedido de Armas</div>
+            <div class="subtitle">Grupo de Importación</div>
+            <div class="subtitle" th:text="${fechaActual}">Fecha</div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-row">
+                <span class="info-label">Grupo de Importación:</span>
+                <span class="info-value" th:text="${grupo.nombre}">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Código del Grupo:</span>
+                <span class="info-value" th:text="${grupo.codigo}">-</span>
+            </div>
+            <div class="info-row" th:if="${licencia != null}">
+                <span class="info-label">Número de Licencia:</span>
+                <span class="info-value" th:text="${numeroLicencia}">-</span>
+            </div>
+            <div class="info-row" th:if="${licencia != null}">
+                <span class="info-label">Tipo de Licencia:</span>
+                <span class="info-value">Importación de Armas</span>
+            </div>
+        </div>
+
+        <div class="section-title">Armas para Importar</div>
+        <table class="armas-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%;">ORD.</th>
+                    <th style="width: 70%;">ARMAS PARA IMPORTAR</th>
+                    <th style="width: 22%;">CANT.</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="arma, iterStat : ${armas}" th:if="${armas != null and !armas.isEmpty()}">
+                    <td style="text-align: center;" th:text="${iterStat.index + 1}">1</td>
+                    <td>
+                        <div>
+                            Pistola Modelo, <span th:text="${arma.nombre}">-</span>
+                            <span th:if="${arma.calibre != null}">, Calibre <span th:text="${arma.calibre}">-</span></span>
+                            <span th:if="${arma.capacidad != null}">
+                                , con 2 alimentadoras de <span th:text="${arma.capacidad}">-</span> municiones
+                            </span>
+                        </div>
+                    </td>
+                    <td style="text-align: center;" th:text="${arma.cantidad}">1</td>
+                </tr>
+                <tr th:if="${armas == null or armas.isEmpty()}">
+                    <td colspan="3" style="text-align: center; padding: 20pt;">
+                        No hay armas registradas para este grupo de importación
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="footer">
+            <div>Documento generado el <span th:text="${fechaActual}">-</span></div>
+            <div style="margin-top: 8pt;">Este documento contiene la lista de armas solicitadas para importación según el grupo de importación definido.</div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -21,16 +21,22 @@ public class TipoDocumentoMapper {
             return null;
         }
 
-        return TipoDocumentoDTO.builder()
+        TipoDocumentoDTO.TipoDocumentoDTOBuilder builder = TipoDocumentoDTO.builder()
                 .id(entity.getId())
                 .nombre(entity.getNombre())
                 .descripcion(entity.getDescripcion())
                 .obligatorio(entity.getObligatorio())
-                .tipoProcesoId(entity.getTipoProceso().getId())
-                .tipoProcesoNombre(entity.getTipoProceso().getNombre())
                 .estado(entity.getEstado())
                 .urlDocumento(entity.getUrlDocumento())
-                .build();
+                .gruposImportacion(entity.getGruposImportacion());
+        
+        // Solo incluir tipoProceso si no es NULL (no es documento de grupos de importación)
+        if (entity.getTipoProceso() != null) {
+            builder.tipoProcesoId(entity.getTipoProceso().getId())
+                   .tipoProcesoNombre(entity.getTipoProceso().getNombre());
+        }
+        
+        return builder.build();
     }
 
     public TipoDocumento toEntity(TipoDocumentoDTO dto) {
@@ -45,9 +51,13 @@ public class TipoDocumentoMapper {
         entity.setObligatorio(dto.getObligatorio());
         entity.setEstado(dto.getEstado());
         entity.setUrlDocumento(dto.getUrlDocumento());
+        entity.setGruposImportacion(dto.getGruposImportacion() != null ? dto.getGruposImportacion() : false);
         
-        // Cargar TipoProceso si está presente
-        if (dto.getTipoProcesoId() != null) {
+        // Cargar TipoProceso solo si NO es documento de grupos de importación
+        // Si gruposImportacion = true, tipoProceso debe ser NULL
+        if (Boolean.TRUE.equals(dto.getGruposImportacion())) {
+            entity.setTipoProceso(null);
+        } else if (dto.getTipoProcesoId() != null) {
             TipoProceso tipoProceso = tipoProcesoRepository.findById(dto.getTipoProcesoId())
                     .orElseThrow(() -> new RuntimeException("TipoProceso no encontrado con ID: " + dto.getTipoProcesoId()));
             entity.setTipoProceso(tipoProceso);

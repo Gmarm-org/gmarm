@@ -18,4 +18,5 @@ public class TipoDocumentoDTO {
     private String tipoProcesoNombre;
     private Boolean estado;
     private String urlDocumento;
+    private Boolean gruposImportacion; // true si es para grupos de importación, false si es para clientes
 }

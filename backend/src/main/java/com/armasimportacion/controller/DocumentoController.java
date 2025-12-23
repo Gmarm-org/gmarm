@@ -133,12 +133,12 @@ public class DocumentoController {
     
     /**
      * Construye la ruta completa física para un documento de cliente
-     * Ruta en BD: "cliente_X/documentos20251006/archivo.pdf"
-     * Ruta física: "/app/documentacion/documentos_cliente/cliente_X/documentos20251006/archivo.pdf"
+     * Ruta en BD: "documentos_clientes/{cedula}/documentos_cargados/archivo.pdf" o "documentos_clientes/{cedula}/documentos_generados/archivo.pdf"
+     * Ruta física: "/app/documentacion/documentos_clientes/{cedula}/documentos_cargados/archivo.pdf"
      */
     private String construirRutaCompletaDocumentoCliente(String rutaBD) {
         // Si ya tiene el prefijo completo, devolverla tal cual
-        if (rutaBD.startsWith("/app/documentacion/documentos_cliente/")) {
+        if (rutaBD.startsWith("/app/documentacion/")) {
             return rutaBD;
         }
         
@@ -147,44 +147,41 @@ public class DocumentoController {
             return rutaBD;
         }
         
-        // Si la ruta ya incluye "documentos_cliente", solo agregar /app/
-        if (rutaBD.startsWith("documentos_cliente/")) {
+        // Si la ruta ya incluye "documentos_clientes", solo agregar /app/documentacion/
+        if (rutaBD.startsWith("documentos_clientes/")) {
             return "/app/documentacion/" + rutaBD;
         }
         
         // Agregar el prefijo base para documentos de cliente
-        return "/app/documentacion/documentos_cliente/" + rutaBD;
+        return "/app/documentacion/" + rutaBD;
     }
     
     /**
-     * Construye la ruta completa física para un documento generado (contrato)
-     * Ruta en BD: "documentacion/contratos_generados/cliente_X/"
-     * Nombre archivo: "contrato_1234567892_20251006_191319.pdf"
-     * Ruta física: "/app/documentacion/contratos_generados/cliente_X/contrato_1234567892_20251006_191319.pdf"
+     * Construye la ruta completa física para un documento generado
+     * Ruta en BD puede ser:
+     * - "documentos_clientes/{cedula}/documentos_generados/archivo.pdf" (clientes)
+     * - "documentos_importacion/{grupoId}/documentos_generados/archivo.pdf" (grupos)
+     * 
+     * IMPORTANTE: La ruta BD ya incluye el nombre del archivo.
+     * Usa el mismo patrón que FileStorageService: Paths.get(uploadDir, rutaBD)
+     * Esto funciona tanto en Windows (Docker) como en Ubuntu (Docker) porque el contenedor siempre es Linux
      */
     private String construirRutaCompletaDocumentoGenerado(String rutaBD, String nombreArchivo) {
-        String rutaCompleta;
-        
-        // Si la ruta ya es absoluta con /app/, usarla como base
+        // Si la ruta ya es absoluta con /app/, usarla tal cual
         if (rutaBD.startsWith("/app/")) {
-            rutaCompleta = rutaBD;
-        }
-        // Si la ruta empieza con "documentacion/", agregar /app/ al inicio
-        else if (rutaBD.startsWith("documentacion/")) {
-            rutaCompleta = "/app/" + rutaBD;
-        }
-        // En cualquier otro caso, asumir que falta todo el prefijo
-        else {
-            rutaCompleta = "/app/documentacion/contratos_generados/" + rutaBD;
+            return rutaBD;
         }
         
-        // Asegurar que la ruta termine con / antes de agregar el nombre del archivo
-        if (!rutaCompleta.endsWith("/")) {
-            rutaCompleta = rutaCompleta + "/";
-        }
+        // uploadDir por defecto es "./documentacion/documentos_cliente"
+        // El directorio de trabajo en Docker es /app
+        // Construir directamente: /app/documentacion/documentos_cliente/ + rutaBD
+        String uploadDirBase = "/app/documentacion/documentos_cliente/";
+        String rutaCompleta = uploadDirBase + rutaBD;
         
-        // Agregar el nombre del archivo
-        return rutaCompleta + nombreArchivo;
+        log.info("🔍 DEBUG: rutaBD={}, nombreArchivo={}, uploadDirBase={}, rutaCompleta={}", 
+            rutaBD, nombreArchivo, uploadDirBase, rutaCompleta);
+        
+        return rutaCompleta;
     }
     
     /**

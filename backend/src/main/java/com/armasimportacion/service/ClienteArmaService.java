@@ -11,6 +11,7 @@ import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import com.armasimportacion.service.InventarioService;
+import com.armasimportacion.service.DocumentoClienteService;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.enums.EstadoPago;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class ClienteArmaService {
     private final ArmaRepository armaRepository;
     private final GestionDocumentosServiceHelper documentosHelper;
     private final InventarioService inventarioService;
+    private final DocumentoClienteService documentoClienteService;
 
     /**
      * Crear una nueva reserva de arma para un cliente
@@ -64,14 +66,17 @@ public class ClienteArmaService {
             cantidad = 1;
         }
         
-        // Validar stock disponible
-        if (!inventarioService.tieneStockSuficiente(armaId, cantidad)) {
-            Integer stockDisponible = inventarioService.getStockDisponible(armaId);
-            throw new BadRequestException("Stock insuficiente. Disponible: " + stockDisponible + ", Solicitado: " + cantidad);
-        }
+        // NOTA: No validamos stock aquí porque estas son armas para importación
+        // que aún no están físicamente disponibles. Se reservan para el cliente
+        // y se importarán posteriormente.
+        log.info("📋 Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
         
-        // Reducir stock del inventario
-        inventarioService.reducirStock(armaId, cantidad);
+        // Validar que el cliente tenga todos sus documentos obligatorios completos y aprobados
+        boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(clienteId);
+        if (!documentosCompletos) {
+            throw new BadRequestException("El cliente no tiene todos sus documentos obligatorios completos. " +
+                    "Debe cargar y aprobar todos los documentos requeridos antes de seleccionar un arma.");
+        }
         
         // Crear la reserva
         ClienteArma clienteArma = new ClienteArma();
@@ -152,10 +157,9 @@ public class ClienteArmaService {
         clienteArma.cancelar();
         ClienteArma saved = clienteArmaRepository.save(clienteArma);
         
-        // Devolver stock al inventario
-        inventarioService.aumentarStock(clienteArma.getArma().getId(), clienteArma.getCantidad());
-        
-        log.info("Reserva cancelada exitosamente: {} - Stock devuelto: {}", id, clienteArma.getCantidad());
+        // NOTA: No devolvemos stock al inventario porque estas son armas para importación
+        // que aún no están físicamente disponibles (no tienen stock físico).
+        log.info("Reserva cancelada exitosamente: {} (proceso de importación - sin devolución de stock)", id);
         
         return convertirADTO(saved);
     }
@@ -241,11 +245,8 @@ public class ClienteArmaService {
         ClienteArma clienteArma = clienteArmaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con ID: " + id));
         
-        // Devolver stock al inventario si la reserva no está cancelada
-        if (!clienteArma.estaCancelada()) {
-            inventarioService.aumentarStock(clienteArma.getArma().getId(), clienteArma.getCantidad());
-            log.info("Stock devuelto al eliminar reserva: {}", clienteArma.getCantidad());
-        }
+        // NOTA: No devolvemos stock al inventario porque estas son armas para importación
+        // que aún no están físicamente disponibles (no tienen stock físico).
         
         clienteArmaRepository.deleteById(id);
         log.info("Reserva eliminada exitosamente: {}", id);

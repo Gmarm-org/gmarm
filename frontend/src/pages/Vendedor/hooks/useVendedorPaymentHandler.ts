@@ -24,6 +24,14 @@ export const useVendedorPaymentHandler = (
   setClientFormData: (data: any) => void
 ) => {
   const handlePaymentComplete = useCallback(async (paymentData: any) => {
+    // Prevenir múltiples submissions
+    if ((handlePaymentComplete as any).isProcessing) {
+      console.warn('⚠️ Ya hay un proceso de pago en ejecución, ignorando solicitud duplicada');
+      return;
+    }
+    
+    (handlePaymentComplete as any).isProcessing = true;
+    
     try {
       if (!clientFormData) {
         throw new Error('No hay datos del cliente para procesar');
@@ -128,18 +136,31 @@ export const useVendedorPaymentHandler = (
       
       const resultado = await apiService.createCliente(requestData as any);
       
+      // Si llegamos aquí, el cliente se creó exitosamente
+      const clienteId = (resultado as any).clienteId || resultado.id;
+      console.log('✅ Cliente creado exitosamente con ID:', clienteId);
+      
+      // Subir documentos (si hay) - estos errores no deben fallar todo el proceso
+      let erroresDocumentos = [];
       if (documentosUsuario && Object.keys(documentosUsuario).length > 0) {
-        const clienteId = (resultado as any).clienteId || resultado.id;
         for (const [tipoDocumentoId, file] of Object.entries(documentosUsuario)) {
           try {
             await apiService.cargarDocumentoCliente(clienteId, parseInt(tipoDocumentoId), file as File);
+            console.log(`✅ Documento ${tipoDocumentoId} subido exitosamente`);
           } catch (error) {
             console.error(`❌ Error subiendo documento ${tipoDocumentoId}:`, error);
+            erroresDocumentos.push(`documento ${tipoDocumentoId}`);
           }
         }
       }
       
-      alert('🎉 ¡Proceso completado exitosamente! Cliente, arma, plan de pago creados y contrato enviado por email.');
+      // Mostrar mensaje apropiado
+      if (erroresDocumentos.length > 0) {
+        alert(`⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos: ${erroresDocumentos.join(', ')}. Puedes subirlos más tarde desde la gestión de documentos.`);
+      } else {
+        alert('🎉 ¡Proceso completado exitosamente! Cliente, arma, plan de pago creados y contrato enviado por email.');
+      }
+      
       await loadClients(0);
       setCurrentPage('dashboard');
       setSelectedClient(null);
@@ -147,10 +168,28 @@ export const useVendedorPaymentHandler = (
       setPrecioModificado(0);
       setCantidad(1);
       setClientFormData(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error procesando pago:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      alert(`Error al crear el cliente: ${errorMessage}. El proceso se ha detenido y no se han guardado datos parciales.`);
+      
+      // Extraer mensaje de error del backend
+      let errorMessage = 'Error desconocido al crear el cliente';
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Si el error es de clave duplicada, mostrar mensaje más amigable
+      if (errorMessage.includes('duplicate key') || errorMessage.includes('Ya existe un cliente')) {
+        alert(`⚠️ Ya existe un cliente con estos datos.\n\n${errorMessage}\n\nSi acabas de crear el cliente, es posible que se haya duplicado el proceso. Verifica la lista de clientes.`);
+      } else {
+        alert(`❌ Error al crear el cliente: ${errorMessage}\n\nEl proceso se ha detenido y no se han guardado datos parciales.`);
+      }
+    } finally {
+      // Liberar el flag de procesamiento
+      (handlePaymentComplete as any).isProcessing = false;
     }
   }, [clientFormData, selectedWeapon, precioModificado, cantidad, user, selectedSerieNumeroRef, mapearProvinciaACodigo, provinciasCompletas, loadClients, setCurrentPage, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad, setClientFormData]);
 

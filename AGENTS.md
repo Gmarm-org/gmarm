@@ -1,5 +1,18 @@
 # AGENTS.md - Guías para Agentes de IA
 
+## 🚨 REGLA CRÍTICA - SIEMPRE RECORDAR
+
+**⚠️ CAMBIOS EN JAVA O TEMPLATES = REINICIAR SERVICIOS ⚠️**
+
+**NUNCA OLVIDAR**: Después de modificar cualquier:
+- **Clase Java** (`.java`) → `docker-compose -f docker-compose.local.yml restart backend_local`
+- **Template** (`.html`, `.ftl`, `.vm`) → `docker-compose -f docker-compose.local.yml restart backend_local`
+- **Configuración** (`.properties`, `.yml`) → `docker-compose -f docker-compose.local.yml restart backend_local`
+
+**Los cambios NO se reflejan automáticamente en contenedores Docker. SIEMPRE reiniciar.**
+
+---
+
 ## 🎯 Propósito
 Este archivo contiene las mejores prácticas y convenciones específicas del proyecto GMARM para agentes de IA que trabajen en este codebase.
 
@@ -568,9 +581,16 @@ docker-compose -f docker-compose.local.yml up -d --build
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-### 2. ⚠️ OBLIGATORIO: Reinicio Total Después de Cambios en Backend ⚠️
+### 2. ⚠️ OBLIGATORIO: Reinicio Total Después de Cambios en Backend o Templates ⚠️
 
-**🚨 REGLA CRÍTICA**: Después de CUALQUIER cambio en el backend (Java), DEBES reiniciar los servicios para que los cambios surtan efecto.
+**🚨 REGLA CRÍTICA - SIEMPRE APLICAR**: Después de CUALQUIER cambio en:
+- **Clases Java** (`.java` files) → **SIEMPRE REINICIAR BACKEND**
+- **Templates** (archivos de plantilla como `.html`, `.ftl`, `.vm`, etc.) → **SIEMPRE REINICIAR BACKEND**
+- **Archivos de configuración** (`.properties`, `.yml`, etc.) → **SIEMPRE REINICIAR BACKEND**
+
+**⚠️ NUNCA OLVIDAR**: Cualquier modificación en código Java o templates requiere reinicio de servicios Docker.
+
+**DEBES reiniciar los servicios** para que los cambios surtan efecto.
 
 ```powershell
 # Backend: Cambios en Java
@@ -587,16 +607,21 @@ docker-compose -f docker-compose.local.yml up -d --build
 ```
 
 **⚠️ IMPORTANTE**: 
-- Los cambios en `.java` NO se reflejan automáticamente en contenedores Docker
+- Los cambios en `.java` y **templates** (`.html`, `.ftl`, `.vm`, etc.) NO se reflejan automáticamente en contenedores Docker
 - `docker-compose restart` solo reinicia contenedores, NO reconstruye imágenes con código nuevo
 - Para cambios significativos, usa `down` + `up --build` para asegurar actualización completa
 
-**✅ Workflow Correcto para Cambios en Backend:**
-1. Modificar código Java
-2. Compilar: `mvn clean compile -DskipTests` (dentro de `backend/`)
-3. **Reiniciar servicios**: `docker-compose restart backend_local` o `down/up --build`
+**✅ Workflow Correcto para Cambios en Backend o Templates:**
+1. Modificar código Java o templates
+2. Compilar: `mvn clean compile -DskipTests` (dentro de `backend/`) - solo para Java
+3. **Reiniciar servicios**: `docker-compose -f docker-compose.local.yml restart backend_local` o `restart` completo
 4. Probar la funcionalidad
 5. Si funciona → commit y push
+
+**📝 NOTA IMPORTANTE**: 
+- **Clases Java** (`.java`) → Requieren compilación + reinicio
+- **Templates** (`.html`, `.ftl`, `.vm`) → Requieren reinicio (se cargan en memoria)
+- **Archivos de configuración** (`.properties`, `.yml`) → Requieren reinicio
 
 ### 3. Volúmenes Importantes
 ```yaml
@@ -1141,7 +1166,11 @@ Antes de implementar, pregúntate:
 
 ## ⚠️ Recordatorios Importantes
 
-1. **🚨 CRÍTICO: SIEMPRE reiniciar Docker después de cambios en Backend (obligatorio)**
+1. **🚨 CRÍTICO: SIEMPRE reiniciar Docker después de cambios en Backend (clases Java) o Templates (obligatorio)**
+   - **Cualquier cambio en `.java`** → **SIEMPRE REINICIAR BACKEND**
+   - **Cualquier cambio en templates** (`.html`, `.ftl`, `.vm`, etc.) → **SIEMPRE REINICIAR BACKEND**
+   - **Comando**: `docker-compose -f docker-compose.local.yml restart backend_local` o `restart` completo
+   - **⚠️ NUNCA OLVIDAR ESTO**: Los cambios en Java/templates NO se reflejan automáticamente en Docker
 2. **NO usar && en PowerShell, usar ; en su lugar**
 3. **Máximo 500 líneas por archivo/clase**
 4. **Actualizar SQL maestro, NO crear migraciones**

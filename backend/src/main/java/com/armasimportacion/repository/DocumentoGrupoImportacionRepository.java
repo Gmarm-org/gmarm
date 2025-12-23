@@ -2,6 +2,7 @@ package com.armasimportacion.repository;
 
 import com.armasimportacion.model.DocumentoGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
+import com.armasimportacion.model.TipoDocumento;
 import com.armasimportacion.enums.EstadoDocumentoGrupo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,18 +17,23 @@ public interface DocumentoGrupoImportacionRepository extends JpaRepository<Docum
     
     // Búsquedas básicas
     List<DocumentoGrupoImportacion> findByGrupoImportacion(GrupoImportacion grupoImportacion);
-    List<DocumentoGrupoImportacion> findByTipoDocumento(String tipoDocumento);
+    List<DocumentoGrupoImportacion> findByTipoDocumento(TipoDocumento tipoDocumento);
     List<DocumentoGrupoImportacion> findByEstado(EstadoDocumentoGrupo estado);
     
     // Documentos por grupo
     @Query("SELECT dgi FROM DocumentoGrupoImportacion dgi WHERE dgi.grupoImportacion.id = :grupoId")
     List<DocumentoGrupoImportacion> findByGrupoImportacionId(@Param("grupoId") Long grupoId);
     
-    // Documentos por grupo y tipo
-    @Query("SELECT dgi FROM DocumentoGrupoImportacion dgi WHERE dgi.grupoImportacion.id = :grupoId AND dgi.tipoDocumento = :tipoDocumento")
-    List<DocumentoGrupoImportacion> findByGrupoImportacionIdAndTipoDocumento(
+    // Documentos por grupo y tipo (por ID)
+    @Query("SELECT dgi FROM DocumentoGrupoImportacion dgi WHERE dgi.grupoImportacion.id = :grupoId AND dgi.tipoDocumento.id = :tipoDocumentoId")
+    List<DocumentoGrupoImportacion> findByGrupoImportacionIdAndTipoDocumentoId(
             @Param("grupoId") Long grupoId, 
-            @Param("tipoDocumento") String tipoDocumento);
+            @Param("tipoDocumentoId") Long tipoDocumentoId);
+    
+    // Documentos por grupo y tipo (por objeto)
+    List<DocumentoGrupoImportacion> findByGrupoImportacionAndTipoDocumento(
+            GrupoImportacion grupoImportacion, 
+            TipoDocumento tipoDocumento);
     
     // Documentos completos por grupo
     @Query("SELECT dgi FROM DocumentoGrupoImportacion dgi WHERE dgi.grupoImportacion.id = :grupoId AND dgi.estado = 'COMPLETO'")
@@ -38,7 +44,7 @@ public interface DocumentoGrupoImportacionRepository extends JpaRepository<Docum
     List<DocumentoGrupoImportacion> findPendientesByGrupoImportacionId(@Param("grupoId") Long grupoId);
     
     // Verificar existencia
-    boolean existsByGrupoImportacionAndTipoDocumento(GrupoImportacion grupoImportacion, String tipoDocumento);
+    boolean existsByGrupoImportacionAndTipoDocumento(GrupoImportacion grupoImportacion, TipoDocumento tipoDocumento);
     
     // Contar documentos por grupo
     @Query("SELECT COUNT(dgi) FROM DocumentoGrupoImportacion dgi WHERE dgi.grupoImportacion.id = :grupoId")

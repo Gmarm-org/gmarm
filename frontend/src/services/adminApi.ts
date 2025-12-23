@@ -791,10 +791,11 @@ export interface DocumentType {
   nombre: string;
   descripcion: string;
   obligatorio: boolean;
-  tipoProcesoId: number;
-  tipoProcesoNombre: string;
+  tipoProcesoId?: number;
+  tipoProcesoNombre?: string;
   estado: boolean;
   urlDocumento?: string;
+  gruposImportacion?: boolean; // true si es para grupos de importación, false si es para clientes
 }
 
 export const documentTypeApi = {
@@ -919,7 +920,8 @@ export interface SystemConfig {
 export interface TipoProceso {
   id: number;
   nombre: string;
-  descripcion: string;
+  codigo: string;
+  descripcion?: string;
   estado: boolean;
 }
 

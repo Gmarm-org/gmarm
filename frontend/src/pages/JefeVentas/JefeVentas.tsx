@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useJefeVentasExport } from './hooks/useJefeVentasExport';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
+import ImportGroupManagement from './components/ImportGroupManagement';
 
 interface StockArma {
   armaId: number;
@@ -27,7 +28,7 @@ interface ClienteConVendedor extends Client {
 
 const JefeVentas: React.FC = () => {
   const { user } = useAuth();
-  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'asignar' | 'series'>('clientes');
+  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'series'>('clientes');
   
   // Hook para exportación a Excel
   const { exportarClientesAExcel } = useJefeVentasExport();
@@ -312,17 +313,6 @@ const JefeVentas: React.FC = () => {
             }`}
           >
             📦 Importaciones
-          </button>
-          
-          <button
-            onClick={() => setVistaActual('asignar')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
-              vistaActual === 'asignar'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            🔗 Asignar Clientes
           </button>
           
           {/* Pestaña de Asignación de Series - Solo para SALES_CHIEF y FINANCE */}
@@ -1055,20 +1045,9 @@ const JefeVentas: React.FC = () => {
           </div>
         )}
 
-        {/* Contenido: Importaciones (Pendiente) */}
+        {/* Contenido: Importaciones */}
         {vistaActual === 'importaciones' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">📦 Gestión de Importaciones</h2>
-            <p className="text-gray-600">Módulo en desarrollo...</p>
-          </div>
-        )}
-
-        {/* Contenido: Asignar Clientes (Pendiente) */}
-        {vistaActual === 'asignar' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">🔗 Asignar Clientes a Importación</h2>
-            <p className="text-gray-600">Módulo en desarrollo...</p>
-          </div>
+          <ImportGroupManagement />
         )}
 
         {/* Contenido: Asignación de Series */}

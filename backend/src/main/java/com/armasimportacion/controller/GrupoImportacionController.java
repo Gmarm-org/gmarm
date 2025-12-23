@@ -1,0 +1,481 @@
+package com.armasimportacion.controller;
+
+import com.armasimportacion.dto.GrupoImportacionResumenDTO;
+import com.armasimportacion.dto.GrupoImportacionCreateDTO;
+import com.armasimportacion.enums.EstadoGrupoImportacion;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import com.armasimportacion.model.DocumentoGenerado;
+import com.armasimportacion.model.Usuario;
+import com.armasimportacion.security.JwtTokenProvider;
+import com.armasimportacion.service.GrupoImportacionService;
+import com.armasimportacion.service.UsuarioService;
+import com.armasimportacion.service.DocumentoClienteService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/grupos-importacion")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Grupos de Importación", description = "API para gestión de grupos de importación")
+// CORS configurado globalmente en SecurityConfig - NO usar @CrossOrigin(origins = "*") por seguridad
+public class GrupoImportacionController {
+
+    private final GrupoImportacionService grupoImportacionService;
+    private final UsuarioService usuarioService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final DocumentoClienteService documentoClienteService;
+
+    /**
+     * Obtiene el usuario actual desde el token JWT
+     */
+    private Long obtenerUsuarioId(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Token JWT requerido");
+        }
+        
+        String token = authHeader.substring(7);
+        String email = jwtTokenProvider.getUsernameFromToken(token);
+        if (email == null) {
+            throw new RuntimeException("Token JWT inválido");
+        }
+        
+        Usuario usuario = usuarioService.findByEmail(email);
+        return usuario.getId();
+    }
+
+    /**
+     * Define el pedido para un grupo de importación
+     * Genera el PDF "Pedido_Armas_Grupo_Importacion_AAAA_MM_DD" y cambia el estado
+     */
+    @PostMapping("/{id}/definir-pedido")
+    @Operation(summary = "Definir pedido", 
+               description = "Genera el documento PDF del pedido y cambia el estado del grupo a SOLICITAR_PROFORMA_FABRICA")
+    public ResponseEntity<Map<String, Object>> definirPedido(
+            @PathVariable @NotNull @Positive Long id,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            log.info("📋 Definiendo pedido para grupo ID: {}", id);
+            
+            Long usuarioId = obtenerUsuarioId(authHeader);
+            
+            DocumentoGenerado documento = grupoImportacionService.definirPedido(id, usuarioId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Pedido definido exitosamente");
+            response.put("documentoId", documento.getId());
+            response.put("nombreArchivo", documento.getNombreArchivo());
+            response.put("rutaArchivo", documento.getRutaArchivo());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Error definiendo pedido para grupo ID {}: {}", id, e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+    /**
+     * Obtiene un grupo de importación completo por ID
+     */
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener grupo de importación", 
+               description = "Obtiene la información completa de un grupo de importación por su ID")
+    public ResponseEntity<Map<String, Object>> obtenerGrupoImportacion(
+            @PathVariable @NotNull @Positive Long id) {
+        try {
+            log.info("📋 Obteniendo grupo de importación ID: {}", id);
+            
+            com.armasimportacion.model.GrupoImportacion grupo = 
+                grupoImportacionService.obtenerGrupoImportacion(id);
+            
+            Map<String, Object> grupoDTO = new HashMap<>();
+            grupoDTO.put("id", grupo.getId());
+            grupoDTO.put("nombre", grupo.getNombre());
+            grupoDTO.put("descripcion", grupo.getDescripcion());
+            grupoDTO.put("codigo", grupo.getCodigo());
+            grupoDTO.put("estado", grupo.getEstado());
+            grupoDTO.put("fechaInicio", grupo.getFechaInicio());
+            grupoDTO.put("fechaFin", grupo.getFechaFin());
+            grupoDTO.put("cupoTotal", grupo.getCupoTotal());
+            grupoDTO.put("cupoDisponible", grupo.getCupoDisponible());
+            grupoDTO.put("observaciones", grupo.getObservaciones());
+            grupoDTO.put("fechaCreacion", grupo.getFechaCreacion());
+            grupoDTO.put("fechaActualizacion", grupo.getFechaActualizacion());
+            
+            // Información de licencia
+            if (grupo.getLicencia() != null) {
+                Map<String, Object> licenciaInfo = new HashMap<>();
+                licenciaInfo.put("id", grupo.getLicencia().getId());
+                licenciaInfo.put("numero", grupo.getLicencia().getNumero());
+                licenciaInfo.put("nombre", grupo.getLicencia().getNombre());
+                grupoDTO.put("licencia", licenciaInfo);
+            } else {
+                grupoDTO.put("licencia", null);
+            }
+            
+            // Información de tipo de proceso (opcional)
+            if (grupo.getTipoProceso() != null) {
+                Map<String, Object> tipoProcesoInfo = new HashMap<>();
+                tipoProcesoInfo.put("id", grupo.getTipoProceso().getId());
+                tipoProcesoInfo.put("nombre", grupo.getTipoProceso().getNombre());
+                grupoDTO.put("tipoProceso", tipoProcesoInfo);
+            } else {
+                grupoDTO.put("tipoProceso", null);
+            }
+            
+            // Información de documentos generados (solo IDs para pedidos de armas)
+            // Forzar carga de documentos generados (lazy loading)
+            try {
+                if (grupo.getDocumentosGenerados() != null) {
+                    grupo.getDocumentosGenerados().size(); // Trigger lazy load
+                    List<Map<String, Object>> documentosInfo = grupo.getDocumentosGenerados().stream()
+                        .filter(doc -> doc.getTipoDocumento() == com.armasimportacion.enums.TipoDocumentoGenerado.PEDIDO_ARMAS_GRUPO_IMPORTACION)
+                        .map(doc -> {
+                            Map<String, Object> docInfo = new HashMap<>();
+                            docInfo.put("id", doc.getId());
+                            docInfo.put("nombreArchivo", doc.getNombreArchivo());
+                            docInfo.put("fechaGeneracion", doc.getFechaGeneracion());
+                            return docInfo;
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+                    grupoDTO.put("documentosGenerados", documentosInfo);
+                } else {
+                    grupoDTO.put("documentosGenerados", new java.util.ArrayList<>());
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ No se pudieron cargar los documentos generados para el grupo {}: {}", id, e.getMessage());
+                grupoDTO.put("documentosGenerados", new java.util.ArrayList<>());
+            }
+            
+            return ResponseEntity.ok(grupoDTO);
+        } catch (com.armasimportacion.exception.ResourceNotFoundException e) {
+            log.warn("⚠️ Grupo de importación no encontrado ID: {}", id);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Grupo de importación no encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo grupo de importación ID {}: {}", id, e.getClass().getSimpleName(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Error al obtener el grupo de importación");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
+     * Obtiene el resumen de un grupo de importación con conteo de clientes por tipo
+     */
+    @GetMapping("/{id}/resumen")
+    @Operation(summary = "Obtener resumen del grupo", 
+               description = "Obtiene el resumen del grupo con conteo de clientes por tipo")
+    public ResponseEntity<GrupoImportacionResumenDTO> obtenerResumen(
+            @PathVariable @NotNull @Positive Long id) {
+        try {
+            log.info("📊 Obteniendo resumen del grupo ID: {}", id);
+            
+            GrupoImportacionResumenDTO resumen = grupoImportacionService.obtenerResumenGrupo(id);
+            
+            return ResponseEntity.ok(resumen);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo resumen del grupo ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    /**
+     * Lista grupos de importación para Jefe de Ventas
+     * Incluye filtros por estado y búsqueda
+     */
+    @GetMapping("/jefe-ventas")
+    @Operation(summary = "Listar grupos para Jefe de Ventas", 
+               description = "Obtiene la lista de grupos de importación con resumen para Jefe de Ventas")
+    public ResponseEntity<Page<GrupoImportacionResumenDTO>> listarParaJefeVentas(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String busqueda,
+            Pageable pageable) {
+        try {
+            log.info("📋 Listando grupos para Jefe de Ventas - Estado: {}, Búsqueda: {}", estado, busqueda);
+            
+            // TODO: Implementar búsqueda y filtrado en el repositorio
+            // Por ahora retornamos todos los grupos activos
+            Page<com.armasimportacion.model.GrupoImportacion> grupos = 
+                grupoImportacionService.findAll(pageable);
+            
+            // Convertir a resúmenes
+            Page<GrupoImportacionResumenDTO> resumenes = grupos.map(g -> 
+                grupoImportacionService.obtenerResumenGrupo(g.getId())
+            );
+            
+            return ResponseEntity.ok(resumenes);
+        } catch (Exception e) {
+            log.error("❌ Error listando grupos para Jefe de Ventas: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Lista grupos de importación para Gestión de Importaciones (Finanzas/Jefe de Ventas)
+     * Solo grupos con estado NOTIFICAR_AGENTE_ADUANERO o EN_ESPERA_DOCUMENTOS_CLIENTE
+     */
+    @GetMapping("/gestion-importaciones")
+    @Operation(summary = "Listar grupos para Gestión de Importaciones", 
+               description = "Obtiene la lista de grupos de importación en estados avanzados para Finanzas/Jefe de Ventas")
+    public ResponseEntity<List<GrupoImportacionResumenDTO>> listarParaGestionImportaciones() {
+        try {
+            log.info("📋 Listando grupos para Gestión de Importaciones");
+            
+            // Obtener todos los grupos activos
+            List<com.armasimportacion.model.GrupoImportacion> grupos = 
+                grupoImportacionService.obtenerGruposActivos();
+            
+            // Filtrar solo los que están en estados avanzados
+            List<com.armasimportacion.model.GrupoImportacion> gruposGestion = grupos.stream()
+                .filter(g -> g.getEstado() == EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO ||
+                            g.getEstado() == EstadoGrupoImportacion.EN_ESPERA_DOCUMENTOS_CLIENTE)
+                .toList();
+            
+            // Convertir a resúmenes
+            List<GrupoImportacionResumenDTO> resumenes = gruposGestion.stream()
+                .map(g -> grupoImportacionService.obtenerResumenGrupo(g.getId()))
+                .toList();
+            
+            return ResponseEntity.ok(resumenes);
+        } catch (Exception e) {
+            log.error("❌ Error listando grupos para Gestión de Importaciones: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Verifica si un grupo puede definir pedido
+     */
+    @GetMapping("/{id}/puede-definir-pedido")
+    @Operation(summary = "Verificar si puede definir pedido", 
+               description = "Verifica si el grupo está en un estado válido para definir pedido")
+    public ResponseEntity<Map<String, Object>> puedeDefinirPedido(
+            @PathVariable @NotNull @Positive Long id) {
+        try {
+            boolean puedeDefinir = grupoImportacionService.verificarPuedeDefinirPedido(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("puedeDefinir", puedeDefinir);
+            response.put("mensaje", puedeDefinir ? 
+                "El grupo puede definir pedido" : 
+                "El grupo no está en un estado válido para definir pedido");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Error verificando si puede definir pedido: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
+     * Obtiene los clientes disponibles para asignar a grupos de importación
+     * (clientes que no están asignados a ningún grupo activo)
+     * IMPORTANTE: Este endpoint debe ir ANTES de /{id}/clientes para evitar conflictos de rutas
+     */
+    @GetMapping("/clientes-disponibles")
+    @Operation(summary = "Obtener clientes disponibles", 
+               description = "Retorna los clientes que no están asignados a ningún grupo de importación activo")
+    public ResponseEntity<List<Map<String, Object>>> obtenerClientesDisponibles() {
+        try {
+            log.info("🔍 Obteniendo clientes disponibles para asignar a grupos");
+            
+            List<com.armasimportacion.model.Cliente> clientes = 
+                grupoImportacionService.obtenerClientesDisponibles();
+            
+            List<Map<String, Object>> clientesDTO = clientes.stream().map(cliente -> {
+                Map<String, Object> clienteMap = new HashMap<>();
+                clienteMap.put("id", cliente.getId());
+                clienteMap.put("nombres", cliente.getNombres());
+                clienteMap.put("apellidos", cliente.getApellidos());
+                clienteMap.put("numeroIdentificacion", cliente.getNumeroIdentificacion());
+                clienteMap.put("email", cliente.getEmail());
+                clienteMap.put("telefonoPrincipal", cliente.getTelefonoPrincipal());
+                clienteMap.put("tipoCliente", cliente.getTipoCliente() != null ? 
+                    cliente.getTipoCliente().getNombre() : null);
+                
+                // Verificar si tiene documentos completos
+                boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(cliente.getId());
+                clienteMap.put("documentosCompletos", documentosCompletos);
+                
+                return clienteMap;
+            }).toList();
+            
+            log.info("✅ Retornando {} clientes disponibles", clientesDTO.size());
+            return ResponseEntity.ok(clientesDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo clientes disponibles: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Obtiene los clientes asignados a un grupo de importación
+     */
+    @GetMapping("/{id}/clientes")
+    @Operation(summary = "Obtener clientes del grupo", 
+               description = "Obtiene la lista de clientes asignados a un grupo de importación")
+    public ResponseEntity<List<Map<String, Object>>> obtenerClientesDelGrupo(
+            @PathVariable @NotNull @Positive Long id) {
+        try {
+            log.info("👥 Obteniendo clientes del grupo ID: {}", id);
+            
+            List<com.armasimportacion.model.ClienteGrupoImportacion> clientesGrupo = 
+                grupoImportacionService.obtenerClientesPorGrupo(id);
+            
+            List<Map<String, Object>> clientesDTO = clientesGrupo.stream().map(cg -> {
+                Map<String, Object> clienteMap = new HashMap<>();
+                clienteMap.put("id", cg.getId());
+                clienteMap.put("clienteId", cg.getCliente().getId());
+                clienteMap.put("clienteNombres", cg.getCliente().getNombres());
+                clienteMap.put("clienteApellidos", cg.getCliente().getApellidos());
+                clienteMap.put("clienteCedula", cg.getCliente().getNumeroIdentificacion());
+                clienteMap.put("estado", cg.getEstado());
+                clienteMap.put("fechaAsignacion", cg.getFechaAsignacion());
+                clienteMap.put("fechaCreacion", cg.getFechaCreacion());
+                
+                // Incluir estado de documentos para referencia
+                boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(cg.getCliente().getId());
+                clienteMap.put("documentosCompletos", documentosCompletos);
+                
+                return clienteMap;
+            }).toList();
+            
+            return ResponseEntity.ok(clientesDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo clientes del grupo ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Agrega un cliente a un grupo de importación
+     */
+    @PostMapping("/{id}/clientes/{clienteId}")
+    @Operation(summary = "Agregar cliente al grupo", 
+               description = "Agrega un cliente a un grupo de importación")
+    public ResponseEntity<Map<String, String>> agregarClienteAlGrupo(
+            @PathVariable @NotNull @Positive Long id,
+            @PathVariable @NotNull @Positive Long clienteId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            log.info("➕ Agregando cliente ID: {} al grupo ID: {}", clienteId, id);
+            
+            grupoImportacionService.agregarCliente(id, clienteId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Cliente agregado al grupo exitosamente");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Error agregando cliente al grupo: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+    /**
+     * Remueve un cliente de un grupo de importación
+     */
+    @DeleteMapping("/{id}/clientes/{clienteId}")
+    @Operation(summary = "Remover cliente del grupo", 
+               description = "Remueve un cliente de un grupo de importación")
+    public ResponseEntity<Map<String, String>> removerClienteDelGrupo(
+            @PathVariable @NotNull @Positive Long id,
+            @PathVariable @NotNull @Positive Long clienteId) {
+        try {
+            log.info("➖ Removiendo cliente ID: {} del grupo ID: {}", clienteId, id);
+            
+            grupoImportacionService.removerCliente(id, clienteId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Cliente removido del grupo exitosamente");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Error removiendo cliente del grupo: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+    /**
+     * Cambia el estado del grupo a "Notificar Agente Aduanero"
+     */
+    @PutMapping("/{id}/notificar-agente-aduanero")
+    @Operation(summary = "Notificar agente aduanero", 
+               description = "Cambia el estado del grupo a NOTIFICAR_AGENTE_ADUANERO")
+    public ResponseEntity<Map<String, String>> notificarAgenteAduanero(
+            @PathVariable @NotNull @Positive Long id,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            log.info("📢 Notificando agente aduanero para grupo ID: {}", id);
+            
+            Long usuarioId = obtenerUsuarioId(authHeader);
+            grupoImportacionService.cambiarEstado(id, EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO, usuarioId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Estado del grupo cambiado a 'Notificar Agente Aduanero' exitosamente");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Error notificando agente aduanero: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+    /**
+     * Crea un nuevo grupo de importación
+     */
+    @PostMapping
+    @Operation(summary = "Crear grupo de importación", 
+               description = "Crea un nuevo grupo de importación y bloquea la licencia asignada")
+    public ResponseEntity<Map<String, Object>> crearGrupo(
+            @Valid @RequestBody GrupoImportacionCreateDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            log.info("📝 Creando nuevo grupo de importación: {}", dto.getNombre());
+            
+            Long usuarioId = obtenerUsuarioId(authHeader);
+            com.armasimportacion.model.GrupoImportacion grupo = 
+                grupoImportacionService.crearGrupoDesdeDTO(dto, usuarioId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", grupo.getId());
+            response.put("nombre", grupo.getNombre());
+            response.put("codigo", grupo.getCodigo());
+            response.put("message", "Grupo de importación creado exitosamente");
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            log.error("❌ Error creando grupo de importación: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+}
+

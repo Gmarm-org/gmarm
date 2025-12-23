@@ -101,6 +101,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/arma-imagen/**").permitAll()
                 .requestMatchers("/api/autorizaciones/**").permitAll()
                 .requestMatchers("/api/contratos/**").permitAll()
+                .requestMatchers("/api/operaciones/**").permitAll() // TEMPORAL: Para desarrollo
+                .requestMatchers("/api/grupos-importacion/**").permitAll() // TEMPORAL: Para desarrollo
+                .requestMatchers("/api/licencia/**").permitAll() // TEMPORAL: Para desarrollo
+                .requestMatchers("/api/tipo-proceso/**").permitAll() // TEMPORAL: Para desarrollo
                 // Todos los demás endpoints requieren autenticación
                 .anyRequest().authenticated()
             )

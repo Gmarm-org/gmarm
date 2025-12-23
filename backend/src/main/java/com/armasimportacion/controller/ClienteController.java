@@ -8,6 +8,7 @@ import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.ClienteCompletoService;
 import com.armasimportacion.service.UsuarioService;
+import org.springframework.dao.DataIntegrityViolationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +85,20 @@ public class ClienteController {
         } catch (BadRequestException e) {
             log.error("Error al crear cliente: {}", e.getMessage());
             throw e;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("Error de integridad de datos al crear cliente: {}", e.getMessage());
+            // Si es un error de clave duplicada, convertirlo en BadRequestException
+            String mensaje = e.getMessage();
+            if (mensaje != null && mensaje.contains("duplicate key")) {
+                if (mensaje.contains("numero_identificacion")) {
+                    throw new BadRequestException("Ya existe un cliente con este número de identificación. Por favor, verifique los datos o use la opción de editar cliente existente.");
+                } else if (mensaje.contains("email")) {
+                    throw new BadRequestException("Ya existe un cliente con este email. Por favor, verifique los datos.");
+                } else {
+                    throw new BadRequestException("Error de datos duplicados: " + mensaje);
+                }
+            }
+            throw new BadRequestException("Error al crear cliente: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error inesperado al crear cliente: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

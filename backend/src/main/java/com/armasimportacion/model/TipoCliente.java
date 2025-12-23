@@ -92,7 +92,7 @@ public class TipoCliente {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "tipo_cliente_tipo_importacion",
+        name = "tipo_cliente_importacion",
         joinColumns = @JoinColumn(name = "tipo_cliente_id"),
         inverseJoinColumns = @JoinColumn(name = "tipo_importacion_id")
     )

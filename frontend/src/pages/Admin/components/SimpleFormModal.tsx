@@ -19,7 +19,7 @@ interface SimpleFormModalProps {
   title: string;
   fields: Field[];
   hideHeader?: boolean; // Opcional: ocultar header (cuando se usa dentro de otro contenedor)
-  customSection?: React.ReactNode; // Opcional: sección personalizada al final del formulario
+  customSection?: React.ReactNode | ((formData: any) => React.ReactNode); // Opcional: sección personalizada al final del formulario (puede ser función que recibe formData)
 }
 
 const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
@@ -95,29 +95,70 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
                   <input
                     type="checkbox"
                     checked={formData[field.key] || false}
-                    onChange={(e) => setFormData({ ...formData, [field.key]: e.target.checked })}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      const updatedData = { ...formData, [field.key]: newValue };
+                      
+                      // Si se marca gruposImportacion, limpiar tipoProcesoId automáticamente
+                      if (field.key === 'gruposImportacion' && newValue) {
+                        updatedData.tipoProcesoId = undefined;
+                      }
+                      
+                      setFormData(updatedData);
+                    }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     disabled={isReadOnly || field.disabled}
                   />
                   <span className="ml-2 text-sm text-gray-600">
                     {field.key === 'estado' ? 'Activo' : (formData[field.key] ? 'Sí' : 'No')}
                   </span>
+                  {field.key === 'gruposImportacion' && formData.gruposImportacion && (
+                    <span className="ml-2 text-xs text-purple-600 font-medium">
+                      (Tipo de Proceso se establecerá automáticamente como NULL)
+                    </span>
+                  )}
                 </div>
               ) : field.type === 'select' ? (
-                <select
-                  value={formData[field.key] || ''}
-                  onChange={(e) => setFormData({ ...formData, [field.key]: parseInt(e.target.value) || e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  required={field.required}
-                  disabled={isReadOnly || field.disabled}
-                >
-                  <option value="">Seleccionar...</option>
-                  {field.options?.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                <div>
+                  <select
+                    value={formData.gruposImportacion ? '' : (formData[field.key] || '')}
+                    onChange={(e) => {
+                      // No permitir cambiar si gruposImportacion está marcado
+                      if (!formData.gruposImportacion) {
+                        const value = e.target.value;
+                        const selectedValue = value === '' ? undefined : (isNaN(Number(value)) ? value : Number(value));
+                        setFormData({ ...formData, [field.key]: selectedValue });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                      formData.gruposImportacion 
+                        ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed' 
+                        : 'border-gray-300'
+                    }`}
+                    required={field.required && !formData.gruposImportacion} // No requerir si es para grupos
+                    disabled={isReadOnly || field.disabled || formData.gruposImportacion} // Deshabilitar si es para grupos
+                    style={formData.gruposImportacion ? { pointerEvents: 'none' } : {}}
+                  >
+                    <option value="">
+                      {formData.gruposImportacion ? '🚫 N/A (Documento para Grupos de Importación)' : 'Seleccionar...'}
                     </option>
-                  ))}
-                </select>
+                    {field.options?.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {formData.gruposImportacion && field.key === 'tipoProcesoId' && (
+                    <p className="mt-1 text-xs text-purple-600 font-medium">
+                      🔒 Este campo está bloqueado. El Tipo de Proceso se establecerá automáticamente como NULL porque el documento es para grupos de importación.
+                    </p>
+                  )}
+                  {!formData.gruposImportacion && field.key === 'tipoProcesoId' && field.required && !formData[field.key] && (
+                    <p className="mt-1 text-xs text-blue-600">
+                      ⚠️ Este campo es requerido para documentos de clientes.
+                    </p>
+                  )}
+                </div>
               ) : (
                 <input
                   type={field.type}
@@ -132,8 +173,8 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
             </div>
           ))}
 
-        {/* Sección personalizada (opcional) */}
-        {customSection}
+        {/* Sección personalizada (opcional) - puede ser función que recibe formData */}
+        {typeof customSection === 'function' ? customSection(formData) : customSection}
 
         {/* Botones */}
         <div className="flex justify-end space-x-3 pt-4 border-t">

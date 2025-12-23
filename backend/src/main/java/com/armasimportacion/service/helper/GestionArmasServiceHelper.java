@@ -64,22 +64,11 @@ public class GestionArmasServiceHelper {
             
             ClienteArma clienteArma = crearClienteArma(cliente, arma, armaData, numeroSerie);
             
-            // Validar y reducir stock ANTES de guardar la asignación
+            // NOTA: No validamos stock aquí porque estas son armas para importación
+            // que aún no están físicamente disponibles. Se reservan para el cliente
+            // y se importarán posteriormente.
             Integer cantidad = clienteArma.getCantidad();
-            log.info("🔍 Validando stock disponible para arma ID={}, cantidad solicitada={}", armaId, cantidad);
-            
-            if (!inventarioService.tieneStockSuficiente(armaId, cantidad)) {
-                Integer stockDisponible = inventarioService.getStockDisponible(armaId);
-                log.error("❌ Stock insuficiente para arma '{}'. Disponible: {}, Solicitado: {}", 
-                    arma.getNombre(), stockDisponible, cantidad);
-                throw new RuntimeException("Stock insuficiente para arma: " + arma.getNombre() + 
-                    ". Disponible: " + stockDisponible + ", Solicitado: " + cantidad);
-            }
-            
-            // Reducir stock del inventario
-            log.info("📦 Reduciendo stock de arma ID={}, cantidad={}", armaId, cantidad);
-            inventarioService.reducirStock(armaId, cantidad);
-            log.info("✅ Stock reducido exitosamente para arma '{}'", arma.getNombre());
+            log.info("📋 Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
             
             // CRÍTICO: Guardar ClienteArma PRIMERO antes de asignar la serie
             ClienteArma clienteArmaGuardado = clienteArmaRepository.save(clienteArma);

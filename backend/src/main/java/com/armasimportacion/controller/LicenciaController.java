@@ -1,6 +1,7 @@
 package com.armasimportacion.controller;
 
 import com.armasimportacion.dto.LicenciaDTO;
+import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import com.armasimportacion.mapper.LicenciaMapper;
 import com.armasimportacion.model.Licencia;
 import com.armasimportacion.repository.LicenciaRepository;
@@ -36,6 +37,18 @@ public class LicenciaController {
                 .map(licenciaMapper::toDTO)
                 .collect(Collectors.toList());
         log.info("✅ Licencias encontradas: {}", licenciaDTOs.size());
+        return ResponseEntity.ok(licenciaDTOs);
+    }
+
+    @GetMapping("/disponibles")
+    @Operation(summary = "Obtener licencias disponibles", description = "Retorna las licencias que están activas y disponibles (no bloqueadas)")
+    public ResponseEntity<List<LicenciaDTO>> getLicenciasDisponibles() {
+        log.info("📋 GET /api/licencia/disponibles - Obteniendo licencias disponibles");
+        List<Licencia> licencias = licenciaRepository.findByEstadoAndEstadoOcupacion(true, EstadoOcupacionLicencia.DISPONIBLE);
+        List<LicenciaDTO> licenciaDTOs = licencias.stream()
+                .map(licenciaMapper::toDTO)
+                .collect(Collectors.toList());
+        log.info("✅ Licencias disponibles encontradas: {}", licenciaDTOs.size());
         return ResponseEntity.ok(licenciaDTOs);
     }
 

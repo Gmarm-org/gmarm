@@ -27,15 +27,15 @@ public class FileStorageService {
         "pdf", "jpg", "jpeg", "png", "doc", "docx"
     };
 
-    public String storeClientDocument(Long clienteId, Long tipoDocumentoId, MultipartFile file) throws IOException {
+    public String storeClientDocument(String numeroIdentificacion, Long tipoDocumentoId, MultipartFile file) throws IOException {
         // Validar archivo
         validateFile(file);
 
-        // Crear estructura de directorios para documentos de cliente
-        String relativePath = createClientDocumentStructure(clienteId, tipoDocumentoId);
+        // Crear estructura: documentos_clientes/{cedula}/documentos_cargados/
+        String relativePath = String.format("documentos_clientes/%s/documentos_cargados", numeroIdentificacion);
         
         // Generar nombre único basado en el nombre original del usuario
-        String fileName = generateUniqueFileNameFromOriginal(file.getOriginalFilename(), clienteId);
+        String fileName = generateUniqueFileNameFromOriginal(file.getOriginalFilename(), numeroIdentificacion);
         
         // Ruta completa del archivo
         Path filePath = Paths.get(uploadDir, relativePath, fileName);
@@ -100,24 +100,14 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Crear estructura de directorios para documentos de cliente
-     */
-    private String createClientDocumentStructure(Long clienteId, Long tipoDocumentoId) {
-        LocalDateTime now = LocalDateTime.now();
-        String datePath = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        
-        return String.format("cliente_%d/documentos%s", 
-            clienteId, datePath);
-    }
     
     /**
-     * Crear estructura de directorios para contratos
+     * Crear estructura de directorios para contratos (deprecated - usar guardarDocumentoGeneradoCliente)
      */
-    public String storeContractDocument(Long clienteId, MultipartFile file) throws IOException {
+    public String storeContractDocument(String numeroIdentificacion, MultipartFile file) throws IOException {
         validateFile(file);
         
-        String relativePath = String.format("cliente_%d/contratos", clienteId);
+        String relativePath = String.format("documentos_clientes/%s/documentos_generados", numeroIdentificacion);
         String fileName = generateUniqueFileName(file.getOriginalFilename());
         
         Path filePath = Paths.get(uploadDir, relativePath, fileName);
@@ -130,14 +120,13 @@ public class FileStorageService {
     }
     
     /**
-     * Crear estructura de directorios para documentos de importación
+     * Crear estructura de directorios para documentos de importación (deprecated - usar storeGrupoImportacionDocument)
+     * Estructura: documentos_importacion/generales/documentos_cargados/
      */
     public String storeImportDocument(MultipartFile file) throws IOException {
         validateFile(file);
         
-        LocalDateTime now = LocalDateTime.now();
-        String datePath = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String relativePath = String.format("importacion%s", datePath);
+        String relativePath = "documentos_importacion/generales/documentos_cargados";
         
         String fileName = generateUniqueFileName(file.getOriginalFilename());
         
@@ -151,17 +140,38 @@ public class FileStorageService {
     }
 
     /**
+     * Guarda un documento de grupo de importación
+     * Estructura: documentos_importacion/{grupoId}/documentos_cargados/
+     */
+    public String storeGrupoImportacionDocument(Long grupoId, Long tipoDocumentoId, MultipartFile file) throws IOException {
+        validateFile(file);
+        
+        // Crear estructura: documentos_importacion/{grupoId}/documentos_cargados/
+        String relativePath = String.format("documentos_importacion/%d/documentos_cargados", grupoId);
+        
+        String fileName = generateUniqueFileName(file.getOriginalFilename());
+        
+        Path filePath = Paths.get(uploadDir, relativePath, fileName);
+        Files.createDirectories(filePath.getParent());
+        Files.copy(file.getInputStream(), filePath);
+        
+        log.info("Documento de grupo de importación guardado: {}", filePath);
+        
+        return Paths.get(relativePath, fileName).toString().replace("\\", "/");
+    }
+
+    /**
      * Genera un nombre único basado en el nombre original del archivo del usuario
      */
-    private String generateUniqueFileNameFromOriginal(String originalFilename, Long clienteId) {
+    private String generateUniqueFileNameFromOriginal(String originalFilename, String identificador) {
         String extension = getFileExtension(originalFilename);
         String baseName = originalFilename.substring(0, originalFilename.lastIndexOf('.'));
         
         // Generar timestamp único para evitar conflictos
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         
-        // Generar nombre: nombreOriginal_clienteId_timestamp.extension
-        return String.format("%s_%d_%s.%s", baseName, clienteId, timestamp, extension);
+        // Generar nombre: nombreOriginal_identificador_timestamp.extension
+        return String.format("%s_%s_%s.%s", baseName, identificador, timestamp, extension);
     }
     
     private String generateClientDocumentFileName(Long clienteId, Long tipoDocumentoId, String originalFilename) {
@@ -241,6 +251,50 @@ public class FileStorageService {
         Files.write(filePath, contenido);
         
         log.info("Archivo generado guardado: {}", filePath);
+        
+        return relativePath + "/" + nombreArchivo;
+    }
+
+    /**
+     * Guarda un documento generado para un grupo de importación
+     * Estructura: documentos_importacion/{grupoId}/documentos_generados/{nombreArchivo}
+     */
+    public String guardarDocumentoGeneradoGrupoImportacion(Long grupoId, byte[] contenido, String nombreArchivo) throws IOException {
+        // Crear estructura: documentos_importacion/{grupoId}/documentos_generados/
+        String relativePath = String.format("documentos_importacion/%d/documentos_generados", grupoId);
+        
+        // Ruta completa del archivo
+        Path filePath = Paths.get(uploadDir, relativePath, nombreArchivo);
+        
+        // Crear directorios si no existen
+        Files.createDirectories(filePath.getParent());
+        
+        // Guardar archivo
+        Files.write(filePath, contenido);
+        
+        log.info("Documento generado de grupo de importación guardado: {}", filePath);
+        
+        return relativePath + "/" + nombreArchivo;
+    }
+
+    /**
+     * Guarda un documento generado para un cliente
+     * Estructura: documentos_clientes/{numeroIdentificacion}/documentos_generados/{nombreArchivo}
+     */
+    public String guardarDocumentoGeneradoCliente(String numeroIdentificacion, byte[] contenido, String nombreArchivo) throws IOException {
+        // Crear estructura: documentos_clientes/{numeroIdentificacion}/documentos_generados/
+        String relativePath = String.format("documentos_clientes/%s/documentos_generados", numeroIdentificacion);
+        
+        // Ruta completa del archivo
+        Path filePath = Paths.get(uploadDir, relativePath, nombreArchivo);
+        
+        // Crear directorios si no existen
+        Files.createDirectories(filePath.getParent());
+        
+        // Guardar archivo
+        Files.write(filePath, contenido);
+        
+        log.info("Documento generado de cliente guardado: {}", filePath);
         
         return relativePath + "/" + nombreArchivo;
     }
