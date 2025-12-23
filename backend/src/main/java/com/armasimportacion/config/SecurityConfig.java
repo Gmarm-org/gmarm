@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 import com.armasimportacion.security.JwtTokenProvider;
@@ -54,6 +55,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
+                // Permitir OPTIONS para todos los endpoints (preflight CORS)
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Endpoints públicos
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/me").permitAll()
@@ -120,7 +123,12 @@ public class SecurityConfig {
         // Obtener orígenes permitidos desde variables de entorno
         String allowedOrigins = System.getenv("SPRING_CORS_ALLOWED_ORIGINS");
         if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
-            configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+            // Limpiar espacios y dividir por comas
+            String[] origins = allowedOrigins.split(",");
+            for (int i = 0; i < origins.length; i++) {
+                origins[i] = origins[i].trim();
+            }
+            configuration.setAllowedOriginPatterns(Arrays.asList(origins));
         } else {
             // Valores por defecto para desarrollo local
             configuration.setAllowedOriginPatterns(Arrays.asList(
@@ -134,7 +142,12 @@ public class SecurityConfig {
         // Obtener métodos permitidos desde variables de entorno
         String allowedMethods = System.getenv("SPRING_CORS_ALLOWED_METHODS");
         if (allowedMethods != null && !allowedMethods.trim().isEmpty()) {
-            configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
+            // Limpiar espacios y dividir por comas
+            String[] methods = allowedMethods.split(",");
+            for (int i = 0; i < methods.length; i++) {
+                methods[i] = methods[i].trim();
+            }
+            configuration.setAllowedMethods(Arrays.asList(methods));
         } else {
             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
         }
@@ -142,13 +155,28 @@ public class SecurityConfig {
         // Obtener headers permitidos desde variables de entorno
         String allowedHeaders = System.getenv("SPRING_CORS_ALLOWED_HEADERS");
         if (allowedHeaders != null && !allowedHeaders.trim().isEmpty()) {
-            configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+            if (allowedHeaders.trim().equals("*")) {
+                configuration.setAllowedHeaders(Arrays.asList("*"));
+            } else {
+                // Limpiar espacios y dividir por comas
+                String[] headers = allowedHeaders.split(",");
+                for (int i = 0; i < headers.length; i++) {
+                    headers[i] = headers[i].trim();
+                }
+                configuration.setAllowedHeaders(Arrays.asList(headers));
+            }
         } else {
             configuration.setAllowedHeaders(Arrays.asList("*"));
         }
         
+        // Headers que el frontend puede leer
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        
+        // IMPORTANTE: Para que CORS funcione con orígenes específicos, allowCredentials debe ser false
+        // o usar allowedOrigins (no patterns) si necesitas credentials
         configuration.setAllowCredentials(false);
+        
+        // Cache del preflight request: 1 hora
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
