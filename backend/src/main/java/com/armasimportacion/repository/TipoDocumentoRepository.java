@@ -19,4 +19,11 @@ public interface TipoDocumentoRepository extends JpaRepository<TipoDocumento, Lo
     List<TipoDocumento> findByNombreAndTipoProcesoId(String nombre, Long tipoProcesoId);
     
     List<TipoDocumento> findByTipoProcesoIdAndObligatorioTrue(Long tipoProcesoId);
+    
+    // Método para obtener documentos de clientes (excluyendo documentos de grupos de importación)
+    List<TipoDocumento> findByTipoProcesoIdAndEstadoAndGruposImportacionFalse(Long tipoProcesoId, Boolean estado);
+    
+    List<TipoDocumento> findByGruposImportacion(Boolean gruposImportacion);
+    
+    List<TipoDocumento> findByGruposImportacionAndEstado(Boolean gruposImportacion, Boolean estado);
 }

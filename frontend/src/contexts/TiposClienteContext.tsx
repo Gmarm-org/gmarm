@@ -80,14 +80,35 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
       throw new Error('Tipo de cliente no proporcionado');
     }
     
-    if (!config[tipoCliente]) {
-      console.error('❌ getCodigoTipoCliente: No se encontró configuración para:', tipoCliente);
-      console.error('❌ Configuración disponible:', Object.keys(config));
-      throw new Error(`No se encontró configuración para el tipo de cliente: ${tipoCliente}`);
+    // Si la configuración está cargada, usarla
+    if (config[tipoCliente]) {
+      console.log(`✅ getCodigoTipoCliente: ${tipoCliente} → ${config[tipoCliente].codigo}`);
+      return config[tipoCliente].codigo;
     }
     
-    console.log(`✅ getCodigoTipoCliente: ${tipoCliente} → ${config[tipoCliente].codigo}`);
-    return config[tipoCliente].codigo;
+    // Fallback: mapeo manual si la configuración aún no está cargada (basado en BD)
+    const fallbackMap: Record<string, string> = {
+      'Civil': 'CIV',
+      'Militar Fuerza Terrestre': 'MIL',
+      'Militar Fuerza Naval': 'NAV',
+      'Militar Fuerza Aérea': 'AER',
+      'Militar Expoferia': 'EXP',
+      'Uniformado Policial': 'POL',
+      'Compañía de Seguridad': 'EMP',
+      'Deportista': 'DEP'
+    };
+    
+    const normalizedTipo = tipoCliente.trim();
+    if (fallbackMap[normalizedTipo]) {
+      console.warn(`⚠️ getCodigoTipoCliente: Usando mapeo de respaldo para "${tipoCliente}" → ${fallbackMap[normalizedTipo]} (configuración aún no cargada)`);
+      return fallbackMap[normalizedTipo];
+    }
+    
+    // Si no hay mapeo de respaldo y no está cargada la configuración, lanzar error
+    console.error('❌ getCodigoTipoCliente: No se encontró configuración para:', tipoCliente);
+    console.error('❌ Configuración disponible:', Object.keys(config));
+    console.error('❌ Loading:', loading);
+    throw new Error(`No se encontró configuración para el tipo de cliente: ${tipoCliente}. La configuración aún está cargando: ${loading}`);
   };
 
   const requiereCodigoIssfa = (tipoCliente: string | undefined): boolean => {

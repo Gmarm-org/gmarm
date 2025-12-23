@@ -1,146 +1,174 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import type { ImportGroup, Client, License } from '../types';
-import { mockImportGroups, mockClients, mockLicenses } from '../HardcodedData';
+import { apiService } from '../../../services/api';
+import ModalCrearGrupo from './ModalCrearGrupo';
+import GrupoImportacionDetalleModal from './GrupoImportacionDetalleModal';
+import AgregarClientesModal from './AgregarClientesModal';
+
+interface GrupoImportacionResumen {
+  grupoId: number;
+  grupoNombre: string;
+  grupoCodigo: string;
+  clientesCiviles: number;
+  clientesUniformados: number;
+  clientesEmpresas: number;
+  clientesDeportistas: number;
+  totalClientes: number;
+  fechaUltimaActualizacion: string;
+  cupoCivilTotal?: number;
+  cupoCivilDisponible?: number;
+  cupoCivilRestante?: number;
+}
+
+interface GrupoImportacion {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  estado: string;
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+  licencia?: {
+    id: number;
+    numero: string;
+    nombre?: string;
+  };
+  documentosGenerados?: Array<{
+    id: number;
+    nombreArchivo: string;
+    fechaGeneracion: string;
+  }>;
+}
 
 const ImportGroupManagement: React.FC = () => {
-  const navigate = useNavigate();
-  const [importGroups, setImportGroups] = useState<ImportGroup[]>([]);
-  const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
-  const [readyClients, setReadyClients] = useState<Client[]>([]);
+  const [grupos, setGrupos] = useState<GrupoImportacionResumen[]>([]);
+  const [gruposCompletos, setGruposCompletos] = useState<GrupoImportacion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<ImportGroup | null>(null);
-  const [newGroup, setNewGroup] = useState({
-    nombre: '',
-    descripcion: '',
-    fechaInicio: '',
-    fechaFin: '',
-    licenciaId: null as number | null
-  });
-
-  // Obtener licencias disponibles (no asignadas a grupos activos)
-  const getAvailableLicenses = () => {
-    const usedLicenseIds = importGroups
-      .filter(group => group.estado === 'ACTIVO' || group.estado === 'EN_PROCESO')
-      .map(group => group.licenciaAsignada?.id)
-      .filter(id => id !== undefined);
-
-    return mockLicenses.filter(license => 
-      license.estado === 'ACTIVA' && 
-      !usedLicenseIds.includes(license.id) &&
-      license.cupoDisponible && license.cupoDisponible > 0
-    );
-  };
-
-  // Obtener clientes listos para importación
-  const getReadyClients = () => {
-    return mockClients.filter(client => 
-      client.estadoProcesoVentas === 'LISTO_IMPORTACION' &&
-      !importGroups.some(group => 
-        group.clientesAsignados.some(assignedClient => assignedClient.id === client.id)
-      )
-    );
-  };
+  const [puedeDefinirPedido, setPuedeDefinirPedido] = useState<Record<number, boolean>>({});
+  const [definiendoPedido, setDefiniendoPedido] = useState<number | null>(null);
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState<number | null>(null);
+  const [mostrarAgregarClientes, setMostrarAgregarClientes] = useState<number | null>(null);
+  const [mostrarCrearGrupo, setMostrarCrearGrupo] = useState(false);
+  const [documentoGenerado, setDocumentoGenerado] = useState<{
+    documentoId: number;
+    nombreArchivo: string;
+    grupoId: number;
+  } | null>(null);
 
   useEffect(() => {
-    // Simular carga de datos
-    setTimeout(() => {
-      setImportGroups(mockImportGroups);
-      setAvailableLicenses(getAvailableLicenses());
-      setReadyClients(getReadyClients());
-      setLoading(false);
-    }, 1000);
+    cargarGrupos();
   }, []);
 
-  // Actualizar licencias disponibles cuando cambien los grupos
-  useEffect(() => {
-    setAvailableLicenses(getAvailableLicenses());
-    setReadyClients(getReadyClients());
-  }, [importGroups]);
+  const cargarGrupos = async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.getGruposParaJefeVentas(0, 100);
+      const resumenes = Array.isArray(response) ? response : (response as any)?.content || (response as any)?.data || [];
+      
+      setGrupos(resumenes || []);
 
-  const handleCreateGroup = () => {
-    if (!newGroup.nombre || !newGroup.fechaInicio || !newGroup.fechaFin || !newGroup.licenciaId) {
-      alert('Por favor completa todos los campos obligatorios');
-      return;
-    }
+      const gruposCompletosPromises = resumenes.map(async (resumen: GrupoImportacionResumen) => {
+        try {
+          const grupoCompleto = await apiService.getGrupoImportacion(resumen.grupoId);
+          return grupoCompleto;
+        } catch {
+          return null;
+        }
+      });
 
-    const selectedLicense = availableLicenses.find(l => l.id === newGroup.licenciaId);
-    if (!selectedLicense) {
-      alert('Licencia no válida');
-      return;
-    }
+      const gruposCompletosData = (await Promise.all(gruposCompletosPromises)).filter((g: GrupoImportacion | null): g is GrupoImportacion => g !== null);
+      setGruposCompletos(gruposCompletosData);
 
-    const newImportGroup: ImportGroup = {
-      id: importGroups.length + 1,
-      codigo: `IMP-${new Date().getFullYear()}-${String(importGroups.length + 1).padStart(3, '0')}`,
-      nombre: newGroup.nombre,
-      descripcion: newGroup.descripcion,
-      estado: 'ACTIVO',
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      fechaInicio: newGroup.fechaInicio,
-      fechaFin: newGroup.fechaFin,
-      licenciaAsignada: selectedLicense,
-      clientesAsignados: [],
-      cuposDisponibles: {
-        civil: selectedLicense.cupoCivil || 0,
-        militar: selectedLicense.cupoMilitar || 0,
-        empresa: selectedLicense.cupoEmpresa || 0,
-        deportista: selectedLicense.cupoDeportista || 0
-      },
-      cuposUtilizados: {
-        civil: 0,
-        militar: 0,
-        empresa: 0,
-        deportista: 0
-      },
-      cuposRestantes: {
-        civil: selectedLicense.cupoCivil || 0,
-        militar: selectedLicense.cupoMilitar || 0,
-        empresa: selectedLicense.cupoEmpresa || 0,
-        deportista: selectedLicense.cupoDeportista || 0
+      const puedeDefinirPromises = resumenes.map(async (resumen: GrupoImportacionResumen) => {
+        try {
+          const resultado = await apiService.puedeDefinirPedido(resumen.grupoId);
+          return { grupoId: resumen.grupoId, puede: resultado.puedeDefinir };
+        } catch {
+          return { grupoId: resumen.grupoId, puede: false };
+        }
+      });
+
+      const resultados = await Promise.all(puedeDefinirPromises);
+      const puedeDefinirMap: Record<number, boolean> = {};
+      resultados.forEach((r: { grupoId: number; puede: boolean }) => {
+        puedeDefinirMap[r.grupoId] = r.puede;
+      });
+      setPuedeDefinirPedido(puedeDefinirMap);
+    } catch (error: any) {
+      if (error?.message?.includes('404') || error?.message?.includes('Not Found')) {
+        setGrupos([]);
+        console.log('No hay grupos de importación disponibles');
+      } else {
+        console.error('Error cargando grupos:', error);
+        if (!error?.message?.includes('403')) {
+          alert('Error al cargar los grupos de importación');
+        }
       }
-    };
-
-    setImportGroups(prev => [...prev, newImportGroup]);
-    setNewGroup({
-      nombre: '',
-      descripcion: '',
-      fechaInicio: '',
-      fechaFin: '',
-      licenciaId: null
-    });
-    setShowCreateModal(false);
-    setSelectedGroup(newImportGroup);
-  };
-
-
-
-  const handleFinishGroup = () => {
-    if (!selectedGroup) return;
-
-    const updatedGroup = {
-      ...selectedGroup,
-      estado: 'COMPLETADO'
-    };
-
-    setImportGroups(prev => prev.map(group => 
-      group.id === selectedGroup.id ? updatedGroup : group
-    ));
-    setSelectedGroup(null);
-  };
-
-  const getStatusBadge = (estado: string) => {
-    switch (estado) {
-      case 'ACTIVO':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Activo</span>;
-      case 'EN_PROCESO':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">En Proceso</span>;
-      case 'COMPLETADO':
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">Completado</span>;
-      default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">{estado}</span>;
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleDefinirPedido = async (grupoId: number) => {
+    if (!confirm('¿Estás seguro de definir el pedido? Esto generará el documento PDF y cambiará el estado del grupo.')) {
+      return;
+    }
+
+    try {
+      setDefiniendoPedido(grupoId);
+      const resultado = await apiService.definirPedido(grupoId);
+      setDocumentoGenerado({
+        documentoId: resultado.documentoId,
+        nombreArchivo: resultado.nombreArchivo,
+        grupoId: grupoId
+      });
+      cargarGrupos();
+    } catch (error: any) {
+      console.error('Error definiendo pedido:', error);
+      alert(error.message || 'Error al definir el pedido');
+    } finally {
+      setDefiniendoPedido(null);
+    }
+  };
+
+  const verPDF = (documentoId: number) => {
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${documentoId}`;
+    window.open(url, '_blank');
+  };
+
+  const descargarPDF = (documentoId: number, nombreArchivo: string) => {
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${documentoId}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getEstadoBadge = (estado: string) => {
+    const estados: Record<string, { bg: string; text: string; label: string }> = {
+      'BORRADOR': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Borrador' },
+      'EN_PREPARACION': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'En Preparación' },
+      'EN_PROCESO_ASIGNACION_CLIENTES': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Asignando Clientes' },
+      'SOLICITAR_PROFORMA_FABRICA': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Solicitar Proforma' },
+      'EN_PROCESO_OPERACIONES': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'En Operaciones' },
+      'NOTIFICAR_AGENTE_ADUANERO': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Notificar Agente' },
+      'EN_ESPERA_DOCUMENTOS_CLIENTE': { bg: 'bg-pink-100', text: 'text-pink-800', label: 'Esperando Documentos' },
+      'COMPLETADO': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completado' },
+      'CANCELADO': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelado' },
+      'SUSPENDIDO': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Suspendido' },
+    };
+
+    const estadoConfig = estados[estado] || { bg: 'bg-gray-100', text: 'text-gray-800', label: estado };
+    
+    return (
+      <span className={`px-2 py-1 ${estadoConfig.bg} ${estadoConfig.text} text-xs font-medium rounded-full`}>
+        {estadoConfig.label}
+      </span>
+    );
+  };
+
+  const obtenerGrupoCompleto = (grupoId: number): GrupoImportacion | undefined => {
+    return gruposCompletos.find(g => g.id === grupoId);
   };
 
   if (loading) {
@@ -153,97 +181,67 @@ const ImportGroupManagement: React.FC = () => {
     );
   }
 
+  const gruposProximosACompletar = grupos.filter(g => 
+    g.cupoCivilRestante !== undefined && g.cupoCivilRestante <= 5 && g.cupoCivilRestante > 0
+  );
+
   return (
     <div className="p-6">
-      {/* Resumen de licencias disponibles */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">📋 Licencias Disponibles</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableLicenses.map(license => (
-            <div key={license.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-gray-900">{license.numero}</h3>
-                <span className="text-sm text-gray-500">{license.nombre}</span>
-              </div>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cupo Civil:</span>
-                  <span className={`font-semibold ${license.cupoDisponible && license.cupoDisponible <= 5 ? 'text-red-600' : 'text-blue-600'}`}>
-                    {license.cupoDisponible || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cupo Militar:</span>
-                  <span className="font-semibold text-green-600">{license.cupoMilitar || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cupo Empresa:</span>
-                  <span className="font-semibold text-purple-600">{license.cupoEmpresa || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cupo Deportista:</span>
-                  <span className="font-semibold text-orange-600">{license.cupoDeportista || 0}</span>
-                </div>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">📦 Importaciones</h2>
+          {gruposProximosACompletar.length > 0 && (
+            <div className="mt-2 flex items-center gap-2">
+              <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
+                ℹ️ {gruposProximosACompletar.length} grupo(s) próximo(s) a completar cupo civil (≤5 cupos restantes) - Listos para Operaciones
               </div>
             </div>
-          ))}
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setMostrarCrearGrupo(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2"
+          >
+            ➕ Crear Grupo
+          </button>
+          <button
+            onClick={cargarGrupos}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+          >
+            🔄 Actualizar
+          </button>
         </div>
       </div>
 
-      {/* Resumen de clientes listos */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">👥 Clientes Listos para Importación</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {readyClients.map(client => (
-            <div key={client.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-gray-900">{client.nombres} {client.apellidos}</h3>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  client.tipoCliente === 'CIVIL' ? 'bg-blue-100 text-blue-800' :
-                  client.tipoCliente === 'MILITAR' ? 'bg-green-100 text-green-800' :
-                  client.tipoCliente === 'EMPRESA' ? 'bg-purple-100 text-purple-800' :
-                  'bg-orange-100 text-orange-800'
-                }`}>
-                  {client.tipoCliente}
-                </span>
-              </div>
-              <div className="text-sm text-gray-600">
-                <p>Cédula: {client.cedula}</p>
-                <p>Vendedor: {client.vendedor.nombres} {client.vendedor.apellidos}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Botón crear grupo */}
-      <div className="mb-6">
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center"
-        >
-          <span className="mr-2">+</span>
-          Crear Nuevo Grupo de Importación
-        </button>
-      </div>
-
-      {/* Tabla de grupos existentes */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Grupo
+                  ID / Grupo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Licencia
+                  # Civiles
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  # Uniformados
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  # Empresas
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  # Deportistas
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Última Actualización
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cupos Utilizados
+                  Licencia
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
@@ -251,175 +249,253 @@ const ImportGroupManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {importGroups.map((group) => (
-                <tr key={group.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{group.codigo}</div>
-                      <div className="text-sm text-gray-500">{group.nombre}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {group.licenciaAsignada?.numero || 'Sin licencia'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(group.estado)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Civil:</span>
-                        <span className="font-semibold text-blue-600">
-                          {group.cuposUtilizados.civil}/{group.cuposDisponibles.civil}
-                        </span>
+              {grupos.map((resumen) => {
+                const grupoCompleto = obtenerGrupoCompleto(resumen.grupoId);
+                const puedeDefinir = puedeDefinirPedido[resumen.grupoId] || false;
+                const estaDefiniendo = definiendoPedido === resumen.grupoId;
+
+                const proximoACompletar = resumen.cupoCivilRestante !== undefined && 
+                                         resumen.cupoCivilRestante <= 5 && 
+                                         resumen.cupoCivilRestante > 0;
+                const cupoCompleto = resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0;
+
+                return (
+                  <tr 
+                    key={resumen.grupoId} 
+                    className={`hover:bg-gray-50 ${
+                      proximoACompletar 
+                        ? 'bg-blue-50 border-l-4 border-blue-400' 
+                        : cupoCompleto
+                        ? 'bg-green-50 border-l-4 border-green-400'
+                        : ''
+                    }`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">ID: {resumen.grupoId}</div>
+                        <div className="text-sm text-gray-500">{resumen.grupoNombre}</div>
+                        <div className="text-xs text-gray-400">{resumen.grupoCodigo}</div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Militar:</span>
-                        <span className="font-semibold text-green-600">
-                          {group.cuposUtilizados.militar}/{group.cuposDisponibles.militar}
-                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-semibold text-blue-600">{resumen.clientesCiviles}</div>
+                        {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante <= 5 && resumen.cupoCivilRestante > 0 && (
+                          <div className={`mt-1 px-2 py-0.5 rounded text-xs font-medium ${
+                            resumen.cupoCivilRestante <= 1 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : resumen.cupoCivilRestante <= 3
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'bg-blue-50 text-blue-600'
+                          }`}>
+                            ℹ️ {resumen.cupoCivilRestante === 1 ? 'Casi completo' : `${resumen.cupoCivilRestante} cupos restantes`}
+                          </div>
+                        )}
+                        {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0 && (
+                          <div className="mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Cupo completo
+                          </div>
+                        )}
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Empresa:</span>
-                        <span className="font-semibold text-purple-600">
-                          {group.cuposUtilizados.empresa}/{group.cuposDisponibles.empresa}
-                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-green-600">{resumen.clientesUniformados}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-purple-600">{resumen.clientesEmpresas}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-orange-600">{resumen.clientesDeportistas}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {resumen.fechaUltimaActualizacion
+                        ? new Date(resumen.fechaUltimaActualizacion).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {grupoCompleto ? getEstadoBadge(grupoCompleto.estado) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {grupoCompleto?.licencia?.numero || (
+                          <span className="text-gray-400 italic">Sin licencia</span>
+                        )}
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Deportista:</span>
-                        <span className="font-semibold text-orange-600">
-                          {group.cuposUtilizados.deportista}/{group.cuposDisponibles.deportista}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      {group.estado === 'ACTIVO' && (
-                        <button
-                          onClick={() => navigate(`/jefe-ventas/grupos-importacion/${group.id}/asignar-clientes`)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md text-xs"
-                        >
-                          Asignar Clientes
-                        </button>
+                      {grupoCompleto?.licencia?.nombre && (
+                        <div className="text-xs text-gray-500">{grupoCompleto.licencia.nombre}</div>
                       )}
-                      {group.estado === 'ACTIVO' && group.clientesAsignados.length > 0 && (
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => handleFinishGroup()}
-                          className="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md text-xs"
+                          onClick={() => setGrupoSeleccionado(resumen.grupoId)}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md text-xs font-medium"
                         >
-                          Finalizar
+                          👁️ Ver
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        
+                        {/* Botón Agregar Clientes - siempre visible, deshabilitado si el estado no lo permite */}
+                        {(() => {
+                          const puedeAgregar = !grupoCompleto || // Si no se ha cargado, permitir
+                            grupoCompleto.estado === 'EN_PROCESO_ASIGNACION_CLIENTES' ||
+                            grupoCompleto.estado === 'EN_PREPARACION' ||
+                            grupoCompleto.estado === 'BORRADOR';
+                          
+                          return (
+                            <button
+                              onClick={() => puedeAgregar && setMostrarAgregarClientes(resumen.grupoId)}
+                              disabled={!puedeAgregar}
+                              className={`px-3 py-1 rounded-md text-xs font-medium ${
+                                puedeAgregar
+                                  ? 'text-green-600 hover:text-green-900 bg-green-50 cursor-pointer'
+                                  : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                              }`}
+                              title={puedeAgregar 
+                                ? 'Agregar clientes al grupo de importación'
+                                : 'No se pueden agregar clientes en el estado actual del grupo'}
+                            >
+                              ➕ Agregar Clientes
+                            </button>
+                          );
+                        })()}
+                        
+                        {puedeDefinir && (
+                          <button
+                            onClick={() => handleDefinirPedido(resumen.grupoId)}
+                            disabled={estaDefiniendo}
+                            className={`px-3 py-1 rounded-md text-xs font-medium ${
+                              estaDefiniendo
+                                ? 'bg-gray-400 text-white cursor-not-allowed'
+                                : 'bg-green-600 text-white hover:bg-green-700'
+                            }`}
+                          >
+                            {estaDefiniendo ? 'Definiendo...' : '📋 Definir Pedido'}
+                          </button>
+                        )}
+                        
+                        {/* Botón Ver Documento - mostrar si hay documentos generados */}
+                        {grupoCompleto?.documentosGenerados && grupoCompleto.documentosGenerados.length > 0 && (
+                          <button
+                            onClick={() => {
+                              const ultimoDocumento = grupoCompleto.documentosGenerados![grupoCompleto.documentosGenerados!.length - 1];
+                              verPDF(ultimoDocumento.id);
+                            }}
+                            className="px-3 py-1 rounded-md text-xs font-medium text-purple-600 hover:text-purple-900 bg-purple-50"
+                            title="Ver documento generado"
+                          >
+                            📄 Ver Documento
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
         
-        {importGroups.length === 0 && (
+        {grupos.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-gray-500">No hay grupos de importación creados</p>
+            <p className="text-gray-500">No hay importaciones creadas</p>
+            <p className="text-gray-400 text-sm mt-2">
+              Las importaciones aparecerán aquí cuando sean creadas
+            </p>
           </div>
         )}
       </div>
 
-      {/* Modal de creación de grupo */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Crear Nuevo Grupo de Importación</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Grupo *</label>
-                  <input
-                    type="text"
-                    value={newGroup.nombre}
-                    onChange={(e) => setNewGroup({...newGroup, nombre: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej: Grupo Enero 2024"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                  <textarea
-                    value={newGroup.descripcion}
-                    onChange={(e) => setNewGroup({...newGroup, descripcion: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                    placeholder="Descripción del grupo..."
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio *</label>
-                    <input
-                      type="date"
-                      value={newGroup.fechaInicio}
-                      onChange={(e) => setNewGroup({...newGroup, fechaInicio: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Fin *</label>
-                    <input
-                      type="date"
-                      value={newGroup.fechaFin}
-                      onChange={(e) => setNewGroup({...newGroup, fechaFin: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Licencia *</label>
-                  <select
-                    value={newGroup.licenciaId || ''}
-                    onChange={(e) => setNewGroup({...newGroup, licenciaId: parseInt(e.target.value) || null})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Seleccionar licencia</option>
-                    {availableLicenses.map(license => (
-                      <option key={license.id} value={license.id}>
-                        {license.numero} - {license.nombre} (Cupo Civil: {license.cupoDisponible || 0})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+      {grupoSeleccionado && (
+        <GrupoImportacionDetalleModal
+          grupoId={grupoSeleccionado}
+          onClose={() => setGrupoSeleccionado(null)}
+          onRefresh={cargarGrupos}
+        />
+      )}
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleCreateGroup}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-                >
-                  Crear Grupo
-                </button>
-              </div>
+      {mostrarAgregarClientes && (
+        <AgregarClientesModal
+          grupoId={mostrarAgregarClientes}
+          onClose={() => setMostrarAgregarClientes(null)}
+          onRefresh={cargarGrupos}
+        />
+      )}
+
+      {mostrarCrearGrupo && (
+        <ModalCrearGrupo
+          onClose={() => setMostrarCrearGrupo(false)}
+          onSuccess={() => {
+            setMostrarCrearGrupo(false);
+            cargarGrupos();
+          }}
+        />
+      )}
+
+      {/* Modal para ver/descargar PDF después de generar */}
+      {documentoGenerado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-800">✅ Pedido Definido Exitosamente</h3>
+              <button
+                onClick={() => setDocumentoGenerado(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-gray-600 mb-2">
+                El documento PDF del pedido ha sido generado exitosamente:
+              </p>
+              <p className="font-semibold text-blue-600 bg-blue-50 p-2 rounded-lg">
+                {documentoGenerado.nombreArchivo}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => verPDF(documentoGenerado.documentoId)}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2 font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Ver PDF
+              </button>
+              
+              <button
+                onClick={() => descargarPDF(documentoGenerado.documentoId, documentoGenerado.nombreArchivo)}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2 font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Descargar PDF
+              </button>
+              
+              <button
+                onClick={() => setDocumentoGenerado(null)}
+                className="w-full px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-medium"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
       )}
-
-
-
     </div>
   );
 };
 
-export default ImportGroupManagement; 
+export default ImportGroupManagement;

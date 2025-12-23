@@ -38,6 +38,14 @@ export const ROLE_PERMISSIONS: Record<string, RolePermission> = {
     routes: ['/jefe-ventas', '/jefe-ventas/*', '/vendedor', '/vendedor/*', '/role-selection', '/dashboard', '/profile'],
     permissions: ['view_vendors', 'manage_clients', 'view_reports', 'view_profile'],
     redirectAfterLogin: '/jefe-ventas'
+  },
+  
+  OPERATIONS: {
+    name: 'Operaciones',
+    description: 'Gestión de grupos de importación y documentos',
+    routes: ['/operaciones', '/operaciones/*', '/role-selection', '/dashboard', '/profile'],
+    permissions: ['view_import_groups', 'manage_import_documents', 'view_profile'],
+    redirectAfterLogin: '/operaciones'
   }
 };
 

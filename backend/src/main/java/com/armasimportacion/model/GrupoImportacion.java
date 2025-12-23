@@ -53,8 +53,8 @@ public class GrupoImportacion {
     private Licencia licencia;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_proceso_id", nullable = false)
-    private TipoProceso tipoProceso;
+    @JoinColumn(name = "tipo_proceso_id", nullable = true)
+    private TipoProceso tipoProceso; // Opcional: los grupos pueden tener cualquier tipo de cliente
 
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fechaInicio;
@@ -73,6 +73,9 @@ public class GrupoImportacion {
 
     @Column(name = "fecha_estimada_llegada")
     private LocalDate fechaEstimadaLlegada;
+
+    @Column(name = "numero_previa_importacion", length = 100)
+    private String numeroPreviaImportacion;
 
     @Column(name = "costo_total", columnDefinition = "DECIMAL(10,2)")
     private BigDecimal costoTotal;

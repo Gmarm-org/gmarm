@@ -8,5 +8,6 @@ public enum TipoDocumentoGenerado {
     REPORTE,
     INFORME,
     AUTORIZACION,
-    LICENCIA
+    LICENCIA,
+    PEDIDO_ARMAS_GRUPO_IMPORTACION
 } 

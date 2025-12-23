@@ -50,6 +50,18 @@ public class TipoDocumentoController {
         return ResponseEntity.ok(tipos);
     }
 
+    @GetMapping("/grupos-importacion")
+    @Operation(summary = "Obtener tipos de documento para grupos de importación", description = "Retorna los tipos de documento específicos para grupos de importación")
+    public ResponseEntity<List<TipoDocumentoDTO>> getTiposDocumentoGruposImportacion(
+            @RequestParam(required = false, defaultValue = "true") boolean soloActivos) {
+        log.info("📋 GET /api/tipo-documento/grupos-importacion - Obteniendo tipos para grupos de importación (soloActivos: {})", soloActivos);
+        List<TipoDocumentoDTO> tipos = soloActivos
+            ? mapper.toDTOList(service.findByGruposImportacionAndEstado(true, true))
+            : mapper.toDTOList(service.findByGruposImportacion(true));
+        log.info("✅ Tipos de documento para grupos de importación encontrados: {}", tipos.size());
+        return ResponseEntity.ok(tipos);
+    }
+
     @PostMapping
     @Operation(summary = "Crear nuevo tipo de documento", description = "Crea un nuevo tipo de documento")
     public ResponseEntity<TipoDocumentoDTO> createTipoDocumento(@RequestBody TipoDocumentoDTO dto) {
@@ -69,7 +81,14 @@ public class TipoDocumentoController {
         existing.setDescripcion(dto.getDescripcion());
         existing.setObligatorio(dto.getObligatorio());
         existing.setEstado(dto.getEstado());
-        var updated = service.save(existing);
+        existing.setUrlDocumento(dto.getUrlDocumento());
+        if (dto.getGruposImportacion() != null) {
+            existing.setGruposImportacion(dto.getGruposImportacion());
+        }
+        // El tipoProceso se actualizará en el mapper según gruposImportacion
+        var entity = mapper.toEntity(dto);
+        entity.setId(existing.getId());
+        var updated = service.save(entity);
         log.info("✅ Tipo de documento actualizado: {}", updated.getNombre());
         return ResponseEntity.ok(mapper.toDTO(updated));
     }

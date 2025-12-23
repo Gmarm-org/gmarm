@@ -20,6 +20,7 @@ public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
     // Búsquedas básicas
     Optional<Licencia> findByNumero(String numero);
     List<Licencia> findByEstado(Boolean estado); // true = ACTIVA, false = INACTIVA
+    List<Licencia> findByEstadoAndEstadoOcupacion(Boolean estado, EstadoOcupacionLicencia estadoOcupacion);
     
     // Búsquedas por fecha
     List<Licencia> findByFechaVencimientoBefore(LocalDate fecha);

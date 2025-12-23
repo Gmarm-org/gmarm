@@ -8,6 +8,7 @@ import com.armasimportacion.service.helper.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,76 +33,92 @@ public class ClienteCompletoService {
 
     /**
      * Actualiza un cliente completo con todos sus datos relacionados
+     * Este método se ejecuta en una transacción - Si cualquier paso falla, se revierte todo
      * 
      * @param clienteId ID del cliente a actualizar
      * @param requestData Datos actualizados del cliente desde el frontend
      * @return Resultado de la operación
      */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> actualizarClienteCompleto(Long clienteId, Map<String, Object> requestData) {
-        try {
-            log.info("🔄 Actualizando cliente completo ID: {}", clienteId);
-            logDatosRecibidos(requestData);
-            
-            // Verificar que el cliente existe
-            Cliente clienteExistente = clienteService.findById(clienteId);
-            log.info("✅ Cliente encontrado: ID={}, nombres={}", clienteExistente.getId(), clienteExistente.getNombres());
-            
-            // TODO: Implementar lógica de actualización completa
-            // Por ahora retornar éxito básico
-            Map<String, Object> response = new java.util.HashMap<>();
-            response.put("success", true);
-            response.put("message", "Cliente actualizado exitosamente");
-            response.put("clienteId", clienteId);
-            response.put("timestamp", LocalDateTime.now());
-            
-            return response;
-            
-        } catch (Exception e) {
-            log.error("❌ Error actualizando cliente completo: {}", e.getMessage(), e);
-            return crearRespuestaError(e.getMessage());
+        log.info("🔄🔄🔄 ClienteCompletoService.actualizarClienteCompleto EJECUTÁNDOSE 🔄🔄🔄");
+        log.info("🔄 Actualizando cliente completo ID: {}", clienteId);
+        logDatosRecibidos(requestData);
+        
+        // Verificar que el cliente existe
+        Cliente cliente = clienteService.findById(clienteId);
+        log.info("✅ Cliente encontrado: ID={}, nombres={}", cliente.getId(), cliente.getNombres());
+        
+        // 1. Actualizar cliente básico
+        actualizarClienteBasico(requestData, cliente);
+        
+        // 2. Actualizar respuestas del formulario (eliminar las existentes y crear las nuevas)
+        actualizarRespuestasDelCliente(requestData, cliente);
+        
+        // 3. Actualizar arma del cliente (solo si viene en requestData)
+        // NOTA: La actualización de arma generalmente no se hace aquí, pero si viene en requestData, se procesa
+        Map<String, Object> armaData = extraerDatosArma(requestData);
+        if (armaData != null) {
+            log.warn("⚠️ Actualización de arma en actualizarClienteCompleto no está implementada. " +
+                    "La actualización de arma debe hacerse mediante ClienteArmaService directamente.");
         }
+        
+        log.info("✅ Cliente actualizado exitosamente: ID={}", cliente.getId());
+        
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Cliente actualizado exitosamente");
+        response.put("clienteId", clienteId);
+        response.put("timestamp", LocalDateTime.now());
+        
+        return response;
     }
 
     /**
      * Crea un cliente completo con todos sus datos relacionados
+     * Este método se ejecuta en una transacción - Si cualquier paso falla, se revierte todo
      * 
      * @param requestData Datos completos del cliente desde el frontend
      * @param usuarioId ID del usuario que está creando el cliente (vendedor)
      * @return Resultado de la operación con IDs de las entidades creadas
      */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> crearClienteCompleto(Map<String, Object> requestData, Long usuarioId) {
-        try {
-            log.info("🚀🚀🚀 ClienteCompletoService.crearClienteCompleto EJECUTÁNDOSE 🚀🚀🚀");
-            log.info("🚀 Iniciando creación de cliente completo con usuarioId={}", usuarioId);
-            logDatosRecibidos(requestData);
+        log.info("🚀🚀🚀 ClienteCompletoService.crearClienteCompleto EJECUTÁNDOSE 🚀🚀🚀");
+        log.info("🚀 Iniciando creación de cliente completo con usuarioId={}", usuarioId);
+        logDatosRecibidos(requestData);
+        
+        // 1. Crear cliente básico
+        Cliente cliente = crearClienteBasico(requestData, usuarioId);
+        
+        // 2. Guardar respuestas del formulario
+        guardarRespuestasDelCliente(requestData, cliente);
+        
+        // 3. Asignar arma al cliente (si hay)
+        asignarArmaAlCliente(requestData, cliente);
+        
+        // 4. Crear pago del cliente (opcional - solo si viene en requestData)
+        Pago pago = null;
+        Map<String, Object> pagoData = extraerDatosPago(requestData);
+        if (pagoData != null && !pagoData.isEmpty()) {
+            pago = crearPagoDelCliente(requestData, cliente.getId());
             
-            // 1. Crear cliente básico
-            Cliente cliente = crearClienteBasico(requestData, usuarioId);
-            
-            // 2. Guardar respuestas del formulario
-            guardarRespuestasDelCliente(requestData, cliente);
-            
-            // 3. Asignar arma al cliente
-            asignarArmaAlCliente(requestData, cliente);
-            
-            // 4. Crear pago del cliente
-            Pago pago = crearPagoDelCliente(requestData, cliente.getId());
-            
-            // 5. Generar contrato
+            // 5. Generar contrato (solo si hay pago)
+            // NOTA: El contrato es secundario, si falla no debe revertir la transacción completa
             log.info("🔍 DEBUG: Llamando a generarContratoDelCliente...");
             try {
                 generarContratoDelCliente(cliente, pago);
                 log.info("🔍 DEBUG: generarContratoDelCliente completado");
             } catch (Exception e) {
-                log.error("❌ Error en generarContratoDelCliente: {}", e.getMessage(), e);
+                log.error("❌ Error en generarContratoDelCliente (no crítico): {}", e.getMessage(), e);
+                // NO relanzar la excepción porque el contrato es secundario
+                // La transacción continuará y se confirmará
             }
-            
-            return crearRespuestaExitoso(cliente, pago);
-            
-        } catch (Exception e) {
-            log.error("❌ Error creando cliente completo: {}", e.getMessage(), e);
-            return crearRespuestaError(e.getMessage());
+        } else {
+            log.info("📝 No hay datos de pago, se creará más adelante en el flujo");
         }
+        
+        return crearRespuestaExitoso(cliente, pago);
     }
 
     /**
@@ -138,6 +155,43 @@ public class ClienteCompletoService {
             log.info("✅ Respuestas guardadas: {} respuestas", respuestasGuardadas);
         } else {
             log.info("📝 No hay respuestas para guardar");
+        }
+    }
+
+    /**
+     * Actualiza el cliente básico usando ClienteService
+     */
+    private void actualizarClienteBasico(Map<String, Object> requestData, Cliente cliente) {
+        log.info("👤 Actualizando cliente básico ID: {}", cliente.getId());
+        
+        Map<String, Object> clientData = extraerDatosCliente(requestData);
+        if (clientData == null || clientData.isEmpty()) {
+            log.warn("⚠️ No hay datos de cliente para actualizar");
+            return;
+        }
+        
+        ClienteCreateDTO clienteCreateDTO = construirClienteCreateDTO(clientData);
+        ClienteDTO clienteDTO = clienteService.updateFromDTO(cliente.getId(), clienteCreateDTO);
+        
+        log.info("✅ Cliente actualizado: ID={}, nombres={}, apellidos={}", 
+            clienteDTO.getId(), clienteDTO.getNombres(), clienteDTO.getApellidos());
+    }
+
+    /**
+     * Actualiza las respuestas del formulario del cliente
+     * Elimina las respuestas existentes y crea las nuevas
+     */
+    private void actualizarRespuestasDelCliente(Map<String, Object> requestData, Cliente cliente) {
+        log.info("📝 Actualizando respuestas del formulario para cliente ID: {}", cliente.getId());
+        
+        List<Map<String, Object>> respuestasData = extraerDatosRespuestas(requestData);
+        if (respuestasData != null && !respuestasData.isEmpty()) {
+            // Eliminar respuestas existentes y guardar las nuevas
+            // El helper ya maneja esto internamente
+            int respuestasGuardadas = respuestasHelper.guardarRespuestasCliente(respuestasData, cliente);
+            log.info("✅ Respuestas actualizadas: {} respuestas", respuestasGuardadas);
+        } else {
+            log.info("📝 No hay respuestas para actualizar");
         }
     }
 
@@ -202,9 +256,10 @@ public class ClienteCompletoService {
                     log.info("📧 Enviando contrato por email a: {}", cliente.getEmail());
                     String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
                     
-                    // Construir path completo del archivo: directorio + nombre del archivo
-                    String rutaCompleta = documento.getRutaArchivo() + documento.getNombreArchivo();
-                    log.info("📄 Path completo del contrato: {}", rutaCompleta);
+                    // Construir path completo del archivo
+                    // getRutaArchivo() ya incluye el nombre del archivo según FileStorageService.guardarDocumentoGeneradoCliente
+                    String rutaCompleta = documento.getRutaArchivo();
+                    log.info("📄 Path completo del contrato (desde BD): {}", rutaCompleta);
                     
                     emailService.enviarContratoAdjunto(
                         cliente.getEmail(),
@@ -395,13 +450,16 @@ public class ClienteCompletoService {
     }
 
     private Map<String, Object> crearRespuestaExitoso(Cliente cliente, Pago pago) {
-        return Map.of(
-            "success", true,
-            "message", "Cliente creado exitosamente",
-            "clienteId", cliente.getId(),
-            "pagoId", pago.getId(),
-            "timestamp", LocalDateTime.now()
-        );
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Cliente creado exitosamente");
+        response.put("clienteId", cliente.getId());
+        response.put("id", cliente.getId()); // También incluir 'id' para compatibilidad
+        if (pago != null) {
+            response.put("pagoId", pago.getId());
+        }
+        response.put("timestamp", LocalDateTime.now());
+        return response;
     }
 
     private Map<String, Object> crearRespuestaError(String mensaje) {

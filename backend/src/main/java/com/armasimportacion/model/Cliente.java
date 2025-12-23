@@ -217,7 +217,10 @@ public class Cliente {
     }
 
     public Long getTipoProcesoId() {
-        // Por ahora retornamos null, se puede implementar después
+        // Obtener tipoProcesoId desde tipoCliente
+        if (tipoCliente != null) {
+            return tipoCliente.getTipoProcesoId();
+        }
         return null;
     }
 }

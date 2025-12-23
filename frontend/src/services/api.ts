@@ -489,6 +489,10 @@ class ApiService {
     return this.request<Licencia[]>('/licencias/activas');
   }
 
+  async getLicenciasDisponibles(): Promise<Licencia[]> {
+    return this.request<Licencia[]>('/api/licencia/disponibles');
+  }
+
   async getLicenciasConCupoCivil(): Promise<Licencia[]> {
     return this.request<Licencia[]>('/licencias/cupo-civil-disponible');
   }
@@ -529,17 +533,36 @@ class ApiService {
   // ========================================
 
   async getGruposImportacion(page: number = 0, size: number = 10): Promise<ApiResponse<GrupoImportacion[]>> {
-    return this.request<ApiResponse<GrupoImportacion[]>>(`/grupos-importacion?page=${page}&size=${size}`);
+    return this.request<ApiResponse<GrupoImportacion[]>>(`/api/grupos-importacion?page=${page}&size=${size}`);
   }
 
   async getGrupoImportacion(id: number): Promise<GrupoImportacion> {
-    return this.request<GrupoImportacion>(`/grupos-importacion/${id}`);
+    return this.request<GrupoImportacion>(`/api/grupos-importacion/${id}`);
   }
 
   async createGrupoImportacion(grupoData: Partial<GrupoImportacion>): Promise<GrupoImportacion> {
-    return this.request<GrupoImportacion>('/grupos-importacion', {
+    return this.request<GrupoImportacion>('/api/grupos-importacion', {
       method: 'POST',
       body: JSON.stringify(grupoData),
+    });
+  }
+
+  // Crear grupo de importación desde DTO (simplificado)
+  async crearGrupoImportacion(dto: {
+    nombre: string;
+    descripcion?: string;
+    codigo?: string;
+    licenciaId: number;
+    tipoProcesoId?: number;
+    fechaInicio?: string;
+    fechaFin?: string;
+    cupoTotal?: number;
+    cupoDisponible?: number;
+    observaciones?: string;
+  }): Promise<{ id: number; nombre: string; codigo: string; message: string }> {
+    return this.request<{ id: number; nombre: string; codigo: string; message: string }>('/api/grupos-importacion', {
+      method: 'POST',
+      body: JSON.stringify(dto),
     });
   }
 
@@ -555,15 +578,212 @@ class ApiService {
   }
 
   async agregarClienteAGrupo(grupoId: number, clienteId: number): Promise<void> {
-    await this.request(`/grupos-importacion/${grupoId}/clientes/${clienteId}`, {
+    await this.request(`/api/grupos-importacion/${grupoId}/clientes/${clienteId}`, {
       method: 'POST',
     });
   }
 
+  async getClientesDelGrupo(grupoId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/grupos-importacion/${grupoId}/clientes`);
+  }
+
+  async removerClienteDelGrupo(grupoId: number, clienteId: number): Promise<void> {
+    await this.request(`/api/grupos-importacion/${grupoId}/clientes/${clienteId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async configurarCupo(grupoId: number, tipoCliente: string, cupoAsignado: number): Promise<void> {
-    await this.request(`/grupos-importacion/${grupoId}/cupos`, {
+    await this.request(`/api/grupos-importacion/${grupoId}/cupos`, {
       method: 'POST',
       body: JSON.stringify({ tipoCliente, cupoAsignado }),
+    });
+  }
+
+  // ========================================
+  // OPERACIONES - GRUPOS DE IMPORTACIÓN
+  // ========================================
+
+  async getGruposParaOperaciones(): Promise<GrupoImportacion[]> {
+    return this.request<GrupoImportacion[]>('/operaciones/grupos');
+  }
+
+  async getGrupoResumen(id: number): Promise<{
+    grupoId: number;
+    grupoNombre: string;
+    grupoCodigo: string;
+    clientesCiviles: number;
+    clientesUniformados: number;
+    clientesEmpresas: number;
+    clientesDeportistas: number;
+    totalClientes: number;
+    fechaUltimaActualizacion: string;
+  }> {
+    return this.request(`/operaciones/grupos/${id}`);
+  }
+
+  async definirPedido(grupoId: number): Promise<{
+    message: string;
+    documentoId: number;
+    nombreArchivo: string;
+    rutaArchivo: string;
+  }> {
+    return this.request(`/api/grupos-importacion/${grupoId}/definir-pedido`, {
+      method: 'POST',
+    });
+  }
+
+  async puedeDefinirPedido(grupoId: number): Promise<{
+    puedeDefinir: boolean;
+    mensaje: string;
+  }> {
+    return this.request(`/api/grupos-importacion/${grupoId}/puede-definir-pedido`);
+  }
+
+  async getResumenGrupo(grupoId: number): Promise<{
+    grupoId: number;
+    grupoNombre: string;
+    grupoCodigo: string;
+    clientesCiviles: number;
+    clientesUniformados: number;
+    clientesEmpresas: number;
+    clientesDeportistas: number;
+    totalClientes: number;
+    fechaUltimaActualizacion: string;
+  }> {
+    return this.request(`/api/grupos-importacion/${grupoId}/resumen`);
+  }
+
+  async getGruposParaGestionImportaciones(): Promise<Array<{
+    grupoId: number;
+    grupoNombre: string;
+    grupoCodigo: string;
+    clientesCiviles: number;
+    clientesUniformados: number;
+    clientesEmpresas: number;
+    clientesDeportistas: number;
+    totalClientes: number;
+    fechaUltimaActualizacion: string;
+  }>> {
+    return this.request<Array<{
+      grupoId: number;
+      grupoNombre: string;
+      grupoCodigo: string;
+      clientesCiviles: number;
+      clientesUniformados: number;
+      clientesEmpresas: number;
+      clientesDeportistas: number;
+      totalClientes: number;
+      fechaUltimaActualizacion: string;
+    }>>('/api/grupos-importacion/gestion-importaciones');
+  }
+
+  async notificarAgenteAduanero(grupoId: number): Promise<{ message: string }> {
+    return this.request(`/api/grupos-importacion/${grupoId}/notificar-agente-aduanero`, {
+      method: 'PUT',
+    });
+  }
+
+  async getGruposParaJefeVentas(page: number = 0, size: number = 100, estado?: string, busqueda?: string): Promise<ApiResponse<Array<{
+    grupoId: number;
+    grupoNombre: string;
+    grupoCodigo: string;
+    clientesCiviles: number;
+    clientesUniformados: number;
+    clientesEmpresas: number;
+    clientesDeportistas: number;
+    totalClientes: number;
+    fechaUltimaActualizacion: string;
+  }>>> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    if (estado) params.append('estado', estado);
+    if (busqueda) params.append('busqueda', busqueda);
+    
+    return this.request<ApiResponse<Array<{
+      grupoId: number;
+      grupoNombre: string;
+      grupoCodigo: string;
+      clientesCiviles: number;
+      clientesUniformados: number;
+      clientesEmpresas: number;
+      clientesDeportistas: number;
+      totalClientes: number;
+      fechaUltimaActualizacion: string;
+    }>>>(`/api/grupos-importacion/jefe-ventas?${params.toString()}`);
+  }
+
+  // ========================================
+  // OPERACIONES - DOCUMENTOS
+  // ========================================
+
+  async cargarDocumentoGrupo(grupoId: number, tipoDocumentoId: number, archivo: File, descripcion?: string): Promise<{
+    id: number;
+    grupoImportacionId: number;
+    tipoDocumentoId: number;
+    nombreArchivo: string;
+    rutaArchivo: string;
+    descripcion?: string;
+    estado: string;
+    fechaCarga: string;
+  }> {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('tipoDocumentoId', tipoDocumentoId.toString());
+    if (descripcion) {
+      formData.append('descripcion', descripcion);
+    }
+
+    return this.request(`/operaciones/grupos/${grupoId}/documentos`, {
+      method: 'POST',
+      body: formData,
+      headers: {}, // No establecer Content-Type, el navegador lo hará automáticamente para FormData
+    });
+  }
+
+  async getDocumentosGrupo(grupoId: number): Promise<Array<{
+    id: number;
+    grupoImportacionId: number;
+    tipoDocumentoId: number;
+    tipoDocumentoNombre: string;
+    nombreArchivo: string;
+    rutaArchivo: string;
+    descripcion?: string;
+    estado: string;
+    fechaCarga: string;
+  }>> {
+    return this.request(`/operaciones/grupos/${grupoId}/documentos`);
+  }
+
+  async eliminarDocumentoGrupo(grupoId: number, documentoId: number): Promise<void> {
+    await this.request(`/operaciones/grupos/${grupoId}/documentos/${documentoId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async notificarPagoFabrica(grupoId: number): Promise<{ message: string }> {
+    return this.request(`/operaciones/grupos/${grupoId}/notificar-pago-fabrica`, {
+      method: 'POST',
+    });
+  }
+
+  async puedeNotificarPago(grupoId: number): Promise<{
+    puedeNotificar: boolean;
+    mensaje: string;
+  }> {
+    return this.request(`/operaciones/grupos/${grupoId}/puede-notificar-pago`);
+  }
+
+  async registrarFechaLlegada(grupoId: number, fechaLlegada: string): Promise<{ message: string }> {
+    return this.request(`/operaciones/grupos/${grupoId}/fecha-llegada?fechaLlegada=${fechaLlegada}`, {
+      method: 'PUT',
+    });
+  }
+
+  async registrarNumeroPrevia(grupoId: number, numeroPrevia: string): Promise<{ message: string }> {
+    return this.request(`/operaciones/grupos/${grupoId}/numero-previa?numeroPrevia=${encodeURIComponent(numeroPrevia)}`, {
+      method: 'PUT',
     });
   }
 
@@ -739,6 +959,11 @@ class ApiService {
     return this.request<any[]>(url);
   }
 
+  // Obtener tipos de documento para grupos de importación
+  async getTiposDocumentoGruposImportacion(soloActivos: boolean = true): Promise<any[]> {
+    return this.request<any[]>(`/api/tipo-documento/grupos-importacion?soloActivos=${soloActivos}`);
+  }
+
   // Obtener tipo de documento por ID
   async getTipoDocumentoById(id: number): Promise<any> {
     return this.request<any>(`/api/tipo-documento/${id}`);
@@ -777,11 +1002,22 @@ class ApiService {
   // ========================================
 
   // Obtener todos los tipos de proceso
-  async getTiposProceso(): Promise<any[]> {
-    return this.request<any[]>('/api/tipo-proceso');
+  async getTiposProceso(): Promise<Array<{
+    id: number;
+    nombre: string;
+    codigo: string;
+    descripcion?: string;
+    estado: boolean;
+  }>> {
+    return this.request<Array<{
+      id: number;
+      nombre: string;
+      codigo: string;
+      descripcion?: string;
+      estado: boolean;
+    }>>('/api/tipo-proceso');
   }
 
-  // Obtener tipo de proceso por ID
   async getTipoProcesoById(id: number): Promise<any> {
     return this.request<any>(`/api/tipo-proceso/${id}`);
   }
@@ -1049,6 +1285,11 @@ class ApiService {
   // Obtener todos los clientes (con información del vendedor)
   async getTodosClientes(): Promise<any[]> {
     return this.request<any[]>('/api/clientes/todos');
+  }
+
+  // Obtener clientes disponibles para asignar a grupos de importación
+  async getClientesDisponibles(): Promise<any[]> {
+    return this.request<any[]>('/api/grupos-importacion/clientes-disponibles');
   }
 
   // Obtener categorías de armas

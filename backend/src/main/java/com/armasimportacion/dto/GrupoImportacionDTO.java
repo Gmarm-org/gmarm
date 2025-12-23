@@ -52,12 +52,33 @@ public class GrupoImportacionDTO {
     private Integer totalDocumentos;
     private Integer totalDocumentosGenerados;
     
+    // Información de estado de documentos (para Operaciones)
+    private Integer documentosCargados;
+    private Integer documentosFaltantes;
+    private Integer documentosRequeridosCargados;
+    private Boolean puedeNotificarPago;
+    
+    // Información de licencia
+    private Long licenciaId;
+    private String licenciaNumero;
+    private String licenciaNombre;
+    
+    // Información adicional del grupo
+    private String codigo;
+    private java.time.LocalDate fechaInicio;
+    private java.time.LocalDate fechaFin;
+    private Integer cupoTotal;
+    private Integer cupoDisponible;
+    private String observaciones;
+    
     // Métodos de utilidad
     public boolean estaActivo() {
         return estado == EstadoGrupoImportacion.EN_PREPARACION || 
-               estado == EstadoGrupoImportacion.PENDIENTE_APROBACION || 
-               estado == EstadoGrupoImportacion.APROBADO || 
-               estado == EstadoGrupoImportacion.EN_PROCESO;
+               estado == EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES || 
+               estado == EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA || 
+               estado == EstadoGrupoImportacion.EN_PROCESO_OPERACIONES ||
+               estado == EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO ||
+               estado == EstadoGrupoImportacion.EN_ESPERA_DOCUMENTOS_CLIENTE;
     }
     
     public boolean estaCompletado() {

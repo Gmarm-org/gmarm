@@ -40,6 +40,7 @@ public class GestionDocumentosServiceHelper {
     private final com.armasimportacion.service.NumberToTextService numberToTextService;
     private final com.armasimportacion.service.ConfiguracionSistemaService configuracionService;
     private final com.armasimportacion.service.LocalizacionService localizacionService;
+    private final com.armasimportacion.service.FileStorageService fileStorageService;
 
     /**
      * Genera y guarda un contrato PDF para el cliente usando Flying Saucer + Thymeleaf
@@ -55,13 +56,13 @@ public class GestionDocumentosServiceHelper {
                 log.info("🔍 DEBUG: PDF profesional generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
             
             String nombreArchivo = generarNombreArchivoContrato(cliente, pago);
-            String rutaArchivo = construirRutaArchivoContrato(cliente);
+            
+            // Guardar archivo usando FileStorageService en documentos_clientes/{numeroIdentificacion}/documentos_generados/
+            String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
             
             DocumentoGenerado documento = crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes);
             DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
-            
-            // Escribir el archivo PDF físicamente al sistema de archivos
-            escribirArchivoPDF(rutaArchivo, nombreArchivo, pdfBytes);
             
             log.info("✅ Contrato generado y guardado con ID: {}, archivo: {}", 
                 documentoGuardado.getId(), nombreArchivo);
@@ -115,13 +116,12 @@ public class GestionDocumentosServiceHelper {
             log.info("🔍 DEBUG: PDF autorización generado, tamaño: {} bytes", pdfBytes.length);
             
             String nombreArchivo = generarNombreArchivoAutorizacion(cliente);
-            String rutaArchivo = construirRutaArchivoAutorizacion(cliente);
+            // Guardar archivo usando FileStorageService en documentos_clientes/{numeroIdentificacion}/documentos_generados/
+            String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
             
             DocumentoGenerado documento = crearDocumentoAutorizacion(cliente, nombreArchivo, rutaArchivo, pdfBytes);
             DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
-            
-            // Escribir el archivo PDF físicamente al sistema de archivos
-            escribirArchivoPDF(rutaArchivo, nombreArchivo, pdfBytes);
             
             log.info("✅ Autorización generada y guardada con ID: {}, archivo: {}", 
                 documentoGuardado.getId(), nombreArchivo);
@@ -448,19 +448,19 @@ public class GestionDocumentosServiceHelper {
             String coordinadorDireccion = "COMANDO CONJUNTO DE LAS FUERZA ARMADAS";
             
             try {
-                coordinadorNombre = configuracionService.getValorConfiguracion("COORDINADOR_NOMBRE_EXPOFERIA");
+                coordinadorNombre = configuracionService.getValorConfiguracion("COORDINADOR_NOMBRE");
             } catch (Exception e) {
-                log.debug("Usando valor por defecto para COORDINADOR_NOMBRE_EXPOFERIA");
+                log.debug("Usando valor por defecto para COORDINADOR_NOMBRE");
             }
             try {
-                coordinadorCargo = configuracionService.getValorConfiguracion("COORDINADOR_CARGO_EXPOFERIA");
+                coordinadorCargo = configuracionService.getValorConfiguracion("COORDINADOR_CARGO");
             } catch (Exception e) {
-                log.debug("Usando valor por defecto para COORDINADOR_CARGO_EXPOFERIA");
+                log.debug("Usando valor por defecto para COORDINADOR_CARGO");
             }
             try {
-                coordinadorDireccion = configuracionService.getValorConfiguracion("COORDINADOR_DIRECCION_EXPOFERIA");
+                coordinadorDireccion = configuracionService.getValorConfiguracion("COORDINADOR_DIRECCION");
             } catch (Exception e) {
-                log.debug("Usando valor por defecto para COORDINADOR_DIRECCION_EXPOFERIA");
+                log.debug("Usando valor por defecto para COORDINADOR_DIRECCION");
             }
             
             // Fecha actual en formato legible
@@ -585,33 +585,67 @@ public class GestionDocumentosServiceHelper {
     
     /**
      * Construye la ruta completa física para un documento generado (contrato/autorización)
-     * Ruta en BD: "documentacion/contratos_generados/cliente_X/" o "documentacion/autorizaciones/cliente_X/"
-     * Nombre archivo: "contrato_1234567892_20251006_191319.pdf" o "autorizacion_venta_1234567892_20251006_191319.pdf"
-     * Ruta física: "/app/documentacion/{tipo}/cliente_X/{nombreArchivo}.pdf"
+     * Ruta en BD puede ser:
+     * - Nueva estructura: "documentos_clientes/{cedula}/documentos_generados/archivo.pdf"
+     * - Estructura antigua: "documentacion/contratos_generados/cliente_X/archivo.pdf" (compatibilidad)
+     * Ruta física: "/app/documentacion/{rutaBD}"
      */
     private String construirRutaCompletaDocumentoGenerado(String rutaBD, String nombreArchivo) {
-        String rutaCompleta;
-        
         // Si la ruta ya es absoluta con /app/, usarla como base
         if (rutaBD.startsWith("/app/")) {
-            rutaCompleta = rutaBD;
-        }
-        // Si la ruta empieza con "documentacion/", agregar /app/ al inicio
-        else if (rutaBD.startsWith("documentacion/")) {
-            rutaCompleta = "/app/" + rutaBD;
-        }
-        // En cualquier otro caso, asumir que falta todo el prefijo
-        else {
-            rutaCompleta = "/app/documentacion/contratos_generados/" + rutaBD;
+            // Si ya incluye el nombre del archivo, devolverla tal cual
+            if (rutaBD.endsWith(nombreArchivo)) {
+                return rutaBD;
+            }
+            // Si no, agregar el nombre del archivo
+            return rutaBD.endsWith("/") ? rutaBD + nombreArchivo : rutaBD + "/" + nombreArchivo;
         }
         
-        // Asegurar que la ruta termine con / antes de agregar el nombre del archivo
-        if (!rutaCompleta.endsWith("/")) {
+        // Si la ruta ya incluye el nombre del archivo, solo agregar prefijo
+        if (rutaBD.endsWith(nombreArchivo)) {
+            // Si empieza con "documentos_clientes/" o "documentos_importacion/", agregar /app/documentacion/
+            if (rutaBD.startsWith("documentos_clientes/") || rutaBD.startsWith("documentos_importacion/")) {
+                return "/app/documentacion/" + rutaBD;
+            }
+            // Si ya incluye "documentacion/", agregar /app/
+            if (rutaBD.startsWith("documentacion/")) {
+                return "/app/" + rutaBD;
+            }
+            // En cualquier otro caso, asumir que falta el prefijo
+            return "/app/documentacion/" + rutaBD;
+        }
+        
+        // Si la ruta empieza con "documentos_clientes/" o "documentos_importacion/", agregar /app/documentacion/
+        if (rutaBD.startsWith("documentos_clientes/") || rutaBD.startsWith("documentos_importacion/")) {
+            String rutaCompleta = "/app/documentacion/" + rutaBD;
+            if (!rutaCompleta.endsWith("/")) {
+                rutaCompleta = rutaCompleta + "/";
+            }
+            return rutaCompleta + nombreArchivo;
+        }
+        
+        // Si la ruta empieza con "documentacion/", agregar /app/ al inicio (compatibilidad con estructura antigua)
+        if (rutaBD.startsWith("documentacion/")) {
+            String rutaCompleta = "/app/" + rutaBD;
+            if (!rutaCompleta.endsWith("/") && !rutaCompleta.endsWith(nombreArchivo)) {
+                rutaCompleta = rutaCompleta + "/";
+            }
+            if (!rutaCompleta.endsWith(nombreArchivo)) {
+                return rutaCompleta + nombreArchivo;
+            }
+            return rutaCompleta;
+        }
+        
+        // En cualquier otro caso (compatibilidad con rutas antiguas), asumir estructura antigua
+        String rutaCompleta = "/app/documentacion/contratos_generados/" + rutaBD;
+        if (!rutaCompleta.endsWith("/") && !rutaCompleta.endsWith(nombreArchivo)) {
             rutaCompleta = rutaCompleta + "/";
         }
+        if (!rutaCompleta.endsWith(nombreArchivo)) {
+            return rutaCompleta + nombreArchivo;
+        }
         
-        // Agregar el nombre del archivo
-        return rutaCompleta + nombreArchivo;
+        return rutaCompleta;
     }
     
 }

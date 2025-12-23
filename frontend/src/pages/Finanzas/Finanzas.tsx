@@ -4,9 +4,10 @@ import AsignacionSeries from '../AsignacionSeries';
 import ClientesAsignados from './ClientesAsignados';
 import PagosFinanzas from './PagosFinanzas';
 import CargaMasivaSeries from './CargaMasivaSeries';
+import GestionImportaciones from '../../components/shared/GestionImportaciones';
 
 const Finanzas: React.FC = () => {
-  const [vistaActual, setVistaActual] = useState<'pagos' | 'series' | 'clientes-asignados' | 'carga-series'>('pagos');
+  const [vistaActual, setVistaActual] = useState<'pagos' | 'series' | 'clientes-asignados' | 'carga-series' | 'gestion-importaciones'>('pagos');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -58,6 +59,17 @@ const Finanzas: React.FC = () => {
           >
             📤 Carga Masiva de Series
           </button>
+
+          <button
+            onClick={() => setVistaActual('gestion-importaciones')}
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'gestion-importaciones'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            📦 Gestión de Importaciones
+          </button>
         </div>
 
         {/* Contenido: Pagos */}
@@ -78,6 +90,11 @@ const Finanzas: React.FC = () => {
         {/* Contenido: Carga Masiva de Series */}
         {vistaActual === 'carga-series' && (
           <CargaMasivaSeries />
+        )}
+
+        {/* Contenido: Gestión de Importaciones */}
+        {vistaActual === 'gestion-importaciones' && (
+          <GestionImportaciones />
         )}
       </div>
     </div>

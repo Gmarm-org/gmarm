@@ -32,10 +32,33 @@ const Login: React.FC = () => {
       return;
     }
     
-    // Obtener la ruta de redirección desde la configuración centralizada
-    const redirectRoute = getRedirectRoute(userRole);
-    console.log('🔐 Login - Redirigiendo a:', redirectRoute);
+    // Obtener la ruta de redirección usando switch directo (más confiable)
+    let redirectRoute: string;
+    switch (userRole) {
+      case 'VENDOR':
+        redirectRoute = '/vendedor';
+        break;
+      case 'SALES_CHIEF':
+        redirectRoute = '/jefe-ventas';
+        break;
+      case 'FINANCE':
+        redirectRoute = '/finanzas';
+        break;
+      case 'OPERATIONS':
+        redirectRoute = '/operaciones';
+        break;
+      case 'ADMIN':
+        redirectRoute = '/admin';
+        break;
+      default:
+        // Si no hay match, intentar con getRedirectRoute como fallback
+        redirectRoute = getRedirectRoute(userRole);
+        if (redirectRoute === '/dashboard') {
+          redirectRoute = '/role-selection';
+        }
+    }
     
+    console.log('🔐 Login - Redirigiendo a:', redirectRoute);
     navigate(redirectRoute);
   };
 

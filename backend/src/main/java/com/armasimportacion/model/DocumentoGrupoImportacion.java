@@ -40,6 +40,10 @@ public class DocumentoGrupoImportacion {
     @JoinColumn(name = "grupo_importacion_id", nullable = false)
     private GrupoImportacion grupoImportacion;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_documento_id", nullable = false)
+    private TipoDocumento tipoDocumento;
+
     @Column(name = "nombre_archivo", nullable = false, length = 255)
     private String nombreArchivo;
 
@@ -57,9 +61,6 @@ public class DocumentoGrupoImportacion {
 
     @Column(name = "url_archivo", length = 500)
     private String urlArchivo;
-
-    @Column(name = "tipo_documento", length = 50)
-    private String tipoDocumento;
 
     @Column(name = "fecha_carga")
     private LocalDateTime fechaCarga;

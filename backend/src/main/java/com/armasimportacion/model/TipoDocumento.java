@@ -55,9 +55,13 @@ public class TipoDocumento {
     @Column(name = "url_documento", length = 500)
     private String urlDocumento;
 
+    @Column(name = "grupos_importacion", nullable = false)
+    @Builder.Default
+    private Boolean gruposImportacion = false; // true si es para grupos de importación, false si es para clientes
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_proceso_id", nullable = false)
-    private TipoProceso tipoProceso;
+    @JoinColumn(name = "tipo_proceso_id", nullable = true)
+    private TipoProceso tipoProceso; // NULL si gruposImportacion = true, requerido si gruposImportacion = false
 
     @CreatedDate
     @Column(name = "fecha_creacion")

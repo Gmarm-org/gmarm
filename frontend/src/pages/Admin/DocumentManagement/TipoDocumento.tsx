@@ -6,6 +6,7 @@ import type { AdminStat } from '../components/AdminStats';
 import { documentTypeApi, tipoProcesoApi, type DocumentType, type TipoProceso } from '../../../services/adminApi';
 import SimpleFormModal from '../components/SimpleFormModal';
 
+
 const TipoDocumento: React.FC = () => {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [filteredDocumentTypes, setFilteredDocumentTypes] = useState<DocumentType[]>([]);
@@ -54,7 +55,7 @@ const TipoDocumento: React.FC = () => {
       filtered = filtered.filter(dt =>
         dt.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         dt.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dt.tipoProcesoNombre.toLowerCase().includes(searchTerm.toLowerCase())
+        (dt.tipoProcesoNombre && dt.tipoProcesoNombre.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -81,20 +82,37 @@ const TipoDocumento: React.FC = () => {
 
   const handleSave = async (data: Partial<DocumentType>) => {
     try {
+      // GARANTIZAR: Si gruposImportacion = true, tipoProcesoId DEBE ser null/undefined
+      if (data.gruposImportacion) {
+        // Limpiar tipoProcesoId explícitamente
+        data.tipoProcesoId = undefined;
+        delete data.tipoProcesoId;
+      } else {
+        // Si NO es para grupos, tipoProcesoId es REQUERIDO
+        if (!data.tipoProcesoId) {
+          alert('❌ El Tipo de Proceso es requerido para documentos de clientes.\n\nPor favor, seleccione un Tipo de Proceso o marque "Para Grupos de Importación" si el documento es solo para grupos.');
+          throw new Error('Tipo de Proceso requerido');
+        }
+      }
+
+      // Enviar al backend
       if (modalMode === 'create') {
         await documentTypeApi.create(data);
       } else if (modalMode === 'edit' && selectedType) {
         await documentTypeApi.update(selectedType.id, data);
       }
+      
       // Recargar lista
       await loadDocumentTypes();
       // Cerrar modal y limpiar selección
       setModalOpen(false);
       setSelectedType(null);
-      alert(modalMode === 'create' ? 'Tipo de documento creado exitosamente' : 'Tipo de documento actualizado exitosamente');
+      alert(modalMode === 'create' ? '✅ Tipo de documento creado exitosamente' : '✅ Tipo de documento actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando tipo de documento:', error);
-      alert('Error al guardar el tipo de documento. Verifique que el código sea único.');
+      if (!(error instanceof Error && error.message === 'Tipo de Proceso requerido')) {
+        alert('❌ Error al guardar el tipo de documento. Verifique los datos e intente nuevamente.');
+      }
       throw error;
     }
   };
@@ -131,9 +149,30 @@ const TipoDocumento: React.FC = () => {
     {
       key: 'tipoProcesoNombre',
       label: 'Tipo de Proceso',
+      render: (value, row) => {
+        // Si es documento de grupos de importación, mostrar badge especial
+        if (row.gruposImportacion) {
+          return (
+            <span className="inline-flex px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+              📦 Grupos Importación
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+            {value || 'N/A'}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'gruposImportacion',
+      label: 'Tipo',
       render: (value) => (
-        <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-          {value}
+        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+          value ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+        }`}>
+          {value ? '📦 Grupos' : '👤 Clientes'}
         </span>
       )
     },
@@ -189,13 +228,39 @@ const TipoDocumento: React.FC = () => {
       icon: '📝',
       color: 'purple',
       description: 'Documentos opcionales'
+    },
+    {
+      label: 'Para Grupos',
+      value: documentTypes.filter(dt => dt.gruposImportacion).length,
+      icon: '📦',
+      color: 'purple',
+      description: 'Documentos para grupos de importación'
+    },
+    {
+      label: 'Para Clientes',
+      value: documentTypes.filter(dt => !dt.gruposImportacion).length,
+      icon: '👤',
+      color: 'blue',
+      description: 'Documentos para clientes'
     }
   ];
 
   const formFields = [
     { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
     { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
-    { key: 'tipoProcesoId', label: 'Tipo de Proceso', type: 'select' as const, required: true, options: tiposProceso.map(tp => ({ value: tp.id, label: tp.nombre })) },
+    { 
+      key: 'gruposImportacion', 
+      label: 'Para Grupos de Importación', 
+      type: 'checkbox' as const
+    },
+    { 
+      key: 'tipoProcesoId', 
+      label: 'Tipo de Proceso', 
+      type: 'select' as const, 
+      required: true, // Será manejado dinámicamente en SimpleFormModal
+      options: tiposProceso.map(tp => ({ value: tp.id, label: tp.nombre })),
+      disabled: selectedType?.gruposImportacion || false // Estado inicial, se actualiza dinámicamente en SimpleFormModal
+    },
     { key: 'urlDocumento', label: 'URL del Documento (opcional)', type: 'text' as const, placeholder: 'https://ejemplo.com/documento.pdf' },
     { key: 'obligatorio', label: 'Obligatorio', type: 'checkbox' as const },
     { key: 'estado', label: 'Estado', type: 'checkbox' as const }
@@ -230,6 +295,33 @@ const TipoDocumento: React.FC = () => {
         mode={modalMode}
         title="Tipo de Documento"
         fields={formFields}
+        customSection={(formData: any) => {
+          // Sección dinámica que se actualiza según el estado del formulario
+          const isGruposImportacion = formData?.gruposImportacion || false;
+          
+          if (isGruposImportacion) {
+            return (
+              <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+                <p className="text-sm text-purple-800">
+                  <strong>ℹ️ Documento para Grupos de Importación:</strong> Este tipo de documento no requiere Tipo de Proceso.
+                  Solo aparecerá en la gestión de grupos de importación, no en documentos de clientes individuales.
+                  <br />
+                  <span className="font-semibold">El campo Tipo de Proceso está deshabilitado y será NULL automáticamente.</span>
+                </p>
+              </div>
+            );
+          }
+          
+          return (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Documento para Clientes:</strong> Este tipo de documento requiere un Tipo de Proceso para asociarlo con tipos de clientes específicos.
+                <br />
+                <span className="font-semibold">Por favor, seleccione un Tipo de Proceso.</span>
+              </p>
+            </div>
+          );
+        }}
       />
     </>
   );

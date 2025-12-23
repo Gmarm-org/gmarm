@@ -29,6 +29,7 @@ public class DocumentoClienteService {
     private final DocumentoClienteRepository repository;
     private final ClienteRepository clienteRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
+    private final TipoDocumentoService tipoDocumentoService;
     private final UsuarioRepository usuarioRepository;
     private final FileStorageService fileStorageService;
     private final DocumentoClienteMapper mapper;
@@ -56,8 +57,8 @@ public class DocumentoClienteService {
         documento.setFechaCarga(LocalDateTime.now());
         log.info("📄 Creando nuevo documento del tipo: {} (ID: {})", tipoDocumento.getNombre(), tipoDocumentoId);
         
-        // Guardar archivo físico
-        String rutaArchivo = fileStorageService.storeClientDocument(clienteId, tipoDocumentoId, archivo);
+        // Guardar archivo físico usando numeroIdentificacion
+        String rutaArchivo = fileStorageService.storeClientDocument(cliente.getNumeroIdentificacion(), tipoDocumentoId, archivo);
         
         // Extraer el nombre del archivo de la ruta (que ya incluye el nombre único generado)
         String nombreArchivoGenerado = Paths.get(rutaArchivo).getFileName().toString();
@@ -90,9 +91,9 @@ public class DocumentoClienteService {
             fileStorageService.deleteFile(documento.getRutaArchivo());
         }
         
-        // Guardar nuevo archivo
+        // Guardar nuevo archivo usando numeroIdentificacion
         String rutaArchivo = fileStorageService.storeClientDocument(
-            documento.getCliente().getId(), 
+            documento.getCliente().getNumeroIdentificacion(), 
             documento.getTipoDocumento().getId(), 
             archivo
         );
@@ -152,9 +153,12 @@ public class DocumentoClienteService {
             .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
         
         // Obtener todos los tipos de documento obligatorios para el tipo de proceso del cliente
-        List<TipoDocumento> tiposObligatorios = tipoDocumentoRepository.findByTipoProcesoIdAndEstado(
-            cliente.getTipoProcesoId(), true
-        );
+        // Usar el servicio que excluye documentos de grupos de importación
+        List<TipoDocumento> tiposObligatorios = tipoDocumentoService.findByTipoProcesoId(
+            cliente.getTipoProcesoId()
+        ).stream()
+        .filter(TipoDocumento::getObligatorio)
+        .collect(java.util.stream.Collectors.toList());
         
         if (tiposObligatorios.isEmpty()) {
             return true; // No hay documentos obligatorios
@@ -181,9 +185,9 @@ public class DocumentoClienteService {
         Cliente cliente = clienteRepository.findById(clienteId)
             .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
         
-        // Obtener tipos de documento para el tipo de proceso del cliente
-        List<TipoDocumento> tiposDocumento = tipoDocumentoRepository.findByTipoProcesoIdAndEstado(
-            cliente.getTipoProcesoId(), true
+        // Obtener tipos de documento para el tipo de proceso del cliente (excluye documentos de grupos de importación)
+        List<TipoDocumento> tiposDocumento = tipoDocumentoService.findByTipoProcesoId(
+            cliente.getTipoProcesoId()
         );
         
         // Obtener documentos cargados del cliente

@@ -83,6 +83,22 @@ public class LicenciaService {
         return licenciaRepository.findByEstado(true); // true = ACTIVA
     }
 
+    /**
+     * Obtiene las licencias disponibles para asignar a grupos de importación
+     * Una licencia está disponible si:
+     * - Está activa (estado = true)
+     * - Tiene estado de ocupación DISPONIBLE
+     */
+    public List<Licencia> obtenerLicenciasDisponibles() {
+        log.info("🔍 Buscando licencias disponibles (activas y no ocupadas)");
+        List<Licencia> licencias = licenciaRepository.findByEstadoAndEstadoOcupacion(true, EstadoOcupacionLicencia.DISPONIBLE);
+        log.info("✅ Encontradas {} licencias disponibles", licencias.size());
+        if (licencias.isEmpty()) {
+            log.warn("⚠️ No se encontraron licencias disponibles. Verificar que existan licencias activas con estado DISPONIBLE");
+        }
+        return licencias;
+    }
+
     public List<Licencia> obtenerLicenciasConCupoCivilDisponible() {
         return licenciaRepository.findLicenciasConCupoCivilDisponible();
     }
