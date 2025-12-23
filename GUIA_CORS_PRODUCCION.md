@@ -80,37 +80,87 @@ Deberías ver en la respuesta:
 docker logs gmarm-backend-prod | grep -i cors
 ```
 
-## 🔧 Pasos de Despliegue
+## 🔧 Pasos de Despliegue INMEDIATO
 
-### 1. **Actualizar código**
+### ⚠️ IMPORTANTE: El backend en producción DEBE ser reconstruido para aplicar los cambios
+
+### 1. **SSH al servidor de producción**
+
+```bash
+ssh usuario@servidor_ip
+cd ~/deploy/prod  # O donde esté el proyecto
+```
+
+### 2. **Actualizar código**
 
 ```bash
 git pull origin main
 ```
 
-### 2. **Verificar docker-compose.prod.yml**
+### 3. **Verificar docker-compose.prod.yml**
 
-Asegúrate de que la línea 16 tenga:
+Asegúrate de que la línea 16 tenga (SIN `api.gmarm.com`):
 ```yaml
 - SPRING_CORS_ALLOWED_ORIGINS=https://gmarm.com,https://www.gmarm.com
 ```
 
-**NOTA:** NO incluyas `https://api.gmarm.com` aquí.
+### 4. **Reconstruir y reiniciar el backend (OBLIGATORIO)**
 
-### 3. **Rebuild y restart del backend**
-
+**Opción A: Rebuild solo del backend (recomendado, más rápido)**
 ```bash
 docker-compose -f docker-compose.prod.yml build backend --no-cache
-docker-compose -f docker-compose.prod.yml restart backend
+docker-compose -f docker-compose.prod.yml stop backend
+docker-compose -f docker-compose.prod.yml rm -f backend
+docker-compose -f docker-compose.prod.yml up -d backend
 ```
 
-O mejor aún, rebuild completo:
+**Opción B: Rebuild completo (si Opción A no funciona)**
 ```bash
 docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.prod.yml build --no-cache
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### 4. **Verificar que funciona**
+### 5. **Esperar a que el backend inicie (30-60 segundos)**
+
+```bash
+# Monitorear logs hasta que veas "Started Application"
+docker logs -f gmarm-backend-prod
+# Presiona Ctrl+C cuando veas que inició correctamente
+```
+
+### 6. **Verificar variables de entorno**
+
+```bash
+docker exec gmarm-backend-prod printenv | grep SPRING_CORS
+```
+
+**DEBE mostrar:**
+```
+SPRING_CORS_ALLOWED_ORIGINS=https://gmarm.com,https://www.gmarm.com
+SPRING_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+SPRING_CORS_ALLOWED_HEADERS=*
+```
+
+### 7. **Probar preflight request**
+
+```bash
+curl -X OPTIONS https://api.gmarm.com/api/auth/login \
+  -H "Origin: https://gmarm.com" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  -v
+```
+
+**Debes ver en la respuesta:**
+```
+< HTTP/1.1 200 OK
+< Access-Control-Allow-Origin: https://gmarm.com
+< Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS
+< Access-Control-Allow-Headers: *
+```
+
+### 8. **Verificar que funciona en el navegador**
 
 1. Abre el navegador en `https://gmarm.com`
 2. Abre las herramientas de desarrollo (F12)

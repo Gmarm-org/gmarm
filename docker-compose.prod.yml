@@ -12,8 +12,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - APP_JWT_SECRET=${JWT_SECRET}
       - APP_JWT_EXPIRATION=86400000
-      # 🔒 CORS en producción (SOLO dominios permitidos)
-      - SPRING_CORS_ALLOWED_ORIGINS=https://gmarm.com,https://www.gmarm.com,https://api.gmarm.com
+      # 🔒 CORS en producción (SOLO dominios permitidos - NO incluir api.gmarm.com)
+      - SPRING_CORS_ALLOWED_ORIGINS=https://gmarm.com,https://www.gmarm.com
       - SPRING_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
       - SPRING_CORS_ALLOWED_HEADERS=*
       # 📧 Configuración de Email (OBLIGATORIO)
