@@ -8,7 +8,20 @@ Este directorio contiene scripts de migración SQL para aplicar cambios al esque
 
 ## Uso
 
-### Aplicar una migración
+### ⚡ Aplicación Automática (Recomendado)
+
+**Las migraciones se ejecutan automáticamente** durante el despliegue a producción usando el script `scripts/deploy-prod.sh`.
+
+El script:
+1. ✅ Busca todos los archivos `.sql` en `datos/migrations/`
+2. ✅ Los ejecuta en orden numérico (001, 002, 003, etc.)
+3. ✅ Continúa aunque una migración ya haya sido ejecutada (idempotencia)
+
+**No necesitas ejecutar migraciones manualmente si usas el script de deploy.**
+
+### 🔧 Aplicación Manual (Solo si es necesario)
+
+Si necesitas aplicar una migración manualmente (por ejemplo, fuera del proceso de deploy):
 
 ```bash
 # Conectarse a la base de datos de producción

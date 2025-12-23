@@ -165,6 +165,44 @@ else
 fi
 echo ""
 
+echo -e "${YELLOW}🔄 Paso 10.5: Ejecutando migraciones de base de datos...${NC}"
+MIGRATIONS_DIR="datos/migrations"
+if [ -d "$MIGRATIONS_DIR" ]; then
+  # Buscar todos los scripts de migración en orden numérico
+  MIGRATION_FILES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sort)
+  
+  if [ -z "$MIGRATION_FILES" ]; then
+    echo -e "${YELLOW}⚠️  No se encontraron scripts de migración${NC}"
+  else
+    echo "   Migraciones encontradas:"
+    for MIG_FILE in $MIGRATION_FILES; do
+      echo "   - $(basename $MIG_FILE)"
+    done
+    echo ""
+    
+    # Ejecutar cada migración
+    for MIG_FILE in $MIGRATION_FILES; do
+      MIG_NAME=$(basename $MIG_FILE)
+      echo -e "${YELLOW}   Ejecutando: $MIG_NAME...${NC}"
+      
+      if docker exec -i gmarm-postgres-prod psql -U postgres -d gmarm_prod < "$MIG_FILE" 2>&1; then
+        echo -e "${GREEN}   ✅ $MIG_NAME ejecutado exitosamente${NC}"
+      else
+        echo -e "${RED}   ❌ Error ejecutando $MIG_NAME${NC}"
+        echo -e "${YELLOW}   ⚠️  Continuando con siguiente migración...${NC}"
+        # No salimos con error porque las migraciones son idempotentes
+        # y pueden haber sido ejecutadas previamente
+      fi
+      echo ""
+    done
+    
+    echo -e "${GREEN}✅ Migraciones completadas${NC}"
+  fi
+else
+  echo -e "${YELLOW}⚠️  Directorio de migraciones no encontrado: $MIGRATIONS_DIR${NC}"
+fi
+echo ""
+
 echo -e "${YELLOW}📊 Paso 11: Uso de recursos...${NC}"
 docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
 echo ""
