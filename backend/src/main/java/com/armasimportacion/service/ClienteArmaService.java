@@ -42,6 +42,17 @@ public class ClienteArmaService {
     private final DocumentoClienteService documentoClienteService;
 
     /**
+     * Verifica si un cliente tiene armas asignadas (en estado ASIGNADA)
+     * @param clienteId ID del cliente
+     * @return true si tiene al menos una arma asignada, false en caso contrario
+     */
+    public boolean tieneArmasAsignadas(Long clienteId) {
+        List<ClienteArma> armasAsignadas = clienteArmaRepository.findByClienteIdAndEstado(
+            clienteId, ClienteArma.EstadoClienteArma.ASIGNADA);
+        return armasAsignadas != null && !armasAsignadas.isEmpty();
+    }
+    
+    /**
      * Crear una nueva reserva de arma para un cliente
      */
     public ClienteArmaDTO crearReserva(Long clienteId, Long armaId, Integer cantidad, BigDecimal precioUnitario) {
@@ -56,7 +67,29 @@ public class ClienteArmaService {
         Arma arma = armaRepository.findById(armaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + armaId));
         
-        // Validar que no existe ya una reserva activa
+        // TRAZABILIDAD: Cancelar reservas anteriores activas del cliente para mantener historial
+        // Esto permite que el cliente cambie de arma manteniendo el registro en BD
+        List<ClienteArma> reservasAnteriores = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId).stream()
+            .filter(ca -> !ca.estaCancelada()) // Solo cancelar las que no estén ya canceladas
+            .filter(ca -> !ca.estaCompletada()) // No cancelar las completadas (ya entregadas)
+            .collect(java.util.stream.Collectors.toList());
+        
+        if (!reservasAnteriores.isEmpty()) {
+            log.info("📋 Cancelando {} reserva(s) anterior(es) del cliente {} para mantener trazabilidad al cambiar de arma", 
+                    reservasAnteriores.size(), clienteId);
+            
+            for (ClienteArma reservaAnterior : reservasAnteriores) {
+                reservaAnterior.cancelar();
+                reservaAnterior.setFechaActualizacion(java.time.LocalDateTime.now());
+                clienteArmaRepository.save(reservaAnterior);
+                log.info("✅ Reserva anterior ID {} cancelada (arma ID: {})", 
+                        reservaAnterior.getId(), reservaAnterior.getArma().getId());
+            }
+            
+            log.info("✅ Reservas anteriores canceladas. Trazabilidad mantenida.");
+        }
+        
+        // Validar que no existe ya una reserva activa de la MISMA arma
         if (clienteArmaRepository.existsByClienteIdAndArmaId(clienteId, armaId)) {
             throw new BadRequestException("Ya existe una reserva de esta arma para este cliente");
         }
@@ -266,6 +299,119 @@ public class ClienteArmaService {
         return new ClienteArmaStatsDTO(totalReservas, reservasPendientes, reservasAsignadas, reservasCanceladas, reservasCompletadas);
     }
 
+    /**
+     * Obtener armas en stock del vendedor (armas asignadas a clientes fantasma del vendedor)
+     * Estas son armas que el vendedor solicitó sin cliente y que pueden ser reasignadas
+     * 
+     * @param usuarioId ID del vendedor
+     * @return Lista de armas en stock del vendedor
+     */
+    @Transactional(readOnly = true)
+    public List<ClienteArmaDTO> obtenerArmasEnStockVendedor(Long usuarioId) {
+        log.info("📦 Obteniendo armas en stock del vendedor ID: {}", usuarioId);
+        
+        // Buscar clientes fantasma del vendedor
+        List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
+            usuarioId,
+            com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+        );
+        
+        if (clientesFantasma.isEmpty()) {
+            log.info("📦 No se encontraron clientes fantasma para el vendedor, no hay armas en stock");
+            return List.of();
+        }
+        
+        // Obtener todas las armas asignadas a estos clientes fantasma
+        // Solo armas en estado RESERVADA (no canceladas ni completadas)
+        List<ClienteArma> armasEnStock = clientesFantasma.stream()
+            .flatMap(cliente -> clienteArmaRepository.findByClienteIdWithArmaAndCategoria(cliente.getId()).stream())
+            .filter(ca -> ca.getEstado() == ClienteArma.EstadoClienteArma.RESERVADA 
+                       || ca.getEstado() == ClienteArma.EstadoClienteArma.ASIGNADA)
+            .collect(Collectors.toList());
+        
+        log.info("📦 Se encontraron {} armas en stock del vendedor", armasEnStock.size());
+        
+        return armasEnStock.stream()
+            .map(this::convertirADTO)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Reasignar un arma de un cliente a otro
+     * Útil para transferir armas del stock del vendedor (cliente fantasma) a un cliente real
+     * 
+     * IMPORTANTE: Valida que el nuevo cliente tenga todos sus documentos obligatorios completos
+     * antes de permitir la reasignación. Esto asegura que solo se entreguen armas a clientes
+     * con documentación completa.
+     * 
+     * @param clienteArmaId ID de la relación ClienteArma a reasignar
+     * @param nuevoClienteId ID del nuevo cliente al que se asignará el arma
+     * @return ClienteArmaDTO actualizado
+     */
+    @Transactional
+    public ClienteArmaDTO reasignarArmaACliente(Long clienteArmaId, Long nuevoClienteId) {
+        log.info("🔄 Reasignando arma ID {} al cliente ID {}", clienteArmaId, nuevoClienteId);
+        
+        // Buscar la relación ClienteArma
+        ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
+            .orElseThrow(() -> new ResourceNotFoundException("Relación Cliente-Arma no encontrada con ID: " + clienteArmaId));
+        
+        // Verificar que el nuevo cliente existe
+        Cliente nuevoCliente = clienteRepository.findById(nuevoClienteId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + nuevoClienteId));
+        
+        // Verificar que la arma esté en un estado válido para reasignación
+        if (clienteArma.getEstado() == ClienteArma.EstadoClienteArma.CANCELADA) {
+            throw new BadRequestException("No se puede reasignar un arma cancelada");
+        }
+        
+        if (clienteArma.getEstado() == ClienteArma.EstadoClienteArma.COMPLETADA) {
+            throw new BadRequestException("No se puede reasignar un arma completada");
+        }
+        
+        // VALIDACIÓN CRÍTICA: Verificar que el nuevo cliente tenga todos sus documentos obligatorios completos
+        // Esto asegura que solo se entreguen armas a clientes con documentación completa
+        boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(nuevoClienteId);
+        if (!documentosCompletos) {
+            log.warn("❌ Intento de reasignar arma a cliente ID {} sin documentos completos", nuevoClienteId);
+            throw new BadRequestException("El cliente no tiene todos sus documentos obligatorios completos. " +
+                    "Debe cargar y aprobar todos los documentos requeridos antes de poder recibir el arma.");
+        }
+        
+        // Reasignar el arma al nuevo cliente
+        Cliente clienteAnterior = clienteArma.getCliente();
+        clienteArma.setCliente(nuevoCliente);
+        clienteArma.setFechaAsignacion(java.time.LocalDateTime.now());
+        // Cambiar el estado del arma a REASIGNADO cuando se reasigna
+        clienteArma.setEstado(ClienteArma.EstadoClienteArma.REASIGNADO);
+        
+        ClienteArma clienteArmaActualizado = clienteArmaRepository.save(clienteArma);
+        
+        log.info("✅ Arma reasignada exitosamente: de cliente ID {} a cliente ID {} (documentos verificados)", 
+            clienteAnterior.getId(), nuevoClienteId);
+        
+        return convertirADTO(clienteArmaActualizado);
+    }
+
+    /**
+     * Obtener todas las armas con estado REASIGNADO
+     * Estas son armas que fueron reasignadas y están esperando ser asignadas a un nuevo cliente
+     * 
+     * @return Lista de armas reasignadas con información del cliente anterior
+     */
+    @Transactional(readOnly = true)
+    public List<ClienteArmaDTO> obtenerArmasReasignadas() {
+        log.info("🔄 Obteniendo armas con estado REASIGNADO");
+        
+        List<ClienteArma> armasReasignadas = clienteArmaRepository.findByEstado(ClienteArma.EstadoClienteArma.REASIGNADO);
+        
+        log.info("✅ Se encontraron {} armas reasignadas", armasReasignadas.size());
+        
+        return armasReasignadas.stream()
+            .map(this::convertirADTO)
+            .collect(Collectors.toList());
+    }
+    
     /**
      * Convertir entidad a DTO
      */

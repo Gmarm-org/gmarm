@@ -27,7 +27,7 @@ const AgregarClientesModal: React.FC<AgregarClientesModalProps> = ({
     setLoading(true);
     try {
       const [clientesDisponiblesData, clientesGrupo] = await Promise.all([
-        apiService.getClientesDisponibles().catch(() => []), // Si falla, usar array vacío
+        apiService.getClientesDisponibles(grupoId).catch(() => []), // Pasar grupoId para filtrar por tipo de grupo
         apiService.getClientesDelGrupo(grupoId).catch(() => []), // Si falla, usar array vacío
       ]);
       

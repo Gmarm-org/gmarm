@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,16 +80,32 @@ public class ArmaSerieController {
      * 
      * POST /api/arma-serie/bulk-upload
      * 
-     * @param series Lista de series con estructura: { serialNumber, codigo, model, caliber, observaciones }
+     * @param requestBody { series: Lista de series, grupoImportacionId: ID del grupo de importación }
      */
     @PostMapping("/bulk-upload")
-    public ResponseEntity<Map<String, Object>> bulkUploadSeries(@RequestBody List<Map<String, String>> series) {
+    public ResponseEntity<Map<String, Object>> bulkUploadSeries(@RequestBody Map<String, Object> requestBody) {
         try {
-            log.info("📤 Solicitud de carga masiva de {} series", series.size());
+            @SuppressWarnings("unchecked")
+            List<Map<String, String>> series = (List<Map<String, String>>) requestBody.get("series");
+            Long grupoImportacionId = requestBody.get("grupoImportacionId") != null 
+                ? Long.valueOf(requestBody.get("grupoImportacionId").toString()) 
+                : null;
             
-            Map<String, Object> resultado = armaSerieService.bulkUploadSeriesFromJson(series);
+            if (series == null || series.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("success", 0, "errors", List.of("No se proporcionaron series para cargar")));
+            }
             
-            if (Boolean.TRUE.equals(resultado.get("success"))) {
+            if (grupoImportacionId == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("success", 0, "errors", List.of("Debe seleccionar un grupo de importación")));
+            }
+            
+            log.info("📤 Solicitud de carga masiva de {} series para grupo de importación ID: {}", series.size(), grupoImportacionId);
+            
+            Map<String, Object> resultado = armaSerieService.bulkUploadSeriesFromJson(series, grupoImportacionId);
+            
+            if (Boolean.TRUE.equals(resultado.get("success")) || ((Integer) resultado.get("success")) > 0) {
                 return ResponseEntity.ok(resultado);
             } else {
                 return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).body(resultado);
@@ -142,13 +157,16 @@ public class ArmaSerieController {
 
     /**
      * Obtiene todas las series disponibles de un arma
+     * Si se proporciona grupoImportacionId, filtra solo las series de ese grupo
      * 
-     * GET /api/arma-serie/disponibles/{armaId}
+     * GET /api/arma-serie/disponibles/{armaId}?grupoImportacionId={grupoId}
      */
     @GetMapping("/disponibles/{armaId}")
-    public ResponseEntity<List<ArmaSerieDTO>> getSeriesDisponibles(@PathVariable Long armaId) {
+    public ResponseEntity<List<ArmaSerieDTO>> getSeriesDisponibles(
+            @PathVariable Long armaId,
+            @RequestParam(required = false) Long grupoImportacionId) {
         try {
-            List<ArmaSerieDTO> series = armaSerieService.getSeriesDisponiblesByArma(armaId);
+            List<ArmaSerieDTO> series = armaSerieService.getSeriesDisponiblesByArma(armaId, grupoImportacionId);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
             log.error("❌ Error obteniendo series disponibles: {}", e.getMessage(), e);

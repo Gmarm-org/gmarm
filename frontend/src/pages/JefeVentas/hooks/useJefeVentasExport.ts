@@ -79,10 +79,21 @@ export const useJefeVentasExport = () => {
             if (precioUnitario > 0) {
               // Precio unitario SIN IVA
               fila['Precio Unitario'] = precioUnitario.toFixed(2);
-              // Precio total CON IVA (15%)
+              // Precio total CON IVA (cargado desde configuracion_sistema)
               const cantidad = parseInt(arma.cantidad || '1');
-              const precioTotalConIva = precioUnitario * cantidad * 1.15;
-              fila['Precio Total'] = precioTotalConIva.toFixed(2);
+              try {
+                const configuraciones = await apiService.getConfiguracionSistema();
+                const ivaValue = configuraciones?.IVA || configuraciones?.['IVA'];
+                const ivaPercent = typeof ivaValue === 'number' ? ivaValue : parseFloat(String(ivaValue || '15'));
+                const ivaDecimal = isNaN(ivaPercent) ? 0.15 : ivaPercent / 100;
+                const precioTotalConIva = precioUnitario * cantidad * (1 + ivaDecimal);
+                fila['Precio Total'] = precioTotalConIva.toFixed(2);
+              } catch (error) {
+                console.error('Error cargando IVA para exportación:', error);
+                // Fallback: usar 15% si falla la carga (pero registrar el error)
+                const precioTotalConIva = precioUnitario * cantidad * 1.15;
+                fila['Precio Total'] = precioTotalConIva.toFixed(2);
+              }
             }
           }
           

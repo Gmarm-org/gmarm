@@ -14,16 +14,70 @@ export function useTableFilters<T extends Record<string, any>>(
     key: null,
     direction: null,
   });
+  
+  // Filtros por campo
+  const [filters, setFilters] = useState<Partial<Record<keyof T, string>>>({});
 
-  // Aplicar ordenamiento (sin filtros)
-  const sortedData = useMemo(() => {
+  // Aplicar filtros primero, luego ordenamiento
+  const filteredData = useMemo(() => {
     if (!data) return [];
     
-    if (!sortConfig.key || !sortConfig.direction) {
+    // Si no hay filtros, retornar todos los datos
+    const hasFilters = Object.values(filters).some(value => value && value.trim() !== '');
+    if (!hasFilters) {
       return data;
     }
+    
+    // Aplicar filtros
+    return data.filter(item => {
+      return Object.entries(filters).every(([key, filterValue]) => {
+        // Si el filtro está vacío, no filtrar por ese campo
+        if (!filterValue || filterValue.trim() === '') {
+          return true;
+        }
+        
+        const itemValue = item[key];
+        
+        // Manejar valores booleanos y null (para emailVerificado)
+        if (key === 'emailVerificado') {
+          const filterLower = filterValue.toLowerCase().trim();
+          if (filterLower === 'ok' || filterLower === 'true' || filterLower === 'validado') {
+            return itemValue === true;
+          }
+          if (filterLower === 'error' || filterLower === 'false' || filterLower === 'datos incorrectos' || filterLower === 'datosincorrectos') {
+            return itemValue === false;
+          }
+          if (filterLower === 'pendiente' || filterLower === 'null' || filterLower === 'undefined' || filterLower === '') {
+            return itemValue == null || itemValue === undefined;
+          }
+          // Si no coincide con ningún patrón, no filtrar
+          return true;
+        }
+        
+        if (itemValue == null) {
+          // Para valores null/undefined, permitir filtrar por "pendiente", "null", etc.
+          const filterLower = filterValue.toLowerCase().trim();
+          return filterLower === 'pendiente' || filterLower === 'null' || filterLower === 'undefined' || filterLower === '';
+        }
+        
+        // Convertir a string y buscar (case-insensitive)
+        const searchText = filterValue.toLowerCase().trim();
+        const itemText = String(itemValue).toLowerCase();
+        
+        return itemText.includes(searchText);
+      });
+    });
+  }, [data, filters]);
 
-    return [...data].sort((a, b) => {
+  // Aplicar ordenamiento a los datos filtrados
+  const sortedData = useMemo(() => {
+    if (!filteredData) return [];
+    
+    if (!sortConfig.key || !sortConfig.direction) {
+      return filteredData;
+    }
+
+    return [...filteredData].sort((a, b) => {
       const aValue = a[sortConfig.key!];
       const bValue = b[sortConfig.key!];
 
@@ -48,7 +102,7 @@ export function useTableFilters<T extends Record<string, any>>(
 
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  }, [data, sortConfig]);
+  }, [filteredData, sortConfig]);
 
   // Función para manejar ordenamiento
   const handleSort = (key: keyof T) => {
@@ -66,10 +120,30 @@ export function useTableFilters<T extends Record<string, any>>(
     });
   };
 
+  // Función para actualizar un filtro específico
+  const setFilter = (key: keyof T, value: string) => {
+    setFilters(prev => {
+      if (!value || value.trim() === '') {
+        const newFilters = { ...prev };
+        delete newFilters[key];
+        return newFilters;
+      }
+      return { ...prev, [key]: value };
+    });
+  };
+  
+  // Función para limpiar todos los filtros
+  const clearFilters = () => {
+    setFilters({});
+  };
+
   return {
     filteredAndSortedData: sortedData,
     sortConfig,
     handleSort,
+    filters,
+    setFilter,
+    clearFilters,
   };
 }
 

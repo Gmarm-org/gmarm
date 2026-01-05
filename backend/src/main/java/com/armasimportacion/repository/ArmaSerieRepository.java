@@ -48,6 +48,14 @@ public interface ArmaSerieRepository extends JpaRepository<ArmaSerie, Long> {
     List<ArmaSerie> findSeriesDisponiblesByArmaId(@Param("armaId") Long armaId);
 
     /**
+     * Encuentra todas las series disponibles de un arma en un grupo de importación específico
+     */
+    @Query("SELECT s FROM ArmaSerie s WHERE s.arma.id = :armaId AND s.estado = 'DISPONIBLE' AND s.grupoImportacion.id = :grupoImportacionId")
+    List<ArmaSerie> findSeriesDisponiblesByArmaIdAndGrupoImportacionId(
+            @Param("armaId") Long armaId, 
+            @Param("grupoImportacionId") Long grupoImportacionId);
+
+    /**
      * Cuenta cuántas series disponibles hay de un arma
      */
     @Query("SELECT COUNT(s) FROM ArmaSerie s WHERE s.arma.id = :armaId AND s.estado = 'DISPONIBLE'")

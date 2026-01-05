@@ -11,10 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional
@@ -64,6 +67,61 @@ public class ConfiguracionSistemaService {
         
         log.info("Valor obtenido para clave {}: {}", clave, configuracion.getValor());
         return configuracion.getValor();
+    }
+
+    /**
+     * Obtiene la lista de correos electrónicos desde la configuración CORREOS_RECIBO
+     * El valor puede estar en formato JSON array o separado por comas
+     * 
+     * @return Lista de correos electrónicos configurados para recibir copias de recibos
+     */
+    public List<String> getCorreosRecibo() {
+        log.info("Obteniendo lista de correos para recibos desde configuración");
+        
+        try {
+            String valor = getValorConfiguracion("CORREOS_RECIBO");
+            if (valor == null || valor.trim().isEmpty()) {
+                log.warn("⚠️ CORREOS_RECIBO está vacío o no configurado");
+                return new ArrayList<>();
+            }
+            
+            List<String> correos = new ArrayList<>();
+            
+            // Intentar parsear como JSON array
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                List<String> correosJson = objectMapper.readValue(valor, new TypeReference<List<String>>() {});
+                if (correosJson != null && !correosJson.isEmpty()) {
+                    correos = correosJson;
+                }
+            } catch (Exception e) {
+                // Si no es JSON válido, intentar separar por comas
+                log.debug("No es JSON válido, intentando separar por comas: {}", e.getMessage());
+                String[] correosArray = valor.split(",");
+                for (String correo : correosArray) {
+                    String correoTrimmed = correo.trim();
+                    if (!correoTrimmed.isEmpty()) {
+                        correos.add(correoTrimmed);
+                    }
+                }
+            }
+            
+            // Filtrar correos vacíos
+            correos = correos.stream()
+                    .filter(correo -> correo != null && !correo.trim().isEmpty())
+                    .map(String::trim)
+                    .collect(Collectors.toList());
+            
+            log.info("✅ Correos de recibo obtenidos: {} correo(s)", correos.size());
+            return correos;
+            
+        } catch (ResourceNotFoundException e) {
+            log.warn("⚠️ Configuración CORREOS_RECIBO no encontrada, retornando lista vacía");
+            return new ArrayList<>();
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo correos de recibo: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
     }
 
     public ConfiguracionSistemaDTO updateConfiguracion(String clave, ConfiguracionSistemaDTO configuracionDTO) {

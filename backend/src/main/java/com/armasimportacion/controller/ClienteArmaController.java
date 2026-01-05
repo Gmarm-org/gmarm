@@ -153,4 +153,42 @@ public class ClienteArmaController {
         ClienteArmaService.ClienteArmaStatsDTO estadisticas = clienteArmaService.obtenerEstadisticas();
         return ResponseEntity.ok(estadisticas);
     }
+    
+    /**
+     * Obtener armas en stock del vendedor (armas asignadas a clientes fantasma)
+     * Estas son armas que el vendedor solicitó sin cliente y que pueden ser reasignadas
+     */
+    @GetMapping("/stock-vendedor/{usuarioId}")
+    public ResponseEntity<List<ClienteArmaDTO>> obtenerArmasEnStockVendedor(@PathVariable Long usuarioId) {
+        log.info("GET /api/cliente-arma/stock-vendedor/{} - Obteniendo armas en stock del vendedor", usuarioId);
+        
+        List<ClienteArmaDTO> armasEnStock = clienteArmaService.obtenerArmasEnStockVendedor(usuarioId);
+        return ResponseEntity.ok(armasEnStock);
+    }
+    
+    /**
+     * Reasignar un arma de un cliente a otro
+     * Útil para transferir armas del stock del vendedor a un cliente real
+     */
+    @PutMapping("/{clienteArmaId}/reasignar/{nuevoClienteId}")
+    public ResponseEntity<ClienteArmaDTO> reasignarArmaACliente(
+            @PathVariable Long clienteArmaId,
+            @PathVariable Long nuevoClienteId) {
+        log.info("PUT /api/cliente-arma/{}/reasignar/{} - Reasignando arma a nuevo cliente", 
+            clienteArmaId, nuevoClienteId);
+        
+        ClienteArmaDTO clienteArma = clienteArmaService.reasignarArmaACliente(clienteArmaId, nuevoClienteId);
+        return ResponseEntity.ok(clienteArma);
+    }
+
+    /**
+     * Obtener todas las armas con estado REASIGNADO
+     */
+    @GetMapping("/reasignadas")
+    public ResponseEntity<List<ClienteArmaDTO>> obtenerArmasReasignadas() {
+        log.info("GET /api/cliente-arma/reasignadas - Obteniendo armas reasignadas");
+        
+        List<ClienteArmaDTO> armasReasignadas = clienteArmaService.obtenerArmasReasignadas();
+        return ResponseEntity.ok(armasReasignadas);
+    }
 }

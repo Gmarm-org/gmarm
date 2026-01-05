@@ -61,6 +61,15 @@ public class CuotaPago {
     @Column(name = "referencia_pago", length = 100)
     private String referenciaPago;
 
+    @Column(name = "numero_recibo", length = 100)
+    private String numeroRecibo;
+
+    @Column(name = "comprobante_archivo", length = 500)
+    private String comprobanteArchivo;
+
+    @Column(name = "observaciones", columnDefinition = "TEXT")
+    private String observaciones;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_confirmador_id")
     private Usuario usuarioConfirmador;

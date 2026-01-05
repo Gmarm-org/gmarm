@@ -51,8 +51,8 @@ export const useVendedorHandlers = (
   // Refs
   selectedSerieNumeroRef: React.MutableRefObject<string | null>,
   
-  // User (no usado directamente pero necesario para tipos)
-  _user: User | null
+  // User (necesario para crear cliente automático cuando no hay cliente)
+  user: User | null
 ) => {
   const { getCodigoTipoCliente } = useTiposClienteConfig();
 
@@ -117,7 +117,9 @@ export const useVendedorHandlers = (
       if (selectedWeapon && selectedWeapon.id === weapon.id) {
         return;
       }
-      let precioAUsar = weapon.precioReferencia || 0;
+      // El precio inicial debe ser 0 para que el vendedor lo ingrese
+      // Solo usar precio guardado si ya existe una asignación previa
+      let precioAUsar = 0;
       if (weaponPrices[weapon.id]) {
         precioAUsar = weaponPrices[weapon.id];
       } else if (selectedClient && clientWeaponAssignments[selectedClient.id]) {
@@ -223,9 +225,53 @@ export const useVendedorHandlers = (
     if (!clientFormData && selectedClient) {
       setClientFormData(selectedClient);
     }
+    
+    // Si no hay cliente ni datos del cliente, usar el cliente fantasma del vendedor
     if (!clientFormData && !selectedClient) {
-      alert('❌ Error: No hay datos del cliente. Por favor, completa el proceso desde el inicio.');
-      return;
+      if (!user) {
+        alert('❌ Error: No se pudo obtener la información del vendedor. Por favor, inicia sesión nuevamente.');
+        return;
+      }
+      
+      if (!selectedWeapon) {
+        alert('❌ Error: Debes seleccionar un arma primero.');
+        return;
+      }
+      
+      try {
+        console.log('👤 Buscando/creando cliente fantasma para vendedor:', user.nombres, user.apellidos);
+        
+        // Buscar o crear el cliente fantasma del vendedor en el backend
+        const clienteFantasma = await apiService.buscarOCrearClienteFantasmaVendedor();
+        console.log('✅ Cliente fantasma obtenido:', clienteFantasma);
+        
+        // Crear la reserva de arma para el cliente fantasma
+        const precioTotal = precioModificado * cantidad;
+        await apiService.crearReservaArma(
+          parseInt(clienteFantasma.id.toString()),
+          parseInt(selectedWeapon.id.toString()),
+          cantidad,
+          precioModificado,
+          precioTotal
+        );
+        
+        console.log('✅ Arma asignada al cliente fantasma del vendedor. El arma quedará en stock para asignar a un cliente posteriormente.');
+        
+        // Mostrar mensaje y volver al dashboard
+        alert('✅ Arma asignada exitosamente. La arma quedará en tu stock y podrás asignarla a un cliente cuando lo crees.');
+        
+        // Limpiar selección y volver al dashboard
+        setSelectedWeapon(null);
+        setPrecioModificado(0);
+        setCantidad(1);
+        setCurrentPage('dashboard');
+        return; // No continuar con el flujo de pago para armas sin cliente
+      } catch (error: any) {
+        console.error('❌ Error asignando arma al cliente fantasma:', error);
+        const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al asignar arma';
+        alert(`❌ Error al asignar arma: ${errorMessage}`);
+        return;
+      }
     }
     
     // Si el cliente ya existe (tiene ID) y hay arma seleccionada, guardar la reserva
@@ -260,7 +306,7 @@ export const useVendedorHandlers = (
     } else {
       setCurrentPage('paymentForm');
     }
-  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, expoferiaActiva, setClientFormData, setCurrentPage]);
+  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, expoferiaActiva, user, setClientFormData, setSelectedClient, setCurrentPage]);
 
   const handleBackToClientForm = useCallback(() => {
     if (clientFormData) {
@@ -330,14 +376,79 @@ export const useVendedorHandlers = (
     }
   }, [clientWeaponAssignments, mapearCodigoANombreProvincia, provinciasCompletas, setSelectedClient, setClientFormMode, setSelectedWeapon, setPrecioModificado, setCantidad, setCurrentPage]);
 
+  const handleValidarDatosPersonales = useCallback(async (client: Client) => {
+    try {
+      await apiService.validarDatosPersonales(Number(client.id));
+      // Recargar clientes para actualizar el estado
+      await loadClients();
+      alert('✅ Datos personales validados exitosamente');
+    } catch (error: any) {
+      console.error('❌ Error validando datos personales:', error);
+      alert('❌ Error al validar datos personales: ' + (error.message || 'Error desconocido'));
+    }
+  }, [loadClients]);
+
   const handleEditClient = useCallback(async (client: Client) => {
     try {
       const clienteCompleto = await apiService.getCliente(parseInt(client.id));
+      console.log('🔍 Cliente completo obtenido del backend:', clienteCompleto);
+      
+      // Obtener tipos de cliente para el mapeo
+      const tiposClienteCompletos = await apiService.getClientTypes();
+      
+      // Mapear provincia: el backend devuelve código
+      // El select de provincia usa códigos, así que mantenemos el código
+      let provinciaMapeada = (clienteCompleto as any).provincia || '';
+      if (provinciaMapeada) {
+        // Buscar si es código o nombre (por seguridad)
+        const provinciaPorCodigo = provinciasCompletas.find(p => p.codigo === provinciaMapeada);
+        const provinciaPorNombre = provinciasCompletas.find(p => p.nombre === provinciaMapeada);
+        
+        if (provinciaPorCodigo) {
+          // Ya es código, mantenerlo
+          provinciaMapeada = provinciaPorCodigo.codigo;
+          console.log('✅ Provincia ya es código:', provinciaMapeada);
+        } else if (provinciaPorNombre) {
+          // Es nombre, convertir a código para el select
+          provinciaMapeada = provinciaPorNombre.codigo;
+          console.log('✅ Provincia convertida de nombre a código:', { 
+            nombre: (clienteCompleto as any).provincia, 
+            codigo: provinciaMapeada 
+          });
+        } else {
+          // No se encontró, usar valor original
+          console.log('⚠️ Provincia no encontrada en catálogo:', provinciaMapeada);
+        }
+      }
+      
+      // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+      let tipoClienteNombre = (clienteCompleto as any).tipoClienteNombre || '';
+      if (!tipoClienteNombre && (clienteCompleto as any).tipoClienteCodigo) {
+        // Si no viene tipoClienteNombre, buscar por código en los tipos de cliente
+        const tipoClienteEncontrado = tiposClienteCompletos.find((tc: any) => tc.codigo === (clienteCompleto as any).tipoClienteCodigo);
+        if (tipoClienteEncontrado) {
+          tipoClienteNombre = tipoClienteEncontrado.nombre;
+          console.log('✅ TipoCliente encontrado por código:', { codigo: (clienteCompleto as any).tipoClienteCodigo, nombre: tipoClienteNombre });
+        }
+      }
+      
       const clienteParaMostrar = {
         ...clienteCompleto,
-        provincia: mapearCodigoANombreProvincia((clienteCompleto as any).provincia || '', provinciasCompletas),
+        // tipoCliente debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+        tipoCliente: tipoClienteNombre,
+        tipoClienteNombre: tipoClienteNombre,
+        // provincia debe ser el CÓDIGO para que coincida con el select (value={provincia.codigo})
+        provincia: provinciaMapeada,
         canton: (clienteCompleto as any).canton || ''
       };
+      
+      console.log('✅ Cliente preparado para mostrar:', {
+        tipoCliente: clienteParaMostrar.tipoCliente,
+        tipoClienteNombre: clienteParaMostrar.tipoClienteNombre,
+        provincia: clienteParaMostrar.provincia,
+        canton: clienteParaMostrar.canton
+      });
+      
       setSelectedClient(clienteParaMostrar as any);
       setClientFormMode('edit');
       const assignment = clientWeaponAssignments[client.id];
@@ -353,11 +464,54 @@ export const useVendedorHandlers = (
       setCurrentPage('clientForm');
     } catch (error) {
       console.error('❌ Error obteniendo cliente completo:', error);
+      // En caso de error, intentar usar los datos del cliente que ya tenemos
+      let provinciaMapeada = client.provincia || '';
+      if (provinciaMapeada) {
+        // Buscar si es código o nombre
+        const provinciaPorCodigo = provinciasCompletas.find(p => p.codigo === provinciaMapeada);
+        const provinciaPorNombre = provinciasCompletas.find(p => p.nombre === provinciaMapeada);
+        
+        if (provinciaPorCodigo) {
+          provinciaMapeada = provinciaPorCodigo.codigo;
+        } else if (provinciaPorNombre) {
+          provinciaMapeada = provinciaPorNombre.codigo;
+        }
+      }
+      
+      // Obtener tipos de cliente para el mapeo
+      let tiposClienteCompletos: any[] = [];
+      try {
+        tiposClienteCompletos = await apiService.getClientTypes();
+      } catch (e) {
+        console.error('❌ Error obteniendo tipos de cliente:', e);
+      }
+      
+      // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+      let tipoClienteNombre = (client as any).tipoClienteNombre || client.tipoCliente || '';
+      if (tipoClienteNombre && tiposClienteCompletos.length > 0) {
+        // Verificar si el valor actual es código o nombre
+        const tipoClientePorCodigo = tiposClienteCompletos.find((tc: any) => tc.codigo === tipoClienteNombre);
+        const tipoClientePorNombre = tiposClienteCompletos.find((tc: any) => tc.nombre === tipoClienteNombre);
+        
+        if (tipoClientePorCodigo) {
+          // Es código, convertir a nombre
+          tipoClienteNombre = tipoClientePorCodigo.nombre;
+        } else if (tipoClientePorNombre) {
+          // Ya es nombre, mantenerlo
+          tipoClienteNombre = tipoClientePorNombre.nombre;
+        }
+      }
+      
       const clienteParaMostrar = {
         ...client,
-        provincia: mapearCodigoANombreProvincia(client.provincia || '', provinciasCompletas),
+        // tipoCliente debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+        tipoCliente: tipoClienteNombre,
+        tipoClienteNombre: tipoClienteNombre,
+        // provincia debe ser el CÓDIGO para que coincida con el select (value={provincia.codigo})
+        provincia: provinciaMapeada,
         canton: client.canton || ''
       };
+      
       setSelectedClient(clienteParaMostrar as any);
       setClientFormMode('edit');
       const assignment = clientWeaponAssignments[client.id];
@@ -419,6 +573,7 @@ export const useVendedorHandlers = (
     handleBackToWeaponSelection,
     handleViewClient,
     handleEditClient,
+    handleValidarDatosPersonales,
     handleFilterByType,
     clearFilter,
     handlePriceChangeWrapper,

@@ -139,9 +139,16 @@ public class GestionDocumentosServiceHelper {
      * Genera el nombre del archivo de contrato siguiendo el patrón estándar
      */
     private String generarNombreArchivoContrato(Cliente cliente, Pago pago) {
-        String fechaActual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        return String.format("contrato_%s_%s.pdf", 
-            cliente.getNumeroIdentificacion(), fechaActual);
+        // Formato: contrato_apellidos_nombres_cedula.pdf
+        String apellidos = cliente.getApellidos() != null ? cliente.getApellidos().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim() : "";
+        String nombres = cliente.getNombres() != null ? cliente.getNombres().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim() : "";
+        String cedula = cliente.getNumeroIdentificacion() != null ? cliente.getNumeroIdentificacion() : "";
+        
+        // Normalizar: reemplazar espacios por guiones bajos y convertir a minúsculas
+        apellidos = apellidos.replaceAll("\\s+", "_").toLowerCase();
+        nombres = nombres.replaceAll("\\s+", "_").toLowerCase();
+        
+        return String.format("contrato_%s_%s_%s.pdf", apellidos, nombres, cedula);
     }
 
     /**
@@ -326,21 +333,25 @@ public class GestionDocumentosServiceHelper {
             
             // Cargar cuotas para obtener fechas dinámicas
             java.util.List<CuotaPago> cuotas = new java.util.ArrayList<>();
-            log.info("🔍 DEBUG: Pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
-            if (pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
-                cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
-                log.info("📅 Cuotas cargadas: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
-                for (CuotaPago cuota : cuotas) {
-                    log.info("🔍 DEBUG Cuota: numero={}, monto={}, fecha={}", cuota.getNumeroCuota(), cuota.getMonto(), cuota.getFechaVencimiento());
+            if (pago != null) {
+                log.info("🔍 DEBUG: Pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
+                if (pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
+                    cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
+                    log.info("📅 Cuotas cargadas: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
+                    for (CuotaPago cuota : cuotas) {
+                        log.info("🔍 DEBUG Cuota: numero={}, monto={}, fecha={}", cuota.getNumeroCuota(), cuota.getMonto(), cuota.getFechaVencimiento());
+                    }
+                } else {
+                    log.info("⚠️ No se cargaron cuotas - pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
                 }
             } else {
-                log.info("⚠️ No se cargaron cuotas - pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
+                log.info("⚠️ No hay pago asociado al cliente, generando contrato sin información de pago");
             }
             
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
             variables.put("cliente", cliente);
-            variables.put("pago", pago);
+            variables.put("pago", pago != null ? pago : null); // Pago puede ser null
             variables.put("arma", clienteArma.getArma());
             variables.put("ivaPorcentaje", ivaPorcentaje);  // Ej: 15
             variables.put("ivaDecimal", ivaDecimal);        // Ej: 0.15
@@ -388,7 +399,11 @@ public class GestionDocumentosServiceHelper {
             variables.put("clienteDireccionCompleta", direccionCompleta.toString());
             
             log.info("🔧 Variables preparadas para template: cliente={}, pago={}, arma={}, IVA={}%, numeroCuotas={}", 
-                cliente.getNombres(), pago.getMontoTotal(), clienteArma.getArma().getNombre(), ivaPorcentaje, pago.getNumeroCuotas());
+                cliente.getNombres(), 
+                pago != null ? pago.getMontoTotal() : "N/A", 
+                clienteArma.getArma().getNombre(), 
+                ivaPorcentaje, 
+                pago != null ? pago.getNumeroCuotas() : 0);
             
             // Determinar el template correcto según el tipo de cliente
             String nombreTemplate = determinarTemplateContrato(cliente);
@@ -646,6 +661,139 @@ public class GestionDocumentosServiceHelper {
         }
         
         return rutaCompleta;
+    }
+
+    /**
+     * Genera y guarda un RECIBO PDF para una cuota de pago usando Flying Saucer + Thymeleaf
+     */
+    public DocumentoGenerado generarYGuardarRecibo(Cliente cliente, Pago pago, CuotaPago cuota) {
+        try {
+            log.info("📄 GENERANDO RECIBO CON FLYING SAUCER PARA CUOTA ID: {}", cuota.getId());
+            
+            // Generar PDF del recibo
+            byte[] pdfBytes = generarPDFRecibo(cliente, pago, cuota);
+            log.info("✅ PDF de recibo generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            
+            String nombreArchivo = generarNombreArchivoRecibo(cliente, cuota);
+            
+            // Guardar archivo usando FileStorageService
+            String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
+            
+            DocumentoGenerado documento = crearDocumentoRecibo(cliente, pago, cuota, nombreArchivo, rutaArchivo, pdfBytes);
+            DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
+            
+            log.info("✅ Recibo generado y guardado con ID: {}, archivo: {}", 
+                documentoGuardado.getId(), nombreArchivo);
+            
+            return documentoGuardado;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando recibo para cuota ID: {}: {}", cuota.getId(), e.getMessage(), e);
+            throw new RuntimeException("Error generando recibo", e);
+        }
+    }
+
+    /**
+     * Genera PDF de recibo usando Flying Saucer con template HTML/CSS
+     */
+    private byte[] generarPDFRecibo(Cliente cliente, Pago pago, CuotaPago cuota) throws Exception {
+        log.info("🔧 Generando PDF de recibo con Flying Saucer para cuota: {}", cuota.getNumeroCuota());
+        
+        try {
+            // Obtener IVA dinámicamente desde configuración del sistema
+            String ivaValor = configuracionService.getValorConfiguracion("IVA");
+            double ivaPorcentaje = Double.parseDouble(ivaValor);
+            double ivaDecimal = ivaPorcentaje / 100.0;
+            
+            // Preparar variables para el template
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("numeroRecibo", cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId());
+            variables.put("fechaPago", cuota.getFechaPago() != null ? 
+                cuota.getFechaPago().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : 
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            variables.put("clienteNombre", cliente.getNombres() + " " + cliente.getApellidos());
+            variables.put("clienteCedula", cliente.getNumeroIdentificacion());
+            variables.put("numeroCuota", cuota.getNumeroCuota());
+            variables.put("monto", cuota.getMonto());
+            variables.put("montoFormateado", formatCurrency(cuota.getMonto()));
+            variables.put("referenciaPago", cuota.getReferenciaPago() != null ? cuota.getReferenciaPago() : "N/A");
+            variables.put("observaciones", cuota.getObservaciones() != null ? cuota.getObservaciones() : "");
+            variables.put("montoTotalPago", pago.getMontoTotal());
+            variables.put("montoTotalPagoFormateado", formatCurrency(pago.getMontoTotal()));
+            variables.put("saldoPendiente", pago.getMontoPendiente());
+            variables.put("saldoPendienteFormateado", formatCurrency(pago.getMontoPendiente()));
+            
+            // Generar PDF usando Flying Saucer con template de recibo
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("recibo-cuota-pago", variables);
+            
+            log.info("✅ PDF de recibo generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            return pdfBytes;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando PDF de recibo con Flying Saucer: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Genera el nombre del archivo para el recibo
+     */
+    private String generarNombreArchivoRecibo(Cliente cliente, CuotaPago cuota) {
+        String numeroRecibo = cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId();
+        String fecha = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        return String.format("recibo_%s_%s_%s.pdf", numeroRecibo.replaceAll("[^a-zA-Z0-9]", "_"), 
+            cliente.getNumeroIdentificacion(), fecha);
+    }
+
+    /**
+     * Crea el objeto DocumentoGenerado para recibo
+     */
+    private DocumentoGenerado crearDocumentoRecibo(Cliente cliente, Pago pago, CuotaPago cuota,
+                                                   String nombreArchivo, String rutaArchivo, byte[] pdfBytes) {
+        DocumentoGenerado documento = new DocumentoGenerado();
+        documento.setCliente(cliente);
+        documento.setNombre("Recibo de Pago - Cuota #" + cuota.getNumeroCuota());
+        documento.setDescripcion("Recibo generado automáticamente para el pago de cuota #" + cuota.getNumeroCuota());
+        documento.setTipoDocumento(TipoDocumentoGenerado.RECIBO);
+        documento.setNombreArchivo(nombreArchivo);
+        documento.setRutaArchivo(rutaArchivo);
+        documento.setTamanioBytes((long) pdfBytes.length);
+        documento.setFechaGeneracion(LocalDateTime.now());
+        documento.setEstado(com.armasimportacion.enums.EstadoDocumentoGenerado.GENERADO);
+        
+        // Obtener el usuario actual del contexto de seguridad
+        try {
+            String emailUsuarioActual = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+            
+            Usuario usuarioActual = buscarUsuarioPorEmail(emailUsuarioActual);
+            if (usuarioActual != null) {
+                documento.setUsuarioGenerador(usuarioActual);
+            } else {
+                Usuario usuarioAdmin = new Usuario();
+                usuarioAdmin.setId(1L);
+                documento.setUsuarioGenerador(usuarioAdmin);
+            }
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo usuario actual: {}", e.getMessage());
+            Usuario usuarioAdmin = new Usuario();
+            usuarioAdmin.setId(1L);
+            documento.setUsuarioGenerador(usuarioAdmin);
+        }
+        
+        return documento;
+    }
+
+    /**
+     * Formatea un BigDecimal como moneda
+     */
+    private String formatCurrency(java.math.BigDecimal amount) {
+        if (amount == null) return "$0.00";
+        java.text.NumberFormat formatter = java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("es", "EC"));
+        return formatter.format(amount);
     }
     
 }

@@ -34,10 +34,10 @@ public class DocumentoCliente {
     @JoinColumn(name = "tipo_documento_id", nullable = false)
     private TipoDocumento tipoDocumento;
 
-    @Column(name = "ruta_archivo", length = 500)
+    @Column(name = "ruta_archivo", length = 500, nullable = true)
     private String rutaArchivo;
 
-    @Column(name = "nombre_archivo", length = 255)
+    @Column(name = "nombre_archivo", length = 255, nullable = true)
     private String nombreArchivo;
 
     @Column(name = "tipo_archivo", length = 100)
@@ -49,7 +49,7 @@ public class DocumentoCliente {
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false)
     @Builder.Default
-    private EstadoDocumento estado = EstadoDocumento.PENDIENTE;
+    private EstadoDocumento estado = EstadoDocumento.CARGADO; // Al crear un documento, se asume que está cargado
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
@@ -77,10 +77,12 @@ public class DocumentoCliente {
     private LocalDateTime fechaRevision;
 
     public enum EstadoDocumento {
-        PENDIENTE,
-        APROBADO,
-        RECHAZADO,
-        OBSERVADO,
-        EN_REVISION
+        PENDIENTE,      // Documento NO cargado aún (falta subirlo)
+        CARGADO,        // Documento cargado por el vendedor (listo para verificar completitud)
+        APROBADO,       // Deprecated - mantener por compatibilidad
+        RECHAZADO,      // Deprecated - mantener por compatibilidad
+        OBSERVADO,      // Deprecated - mantener por compatibilidad
+        EN_REVISION,    // Deprecated - mantener por compatibilidad
+        REEMPLAZADO     // Documento reemplazado por uno nuevo (mantiene trazabilidad)
     }
 }

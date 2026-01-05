@@ -80,6 +80,11 @@ export interface Client {
   nombres: string;
   apellidos: string;
   email: string;
+  emailVerificado?: boolean | null; // true = Validado, false = Datos incorrectos, null/undefined = Pendiente
+  estadoPago?: string; // IMPAGO, ABONADO, PAGO_COMPLETO
+  grupoImportacionNombre?: string; // Nombre del grupo de importación activo
+  licenciaNombre?: string; // Nombre de la licencia del grupo de importación
+  licenciaNumero?: string; // Número de la licencia del grupo de importación
   telefonoPrincipal: string;
   tipoCliente: string;
   tipoProcesoNombre: string; // Nombre del tipo de proceso (Cupo Civil, Extracupo Uniformado, etc.)
@@ -280,10 +285,37 @@ class ApiService {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}`);
+        // Crear un error con más información para que pueda ser manejado
+        const error = new Error(errorData.message || `Error ${response.status}`) as any;
+        error.response = response;
+        error.responseData = errorData;
+        error.status = response.status;
+        throw error;
       }
 
-      return await response.json();
+      // Parsear la respuesta como JSON
+      try {
+        const jsonData = await response.json();
+        return jsonData;
+      } catch (parseError) {
+        // Si falla el parseo pero el status es exitoso (200-299), puede ser que la respuesta esté vacía
+        if (response.status >= 200 && response.status < 300) {
+          // Verificar si realmente hay contenido
+          const contentLength = response.headers.get('content-length');
+          if (contentLength === '0' || contentLength === null) {
+            // Respuesta vacía pero exitosa, retornar objeto de éxito
+            return { success: true } as T;
+          }
+          // Si hay contenido pero no se puede parsear, puede ser un problema
+          console.warn('⚠️ No se pudo parsear la respuesta JSON, pero el status es exitoso:', response.status);
+          console.warn('⚠️ Content-Type:', response.headers.get('content-type'));
+          console.warn('⚠️ Content-Length:', contentLength);
+          // Aún así, si el status es exitoso, asumir que la operación fue exitosa
+          return { success: true } as T;
+        }
+        // Si el status no es exitoso, lanzar el error
+        throw parseError;
+      }
     } catch (error) {
       console.error('API Error:', error);
       throw error;
@@ -426,11 +458,65 @@ class ApiService {
     });
   }
 
+  // Buscar o crear el cliente fantasma del vendedor para armas sin cliente
+  async buscarOCrearClienteFantasmaVendedor(): Promise<Client> {
+    return this.request<Client>('/api/clientes/fantasma-vendedor', {
+      method: 'POST',
+    });
+  }
+
   async updateCliente(id: number, clienteData: Partial<Client>): Promise<Client> {
     return this.request<Client>(`/api/clientes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(clienteData),
     });
+  }
+
+  async patchCliente(id: number, clienteData: Partial<Client>): Promise<Client> {
+    return this.request<Client>(`/api/clientes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(clienteData),
+    });
+  }
+
+  async validarDatosPersonales(id: number): Promise<{ success: boolean; message: string; emailVerificado: boolean }> {
+    return this.request<{ success: boolean; message: string; emailVerificado: boolean }>(`/api/clientes/${id}/validar-datos`, {
+      method: 'PATCH',
+    });
+  }
+
+  // Verificación de correo electrónico
+  async verifyEmailToken(token: string): Promise<{ success: boolean; message: string; clienteId?: number; email?: string; nombres?: string; apellidos?: string; numeroIdentificacion?: string; tipoIdentificacion?: string; direccion?: string; provincia?: string; canton?: string; fechaNacimiento?: string; telefonoPrincipal?: string; telefonoSecundario?: string }> {
+    try {
+      return await this.request<{ success: boolean; message: string; clienteId?: number; email?: string; nombres?: string; apellidos?: string; numeroIdentificacion?: string; tipoIdentificacion?: string; direccion?: string; provincia?: string; canton?: string; fechaNacimiento?: string; telefonoPrincipal?: string; telefonoSecundario?: string }>(
+        `/api/verification/verify?token=${encodeURIComponent(token)}`,
+        {
+          method: 'GET',
+        }
+      );
+    } catch (error: any) {
+      // Si el backend retornó un error HTTP pero con un JSON válido que contiene success: false
+      // Retornarlo como respuesta válida en lugar de lanzar excepción
+      if (error?.responseData && typeof error.responseData === 'object' && 'success' in error.responseData) {
+        return error.responseData;
+      }
+      
+      // Si el error tiene un mensaje, crear una respuesta con success: false
+      return {
+        success: false,
+        message: error?.message || error?.responseData?.message || 'Error al verificar el token'
+      };
+    }
+  }
+
+  // Obtener información del token sin verificar
+  async getTokenInfo(token: string): Promise<any> {
+    return this.request<any>(
+      `/api/verification/token-info?token=${encodeURIComponent(token)}`,
+      {
+        method: 'GET',
+      }
+    );
   }
 
   async deleteCliente(id: number): Promise<void> {
@@ -559,11 +645,40 @@ class ApiService {
     cupoTotal?: number;
     cupoDisponible?: number;
     observaciones?: string;
-  }): Promise<{ id: number; nombre: string; codigo: string; message: string }> {
-    return this.request<{ id: number; nombre: string; codigo: string; message: string }>('/api/grupos-importacion', {
+    tipoGrupo?: 'CUPO' | 'JUSTIFICATIVO';
+    tra?: string;
+    vendedores?: Array<{ vendedorId: number; limiteArmas: number }>;
+    vendedorIds?: number[]; // Mantener para compatibilidad
+    limitesCategoria?: Array<{ categoriaArmaId: number; limiteMaximo: number }>;
+  }): Promise<{ id: number; nombre: string; codigo: string; tra?: string; tipoGrupo?: string; message: string }> {
+    return this.request<{ id: number; nombre: string; codigo: string; tra?: string; tipoGrupo?: string; message: string }>('/api/grupos-importacion', {
       method: 'POST',
       body: JSON.stringify(dto),
     });
+  }
+  
+  async actualizarGrupoImportacion(id: number, dto: {
+    nombre?: string;
+    descripcion?: string;
+    observaciones?: string;
+    tipoGrupo?: 'CUPO' | 'JUSTIFICATIVO';
+    tra?: string;
+    vendedores?: Array<{ vendedorId: number; limiteArmas: number }>;
+    vendedorIds?: number[]; // Mantener para compatibilidad
+    limitesCategoria?: Array<{ categoriaArmaId: number; limiteMaximo: number }>;
+  }): Promise<{ id: number; nombre: string; codigo: string; tra?: string; tipoGrupo?: string; message: string }> {
+    return this.request<{ id: number; nombre: string; codigo: string; tra?: string; tipoGrupo?: string; message: string }>(`/api/grupos-importacion/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+  
+  async getVendedoresParaGrupo(): Promise<Array<{ id: number; nombres: string; apellidos: string; email: string; nombreCompleto: string }>> {
+    return this.request<Array<{ id: number; nombres: string; apellidos: string; email: string; nombreCompleto: string }>>('/api/grupos-importacion/vendedores');
+  }
+  
+  async getCategoriasArmasParaGrupo(): Promise<Array<{ id: number; nombre: string; codigo: string; descripcion: string }>> {
+    return this.request<Array<{ id: number; nombre: string; codigo: string; descripcion: string }>>('/api/grupos-importacion/categorias-armas');
   }
 
   async updateGrupoImportacion(id: number, grupoData: Partial<GrupoImportacion>): Promise<GrupoImportacion> {
@@ -820,9 +935,90 @@ class ApiService {
   }
 
   // Registrar pago de cuota
-  async pagarCuota(cuotaId: number, referenciaPago: string, usuarioConfirmadorId: number): Promise<any> {
-    return this.request<any>(`/api/pagos/cuota/${cuotaId}/pagar?referenciaPago=${encodeURIComponent(referenciaPago)}&usuarioConfirmadorId=${usuarioConfirmadorId}`, {
-      method: 'POST'
+  async pagarCuota(
+    cuotaId: number, 
+    referenciaPago: string, 
+    usuarioConfirmadorId: number,
+    monto?: number,
+    numeroRecibo?: string,
+    comprobanteArchivo?: string,
+    observaciones?: string
+  ): Promise<any> {
+    return this.request<any>(`/api/pagos/cuota/${cuotaId}/pagar`, {
+      method: 'POST',
+      body: JSON.stringify({
+        referenciaPago,
+        usuarioConfirmadorId,
+        monto,
+        numeroRecibo,
+        comprobanteArchivo,
+        observaciones
+      })
+    });
+  }
+
+  async crearCuotaPago(pagoId: number, cuotaData: {
+    numeroCuota?: number;
+    monto: number;
+    fechaVencimiento: string;
+    referenciaPago?: string;
+  }): Promise<any> {
+    return this.request<any>(`/api/pagos/${pagoId}/cuotas`, {
+      method: 'POST',
+      body: JSON.stringify({
+        pagoId,
+        ...cuotaData
+      })
+    });
+  }
+
+  async generarRecibo(cuotaId: number): Promise<{ success: boolean; message: string; documentoId: number; nombreArchivo: string }> {
+    return this.request<{ success: boolean; message: string; documentoId: number; nombreArchivo: string }>(`/api/pagos/cuota/${cuotaId}/generar-recibo`, {
+      method: 'POST',
+    });
+  }
+
+  async descargarRecibo(cuotaId: number): Promise<void> {
+    const token = this.getToken();
+    const response = await fetch(`${API_BASE_URL}/api/pagos/cuota/${cuotaId}/descargar-recibo`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar el recibo');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recibo_${cuotaId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+
+  /**
+   * Envía recibo por correo
+   * El backend obtiene automáticamente los correos desde configuracion_sistema (CORREOS_RECIBO)
+   * y agrega el correo del cliente
+   * 
+   * @param cuotaId ID de la cuota
+   * @param emails Opcional: lista de emails adicionales (el backend ya maneja cliente + CORREOS_RECIBO)
+   */
+  async enviarReciboPorCorreo(cuotaId: number, emails?: string[]): Promise<{ success: boolean; message: string }> {
+    const body: any = {};
+    // Solo enviar emails si se proporcionan (para compatibilidad o emails adicionales)
+    if (emails && emails.length > 0) {
+      body.emails = emails;
+    }
+    return this.request<{ success: boolean; message: string }>(`/api/pagos/cuota/${cuotaId}/enviar-recibo-correo`, {
+      method: 'POST',
+      body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     });
   }
 
@@ -1028,24 +1224,41 @@ class ApiService {
 
   // Cargar documento para un cliente
   async cargarDocumentoCliente(clienteId: number, tipoDocumentoId: number, archivo: File, descripcion?: string): Promise<any> {
-    const formData = new FormData();
-    formData.append('clienteId', clienteId.toString());
-    formData.append('tipoDocumentoId', tipoDocumentoId.toString());
-    formData.append('archivo', archivo);
-    // Obtener el usuario actual del token JWT
-    const currentUser = await this.getCurrentUser();
-    formData.append('usuarioId', currentUser.id.toString());
-    if (descripcion) {
-      formData.append('descripcion', descripcion);
-    }
-
-    return this.request<any>('/api/documentos-cliente/cargar', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        // No incluir Content-Type para FormData
+    try {
+      const formData = new FormData();
+      formData.append('clienteId', clienteId.toString());
+      formData.append('tipoDocumentoId', tipoDocumentoId.toString());
+      formData.append('archivo', archivo);
+      
+      // Obtener el usuario actual del token JWT
+      let currentUser;
+      try {
+        currentUser = await this.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+          throw new Error('No se pudo obtener el usuario actual o el usuario no tiene ID');
+        }
+        formData.append('usuarioId', currentUser.id.toString());
+      } catch (userError: any) {
+        console.error('❌ Error obteniendo usuario actual:', userError);
+        throw new Error(`No se pudo obtener el usuario actual: ${userError?.message || 'Error desconocido'}`);
       }
-    });
+      
+      if (descripcion) {
+        formData.append('descripcion', descripcion);
+      }
+
+      return await this.request<any>('/api/documentos-cliente/cargar', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // No incluir Content-Type para FormData
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Error en cargarDocumentoCliente:', error);
+      // Re-lanzar el error para que el componente pueda manejarlo
+      throw error;
+    }
   }
 
   // Obtener documentos de un cliente
@@ -1059,12 +1272,15 @@ class ApiService {
   }
 
   // Actualizar documento
-  async actualizarDocumentoCliente(documentoId: number, archivo: File, descripcion?: string): Promise<any> {
+  async actualizarDocumentoCliente(documentoId: number, archivo: File, descripcion?: string, usuarioId?: number): Promise<any> {
     const formData = new FormData();
     formData.append('archivo', archivo);
     if (descripcion) {
       formData.append('descripcion', descripcion);
     }
+    // El backend requiere usuarioId como parámetro
+    const userId = usuarioId || 1; // TODO: Obtener del contexto de autenticación
+    formData.append('usuarioId', userId.toString());
 
     return this.request<any>(`/api/documentos-cliente/${documentoId}`, {
       method: 'PUT',
@@ -1191,13 +1407,6 @@ class ApiService {
     });
   }
 
-  // Crear cuota de pago
-  async crearCuotaPago(cuotaData: any): Promise<any> {
-    return this.request<any>('/api/cuotas-pago', {
-      method: 'POST',
-      body: JSON.stringify(cuotaData),
-    });
-  }
 
   // GESTIÓN DE CONTRATOS
   // ========================================
@@ -1217,6 +1426,30 @@ class ApiService {
   // Obtener contratos por cliente
   async obtenerContratosPorCliente(clienteId: number): Promise<any[]> {
     return this.request<any[]>(`/api/contratos/cliente/${clienteId}`);
+  }
+
+  // Obtener datos del contrato para mostrar en popup
+  async obtenerDatosContrato(clienteId: number): Promise<any> {
+    return this.request<any>(`/api/clientes/${clienteId}/datos-contrato`);
+  }
+
+  // Generar contrato desde la vista del cliente
+  async generarContrato(clienteId: number): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; urlArchivo?: string }> {
+    return this.request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; urlArchivo?: string }>(`/api/clientes/${clienteId}/generar-contrato`, {
+      method: 'POST',
+    });
+  }
+
+  // Cargar contrato firmado
+  async cargarContratoFirmado(clienteId: number, archivo: File): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string }> {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    
+    return this.request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string }>(`/api/clientes/${clienteId}/cargar-contrato-firmado`, {
+      method: 'POST',
+      body: formData,
+      headers: {} // No establecer Content-Type, el navegador lo hará automáticamente con FormData
+    });
   }
 
   // Obtener armas por categoría
@@ -1288,8 +1521,11 @@ class ApiService {
   }
 
   // Obtener clientes disponibles para asignar a grupos de importación
-  async getClientesDisponibles(): Promise<any[]> {
-    return this.request<any[]>('/api/grupos-importacion/clientes-disponibles');
+  async getClientesDisponibles(grupoId?: number): Promise<any[]> {
+    const url = grupoId 
+      ? `/api/grupos-importacion/clientes-disponibles?grupoId=${grupoId}`
+      : '/api/grupos-importacion/clientes-disponibles';
+    return this.request<any[]>(url);
   }
 
   // Obtener categorías de armas
@@ -1460,6 +1696,31 @@ class ApiService {
   // Obtener armas reservadas de un cliente
   async getArmasCliente(clienteId: number): Promise<any[]> {
     return this.request<any[]>(`/api/cliente-arma/cliente/${clienteId}`);
+  }
+
+  // Obtener armas en stock del vendedor (armas asignadas a clientes fantasma)
+  async getArmasEnStockVendedor(usuarioId: number): Promise<any[]> {
+    return this.request<any[]>(`/api/cliente-arma/stock-vendedor/${usuarioId}`);
+  }
+
+  // Reasignar un arma de un cliente a otro (útil para transferir del stock del vendedor a un cliente real)
+  async reasignarArmaACliente(clienteArmaId: number, nuevoClienteId: number): Promise<any> {
+    return this.request<any>(`/api/cliente-arma/${clienteArmaId}/reasignar/${nuevoClienteId}`, {
+      method: 'PUT'
+    });
+  }
+
+  // Obtener armas con estado REASIGNADO
+  async getArmasReasignadas(): Promise<any[]> {
+    return this.request<any[]>(`/api/cliente-arma/reasignadas`);
+  }
+
+  // Cambiar estado del cliente a DESISTIMIENTO con observación
+  async cambiarEstadoDesistimiento(clienteId: number, observacion: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/clientes/${clienteId}/estado-desistimiento`, {
+      method: 'PATCH',
+      body: JSON.stringify({ observacion })
+    });
   }
 
   // Obtener pagos de un cliente

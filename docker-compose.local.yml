@@ -67,6 +67,7 @@ services:
       - ./frontend/public:/app/public
     environment:
       # URL del backend para desarrollo local
+      # NOTA: El navegador usa esta URL directamente, por eso debe ser localhost
       VITE_API_BASE_URL: ${BACKEND_URL:-http://localhost:8080}
       # URL del frontend para CORS local
       VITE_FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
@@ -75,6 +76,8 @@ services:
       VITE_WS_PORT: ${WS_PORT:-5173}
       # Modo de desarrollo
       NODE_ENV: development
+      # Flag para indicar que estamos en Docker (para el proxy de Vite)
+      DOCKER_ENV: 'true'
     depends_on:
       - backend_local
     networks:

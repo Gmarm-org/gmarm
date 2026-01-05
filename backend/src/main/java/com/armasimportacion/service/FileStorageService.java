@@ -27,15 +27,15 @@ public class FileStorageService {
         "pdf", "jpg", "jpeg", "png", "doc", "docx"
     };
 
-    public String storeClientDocument(String numeroIdentificacion, Long tipoDocumentoId, MultipartFile file) throws IOException {
+    public String storeClientDocument(String numeroIdentificacion, Long tipoDocumentoId, MultipartFile file, String nombreTipoDocumento) throws IOException {
         // Validar archivo
         validateFile(file);
 
         // Crear estructura: documentos_clientes/{cedula}/documentos_cargados/
         String relativePath = String.format("documentos_clientes/%s/documentos_cargados", numeroIdentificacion);
         
-        // Generar nombre único basado en el nombre original del usuario
-        String fileName = generateUniqueFileNameFromOriginal(file.getOriginalFilename(), numeroIdentificacion);
+        // Generar nombre descriptivo: {nombreTipoDocumento}_{cedula}_{timestamp}.extension
+        String fileName = generateDescriptiveFileName(nombreTipoDocumento, numeroIdentificacion, file.getOriginalFilename());
         
         // Ruta completa del archivo
         Path filePath = Paths.get(uploadDir, relativePath, fileName);
@@ -46,10 +46,61 @@ public class FileStorageService {
         // Guardar archivo
         Files.copy(file.getInputStream(), filePath);
         
-        log.info("Archivo de cliente guardado: {}", filePath);
+        log.info("📄 Archivo de cliente guardado: {} (tipo: {}, cliente: {})", filePath, nombreTipoDocumento, numeroIdentificacion);
         
         // Retornar ruta relativa para almacenar en BD
         return Paths.get(relativePath, fileName).toString().replace("\\", "/");
+    }
+    
+    /**
+     * Método de compatibilidad - usa nombre del tipo de documento si está disponible
+     */
+    public String storeClientDocument(String numeroIdentificacion, Long tipoDocumentoId, MultipartFile file) throws IOException {
+        // Si no se proporciona el nombre del tipo, usar el nombre original (compatibilidad hacia atrás)
+        String nombreTipo = "documento"; // Fallback
+        return storeClientDocument(numeroIdentificacion, tipoDocumentoId, file, nombreTipo);
+    }
+    
+    /**
+     * Genera un nombre de archivo descriptivo usando el nombre del tipo de documento
+     * Formato: {nombreTipoDocumento}_{cedula}_{timestamp}.extension
+     */
+    private String generateDescriptiveFileName(String nombreTipoDocumento, String numeroIdentificacion, String originalFilename) {
+        // Limpiar el nombre del tipo de documento (remover caracteres especiales, espacios, etc.)
+        String nombreLimpio = sanitizeFileName(nombreTipoDocumento);
+        
+        // Obtener extensión del archivo original
+        String extension = getFileExtension(originalFilename);
+        
+        // Generar timestamp único
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        
+        // Generar nombre: {nombreTipoDocumento}_{cedula}_{timestamp}.extension
+        return String.format("%s_%s_%s.%s", nombreLimpio, numeroIdentificacion, timestamp, extension);
+    }
+    
+    /**
+     * Sanitiza el nombre de archivo removiendo caracteres especiales y espacios
+     */
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null || fileName.trim().isEmpty()) {
+            return "documento";
+        }
+        
+        // Reemplazar espacios y caracteres especiales con guiones bajos
+        // Mantener solo letras, números, guiones y guiones bajos
+        String sanitized = fileName.trim()
+            .replaceAll("[^a-zA-Z0-9\\s-]", "") // Remover caracteres especiales excepto espacios y guiones
+            .replaceAll("\\s+", "_") // Reemplazar espacios con guiones bajos
+            .replaceAll("-+", "-") // Remover guiones múltiples
+            .replaceAll("_+", "_"); // Remover guiones bajos múltiples
+        
+        // Limitar longitud
+        if (sanitized.length() > 50) {
+            sanitized = sanitized.substring(0, 50);
+        }
+        
+        return sanitized.isEmpty() ? "documento" : sanitized;
     }
 
     public byte[] loadFile(String filePath) throws IOException {
@@ -62,13 +113,45 @@ public class FileStorageService {
 
     public void deleteFile(String filePath) {
         try {
+            // La ruta en BD es relativa: "documentos_clientes/{cedula}/documentos_cargados/archivo.pdf"
+            // uploadDir es "./documentacion/documentos_cliente" (relativo a /app en Docker)
+            // Por lo tanto, la ruta completa es: uploadDir + "/" + filePath
+            // IMPORTANTE: uploadDir se resuelve a /app/documentacion/documentos_cliente en Docker
             Path fullPath = Paths.get(uploadDir, filePath);
-            if (Files.exists(fullPath)) {
-                Files.delete(fullPath);
-                log.info("Archivo eliminado: {}", fullPath);
+            Path absolutePath = fullPath.toAbsolutePath();
+            
+            log.info("🗑️ Intentando eliminar archivo - ruta relativa BD: {}", filePath);
+            log.info("🗑️ uploadDir: {}", uploadDir);
+            log.info("🗑️ Ruta completa construida: {}", absolutePath);
+            
+            if (Files.exists(absolutePath)) {
+                Files.delete(absolutePath);
+                log.info("✅ Archivo físico eliminado exitosamente: {}", absolutePath);
+            } else {
+                log.warn("⚠️ Archivo no existe en la ruta esperada: {}", absolutePath);
+                
+                // Intentar rutas alternativas para diagnóstico
+                String[] rutasAlternativas = {
+                    "/app/documentacion/documentos_cliente/" + filePath,
+                    "/app/documentacion/" + filePath,
+                    filePath
+                };
+                
+                for (String rutaAlt : rutasAlternativas) {
+                    Path pathAlt = Paths.get(rutaAlt);
+                    if (Files.exists(pathAlt)) {
+                        log.info("🔍 Archivo encontrado en ruta alternativa: {}, eliminando...", pathAlt);
+                        Files.delete(pathAlt);
+                        log.info("✅ Archivo eliminado de ruta alternativa: {}", pathAlt);
+                        return;
+                    }
+                }
+                
+                log.warn("⚠️ Archivo no encontrado en ninguna ruta alternativa. Puede que ya haya sido eliminado.");
             }
         } catch (IOException e) {
-            log.error("Error eliminando archivo: {}", filePath, e);
+            log.error("❌ Error eliminando archivo {}: {}", filePath, e.getMessage(), e);
+            throw new RuntimeException("Error eliminando archivo: " + e.getMessage(), e);
         }
     }
 

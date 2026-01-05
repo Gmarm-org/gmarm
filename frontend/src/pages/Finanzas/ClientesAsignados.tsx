@@ -8,6 +8,10 @@ interface ClienteConVendedor extends Client {
   vendedorNombre?: string;
   vendedorApellidos?: string;
   fechaCreacion?: string;
+  estadoPago?: string;
+  grupoImportacionNombre?: string;
+  licenciaNombre?: string;
+  licenciaNumero?: string;
 }
 
 interface WeaponAssignment {
@@ -38,12 +42,18 @@ const ClientesAsignados: React.FC = () => {
   const [numeroFactura, setNumeroFactura] = useState('');
   const [tramite, setTramite] = useState('');
   const [generando, setGenerando] = useState(false);
+  const [archivoAutorizacionRecibida, setArchivoAutorizacionRecibida] = useState<File | null>(null);
+  const [archivoSolicitudFirmada, setArchivoSolicitudFirmada] = useState<File | null>(null);
+  const [archivoFactura, setArchivoFactura] = useState<File | null>(null);
 
   // Hook para filtros y ordenamiento
   const {
     filteredAndSortedData: clientesFiltrados,
     sortConfig,
     handleSort,
+    filters,
+    setFilter,
+    clearFilters,
   } = useTableFilters<ClienteConVendedor>(clientesAsignados);
 
   // Cargar estado de expoferia al inicio
@@ -200,12 +210,26 @@ const ClientesAsignados: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-800">✅ Clientes con Armas Asignadas</h2>
           <p className="text-sm text-gray-600 mt-1">Clientes con número de serie asignado listos para generar autorización de venta</p>
         </div>
-        <button
-          onClick={cargarClientesAsignados}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          🔄 Actualizar
-        </button>
+        <div className="flex items-center space-x-2">
+          {Object.keys(filters).length > 0 && (
+            <button
+              onClick={clearFilters}
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
+              title="Limpiar filtros"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span className="text-xs">Limpiar filtros</span>
+            </button>
+          )}
+          <button
+            onClick={cargarClientesAsignados}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            🔄 Actualizar
+          </button>
+        </div>
       </div>
 
       {loadingClientes ? (
@@ -223,7 +247,9 @@ const ClientesAsignados: React.FC = () => {
                   label="CI/RUC"
                   sortKey={sortConfig.key}
                   sortDirection={sortConfig.direction}
-                        onSort={handleSort}
+                  onSort={handleSort}
+                  filterValue={filters.numeroIdentificacion || ''}
+                  onFilterChange={setFilter}
                 />
                 <TableHeaderWithFilters
                   column="nombres"
@@ -231,6 +257,8 @@ const ClientesAsignados: React.FC = () => {
                   sortKey={sortConfig.key}
                   sortDirection={sortConfig.direction}
                   onSort={handleSort}
+                  filterValue={filters.nombres || ''}
+                  onFilterChange={setFilter}
                 />
                 <TableHeaderWithFilters
                   column="tipoClienteNombre"
@@ -238,6 +266,8 @@ const ClientesAsignados: React.FC = () => {
                   sortKey={sortConfig.key}
                   sortDirection={sortConfig.direction}
                   onSort={handleSort}
+                  filterValue={filters.tipoClienteNombre || ''}
+                  onFilterChange={setFilter}
                 />
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Arma Asignada</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Serie</th>
@@ -247,6 +277,38 @@ const ClientesAsignados: React.FC = () => {
                   sortKey={sortConfig.key}
                   sortDirection={sortConfig.direction}
                   onSort={handleSort}
+                  filterValue={filters.vendedorNombre || ''}
+                  onFilterChange={setFilter}
+                />
+                <TableHeaderWithFilters
+                  column="estadoPago"
+                  label="Estado de Pago"
+                  sortKey={sortConfig.key}
+                  sortDirection={sortConfig.direction}
+                  onSort={handleSort}
+                  align="center"
+                  filterValue={filters.estadoPago || ''}
+                  onFilterChange={setFilter}
+                />
+                <TableHeaderWithFilters
+                  column="grupoImportacionNombre"
+                  label="Grupo de Importación"
+                  sortKey={sortConfig.key}
+                  sortDirection={sortConfig.direction}
+                  onSort={handleSort}
+                  align="center"
+                  filterValue={filters.grupoImportacionNombre || ''}
+                  onFilterChange={setFilter}
+                />
+                <TableHeaderWithFilters
+                  column="licenciaNombre"
+                  label="Licencia"
+                  sortKey={sortConfig.key}
+                  sortDirection={sortConfig.direction}
+                  onSort={handleSort}
+                  align="center"
+                  filterValue={filters.licenciaNombre || ''}
+                  onFilterChange={setFilter}
                 />
                 <TableHeaderWithFilters
                   column="fechaCreacion"
@@ -255,6 +317,8 @@ const ClientesAsignados: React.FC = () => {
                   sortDirection={sortConfig.direction}
                   onSort={handleSort}
                   align="center"
+                  filterValue={filters.fechaCreacion || ''}
+                  onFilterChange={setFilter}
                 />
                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
               </tr>
@@ -262,7 +326,7 @@ const ClientesAsignados: React.FC = () => {
             <tbody>
               {clientesFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center">
+                  <td colSpan={12} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -322,6 +386,37 @@ const ClientesAsignados: React.FC = () => {
                           </div>
                           <span>{cliente.vendedorNombre} {cliente.vendedorApellidos}</span>
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          cliente.estadoPago === 'PAGO_COMPLETO' ? 'bg-green-100 text-green-800' :
+                          cliente.estadoPago === 'ABONADO' ? 'bg-yellow-100 text-yellow-800' :
+                          cliente.estadoPago === 'IMPAGO' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {cliente.estadoPago || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {cliente.grupoImportacionNombre ? (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            {cliente.grupoImportacionNombre}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Sin asignar</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {cliente.licenciaNombre ? (
+                          <div>
+                            <div className="font-medium text-gray-900">{cliente.licenciaNombre}</div>
+                            {cliente.licenciaNumero && (
+                              <div className="text-xs text-gray-500">{cliente.licenciaNumero}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Sin licencia</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center text-sm">
                         {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
@@ -441,6 +536,56 @@ const ClientesAsignados: React.FC = () => {
                     />
                     {expoferiaActiva && (
                       <p className="text-xs text-gray-500 mt-1">Valor por defecto para Expoferia</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Campos para cargar archivos */}
+                <div className="space-y-4 mt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">📎 Cargar Archivos</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AUTORIZACION RECIBIDA (PDF/Imagen)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setArchivoAutorizacionRecibida(e.target.files?.[0] || null)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    {archivoAutorizacionRecibida && (
+                      <p className="text-xs text-green-600 mt-1">✓ {archivoAutorizacionRecibida.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SOLICITUD firmada y recibida (PDF/Imagen)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setArchivoSolicitudFirmada(e.target.files?.[0] || null)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    {archivoSolicitudFirmada && (
+                      <p className="text-xs text-green-600 mt-1">✓ {archivoSolicitudFirmada.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Factura (PDF/Imagen)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setArchivoFactura(e.target.files?.[0] || null)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    {archivoFactura && (
+                      <p className="text-xs text-green-600 mt-1">✓ {archivoFactura.name}</p>
                     )}
                   </div>
                 </div>

@@ -8,12 +8,24 @@ import SeriesAssignment from './components/SeriesAssignment';
 import { useVendedorLogic } from './hooks/useVendedorLogic';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
+import { ModalValidarDatos } from './components/ModalValidarDatos';
 
 const Vendedor: React.FC = React.memo(() => {
   // Componente Vendedor inicializado
   
   // Estado para pestaña activa
   const [activeTab, setActiveTab] = React.useState<'en-proceso' | 'asignados'>('en-proceso');
+  
+  // Estado para modal de validación de datos
+  const [modalValidarDatos, setModalValidarDatos] = React.useState<{
+    isOpen: boolean;
+    client: any | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    client: null,
+    isLoading: false
+  });
   
   // Usar el hook personalizado para toda la lógica
   const {
@@ -57,6 +69,7 @@ const Vendedor: React.FC = React.memo(() => {
     // handleFinishProcess,
     handleViewClient,
     handleEditClient,
+    handleValidarDatosPersonales,
     handleFilterByType,
     clearFilter,
     getFilteredClients,
@@ -101,6 +114,9 @@ const Vendedor: React.FC = React.memo(() => {
     filteredAndSortedData: clientsFiltrados,
     sortConfig,
     handleSort,
+    filters,
+    setFilter,
+    clearFilters,
   } = useTableFilters(clientsByTab);
 
   if (isLoading) {
@@ -281,16 +297,30 @@ const Vendedor: React.FC = React.memo(() => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Lista de Clientes</h3>
-                <button
-                  onClick={exportarClientesAExcel}
-                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md flex items-center space-x-2 text-sm font-semibold"
-                  title="Exportar todos los clientes a Excel"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Exportar a Excel</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  {Object.keys(filters).length > 0 && (
+                    <button
+                      onClick={clearFilters}
+                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
+                      title="Limpiar filtros"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-xs">Limpiar filtros</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={exportarClientesAExcel}
+                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md flex items-center space-x-2 text-sm font-semibold"
+                    title="Exportar todos los clientes a Excel"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Exportar a Excel</span>
+                  </button>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -302,6 +332,8 @@ const Vendedor: React.FC = React.memo(() => {
                         sortKey={sortConfig.key}
                         sortDirection={sortConfig.direction}
                         onSort={handleSort}
+                        filterValue={filters.nombres || ''}
+                        onFilterChange={setFilter}
                       />
                       <TableHeaderWithFilters
                         column="tipoClienteNombre"
@@ -309,6 +341,8 @@ const Vendedor: React.FC = React.memo(() => {
                         sortKey={sortConfig.key}
                         sortDirection={sortConfig.direction}
                         onSort={handleSort}
+                        filterValue={filters.tipoClienteNombre || ''}
+                        onFilterChange={setFilter}
                       />
                       <TableHeaderWithFilters
                         column="numeroIdentificacion"
@@ -316,6 +350,8 @@ const Vendedor: React.FC = React.memo(() => {
                         sortKey={sortConfig.key}
                         sortDirection={sortConfig.direction}
                         onSort={handleSort}
+                        filterValue={filters.numeroIdentificacion || ''}
+                        onFilterChange={setFilter}
                       />
                       <TableHeaderWithFilters
                         column="telefonoPrincipal"
@@ -323,13 +359,60 @@ const Vendedor: React.FC = React.memo(() => {
                         sortKey={sortConfig.key}
                         sortDirection={sortConfig.direction}
                         onSort={handleSort}
+                        filterValue={filters.telefonoPrincipal || ''}
+                        onFilterChange={setFilter}
+                      />
+                      <TableHeaderWithFilters
+                        column="estadoPago"
+                        label="ESTADO DE PAGO"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                        align="center"
+                        filterValue={filters.estadoPago || ''}
+                        onFilterChange={setFilter}
+                      />
+                      <TableHeaderWithFilters
+                        column="grupoImportacionNombre"
+                        label="GRUPO DE IMPORTACIÓN"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                        filterValue={filters.grupoImportacionNombre || ''}
+                        onFilterChange={setFilter}
+                      />
+                      <TableHeaderWithFilters
+                        column="licenciaNombre"
+                        label="LICENCIA"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                        filterValue={filters.licenciaNombre || ''}
+                        onFilterChange={setFilter}
                       />
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
                         MODELO DE ARMA
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
-                        ESTADO
-                      </th>
+                      <TableHeaderWithFilters
+                        column="emailVerificado"
+                        label="VALIDADO POR CLIENTE"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                        align="center"
+                        filterValue={filters.emailVerificado || ''}
+                        onFilterChange={setFilter}
+                      />
+                      <TableHeaderWithFilters
+                        column="estado"
+                        label="ESTADO"
+                        sortKey={sortConfig.key}
+                        sortDirection={sortConfig.direction}
+                        onSort={handleSort}
+                        align="center"
+                        filterValue={filters.estado || ''}
+                        onFilterChange={setFilter}
+                      />
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
                         ACCIONES
                       </th>
@@ -338,7 +421,7 @@ const Vendedor: React.FC = React.memo(() => {
                   <tbody className="bg-white divide-y divide-gray-100">
                     {clientsFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center">
+                        <td colSpan={11} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -387,32 +470,69 @@ const Vendedor: React.FC = React.memo(() => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {client.telefonoPrincipal}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              client.estadoPago === 'PAGO_COMPLETO' ? 'bg-green-100 text-green-800' :
+                              client.estadoPago === 'ABONADO' ? 'bg-yellow-100 text-yellow-800' :
+                              client.estadoPago === 'IMPAGO' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {client.estadoPago || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {client.grupoImportacionNombre || (
+                              <span className="text-gray-400">Sin grupo asignado</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {client.licenciaNombre ? (
+                              <div className="flex flex-col">
+                                <span className="text-purple-600 font-medium">{client.licenciaNombre}</span>
+                                {client.licenciaNumero && (
+                                  <span className="text-xs text-gray-500">({client.licenciaNumero})</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">Sin licencia</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {weaponAssignment ? (
                               <div>
-                                <div>{weaponAssignment.weapon.nombre} ({weaponAssignment.weapon.calibre})</div>
+                                <div className="font-medium">{weaponAssignment.weapon.nombre}</div>
+                                {weaponAssignment.weapon.calibre && (
+                                  <div className="text-xs text-gray-500">Calibre: {weaponAssignment.weapon.calibre}</div>
+                                )}
                                 {weaponAssignment.numeroSerie && (
                                   <div className="text-xs text-blue-600 font-mono font-semibold mt-1">
                                     Serie: {weaponAssignment.numeroSerie}
                                   </div>
-                                )}
-                                {weaponAssignment.estado && (
-                                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
-                                    weaponAssignment.estado === 'ASIGNADA' ? 'bg-green-100 text-green-800' :
-                                    weaponAssignment.estado === 'RESERVADA' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {weaponAssignment.estado}
-                                  </span>
                                 )}
                               </div>
                             ) : (
                               <span className="text-gray-400">Sin arma asignada</span>
                             )}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            {client.emailVerificado === true ? (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                Validado
+                              </span>
+                            ) : client.emailVerificado === false ? (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                Datos incorrectos
+                              </span>
+                            ) : (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Pendiente
+                              </span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {(() => {
-                              const status = getClientStatus(client);
+                              // Usar el estado calculado del backend directamente
+                              const status = client.estado || getClientStatus(client);
                               return (
                                 <div className="flex items-center space-x-2">
                                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(status)}`}>
@@ -447,6 +567,15 @@ const Vendedor: React.FC = React.memo(() => {
                               >
                                 Editar
                               </button>
+                              {(client.emailVerificado === null || client.emailVerificado === undefined) && (
+                                <button
+                                  onClick={() => setModalValidarDatos({ isOpen: true, client, isLoading: false })}
+                                  className="text-purple-600 hover:text-purple-900 font-medium"
+                                  title="Validar datos personales"
+                                >
+                                  Validar
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -550,6 +679,7 @@ const Vendedor: React.FC = React.memo(() => {
               clienteParaResumen={selectedClient as any}
               armaSeleccionadaEnReserva={selectedWeapon}
               isCreatingClient={!!clientFormData}
+              tipoCliente={clientFormData?.tipoCliente || selectedClient?.tipoCliente}
               onBack={() => {
                 // Si hay datos del cliente guardados (flujo de creación), volver al formulario
                 if (clientFormData) {
@@ -564,14 +694,14 @@ const Vendedor: React.FC = React.memo(() => {
               onAssignWeaponToClient={(client, weapon) => {
                 setSelectedClient(client as any);
                 setSelectedWeapon(weapon);
-                setPrecioModificado(weapon.precioReferencia || 0);
+                setPrecioModificado(0); // Precio inicial en 0 para que el vendedor lo ingrese
                 setCantidad(1);
                 
                 setClientWeaponAssignments(prev => ({
                   ...prev,
                   [client.id]: {
                     weapon: weapon,
-                    precio: weapon.precioReferencia || 0,
+                    precio: 0, // Precio inicial en 0
                     cantidad: 1
                   }
                 }));
@@ -579,24 +709,23 @@ const Vendedor: React.FC = React.memo(() => {
               onAssignWeaponToCupoCivil={(weapon) => {
                 setSelectedClient(null);
                 setSelectedWeapon(weapon);
-                setPrecioModificado(weapon.precioReferencia || 0);
+                setPrecioModificado(0); // Precio inicial en 0 para que el vendedor lo ingrese
                 setCantidad(1);
               }}
               onConfirmData={handleWeaponSelectionConfirm}
               onUpdateWeaponPrice={handlePriceChange}
               onUpdateWeaponQuantity={handleQuantityChange}
               getWeaponPriceForClient={(weaponId, clientId) => {
-                // Primero verificar si hay un precio específico para esta arma
-                if (weaponPrices[weaponId]) {
+                // Primero verificar si hay un precio específico para esta arma (ya ingresado por el vendedor)
+                if (weaponPrices[weaponId] !== undefined) {
                   return weaponPrices[weaponId];
                 }
                 // Luego verificar si hay una asignación para este cliente Y esta arma específica
                 if (clientId && clientWeaponAssignments[clientId] && clientWeaponAssignments[clientId].weapon.id === weaponId) {
                   return clientWeaponAssignments[clientId].precio;
                 }
-                // Finalmente usar el precio de referencia
-                const weapon = availableWeapons.find(w => w.id === weaponId);
-                return weapon ? weapon.precioReferencia : 0;
+                // Por defecto, el precio inicial debe ser 0 para que el vendedor lo ingrese
+                return 0;
               }}
               currentClientId={selectedClient?.id}
             />
@@ -674,12 +803,35 @@ const Vendedor: React.FC = React.memo(() => {
     }
   };
 
+  const handleConfirmarValidacion = async () => {
+    if (!modalValidarDatos.client) return;
+    
+    setModalValidarDatos(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      await handleValidarDatosPersonales(modalValidarDatos.client);
+      setModalValidarDatos({ isOpen: false, client: null, isLoading: false });
+    } catch (error) {
+      console.error('Error validando datos:', error);
+      setModalValidarDatos(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Vendedor" subtitle="Gestión de clientes y ventas" />
       <div className="p-6">
         {renderCurrentPage()}
       </div>
+      
+      {/* Modal de validación de datos */}
+      <ModalValidarDatos
+        client={modalValidarDatos.client}
+        isOpen={modalValidarDatos.isOpen}
+        onClose={() => setModalValidarDatos({ isOpen: false, client: null, isLoading: false })}
+        onConfirm={handleConfirmarValidacion}
+        isLoading={modalValidarDatos.isLoading}
+      />
     </div>
   );
 });

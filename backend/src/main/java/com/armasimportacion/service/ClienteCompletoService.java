@@ -25,11 +25,251 @@ import java.util.Optional;
 public class ClienteCompletoService {
 
     private final ClienteService clienteService;
-    private final GestionDocumentosServiceHelper documentosHelper;
     private final GestionPagosServiceHelper pagosHelper;
     private final GestionArmasServiceHelper armasHelper;
     private final GestionRespuestasServiceHelper respuestasHelper;
-    private final EmailService emailService;
+    private final EmailVerificationService emailVerificationService;
+    private final com.armasimportacion.repository.TipoIdentificacionRepository tipoIdentificacionRepository;
+    private final com.armasimportacion.repository.TipoClienteRepository tipoClienteRepository;
+    private final com.armasimportacion.repository.ClienteRepository clienteRepository;
+    private final GrupoImportacionService grupoImportacionService;
+
+    /**
+     * Actualiza un cliente de forma parcial - solo los campos modificados
+     * Este método es más eficiente que actualizarClienteCompleto porque solo procesa lo que cambió
+     * 
+     * @param clienteId ID del cliente a actualizar
+     * @param requestData Solo los campos que cambiaron (cliente, respuestas, etc.)
+     * @return Resultado de la operación
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> actualizarClienteParcial(Long clienteId, Map<String, Object> requestData) {
+        log.info("⚡⚡⚡ ClienteCompletoService.actualizarClienteParcial EJECUTÁNDOSE (OPTIMIZADO) ⚡⚡⚡");
+        log.info("⚡ Actualizando cliente parcial ID: {}, campos recibidos: {}", clienteId, requestData.keySet());
+        
+        // Verificar que el cliente existe
+        Cliente cliente = clienteService.findById(clienteId);
+        log.info("✅ Cliente encontrado: ID={}, nombres={}", cliente.getId(), cliente.getNombres());
+        
+        ClienteDTO clienteDTOActualizado = null;
+        
+        // 1. Actualizar cliente básico SOLO si viene en requestData
+        if (requestData.containsKey("cliente") && requestData.get("cliente") != null) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> clientData = (Map<String, Object>) requestData.get("cliente");
+            if (clientData != null && !clientData.isEmpty()) {
+                log.info("⚡ Actualizando datos básicos del cliente (solo campos enviados)");
+                clienteDTOActualizado = actualizarClienteBasicoParcial(clientData, cliente);
+            } else {
+                log.info("📝 No hay datos de cliente para actualizar, usando cliente actual");
+                clienteDTOActualizado = clienteService.findByIdAsDTO(cliente.getId());
+            }
+        } else {
+            log.info("📝 No se envió objeto 'cliente' en requestData, manteniendo datos actuales");
+            clienteDTOActualizado = clienteService.findByIdAsDTO(cliente.getId());
+        }
+        
+        // 2. Actualizar respuestas SOLO si vienen en requestData
+        if (requestData.containsKey("respuestas") && requestData.get("respuestas") != null) {
+            log.info("⚡ Actualizando respuestas del formulario (solo si cambiaron)");
+            actualizarRespuestasDelCliente(requestData, cliente);
+        } else {
+            log.info("📝 No se enviaron respuestas, manteniendo respuestas actuales");
+        }
+        
+        // 3. Si se actualizaron datos PERSONALES del cliente, reenviar correo de verificación
+        // Solo reenviar si se modificaron campos de datos personales (no documentos, preguntas, armas, etc.)
+        boolean datosPersonalesActualizados = false;
+        if (requestData.containsKey("cliente") && requestData.get("cliente") != null) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> clientData = (Map<String, Object>) requestData.get("cliente");
+            
+            // Lista de campos que se consideran "datos personales" y requieren reenvío de correo
+            java.util.Set<String> camposDatosPersonales = java.util.Set.of(
+                "nombres",
+                "apellidos",
+                "numeroIdentificacion",
+                "email",
+                "telefonoPrincipal",
+                "telefonoSecundario",
+                "direccion",
+                "provincia",
+                "canton",
+                "fechaNacimiento",
+                "representanteLegal",
+                "tipoIdentificacionCodigo",
+                "tipoClienteCodigo"
+            );
+            
+            // Verificar si alguno de los campos de datos personales fue actualizado
+            for (String campo : camposDatosPersonales) {
+                if (clientData.containsKey(campo)) {
+                    datosPersonalesActualizados = true;
+                    log.info("📧 Campo de datos personales actualizado: {}", campo);
+                    break;
+                }
+            }
+        }
+        
+        if (datosPersonalesActualizados) {
+            log.info("📧 Datos personales del cliente actualizados, reenviando correo de verificación");
+            // Recargar el cliente actualizado para enviar el correo con los datos más recientes
+            Cliente clienteActualizado = clienteService.findById(clienteId);
+            // Invalidar verificación anterior y reenviar correo
+            clienteActualizado.setEmailVerificado(null); // Resetear a pendiente
+            clienteRepository.save(clienteActualizado);
+            enviarCorreoVerificacion(clienteActualizado);
+        } else {
+            log.info("📝 No se actualizaron datos personales, no se reenviará correo de verificación");
+        }
+        
+        log.info("✅ Cliente actualizado parcialmente: ID={}", clienteId);
+        
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Cliente actualizado exitosamente");
+        response.put("clienteId", clienteId);
+        response.put("cliente", clienteDTOActualizado);
+        response.put("timestamp", LocalDateTime.now());
+        
+        return response;
+    }
+    
+    /**
+     * Actualiza solo los campos del cliente que vienen en clientData
+     * No reescribe campos que no están presentes
+     */
+    private ClienteDTO actualizarClienteBasicoParcial(Map<String, Object> clientData, Cliente cliente) {
+        log.info("⚡ Actualizando cliente parcial - campos recibidos: {}", clientData.keySet());
+        
+        // Actualizar solo los campos que están presentes en clientData
+        if (clientData.containsKey("nombres")) {
+            cliente.setNombres((String) clientData.get("nombres"));
+        }
+        if (clientData.containsKey("apellidos")) {
+            cliente.setApellidos((String) clientData.get("apellidos"));
+        }
+        if (clientData.containsKey("numeroIdentificacion")) {
+            cliente.setNumeroIdentificacion((String) clientData.get("numeroIdentificacion"));
+        }
+        if (clientData.containsKey("email")) {
+            cliente.setEmail((String) clientData.get("email"));
+        }
+        if (clientData.containsKey("telefonoPrincipal")) {
+            cliente.setTelefonoPrincipal((String) clientData.get("telefonoPrincipal"));
+        }
+        if (clientData.containsKey("telefonoSecundario")) {
+            cliente.setTelefonoSecundario((String) clientData.get("telefonoSecundario"));
+        }
+        if (clientData.containsKey("direccion")) {
+            cliente.setDireccion((String) clientData.get("direccion"));
+        }
+        if (clientData.containsKey("provincia")) {
+            cliente.setProvincia((String) clientData.get("provincia"));
+        }
+        if (clientData.containsKey("canton")) {
+            cliente.setCanton((String) clientData.get("canton"));
+        }
+        if (clientData.containsKey("representanteLegal")) {
+            cliente.setRepresentanteLegal((String) clientData.get("representanteLegal"));
+        }
+        if (clientData.containsKey("ruc")) {
+            cliente.setRuc((String) clientData.get("ruc"));
+        }
+        if (clientData.containsKey("nombreEmpresa")) {
+            cliente.setNombreEmpresa((String) clientData.get("nombreEmpresa"));
+        }
+        if (clientData.containsKey("direccionFiscal")) {
+            cliente.setDireccionFiscal((String) clientData.get("direccionFiscal"));
+        }
+        if (clientData.containsKey("telefonoReferencia")) {
+            cliente.setTelefonoReferencia((String) clientData.get("telefonoReferencia"));
+        }
+        if (clientData.containsKey("correoEmpresa")) {
+            cliente.setCorreoEmpresa((String) clientData.get("correoEmpresa"));
+        }
+        if (clientData.containsKey("provinciaEmpresa")) {
+            cliente.setProvinciaEmpresa((String) clientData.get("provinciaEmpresa"));
+        }
+        if (clientData.containsKey("cantonEmpresa")) {
+            cliente.setCantonEmpresa((String) clientData.get("cantonEmpresa"));
+        }
+        if (clientData.containsKey("estadoMilitar")) {
+            String estadoMilitarStr = (String) clientData.get("estadoMilitar");
+            if (estadoMilitarStr != null && !estadoMilitarStr.isEmpty()) {
+                try {
+                    cliente.setEstadoMilitar(com.armasimportacion.enums.EstadoMilitar.valueOf(estadoMilitarStr.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    log.warn("⚠️ Estado militar inválido: {}", estadoMilitarStr);
+                }
+            }
+        }
+        if (clientData.containsKey("codigoIssfa")) {
+            cliente.setCodigoIssfa((String) clientData.get("codigoIssfa"));
+        }
+        if (clientData.containsKey("rango")) {
+            cliente.setRango((String) clientData.get("rango"));
+        }
+        if (clientData.containsKey("estado")) {
+            String estadoStr = (String) clientData.get("estado");
+            if (estadoStr != null && !estadoStr.isEmpty()) {
+                try {
+                    cliente.setEstado(com.armasimportacion.enums.EstadoCliente.valueOf(estadoStr.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    log.warn("⚠️ Estado cliente inválido: {}", estadoStr);
+                }
+            }
+        }
+        
+        // Parsear fecha de nacimiento si viene
+        if (clientData.containsKey("fechaNacimiento")) {
+            Object fechaObj = clientData.get("fechaNacimiento");
+            if (fechaObj != null) {
+                try {
+                    String fechaStr = fechaObj.toString();
+                    if (fechaStr.contains("T")) {
+                        fechaStr = fechaStr.split("T")[0];
+                    }
+                    java.time.LocalDate fechaParsed = java.time.LocalDate.parse(fechaStr);
+                    cliente.setFechaNacimiento(fechaParsed);
+                } catch (Exception e) {
+                    log.warn("⚠️ Error parseando fecha de nacimiento: {}", fechaObj);
+                }
+            }
+        }
+        
+        // Actualizar relaciones solo si vienen los códigos
+        if (clientData.containsKey("tipoIdentificacionCodigo")) {
+            String codigo = (String) clientData.get("tipoIdentificacionCodigo");
+            if (codigo != null && !codigo.isEmpty()) {
+                var tipoIdentificacion = tipoIdentificacionRepository
+                    .findByCodigo(codigo)
+                    .orElseThrow(() -> new com.armasimportacion.exception.ResourceNotFoundException(
+                        "Tipo de identificación no encontrado con código: " + codigo));
+                cliente.setTipoIdentificacion(tipoIdentificacion);
+            }
+        }
+        
+        if (clientData.containsKey("tipoClienteCodigo")) {
+            String codigo = (String) clientData.get("tipoClienteCodigo");
+            if (codigo != null && !codigo.isEmpty()) {
+                var tipoCliente = tipoClienteRepository
+                    .findByCodigo(codigo)
+                    .orElseThrow(() -> new com.armasimportacion.exception.ResourceNotFoundException(
+                        "Tipo de cliente no encontrado con código: " + codigo));
+                cliente.setTipoCliente(tipoCliente);
+            }
+        }
+        
+        // Guardar cambios
+        Cliente clienteActualizado = clienteRepository.save(cliente);
+        ClienteDTO clienteDTO = clienteService.findByIdAsDTO(clienteActualizado.getId());
+        
+        log.info("✅ Cliente actualizado parcialmente: ID={}, nombres={}", 
+            clienteDTO.getId(), clienteDTO.getNombres());
+        
+        return clienteDTO;
+    }
 
     /**
      * Actualiza un cliente completo con todos sus datos relacionados
@@ -50,7 +290,7 @@ public class ClienteCompletoService {
         log.info("✅ Cliente encontrado: ID={}, nombres={}", cliente.getId(), cliente.getNombres());
         
         // 1. Actualizar cliente básico
-        actualizarClienteBasico(requestData, cliente);
+        ClienteDTO clienteDTOActualizado = actualizarClienteBasico(requestData, cliente);
         
         // 2. Actualizar respuestas del formulario (eliminar las existentes y crear las nuevas)
         actualizarRespuestasDelCliente(requestData, cliente);
@@ -65,10 +305,13 @@ public class ClienteCompletoService {
         
         log.info("✅ Cliente actualizado exitosamente: ID={}", cliente.getId());
         
+        // Retornar el ClienteDTO completo para que el frontend pueda usarlo
+        // Convertir ClienteDTO a Map para mantener compatibilidad con el formato actual
         Map<String, Object> response = new java.util.HashMap<>();
         response.put("success", true);
         response.put("message", "Cliente actualizado exitosamente");
         response.put("clienteId", clienteId);
+        response.put("cliente", clienteDTOActualizado); // Incluir el cliente completo
         response.put("timestamp", LocalDateTime.now());
         
         return response;
@@ -105,18 +348,34 @@ public class ClienteCompletoService {
             
             // 5. Generar contrato (solo si hay pago)
             // NOTA: El contrato es secundario, si falla no debe revertir la transacción completa
-            log.info("🔍 DEBUG: Llamando a generarContratoDelCliente...");
-            try {
-                generarContratoDelCliente(cliente, pago);
-                log.info("🔍 DEBUG: generarContratoDelCliente completado");
-            } catch (Exception e) {
-                log.error("❌ Error en generarContratoDelCliente (no crítico): {}", e.getMessage(), e);
-                // NO relanzar la excepción porque el contrato es secundario
-                // La transacción continuará y se confirmará
-            }
+            // log.info("🔍 DEBUG: Llamando a generarContratoDelCliente...");
+            // try {
+            //     generarContratoDelCliente(cliente, pago);
+            //     log.info("🔍 DEBUG: generarContratoDelCliente completado");
+            // } catch (Exception e) {
+            //     log.error("❌ Error en generarContratoDelCliente (no crítico): {}", e.getMessage(), e);
+            //     // NO relanzar la excepción porque el contrato es secundario
+            //     // La transacción continuará y se confirmará
+            // }
         } else {
             log.info("📝 No hay datos de pago, se creará más adelante en el flujo");
         }
+        
+        // 6. Asignar automáticamente a grupo de importación disponible (provisional)
+        // Solo si el cliente no es fantasma (PENDIENTE_ASIGNACION_CLIENTE)
+        if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            try {
+                grupoImportacionService.asignarClienteAGrupoDisponible(cliente, usuarioId);
+                log.info("✅ Cliente ID {} asignado automáticamente a grupo disponible", cliente.getId());
+            } catch (Exception e) {
+                log.warn("⚠️ No se pudo asignar cliente a grupo automáticamente: {}", e.getMessage());
+                // No fallar la creación del cliente si no hay grupo disponible
+            }
+        }
+        
+        // 7. Enviar correo de verificación (si el cliente tiene email)
+        // IMPORTANTE: Se envía DESPUÉS de guardar las respuestas para poder verificar si respondió NO a Sicoar
+        enviarCorreoVerificacion(cliente);
         
         return crearRespuestaExitoso(cliente, pago);
     }
@@ -160,14 +419,16 @@ public class ClienteCompletoService {
 
     /**
      * Actualiza el cliente básico usando ClienteService
+     * @return ClienteDTO actualizado
      */
-    private void actualizarClienteBasico(Map<String, Object> requestData, Cliente cliente) {
+    private ClienteDTO actualizarClienteBasico(Map<String, Object> requestData, Cliente cliente) {
         log.info("👤 Actualizando cliente básico ID: {}", cliente.getId());
         
         Map<String, Object> clientData = extraerDatosCliente(requestData);
         if (clientData == null || clientData.isEmpty()) {
-            log.warn("⚠️ No hay datos de cliente para actualizar");
-            return;
+            log.warn("⚠️ No hay datos de cliente para actualizar, retornando cliente actual");
+            // Si no hay datos para actualizar, retornar el DTO actual del cliente
+            return clienteService.findByIdAsDTO(cliente.getId());
         }
         
         ClienteCreateDTO clienteCreateDTO = construirClienteCreateDTO(clientData);
@@ -175,6 +436,8 @@ public class ClienteCompletoService {
         
         log.info("✅ Cliente actualizado: ID={}, nombres={}, apellidos={}", 
             clienteDTO.getId(), clienteDTO.getNombres(), clienteDTO.getApellidos());
+        
+        return clienteDTO;
     }
 
     /**
@@ -233,57 +496,10 @@ public class ClienteCompletoService {
         return pago;
     }
 
-    /**
-     * Genera el contrato del cliente usando JasperReports
-     */
-    private void generarContratoDelCliente(Cliente cliente, Pago pago) {
-        log.info("📄📄📄 GENERANDO CONTRATO DEL CLIENTE - MÉTODO EJECUTÁNDOSE 📄📄📄");
-        log.info("📄 Paso 5: Generando contrato con Thymeleaf");
-        log.info("🔍 DEBUG: Cliente ID: {}, Nombres: {}, Apellidos: {}", 
-            cliente.getId(), cliente.getNombres(), cliente.getApellidos());
-        log.info("🔍 DEBUG: Pago ID: {}, Tipo Pago: {}, Monto Total: {}", 
-            pago.getId(), pago.getTipoPago(), pago.getMontoTotal());
-        
-        try {
-            log.info("🔍 DEBUG: Iniciando generación de contrato con Thymeleaf...");
-            // Generar y guardar el contrato usando Thymeleaf
-            var documento = documentosHelper.generarYGuardarContrato(cliente, pago);
-            log.info("✅ Contrato generado y guardado exitosamente: ID={}", documento.getId());
-            
-            // 📧 Enviar email con el contrato adjunto
-            if (cliente.getEmail() != null && !cliente.getEmail().isEmpty()) {
-                try {
-                    log.info("📧 Enviando contrato por email a: {}", cliente.getEmail());
-                    String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
-                    
-                    // Construir path completo del archivo
-                    // getRutaArchivo() ya incluye el nombre del archivo según FileStorageService.guardarDocumentoGeneradoCliente
-                    String rutaCompleta = documento.getRutaArchivo();
-                    log.info("📄 Path completo del contrato (desde BD): {}", rutaCompleta);
-                    
-                    emailService.enviarContratoAdjunto(
-                        cliente.getEmail(),
-                        nombreCompleto,
-                        rutaCompleta
-                    );
-                    log.info("✅ Email enviado exitosamente a: {}", cliente.getEmail());
-                } catch (Exception emailError) {
-                    log.error("❌ Error enviando email: {}", emailError.getMessage());
-                    // No interrumpir el flujo si falla el email
-                }
-            } else {
-                log.warn("⚠️ Cliente sin email, no se puede enviar contrato por correo");
-            }
-            
-        } catch (Exception e) {
-            log.error("❌ Error generando contrato: {}", e.getMessage(), e);
-            // No lanzar la excepción para no interrumpir el flujo de creación del cliente
-            log.warn("⚠️ Continuando con la creación del cliente sin contrato");
-        }
-    }
 
     // Métodos auxiliares para extraer datos
 
+    @SuppressWarnings("unchecked")
     private Map<String, Object> extraerDatosCliente(Map<String, Object> requestData) {
         return Optional.ofNullable(requestData.get("cliente"))
             .filter(obj -> obj instanceof Map)
@@ -352,6 +568,11 @@ public class ClienteCompletoService {
         dto.setEstadoMilitar((String) clientData.get("estadoMilitar"));
         dto.setCodigoIssfa((String) clientData.get("codigoIssfa"));
         dto.setRango((String) clientData.get("rango"));
+        
+        // Campo estado (si viene, se establecerá en el cliente)
+        if (clientData.containsKey("estado")) {
+            dto.setEstado((String) clientData.get("estado"));
+        }
         
         // Parsear fecha de nacimiento
         parsearFechaNacimiento(clientData, dto);
@@ -462,11 +683,26 @@ public class ClienteCompletoService {
         return response;
     }
 
-    private Map<String, Object> crearRespuestaError(String mensaje) {
-        return Map.of(
-            "success", false,
-            "message", mensaje,
-            "timestamp", LocalDateTime.now()
-        );
+
+    /**
+     * Envía correo de verificación al cliente después de crearlo
+     * Solo se envía si el cliente tiene email
+     */
+    private void enviarCorreoVerificacion(Cliente cliente) {
+        if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
+            log.info("📧 Cliente ID {} no tiene email, no se enviará correo de verificación", cliente.getId());
+            return;
+        }
+
+        try {
+            log.info("📧 Enviando correo de verificación a cliente ID: {}, email: {}", 
+                cliente.getId(), cliente.getEmail());
+            emailVerificationService.generateAndSendVerificationToken(cliente);
+            log.info("✅ Correo de verificación enviado exitosamente");
+        } catch (Exception e) {
+            log.error("❌ Error enviando correo de verificación (no crítico): {}", e.getMessage(), e);
+            // No lanzamos excepción para no romper el flujo de creación del cliente
+            // El cliente se crea exitosamente aunque falle el envío del correo
+        }
     }
 }

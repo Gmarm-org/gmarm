@@ -1,7 +1,8 @@
 package com.armasimportacion.enums;
 
 public enum EstadoClienteGrupo {
-    PENDIENTE,
+    PENDIENTE,      // Asignación provisional - cliente creado pero no ha confirmado datos
+    CONFIRMADO,     // Cliente confirmó sus datos (email verificado) - asignación definitiva
     APROBADO,
     RECHAZADO,
     EN_PROCESO,

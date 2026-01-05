@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { apiService } from '../../services/api';
+import type { GrupoImportacion } from '../../services/api';
 
 interface SerieRow {
   serialNumber: string;
@@ -13,10 +15,32 @@ const CargaMasivaSeries: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<SerieRow[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState<number | null>(null);
+  const [gruposDisponibles, setGruposDisponibles] = useState<GrupoImportacion[]>([]);
+  const [cargandoGrupos, setCargandoGrupos] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
     success: number;
     errors: string[];
   } | null>(null);
+
+  // Cargar grupos de importación activos al montar
+  useEffect(() => {
+    cargarGruposActivos();
+  }, []);
+
+  const cargarGruposActivos = async () => {
+    setCargandoGrupos(true);
+    try {
+      const grupos = await apiService.getGruposActivos();
+      setGruposDisponibles(grupos);
+      console.log('✅ Grupos de importación cargados:', grupos.length);
+    } catch (error) {
+      console.error('❌ Error cargando grupos:', error);
+      alert('Error al cargar los grupos de importación');
+    } finally {
+      setCargandoGrupos(false);
+    }
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -70,6 +94,11 @@ const CargaMasivaSeries: React.FC = () => {
       return;
     }
 
+    if (!grupoSeleccionado) {
+      alert('Por favor selecciona un grupo de importación');
+      return;
+    }
+
     setIsProcessing(true);
     setUploadResult(null);
 
@@ -80,7 +109,10 @@ const CargaMasivaSeries: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(previewData)
+        body: JSON.stringify({
+          series: previewData,
+          grupoImportacionId: grupoSeleccionado
+        })
       });
 
       if (!response.ok) {
@@ -142,6 +174,32 @@ const CargaMasivaSeries: React.FC = () => {
           <li>• <strong>Caliber</strong>: Calibre (ej: 9 mm)</li>
           <li>• <strong>Text2</strong>: Observaciones (ej: 2 alimentadoras)</li>
         </ul>
+      </div>
+
+      {/* Selección de grupo de importación */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Grupo de Importación *
+        </label>
+        <select
+          value={grupoSeleccionado || ''}
+          onChange={(e) => setGrupoSeleccionado(e.target.value ? parseInt(e.target.value) : null)}
+          disabled={cargandoGrupos}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">-- Seleccione un grupo de importación --</option>
+          {gruposDisponibles.map((grupo) => {
+            const grupoAny = grupo as any;
+            return (
+              <option key={grupo.id} value={grupo.id}>
+                {grupoAny.codigo || grupoAny.nombre || `Grupo ${grupo.id}`} - {grupo.nombre}
+              </option>
+            );
+          })}
+        </select>
+        {cargandoGrupos && (
+          <p className="text-sm text-gray-500 mt-1">Cargando grupos...</p>
+        )}
       </div>
 
       {/* Subida de archivo */}

@@ -1,29 +1,30 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
-import { calcularEdad, validarEdadMinima, obtenerMensajeErrorEdad } from '../../../utils/ageValidation';
+import { validarEdadMinima } from '../../../utils/ageValidation';
 import { validateIdentificacion, validateTelefono, validateEmail } from '../../../utils/validations';
-import { mapTipoIdentificacionToCode, getMaxLengthIdentificacion } from '../../../utils/typeMappers';
+import { mapTipoIdentificacionToCode } from '../../../utils/typeMappers';
 import { useTiposClienteConfig } from '../../../contexts/TiposClienteContext';
 import { useIVA } from '../../../hooks/useConfiguracion';
 import type { Client } from '../types';
 import type { Weapon } from '../types';
 
-// Tipo local para respuestas del formulario
-interface RespuestaFormulario {
-  id: string;
-  pregunta: string;
-  respuesta: string;
-  tipo: string;
-  questionId?: number;
-}
+// Hooks refactorizados
+import { useClientFormData } from '../hooks/useClientFormData';
+import { useClientCatalogs } from '../hooks/useClientCatalogs';
+import { useClientDocuments } from '../hooks/useClientDocuments';
+import { useClientAnswers } from '../hooks/useClientAnswers';
+// useClientSubmit preparado para integrar cuando se simplifique handleSubmit
+// import { useClientSubmit } from '../hooks/useClientSubmit';
 
-// Tipo extendido para el formulario que incluye respuestas del formulario
-interface ClientFormData extends Omit<Client, 'respuestas'> {
-  respuestas: RespuestaFormulario[];
-  codigoIssfa?: string; // Asegurar que el campo esté disponible
-  rango?: string; // Rango militar/policial (opcional)
-}
+// Componentes de secciones
+import { ClientPersonalDataSection } from './sections/ClientPersonalDataSection';
+import { ClientCompanyDataSection } from './sections/ClientCompanyDataSection';
+import { ClientDocumentsSection } from './sections/ClientDocumentsSection';
+import { ClientAnswersSection } from './sections/ClientAnswersSection';
+import { ClientReservedWeaponSection } from './sections/ClientReservedWeaponSection';
+import { ClientViewSections } from './sections/ClientViewSections';
+import { VendedorStockWeaponsSection } from './sections/VendedorStockWeaponsSection';
 
 interface ClientFormProps {
   mode: 'create' | 'edit' | 'view';
@@ -60,51 +61,42 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const { getCodigoTipoCliente, esTipoMilitar, esUniformado, requiereCodigoIssfa } = useTiposClienteConfig();
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
 
-  const [formData, setFormData] = useState<ClientFormData>({
-    id: '',
-    nombres: '',
-    apellidos: '',
-    email: '',
-    numeroIdentificacion: '',
-    tipoCliente: '',
-    tipoIdentificacion: '', // Ahora será el código (CED, RUC, etc.)
-    telefonoPrincipal: '',
-    telefonoSecundario: '',
-    direccion: '',
-    provincia: '',
-    canton: '',
-    fechaNacimiento: '',
-    representanteLegal: '',
-    ruc: '',
-    nombreEmpresa: '',
-    direccionFiscal: '',
-    telefonoReferencia: '',
-    correoEmpresa: '',
-    provinciaEmpresa: '',
-    cantonEmpresa: '',
-    estadoMilitar: undefined,
-    codigoIssfa: '',
-    rango: '',
-    documentos: [],
-    respuestas: []
-  });
+  // Hooks refactorizados
+  const {
+    formData,
+    setFormData,
+    handleInputChange: handleInputChangeBase,
+    showMilitaryWarning,
+    setShowMilitaryWarning,
+    clienteBloqueado,
+    setClienteBloqueado,
+    motivoBloqueo,
+    setMotivoBloqueo
+  } = useClientFormData();
 
-  const [availableCantons, setAvailableCantons] = useState<string[]>([]);
-  const [availableCantonsEmpresa, setAvailableCantonsEmpresa] = useState<string[]>([]);
-  const [clientQuestions, setClientQuestions] = useState<any[]>([]);
-  const [requiredDocuments, setRequiredDocuments] = useState<any[]>([]);
-  const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, File>>({});
-  const [loadedDocuments, setLoadedDocuments] = useState<Record<string, any>>({});
-  const [documentStatus, setDocumentStatus] = useState<'pending' | 'complete' | 'incomplete'>('pending');
-  const [showMilitaryWarning, setShowMilitaryWarning] = useState(false);
-  const [clienteBloqueado, setClienteBloqueado] = useState(false);
-  const [motivoBloqueo, setMotivoBloqueo] = useState<string>('');
-  
+  const {
+    tiposCliente,
+    tiposIdentificacion,
+    provincias,
+    availableCantons,
+    availableCantonsEmpresa,
+    getNombreProvincia,
+    loadCantones,
+    setAvailableCantons,
+    setAvailableCantonsEmpresa
+  } = useClientCatalogs();
+
   // Estados para datos cargados del cliente
   const [loadedArmas, setLoadedArmas] = useState<any[]>([]);
   const [loadedPagos, setLoadedPagos] = useState<any[]>([]);
   const [loadedContratos, setLoadedContratos] = useState<any[]>([]);
   const [localSelectedWeapon, setLocalSelectedWeapon] = useState<Weapon | null>(null);
+  
+  // Estado para armas en stock del vendedor
+  const [armasEnStock, setArmasEnStock] = useState<any[]>([]);
+  
+  // Estado para guardar el ID de la relación ClienteArma del stock (para reasignar después)
+  const [clienteArmaIdDelStock, setClienteArmaIdDelStock] = useState<number | null>(null);
   
   // Combinar selectedWeapon prop con localSelectedWeapon para mostrar la arma correcta
   const currentSelectedWeapon = localSelectedWeapon || selectedWeapon;
@@ -115,14 +107,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
     console.log('🔍 DEBUG localSelectedWeapon:', localSelectedWeapon);
     console.log('🔍 DEBUG selectedWeapon prop:', selectedWeapon);
   }, [currentSelectedWeapon, localSelectedWeapon, selectedWeapon]);
-  
-  // Estados para catálogos
-  const [tiposCliente, setTiposCliente] = useState<any[]>([]);
-  const [tiposIdentificacion, setTiposIdentificacion] = useState<any[]>([]);
-  const [provincias, setProvincias] = useState<Array<{codigo: string, nombre: string}>>([]);
-  
-  // Estados para errores de validación
-  // const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Determinar si es empresa
   const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
@@ -136,24 +120,63 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Determinar si es uniformado en servicio activo basado en estado militar
   const isUniformado = isUniformadoByType && formData.estadoMilitar === 'ACTIVO';
   
-  // Determinar el tipo de proceso real para cargar preguntas y documentos
-  const tipoProcesoReal = isUniformado ? 'UNIFORMADO' : isEmpresa ? 'EMPRESA' : 'CIVIL';
-  
-  // Función helper para obtener el nombre de la provincia desde el código
-  const getNombreProvincia = (codigo: string | undefined): string => {
-    if (!codigo || provincias.length === 0) return codigo || 'No especificado';
-    const provincia = provincias.find(p => p.codigo === codigo);
-    return provincia ? provincia.nombre : codigo;
-  };
+  // El tipo de proceso real se usa internamente en los hooks useClientDocuments y useClientAnswers
+
+  // Obtener tipoClienteId para hooks de documentos y respuestas
+  const tipoClienteEncontrado = tiposCliente.find(tc => tc.nombre === formData.tipoCliente);
+  const tipoClienteId = tipoClienteEncontrado?.id;
+
+  // Hooks para documentos y respuestas
+  const {
+    requiredDocuments,
+    uploadedDocuments,
+    loadedDocuments,
+    documentStatus,
+    handleDocumentUpload,
+    getBorderColor,
+    getDocumentStatusColor,
+    getDocumentStatusText,
+    setLoadedDocuments
+  } = useClientDocuments(
+    formData.id?.toString(), // Convertir a string para el hook
+    tipoClienteId,
+    formData.tipoCliente,
+    formData.estadoMilitar,
+    esTipoMilitar,
+    formData
+  );
+
+  // Hook para respuestas
+  const {
+    clientQuestions,
+    getAnswerForQuestion,
+    handleAnswerChange: handleAnswerChangeBase
+  } = useClientAnswers(
+    tipoClienteId,
+    formData.tipoCliente,
+    formData.estadoMilitar,
+    esTipoMilitar,
+    formData.id?.toString(), // Convertir a string para el hook
+    formData.respuestas,
+    setFormData
+  );
+
+  // Wrapper para handleAnswerChange que incluye callbacks
+  const handleAnswerChange = useCallback((question: string, answer: string, preguntaId?: number) => {
+    handleAnswerChangeBase(question, answer, preguntaId, onClienteBloqueado, setClienteBloqueado, setMotivoBloqueo);
+  }, [handleAnswerChangeBase, onClienteBloqueado, setClienteBloqueado, setMotivoBloqueo]);
+
+  // Usar handleInputChange directamente del hook (ya incluye toda la lógica necesaria)
+  const handleInputChange = handleInputChangeBase;
   
   // Función para cargar datos adicionales del cliente
   const loadClientData = useCallback(async (clienteId: number) => {
     try {
       console.log('🔄 Cargando datos adicionales del cliente:', clienteId);
       
-      // Cargar respuestas del cliente
-      const respuestas = await apiService.getRespuestasCliente(clienteId);
-      console.log('📋 Respuestas cargadas:', respuestas);
+      // OPTIMIZACIÓN CRÍTICA: NO cargar respuestas aquí
+      // Las respuestas se cargan automáticamente por useClientAnswers hook
+      // Esto evita cargas duplicadas y procesamiento innecesario
       
       // Cargar documentos del cliente
       const documentos = await apiService.getDocumentosCliente(clienteId);
@@ -178,41 +201,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
         console.log('📄 Documentos cargados mapeados:', documentosMap);
       }
       
-      // Cargar armas asignadas al cliente
+      // Cargar armas asignadas al cliente (solo para mostrar en el formulario)
       const armasCliente = await apiService.getArmasCliente(clienteId);
       console.log('🔫 Armas del cliente cargadas:', armasCliente);
       setLoadedArmas(armasCliente || []);
       
-      // Cargar pagos del cliente
-      const pagosCliente = await apiService.getPagosCliente(clienteId);
-      console.log('💰 Pagos del cliente cargados:', pagosCliente);
-      setLoadedPagos(pagosCliente || []);
-      
-      // Cargar contratos generados del cliente
-      const contratosCliente = await apiService.getContratosCliente(clienteId);
-      console.log('📋 Contratos del cliente cargados:', contratosCliente);
-      setLoadedContratos(contratosCliente || []);
-      
-      // Actualizar formData con las respuestas cargadas
-      if (respuestas && Array.isArray(respuestas)) {
-        setFormData(prev => ({
-          ...prev,
-          respuestas: respuestas.map(r => ({
-            id: r.id?.toString() || Math.random().toString(),
-            pregunta: r.preguntaTexto || r.pregunta?.pregunta || r.pregunta || '',
-            respuesta: r.respuesta || '',
-            tipo: r.tipoRespuesta || r.tipo || 'TEXTO',
-            questionId: r.preguntaId || r.pregunta?.id
-          }))
-        }));
-        console.log('📋 Respuestas mapeadas para formData:', respuestas.map(r => ({
-          id: r.id?.toString() || Math.random().toString(),
-          pregunta: r.preguntaTexto || r.pregunta?.pregunta || r.pregunta || '',
-          respuesta: r.respuesta || '',
-          tipo: r.tipoRespuesta || r.tipo || 'TEXTO',
-          questionId: r.preguntaId || r.pregunta?.id
-        })));
-      }
+      // OPTIMIZACIÓN: No cargar pagos y contratos aquí, solo cuando se necesiten (no se usan en el formulario)
+      // Esto reduce significativamente el tiempo de carga
+      setLoadedPagos([]);
+      setLoadedContratos([]);
       
       // Si hay armas asignadas, actualizar el precio modificado y selectedWeapon
       if (armasCliente && armasCliente.length > 0) {
@@ -245,82 +242,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [onPriceChange]);
   
-  // Cargar catálogos al iniciar el componente
-  useEffect(() => {
-    const loadCatalogos = async () => {
-      try {
-        console.log('🔄 Cargando catálogos...');
-        
-        // Cargar tipos de cliente
-        const tiposClienteData = await apiService.getClientTypes();
-        setTiposCliente(tiposClienteData);
-        // Tipos de cliente cargados
-        
-        // Cargar tipos de identificación
-        const tiposIdentificacionData = await apiService.getTiposIdentificacion();
-        setTiposIdentificacion(tiposIdentificacionData);
-        // Tipos de identificación cargados
-        
-        // Cargar provincias completas (con códigos y nombres)
-        const provinciasData = await apiService.getProvinciasCompletas();
-        setProvincias(provinciasData);
-        // Provincias completas cargadas
-        
-      } catch (error) {
-        console.error('❌ Error cargando catálogos:', error);
-      }
-    };
-    
-    loadCatalogos();
-  }, []);
-  
-  // Cargar preguntas y documentos requeridos
-  useEffect(() => {
-    const loadFormulario = async () => {
-      if (tiposCliente.length > 0 && formData.tipoCliente) {
-        try {
-          console.log('🔄 Cargando formulario para tipo:', tipoProcesoReal);
-          
-          // Buscar el tipo de cliente en los catálogos
-          const tipoClienteEncontrado = tiposCliente.find(tc => tc.nombre === formData.tipoCliente);
-          if (tipoClienteEncontrado) {
-            let formulario;
-            
-            // Si es tipo militar y tiene estado militar definido, usar el endpoint con estado
-            const isMilitaryType = esTipoMilitar(formData.tipoCliente);
-            console.log('🔍 Debug formulario:', { 
-              tipoCliente: formData.tipoCliente, 
-              estadoMilitar: formData.estadoMilitar, 
-              isMilitaryType 
-            });
-            
-            if (isMilitaryType && formData.estadoMilitar) {
-              console.log('🔄 Cargando formulario para militar con estado:', formData.estadoMilitar);
-              formulario = await apiService.getFormularioClienteConEstadoMilitar(tipoClienteEncontrado.id, formData.estadoMilitar);
-            } else {
-              console.log('🔄 Cargando formulario estándar para tipo:', formData.tipoCliente);
-              formulario = await apiService.getFormularioCliente(tipoClienteEncontrado.id);
-            }
-            // Formulario cargado
-            
-            if (formulario.preguntas) {
-              setClientQuestions(formulario.preguntas);
-              // Preguntas cargadas
-            }
-            
-            if (formulario.documentos) {
-              setRequiredDocuments(formulario.documentos);
-              // Documentos requeridos cargados
-            }
-          }
-        } catch (error) {
-          console.error('❌ Error cargando formulario:', error);
-        }
-      }
-    };
-    
-    loadFormulario();
-  }, [tiposCliente, formData.tipoCliente, formData.estadoMilitar, tipoProcesoReal]);
+  // Los catálogos se cargan automáticamente en useClientCatalogs
+  // Los documentos y preguntas se cargan automáticamente en useClientDocuments y useClientAnswers
   
   // Cargar datos del cliente cuando se edite
   useEffect(() => {
@@ -328,6 +251,63 @@ const ClientForm: React.FC<ClientFormProps> = ({
       loadClientData(parseInt(client.id.toString()));
     }
   }, [client, mode, loadClientData]);
+  
+  // Cargar armas en stock del vendedor cuando se está creando un cliente nuevo
+  useEffect(() => {
+    if (mode === 'create' && user?.id) {
+      const cargarArmasEnStock = async () => {
+        try {
+          const armas = await apiService.getArmasEnStockVendedor(parseInt(user.id.toString()));
+          console.log('📦 Armas en stock del vendedor:', armas);
+          setArmasEnStock(armas || []);
+        } catch (error) {
+          console.error('❌ Error cargando armas en stock:', error);
+          setArmasEnStock([]);
+        }
+      };
+      
+      cargarArmasEnStock();
+    }
+  }, [mode, user?.id]);
+  
+ // Función para asignar un arma del stock al nuevo cliente
+  const handleAsignarArmaDelStock = useCallback((armaEnStock: any) => {
+    console.log('🔫 Asignando arma del stock al nuevo cliente:', armaEnStock);
+    
+    // Convertir el arma del stock al formato Weapon
+    const weapon: Weapon = {
+      id: armaEnStock.armaId.toString(),
+      nombre: armaEnStock.armaNombre,
+      codigo: armaEnStock.armaCodigo,
+      calibre: armaEnStock.armaCalibre,
+      categoriaNombre: armaEnStock.armaCategoriaNombre || 'N/A',
+      precioReferencia: parseFloat(armaEnStock.precioUnitario.toString()),
+      urlImagen: armaEnStock.armaImagen || '',
+      disponible: true
+    };
+    
+    // Establecer el arma seleccionada
+    setLocalSelectedWeapon(weapon);
+    
+    // Guardar el ID de la relación ClienteArma para reasignarla después
+    setClienteArmaIdDelStock(armaEnStock.id);
+    
+    // Establecer precio y cantidad desde el stock
+    if (onPriceChange) {
+      onPriceChange(parseFloat(armaEnStock.precioUnitario.toString()));
+    }
+    if (onQuantityChange) {
+      onQuantityChange(armaEnStock.cantidad);
+    }
+    
+    // Mostrar mensaje informativo sobre documentos requeridos
+    alert(`✅ Arma "${armaEnStock.armaNombre}" seleccionada del stock.\n\n` +
+          `⚠️ IMPORTANTE: Para poder entregar el arma al cliente, debes:\n` +
+          `1. Completar todos los datos del cliente\n` +
+          `2. Cargar y aprobar TODOS los documentos obligatorios\n` +
+          `3. Guardar el cliente\n\n` +
+          `El arma se reasignará automáticamente cuando el cliente tenga toda su documentación completa.`);
+  }, [onPriceChange, onQuantityChange]);
   
   // NUEVO: Restaurar datos del formulario cuando se regresa en el flujo de creación
   useEffect(() => {
@@ -359,17 +339,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
         codigoIssfa: client.codigoIssfa || '',
         rango: client.rango || '',
         documentos: client.documentos || [],
-        respuestas: client.respuestas || []
+        respuestas: [] // Inicializar vacío - se cargarán por useClientAnswers cuando detecte el clientId
       });
       
-      // Si tiene documentos cargados, restaurarlos también
-      if ((client as any).uploadedDocuments) {
-        setUploadedDocuments((client as any).uploadedDocuments);
-      }
-      
       console.log('✅ Datos del formulario restaurados correctamente');
+      console.log('📋 Client ID para cargar respuestas:', client.id);
     }
-  }, [client, mode]);
+  }, [client, mode, setFormData]);
   
   // Mostrar advertencia para uniformado pasivo
   useEffect(() => {
@@ -380,185 +356,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [isUniformado, formData.estadoMilitar]);
 
-  // Verificar estado de documentos
-  useEffect(() => {
-    const checkDocumentCompleteness = () => {
-      const mandatoryDocuments = requiredDocuments.filter(doc => doc.obligatorio);
-      const uploadedMandatoryDocs = mandatoryDocuments.filter(doc => 
-        uploadedDocuments[doc.id.toString()] || loadedDocuments[doc.nombre]
-      );
-      
-      if (mandatoryDocuments.length === 0) {
-        setDocumentStatus('complete');
-      } else if (uploadedMandatoryDocs.length === mandatoryDocuments.length) {
-        setDocumentStatus('complete');
-      } else if (uploadedMandatoryDocs.length > 0) {
-        setDocumentStatus('incomplete');
-      } else {
-        setDocumentStatus('pending');
-      }
-    };
-
-    checkDocumentCompleteness();
-  }, [uploadedDocuments, loadedDocuments, requiredDocuments]);
-
-  // Función para convertir a mayúsculas
-  const toUpperCase = (value: string) => {
-    return value.toUpperCase();
-  };
-
-  // Función para manejar carga de documentos
-  const handleDocumentUpload = (documentName: string, file: File) => {
-    // Buscar el documento en requiredDocuments para obtener su ID
-    const document = requiredDocuments.find(doc => doc.nombre === documentName);
-    if (document) {
-      setUploadedDocuments(prev => ({
-        ...prev,
-        [document.id.toString()]: file
-      }));
-    } else {
-      console.error('❌ Documento no encontrado en requiredDocuments:', documentName);
-    }
-  };
-
-  // Función para obtener el color del borde según la validación del campo
-  const getBorderColor = (fieldName: string, value: string) => {
-    if (!value) return 'border-gray-200'; // Campo vacío - borde normal
-    
-    switch (fieldName) {
-      case 'numeroIdentificacion':
-        // Validar con los algoritmos oficiales de Ecuador
-        if (!formData.tipoIdentificacion) return 'border-gray-200'; // Sin tipo seleccionado
-        if (!validateIdentificacion(value, formData.tipoIdentificacion)) {
-          return 'border-red-500'; // Identificación inválida
-        }
-        return 'border-green-500'; // Válido
-      case 'ruc':
-        // Validar RUC con algoritmo oficial
-        if (!validateIdentificacion(value, 'RUC')) {
-          return 'border-red-500'; // RUC inválido
-        }
-        return 'border-green-500'; // Válido
-      case 'telefonoPrincipal':
-      case 'telefonoSecundario':
-      case 'telefonoReferencia':
-        if (value.length !== 10) {
-          return 'border-red-500'; // Teléfono debe tener 10 dígitos
-        }
-        return 'border-green-500'; // Válido
-      case 'codigoIssfa':
-        if (value.length !== 10) {
-          return 'border-red-500'; // Código ISSFA debe tener 10 dígitos
-        }
-        return 'border-green-500'; // Válido
-      case 'email':
-        if (!validateEmail(value)) {
-          return 'border-red-500'; // Email inválido
-        }
-        return 'border-green-500'; // Válido
-      default:
-        return 'border-gray-200'; // Campo normal
-    }
-  };
-
-  // Función para obtener el estado de color de documentos
-  const getDocumentStatusColor = () => {
-    switch (documentStatus) {
-      case 'complete': return 'bg-green-100 border-green-500 text-green-700';
-      case 'incomplete': return 'bg-yellow-100 border-yellow-500 text-yellow-700';
-      case 'pending': return 'bg-gray-100 border-gray-500 text-gray-700';
-      default: return 'bg-gray-100 border-gray-500 text-green-700';
-    }
-  };
-
-  // Función para obtener el texto del estado de documentos
-  const getDocumentStatusText = () => {
-    switch (documentStatus) {
-      case 'complete': return 'Documentos Completos';
-      case 'incomplete': return 'Documentos Pendientes';
-      case 'pending': return 'Sin Documentos';
-      default: return 'Sin Documentos';
-    }
-  };
-
-  // Función para obtener respuesta de pregunta
-  const getAnswerForQuestion = useMemo(() => {
-    return (question: string) => {
-      const respuesta = formData.respuestas?.find(r => r.pregunta === question);
-      return respuesta?.respuesta || '';
-    };
-  }, [formData.respuestas]);
-
-  // Función para manejar cambio de respuesta
-  const handleAnswerChange = (question: string, answer: string, preguntaId?: number) => {
-    console.log('handleAnswerChange called:', { question, answer, preguntaId, currentRespuestas: formData.respuestas });
-    
-    // Validar respuesta a la pregunta de armas registradas
-    if (question.toLowerCase().includes('armas registradas')) {
-      // Verificar si la respuesta indica 2 o más armas
-      const tieneDosMasArmas = answer.includes('2 armas') || answer.includes('más armas');
-      
-      if (tieneDosMasArmas) {
-        // Mostrar alerta y bloquear selección de arma
-        alert('⚠️ ATENCIÓN: El cliente ya tiene 2 o más armas registradas.\n\n' +
-              'Por ley ecuatoriana, no se permite tener más de 2 armas.\n\n' +
-              'El cliente será guardado con estado INHABILITADO pero NO podrá seleccionar armas adicionales.');
-        
-        // Marcar cliente como bloqueado
-        setClienteBloqueado(true);
-        setMotivoBloqueo('Cliente ya tiene 2 o más armas registradas. Máximo legal: 2 armas.');
-        
-        // Notificar al componente padre
-        if (onClienteBloqueado) {
-          onClienteBloqueado('temp-id', true, 'Cliente ya tiene 2 o más armas registradas. Máximo legal: 2 armas.');
-        }
-      } else if (answer === 'NO' || answer.includes('1 arma')) {
-        // Si responde NO o tiene solo 1 arma, puede continuar
-        setClienteBloqueado(false);
-        setMotivoBloqueo('');
-        
-        if (onClienteBloqueado) {
-          onClienteBloqueado('temp-id', false, '');
-        }
-      }
-    }
-    
-    // Use a more direct approach to avoid potential race conditions
-    setFormData(prev => {
-      const currentRespuestas = prev.respuestas || [];
-      const existingIndex = currentRespuestas.findIndex(r => r.pregunta === question);
-      
-      console.log('setFormData - existingIndex:', existingIndex, 'for question:', question);
-      
-      let newRespuestas;
-      if (existingIndex >= 0) {
-        // Update existing answer
-        newRespuestas = [...currentRespuestas];
-        newRespuestas[existingIndex] = { 
-          ...newRespuestas[existingIndex], 
-          respuesta: answer,
-          questionId: preguntaId || newRespuestas[existingIndex].questionId
-        };
-        console.log('Updated existing answer at index:', existingIndex, 'with answer:', answer);
-      } else {
-        // Add new answer
-        newRespuestas = [...currentRespuestas, { 
-          id: Date.now().toString(), 
-          pregunta: question, 
-          respuesta: answer, 
-          tipo: 'TEXTO',
-          questionId: preguntaId
-        }];
-        console.log('Added new answer for question:', question, 'with answer:', answer, 'preguntaId:', preguntaId);
-      }
-      
-      console.log('New respuestas array:', newRespuestas);
-      
-      const updatedFormData = { ...prev, respuestas: newRespuestas };
-      console.log('setFormData returning updated formData with respuestas:', updatedFormData.respuestas);
-      return updatedFormData;
-    });
-  };
+  // La validación de documentos se hace automáticamente en useClientDocuments
+  // Las funciones handleDocumentUpload, getBorderColor, getDocumentStatusColor, getDocumentStatusText
+  // y getAnswerForQuestion están en los hooks correspondientes
 
 
 
@@ -573,37 +373,69 @@ const ClientForm: React.FC<ClientFormProps> = ({
         // Mapear las claves foráneas a nombres descriptivos para los dropdowns
         const mappedClient = { ...client };
         
-        // Mapear tipoCliente de código a nombre descriptivo
+        // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+        // Priorizar tipoClienteNombre del backend, luego tipoCliente si es nombre, luego mapear desde código
         if (client.tipoClienteNombre) {
-          // El backend ya devuelve el nombre, no necesitamos mapear
+          // El backend ya devuelve el nombre, usar directamente
           mappedClient.tipoCliente = client.tipoClienteNombre;
-          // Usando tipoClienteNombre del backend
+          console.log('✅ TipoCliente desde tipoClienteNombre:', client.tipoClienteNombre);
         } else if (client.tipoCliente) {
-          // Fallback: intentar mapear si solo tenemos el código
-          const tipoClienteEncontrado = tiposCliente.find(tc => tc.codigo === client.tipoCliente);
-          if (tipoClienteEncontrado) {
-            mappedClient.tipoCliente = tipoClienteEncontrado.nombre;
-            // Mapeado tipoCliente desde código
+          // Verificar si tipoCliente es nombre o código
+          const tipoClientePorNombre = tiposCliente.find(tc => tc.nombre === client.tipoCliente);
+          const tipoClientePorCodigo = tiposCliente.find(tc => tc.codigo === client.tipoCliente);
+          
+          if (tipoClientePorNombre) {
+            // Ya es nombre, mantenerlo
+            mappedClient.tipoCliente = tipoClientePorNombre.nombre;
+            console.log('✅ TipoCliente ya es nombre:', client.tipoCliente);
+          } else if (tipoClientePorCodigo) {
+            // Es código, convertir a nombre
+            mappedClient.tipoCliente = tipoClientePorCodigo.nombre;
+            console.log('✅ TipoCliente convertido de código a nombre:', { codigo: client.tipoCliente, nombre: tipoClientePorCodigo.nombre });
           } else {
-            console.log('⚠️ No se encontró tipoCliente para código:', client.tipoCliente);
+            // Si no se encuentra, asumir que es nombre (fallback)
             mappedClient.tipoCliente = client.tipoCliente;
+            console.log('⚠️ TipoCliente no encontrado en catálogo, usando valor original:', client.tipoCliente);
           }
         }
         
-        // Mapear tipoIdentificacion de código a nombre descriptivo
-        if (client.tipoIdentificacionNombre) {
-          // El backend ya devuelve el nombre, no necesitamos mapear
-          mappedClient.tipoIdentificacion = client.tipoIdentificacionNombre;
-          console.log('✅ Usando tipoIdentificacionNombre del backend:', client.tipoIdentificacionNombre);
-        } else if (client.tipoIdentificacion) {
-          // Fallback: intentar mapear si solo tenemos el código
-          const tipoIdentificacionEncontrado = tiposIdentificacion.find(ti => ti.codigo === client.tipoIdentificacion);
-          if (tipoIdentificacionEncontrado) {
-            mappedClient.tipoIdentificacion = tipoIdentificacionEncontrado.nombre;
-            console.log('✅ Mapeado tipoIdentificacion desde código:', { codigo: client.tipoIdentificacion, nombre: tipoIdentificacionEncontrado.nombre });
+        // Mapear tipoIdentificacion: el select usa códigos (value={tipo.codigo}), así que necesitamos el código
+        // El backend puede devolver tipoIdentificacionNombre o tipoIdentificacion (código)
+        if (client.tipoIdentificacion) {
+          // Si ya viene como código, mantenerlo
+          const tipoIdentificacionPorCodigo = tiposIdentificacion.find(ti => ti.codigo === client.tipoIdentificacion);
+          if (tipoIdentificacionPorCodigo) {
+            // Ya es código, mantenerlo
+            mappedClient.tipoIdentificacion = tipoIdentificacionPorCodigo.codigo;
+            console.log('✅ TipoIdentificacion ya es código, manteniendo:', client.tipoIdentificacion);
           } else {
-            console.log('⚠️ No se encontró tipoIdentificacion para código:', client.tipoIdentificacion);
-            mappedClient.tipoIdentificacion = client.tipoIdentificacion;
+            // No se encontró por código, puede ser nombre, intentar buscar por nombre
+            const tipoIdentificacionPorNombre = tiposIdentificacion.find(ti => ti.nombre === client.tipoIdentificacion);
+            if (tipoIdentificacionPorNombre) {
+              // Es nombre, convertir a código
+              mappedClient.tipoIdentificacion = tipoIdentificacionPorNombre.codigo;
+              console.log('✅ TipoIdentificacion convertida de nombre a código:', { 
+                original: client.tipoIdentificacion, 
+                codigo: tipoIdentificacionPorNombre.codigo 
+              });
+            } else {
+              // Si no se encuentra, usar el valor original (fallback)
+              mappedClient.tipoIdentificacion = client.tipoIdentificacion;
+              console.log('⚠️ TipoIdentificacion no encontrada en catálogo, usando valor original:', client.tipoIdentificacion);
+            }
+          }
+        } else if (client.tipoIdentificacionNombre) {
+          // Si solo tenemos el nombre del backend, buscar el código correspondiente
+          const tipoIdentificacionPorNombre = tiposIdentificacion.find(ti => ti.nombre === client.tipoIdentificacionNombre);
+          if (tipoIdentificacionPorNombre) {
+            mappedClient.tipoIdentificacion = tipoIdentificacionPorNombre.codigo;
+            console.log('✅ TipoIdentificacion convertida de tipoIdentificacionNombre a código:', { 
+              nombre: client.tipoIdentificacionNombre, 
+              codigo: tipoIdentificacionPorNombre.codigo 
+            });
+          } else {
+            console.log('⚠️ No se encontró tipoIdentificacionNombre en catálogo:', client.tipoIdentificacionNombre);
+            mappedClient.tipoIdentificacion = '';
           }
         }
         
@@ -619,54 +451,82 @@ const ClientForm: React.FC<ClientFormProps> = ({
           console.log('✅ Rango cargado:', (client as any).rango);
         }
         
+        // CRÍTICO: Mapear provincia correctamente
+        // El backend puede devolver provincia como código o como nombre
+        // El select de provincia usa códigos (value={provincia.codigo}), así que necesitamos el código
+        if (client.provincia) {
+          // Buscar si el valor es código o nombre
+          const provinciaPorCodigo = provincias.find(p => p.codigo === client.provincia);
+          const provinciaPorNombre = provincias.find(p => p.nombre === client.provincia);
+          
+          if (provinciaPorCodigo) {
+            // Ya es código, mantenerlo
+            mappedClient.provincia = provinciaPorCodigo.codigo;
+            console.log('✅ Provincia ya es código, manteniendo:', client.provincia);
+          } else if (provinciaPorNombre) {
+            // Es nombre, convertir a código
+            mappedClient.provincia = provinciaPorNombre.codigo;
+            console.log('✅ Provincia convertida de nombre a código:', { 
+              original: client.provincia, 
+              codigo: provinciaPorNombre.codigo 
+            });
+          } else {
+            // Si no se encuentra, usar el valor original (puede ser código válido que no está en el catálogo)
+            mappedClient.provincia = client.provincia;
+            console.log('⚠️ Provincia no encontrada en catálogo, usando valor original:', client.provincia);
+          }
+        } else {
+          console.log('⚠️ Cliente no tiene provincia');
+        }
+        
+        // Asegurar que tipoCliente esté establecido (verificación final)
+        if (!mappedClient.tipoCliente && client.tipoClienteNombre) {
+          mappedClient.tipoCliente = client.tipoClienteNombre;
+          console.log('✅ TipoCliente establecido desde tipoClienteNombre (verificación final):', client.tipoClienteNombre);
+        }
+        
         console.log('🔍 Mapeando cliente:', { 
-          original: { tipoCliente: client.tipoCliente, tipoIdentificacion: client.tipoIdentificacion },
-          mapeado: { tipoCliente: mappedClient.tipoCliente, tipoIdentificacion: mappedClient.tipoIdentificacion }
+          original: { 
+            tipoCliente: client.tipoCliente, 
+            tipoClienteNombre: client.tipoClienteNombre,
+            tipoIdentificacion: client.tipoIdentificacion,
+            provincia: client.provincia
+          },
+          mapeado: { 
+            tipoCliente: mappedClient.tipoCliente, 
+            tipoIdentificacion: mappedClient.tipoIdentificacion,
+            provincia: mappedClient.provincia
+          }
         });
         
         console.log('Mapped client data:', mappedClient);
         
-        // Cargar respuestas existentes si las hay
-        if (client.respuestas && Array.isArray(client.respuestas)) {
-          console.log('📋 Cargando respuestas existentes del cliente:', client.respuestas);
-          mappedClient.respuestas = client.respuestas;
-        }
+        // OPTIMIZACIÓN CRÍTICA: NO cargar respuestas desde client.respuestas
+        // El objeto client puede venir con TODAS las respuestas de TODOS los clientes (276k+)
+        // Las respuestas se cargarán solo a través de useClientAnswers hook que usa el endpoint específico
+        // Esto evita procesar cientos de miles de respuestas innecesarias
         
         setFormData({
           ...mappedClient,
-          respuestas: mappedClient.respuestas?.map(r => ({
-            id: r.id?.toString() || Math.random().toString(),
-            pregunta: r.pregunta || '',
-            respuesta: r.respuesta || '',
-            tipo: 'TEXTO',
-            questionId: (r as any).questionId ? parseInt((r as any).questionId) : undefined
-          })) || []
+          // Asegurar que tipoCliente y provincia estén presentes
+          tipoCliente: mappedClient.tipoCliente || client.tipoClienteNombre || client.tipoCliente || '',
+          provincia: mappedClient.provincia || client.provincia || '',
+          // Inicializar respuestas vacías - se cargarán por useClientAnswers
+          respuestas: []
         });
         
         // Reset bloqueo state first
         setClienteBloqueado(false);
         setMotivoBloqueo('');
         
-        // Validar respuestas existentes para verificar si está bloqueado (sin notificar al padre al cargar)
-        if (client.respuestas && Array.isArray(client.respuestas)) {
-          const violenciaRespuesta = client.respuestas.find(r => r.pregunta && r.pregunta.includes('denuncias de violencia'));
-          if (violenciaRespuesta?.respuesta === 'SI') {
-            setClienteBloqueado(true);
-            setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
-          }
-        }
+        // La validación de bloqueo se hará cuando useClientAnswers cargue las respuestas
       } else {
         console.log('Catálogos no disponibles aún, esperando...');
         // Establecer el formData básico del cliente mientras se cargan los catálogos
+        // OPTIMIZACIÓN: NO incluir respuestas aquí - se cargarán por useClientAnswers
         setFormData({
           ...client,
-          respuestas: client.respuestas?.map(r => ({
-            id: r.id?.toString() || Math.random().toString(),
-            pregunta: r.pregunta || '',
-            respuesta: r.respuesta || '',
-            tipo: 'TEXTO',
-            questionId: (r as any).questionId ? parseInt((r as any).questionId) : undefined
-          })) || []
+          respuestas: [] // Inicializar vacío - se cargarán por useClientAnswers
         });
       }
     } else if (mode === 'create' && (!client || !client.nombres)) {
@@ -703,169 +563,60 @@ const ClientForm: React.FC<ClientFormProps> = ({
     } else if (mode === 'create' && client && client.nombres) {
       console.log('Skipping reset - client data exists for restoration');
     }
-  }, [client, mode, tiposCliente, tiposIdentificacion]); // Agregar dependencias de catálogos
+  }, [client, mode, tiposCliente, tiposIdentificacion, provincias]); // Agregar provincias como dependencia para mapeo correcto
 
-  // Monitor formData.respuestas changes for debugging
-  useEffect(() => {
-    console.log('formData.respuestas changed:', formData.respuestas);
-  }, [formData.respuestas]);
-
-  // Monitor formData changes for debugging
-  useEffect(() => {
-    console.log('formData changed:', { 
-      nombres: formData.nombres, 
-      apellidos: formData.apellidos, 
-      tipoCliente: formData.tipoCliente,
-      mode 
-    });
-  }, [formData.nombres, formData.apellidos, formData.tipoCliente, mode]);
+  // OPTIMIZACIÓN: Logs de debug removidos para evitar ruido en cada keystroke
+  // Si necesitas debug, usar React DevTools Profiler en lugar de console.log en useEffect
 
   // Re-validar todas las respuestas cuando cambien (solo en modo edit, no en view)
+  // OPTIMIZACIÓN: Usar find en lugar de forEach para detener en la primera coincidencia
   useEffect(() => {
-    console.log('useEffect re-validating responses:', { 
-      formData: formData.respuestas, 
-      mode,
-      respuestasLength: formData.respuestas?.length || 0
-    });
-    // Solo ejecutar si no estamos en modo view y hay respuestas
     if (formData.respuestas && formData.respuestas.length > 0 && mode !== 'view') {
-      formData.respuestas.forEach(respuesta => {
-        if (respuesta.pregunta && respuesta.pregunta.includes('denuncias de violencia')) {
-          console.log('Processing violence question:', respuesta);
-          // Solo actualizar el estado local, no notificar al padre inmediatamente
-          if (respuesta.respuesta === 'SI') {
-            console.log('Setting clienteBloqueado to true');
-            setClienteBloqueado(true);
-            setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
-          } else if (respuesta.respuesta === 'NO') {
-            console.log('Setting clienteBloqueado to false');
-            setClienteBloqueado(false);
-            setMotivoBloqueo('');
-          }
+      // Limitar búsqueda a las primeras 100 respuestas para evitar procesar miles
+      const respuestasLimitadas = formData.respuestas.slice(0, 100);
+      const violenciaRespuesta = respuestasLimitadas.find(respuesta => 
+        respuesta.pregunta && respuesta.pregunta.toLowerCase().includes('denuncias de violencia')
+      );
+      
+      if (violenciaRespuesta) {
+        if (violenciaRespuesta.respuesta === 'SI') {
+          setClienteBloqueado(true);
+          setMotivoBloqueo('Denuncias de violencia de género o intrafamiliar');
+        } else if (violenciaRespuesta.respuesta === 'NO') {
+          setClienteBloqueado(false);
+          setMotivoBloqueo('');
         }
-      });
+      }
     }
-  }, [formData.respuestas, mode]);
+  }, [formData.respuestas, mode, setClienteBloqueado, setMotivoBloqueo]);
 
+  // Cargar cantones cuando cambia la provincia
   useEffect(() => {
-    if (formData.provincia && provincias.length > 0) {
-      const loadCantones = async () => {
-        try {
-          // Obtener el nombre de la provincia desde el código
-          const provinciaNombre = getNombreProvincia(formData.provincia);
-          console.log('🔄 Cargando cantones para provincia:', formData.provincia, '->', provinciaNombre);
-          
-          // Si el nombre de la provincia es igual al código, significa que no se encontró
-          // En ese caso, intentar buscar directamente con el código como nombre
-          const nombreParaBuscar = provinciaNombre === formData.provincia ? formData.provincia : provinciaNombre;
-          
-          const cantones = await apiService.getCantones(nombreParaBuscar);
-          console.log('✅ Cantones cargados:', cantones);
-          setAvailableCantons(cantones);
-        } catch (error) {
-          console.error('❌ Error cargando cantones:', error);
-          // En caso de error, mantener el cantón actual si existe
-          if (formData.canton) {
-            setAvailableCantons([formData.canton]);
-          } else {
-            setAvailableCantons([]);
-          }
-        }
-      };
-      loadCantones();
-    } else {
-      console.log('⚠️ No hay provincia seleccionada o provincias no cargadas, limpiando cantones');
+    if (formData.provincia) {
+      loadCantones(formData.provincia, false);
       // Si no hay provincia pero hay cantón (modo edición), mantener el cantón
-      if (formData.canton && mode !== 'create') {
+      if (!formData.provincia && formData.canton && mode !== 'create') {
         setAvailableCantons([formData.canton]);
-      } else {
-        setAvailableCantons([]);
       }
-    }
-  }, [formData.provincia, provincias.length]);
-
-  useEffect(() => {
-    if (formData.provinciaEmpresa && provincias.length > 0) {
-      const loadCantones = async () => {
-        try {
-          // Obtener el nombre de la provincia desde el código
-          const provinciaNombre = getNombreProvincia(formData.provinciaEmpresa);
-          console.log('🔄 Cargando cantones para provincia empresa:', formData.provinciaEmpresa, '->', provinciaNombre);
-          
-          // Si el nombre de la provincia es igual al código, significa que no se encontró
-          // En ese caso, intentar buscar directamente con el código como nombre
-          const nombreParaBuscar = provinciaNombre === formData.provinciaEmpresa ? formData.provinciaEmpresa : provinciaNombre;
-          
-          const cantones = await apiService.getCantones(nombreParaBuscar);
-          console.log('✅ Cantones empresa cargados:', cantones);
-          setAvailableCantonsEmpresa(cantones);
-        } catch (error) {
-          console.error('❌ Error cargando cantones empresa:', error);
-          // En caso de error, mantener el cantón actual si existe
-          if (formData.cantonEmpresa) {
-            setAvailableCantonsEmpresa([formData.cantonEmpresa]);
-          } else {
-            setAvailableCantonsEmpresa([]);
-          }
-        }
-      };
-      loadCantones();
     } else {
-      console.log('⚠️ No hay provincia empresa seleccionada o provincias no cargadas, limpiando cantones empresa');
+      setAvailableCantons([]);
+    }
+  }, [formData.provincia, mode, formData.canton, loadCantones, setAvailableCantons]);
+
+  // Cargar cantones de empresa cuando cambia la provincia empresa
+  useEffect(() => {
+    if (formData.provinciaEmpresa) {
+      loadCantones(formData.provinciaEmpresa, true);
       // Si no hay provincia pero hay cantón (modo edición), mantener el cantón
-      if (formData.cantonEmpresa && mode !== 'create') {
+      if (!formData.provinciaEmpresa && formData.cantonEmpresa && mode !== 'create') {
         setAvailableCantonsEmpresa([formData.cantonEmpresa]);
-      } else {
-        setAvailableCantonsEmpresa([]);
       }
+    } else {
+      setAvailableCantonsEmpresa([]);
     }
-  }, [formData.provinciaEmpresa, provincias.length]);
+  }, [formData.provinciaEmpresa, mode, formData.cantonEmpresa, loadCantones, setAvailableCantonsEmpresa]);
 
-  // Función para manejar cambios en los campos del formulario
-  const handleInputChange = (field: keyof ClientFormData, value: string) => {
-    let processedValue = value;
-
-    // Aplicar transformaciones según el campo
-    if (['nombres', 'apellidos', 'representanteLegal'].includes(field)) {
-      // Solo letras y espacios para nombres y apellidos
-      processedValue = toUpperCase(value.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ\s]/g, ''));
-    } else if (['direccion', 'nombreEmpresa', 'direccionFiscal'].includes(field)) {
-      // Direcciones pueden tener números, pero se muestran en mayúsculas
-      processedValue = toUpperCase(value);
-    } else if (['email', 'correoEmpresa'].includes(field)) {
-      // Emails en minúsculas
-      processedValue = value.toLowerCase();
-    } else if (['numeroIdentificacion', 'ruc', 'telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
-      // Solo números para identificación y teléfonos
-      let numericValue = value.replace(/\D/g, '');
-      
-      // Para teléfonos, limitar a máximo 10 dígitos
-      if (['telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
-        numericValue = numericValue.slice(0, 10);
-      }
-      
-      // Para identificación, limitar según el tipo seleccionado
-      if (field === 'numeroIdentificacion' && formData.tipoIdentificacion) {
-        const tipoIdentificacionCodigo = mapTipoIdentificacionToCode(formData.tipoIdentificacion);
-        const maxLength = getMaxLengthIdentificacion(tipoIdentificacionCodigo);
-        numericValue = numericValue.slice(0, maxLength);
-      }
-      
-      // Para RUC, limitar a 13 dígitos
-      if (field === 'ruc') {
-        numericValue = numericValue.slice(0, 13);
-      }
-      
-      processedValue = numericValue;
-    }
-    // Para campos de dropdown (tipoCliente, tipoIdentificacion, provincia, canton, etc.) no aplicar procesamiento
-
-    // Actualizar el formulario con el valor procesado (mayúsculas/minúsculas)
-    setFormData(prev => ({
-      ...prev,
-      [field]: processedValue
-    }));
-  };
+  // handleInputChange ya está manejado por useClientFormData hook
 
   // Función para mapear tipoCliente descriptivo a código (ahora usando configuración dinámica)
   const mapTipoClienteToCode = (tipoCliente: string | undefined): string => {
@@ -895,97 +646,36 @@ const ClientForm: React.FC<ClientFormProps> = ({
       correoEmpresa: formData.correoEmpresa || '',
       provinciaEmpresa: formData.provinciaEmpresa || '',
       cantonEmpresa: formData.cantonEmpresa || '',
-      estadoMilitar: formData.estadoMilitar || '',
+      estadoMilitar: formData.estadoMilitar && formData.estadoMilitar.trim() !== '' ? formData.estadoMilitar : undefined,
       codigoIssfa: formData.codigoIssfa || '',
       rango: formData.rango || '',
       usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
     };
   };
 
-  // Función helper para guardar documentos, respuestas y arma después de crear/actualizar cliente
-  const guardarDatosAdicionales = async (clienteId: number, esCreacion: boolean = false) => {
-    try {
-      // 1. Subir documentos si existen
-      if (Object.keys(uploadedDocuments).length > 0) {
-        console.log('📄 Subiendo documentos...');
-        console.log('📄 Documentos a subir:', uploadedDocuments);
-        for (const [documentoId, file] of Object.entries(uploadedDocuments)) {
-          console.log(`📄 Subiendo documento ID: ${documentoId}, Cliente ID: ${clienteId}, Archivo:`, file);
-          try {
-            const result = await apiService.cargarDocumentoCliente(
-              clienteId, 
-              parseInt(documentoId), 
-              file
-            );
-            console.log(`✅ Documento ${documentoId} subido exitosamente:`, result);
-          } catch (error) {
-            console.error(`❌ Error subiendo documento ${documentoId}:`, error);
-            throw error;
-          }
-        }
-      } else {
-        console.log('📄 No hay documentos para subir');
-      }
+  // Nota: La lógica de guardar datos adicionales (documentos, respuestas, armas) 
+  // ahora está manejada por el hook useClientSubmit (handleCreateCliente/handleUpdateCliente)
 
-      // 2. Guardar respuestas a preguntas si existen
-      if (formData.respuestas && formData.respuestas.length > 0) {
-        console.log('❓ Guardando respuestas...');
-        for (const respuesta of formData.respuestas) {
-          // Buscar el ID de la pregunta en clientQuestions
-          const pregunta = clientQuestions.find(q => q.pregunta === respuesta.pregunta);
-          if (pregunta) {
-            await apiService.guardarRespuestaCliente(
-              clienteId,
-              pregunta.id,
-              respuesta.respuesta,
-              user?.id || 1 // Usar el ID del usuario autenticado
-            );
-            console.log(`✅ Respuesta guardada exitosamente`);
-          }
-        }
-      }
-
-      // 3. Asignar arma seleccionada si existe
-      if (currentSelectedWeapon) {
-        console.log('🔫 Asignando arma seleccionada...');
-        try {
-          // Crear reserva de arma para el cliente
-          const precioTotal = precioModificado * cantidad;
-          await apiService.crearReservaArma(
-            clienteId,
-            parseInt(currentSelectedWeapon.id.toString()),
-            cantidad,
-            precioModificado,
-            precioTotal
-          );
-          console.log('✅ Arma asignada exitosamente');
-        } catch (error: any) {
-          console.error('❌ Error asignando arma:', error);
-          const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al asignar arma';
-          if (esCreacion) {
-            alert(`⚠️ Cliente creado pero hubo un error al asignar el arma: ${errorMessage}`);
-          }
-          // No fallar la creación/edición del cliente por errores en la asignación de arma
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Error guardando datos adicionales:', error);
-      throw error;
-    }
-  };
-
+  // Estado para controlar el proceso de envío
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Función para manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      alert('Por favor, corrija los errores en el formulario antes de continuar.');
+    if (isSubmitting) {
+      console.log('⏳ Ya se está procesando una actualización...');
       return;
     }
-
+    
+    setIsSubmitting(true);
+    console.log('🔄 Iniciando proceso de actualización...');
+    
     try {
+      if (!validateForm()) {
+        alert('Por favor, corrija los errores en el formulario antes de continuar.');
+        return;
+      }
       // Determinar el estado del cliente
       let clientStatus = 'PENDIENTE_DOCUMENTOS';
       
@@ -1009,23 +699,326 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
       let updatedClient;
       if (mode === 'edit' && client) {
-        // Actualizar cliente existente - incluir el ID original y el estado
-        const clientData = {
-          ...clientDataForBackend,
-          id: client.id, // Mantener el ID original
-          estado: clientStatus
-        };
-        updatedClient = await apiService.updateCliente(parseInt(client.id.toString()), clientData as any);
+        // OPTIMIZACIÓN: Detectar solo los campos que cambiaron
+        // Usar buildClientDataForBackend para obtener los datos con códigos mapeados correctamente
+        const clientDataForBackend = buildClientDataForBackend();
+        const clienteOriginal = client;
+        const cambiosCliente: any = {};
         
-        // En modo edit, también guardar documentos, respuestas y arma
-        console.log('🔄 Guardando datos adicionales para cliente editado...');
-        try {
-          await guardarDatosAdicionales(parseInt(updatedClient.id.toString()), false);
-          console.log('✅ Cliente editado con todos los datos adicionales');
-        } catch (processError) {
-          console.error('❌ Error guardando datos adicionales:', processError);
-          alert('⚠️ Cliente actualizado pero hubo problemas guardando documentos/respuestas. Contacte al administrador.');
+        // Mapear el cliente original a formato backend para comparación correcta
+        const clienteOriginalBackend = {
+          nombres: clienteOriginal.nombres,
+          apellidos: clienteOriginal.apellidos,
+          numeroIdentificacion: clienteOriginal.numeroIdentificacion,
+          tipoIdentificacionCodigo: mapTipoIdentificacionToCode(clienteOriginal.tipoIdentificacion),
+          tipoClienteCodigo: mapTipoClienteToCode(clienteOriginal.tipoCliente),
+          fechaNacimiento: clienteOriginal.fechaNacimiento,
+          direccion: clienteOriginal.direccion,
+          provincia: clienteOriginal.provincia,
+          canton: clienteOriginal.canton,
+          email: clienteOriginal.email,
+          telefonoPrincipal: clienteOriginal.telefonoPrincipal,
+          telefonoSecundario: clienteOriginal.telefonoSecundario,
+          representanteLegal: (clienteOriginal as any).representanteLegal || '',
+          ruc: (clienteOriginal as any).ruc || '',
+          nombreEmpresa: (clienteOriginal as any).nombreEmpresa || '',
+          direccionFiscal: (clienteOriginal as any).direccionFiscal || '',
+          telefonoReferencia: (clienteOriginal as any).telefonoReferencia || '',
+          correoEmpresa: (clienteOriginal as any).correoEmpresa || '',
+          provinciaEmpresa: (clienteOriginal as any).provinciaEmpresa || '',
+          cantonEmpresa: (clienteOriginal as any).cantonEmpresa || '',
+          estadoMilitar: (clienteOriginal as any).estadoMilitar || undefined,
+          codigoIssfa: (clienteOriginal as any).codigoIssfa || '',
+          rango: (clienteOriginal as any).rango || ''
+        };
+        
+        // Comparar campos mapeados correctamente
+        Object.keys(clientDataForBackend).forEach(campo => {
+          if (campo === 'usuarioCreadorId') return; // No comparar usuarioCreadorId
+          
+          const valorOriginal = clienteOriginalBackend[campo as keyof typeof clienteOriginalBackend];
+          const valorNuevo = clientDataForBackend[campo as keyof typeof clientDataForBackend];
+          
+          // Comparar valores, manejando undefined y strings vacíos
+          const valorOriginalNormalizado = valorOriginal === undefined || valorOriginal === null ? '' : String(valorOriginal);
+          const valorNuevoNormalizado = valorNuevo === undefined || valorNuevo === null ? '' : String(valorNuevo);
+          
+          if (valorNuevoNormalizado !== valorOriginalNormalizado) {
+            cambiosCliente[campo] = valorNuevo;
+          }
+        });
+        
+        // Siempre incluir el estado si cambió
+        if (clientStatus !== clienteOriginal.estado) {
+          cambiosCliente.estado = clientStatus;
         }
+        
+        // Solo enviar cambios si hay algo que actualizar
+        const requestDataForBackend: any = {};
+        
+        if (Object.keys(cambiosCliente).length > 0) {
+          requestDataForBackend.cliente = {
+            ...cambiosCliente,
+            id: client.id // Mantener el ID
+          };
+        }
+        
+        // Solo enviar respuestas si hay cambios
+        const respuestasActuales = (formData.respuestas || []).filter((r: any) => r.respuesta && r.respuesta.trim() !== '');
+        if (respuestasActuales.length > 0) {
+          requestDataForBackend.respuestas = respuestasActuales.map((r: any) => ({
+            pregunta: r.pregunta,
+            respuesta: r.respuesta,
+            tipo: r.tipo || 'TEXTO',
+            preguntaId: r.questionId || r.preguntaId || r.id || null
+          }));
+        }
+        
+        console.log('⚡ Enviando actualización PARCIAL del cliente (PATCH)...', {
+          clienteId: client.id,
+          camposModificados: Object.keys(cambiosCliente),
+          tieneCambiosCliente: Object.keys(cambiosCliente).length > 0,
+          tieneRespuestas: !!requestDataForBackend.respuestas,
+          numRespuestas: requestDataForBackend.respuestas?.length || 0
+        });
+        
+        // Usar PATCH en lugar de PUT para actualización parcial optimizada
+        const updateResponse: any = await apiService.patchCliente(parseInt(client.id.toString()), requestDataForBackend);
+        
+        console.log('📥 Respuesta del backend recibida:', updateResponse);
+        
+        if (updateResponse && typeof updateResponse === 'object') {
+          if ('cliente' in updateResponse && updateResponse.cliente) {
+            // El backend retorna el cliente dentro de un objeto
+            updatedClient = updateResponse.cliente;
+            console.log('✅ Cliente extraído de respuesta:', updatedClient);
+          } else if ('id' in updateResponse) {
+            // Fallback: si viene directamente el cliente
+            updatedClient = updateResponse;
+            console.log('✅ Cliente viene directamente en la respuesta');
+          } else if ('clienteId' in updateResponse) {
+            // Si solo viene el ID, necesitamos obtener el cliente completo
+            console.log('⚠️ Solo se recibió clienteId, obteniendo cliente completo...');
+            updatedClient = await apiService.getClienteById(updateResponse.clienteId);
+          }
+        }
+        
+        if (!updatedClient || (!updatedClient.id && !(updateResponse?.clienteId))) {
+          console.error('❌ Error: No se pudo obtener el cliente actualizado de la respuesta:', updateResponse);
+          throw new Error('No se recibió el cliente actualizado del servidor');
+        }
+        
+        // En modo edit, solo guardar documentos y arma (las respuestas ya se enviaron en requestDataForBackend)
+        console.log('🔄 Guardando datos adicionales para cliente editado (solo documentos y arma)...');
+        
+        // Manejar documentos y arma de forma independiente sin fallar el proceso completo
+        const clienteId = parseInt(updatedClient.id?.toString() || updateResponse?.clienteId?.toString() || client.id.toString());
+        let documentErrors: string[] = [];
+        
+        // 1. Subir documentos nuevos si existen
+        if (Object.keys(uploadedDocuments).length > 0) {
+          console.log('📄 Subiendo documentos nuevos...');
+          // Crear un Set para evitar subir el mismo documento dos veces (si está guardado por ID y por nombre)
+          const documentosSubidos = new Set<string>();
+          
+          for (const [key, file] of Object.entries(uploadedDocuments)) {
+            // Obtener el ID real del documento
+            // La clave puede ser el ID (string numérico) o el nombre del documento
+            let tipoDocumentoId: number | null = null;
+            let documentNombre: string = key;
+            
+            // Intentar parsear como ID numérico
+            const parsedId = parseInt(key);
+            if (!isNaN(parsedId)) {
+              tipoDocumentoId = parsedId;
+            } else {
+              // Si no es un ID, buscar el documento por nombre en requiredDocuments
+              const documentoEncontrado = requiredDocuments.find(doc => doc.nombre === key || doc.id.toString() === key);
+              if (documentoEncontrado) {
+                tipoDocumentoId = documentoEncontrado.id;
+                documentNombre = documentoEncontrado.nombre;
+              } else {
+                console.warn(`⚠️ No se encontró el ID del documento: ${key}`);
+                documentErrors.push(`Documento ${key}`);
+                continue;
+              }
+            }
+            
+            // Validar que tenemos un ID válido
+            if (!tipoDocumentoId) {
+              console.warn(`⚠️ No se pudo determinar el ID del documento: ${key}`);
+              documentErrors.push(`Documento ${documentNombre}`);
+              continue;
+            }
+            
+            // Evitar subir el mismo documento dos veces
+            if (documentosSubidos.has(tipoDocumentoId.toString())) {
+              console.log(`⏭️ Documento ${documentNombre} (ID: ${tipoDocumentoId}) ya fue subido, omitiendo...`);
+              continue;
+            }
+            documentosSubidos.add(tipoDocumentoId.toString());
+            
+            try {
+              // Verificar si el documento ya existe (para reemplazar) o es nuevo (para crear)
+              // Buscar por nombre del documento en loadedDocuments
+              const documentoExistente = loadedDocuments[documentNombre];
+              
+              console.log(`🔍 Verificando documento: ${documentNombre}`, {
+                documentoExistente,
+                loadedDocumentsKeys: Object.keys(loadedDocuments),
+                tipoDocumentoId,
+                clienteId
+              });
+              
+              if (documentoExistente && documentoExistente.id) {
+                // Documento existente: actualizar usando el ID del documento cargado
+                console.log(`🔄 Reemplazando documento existente: ${documentNombre} (Documento ID: ${documentoExistente.id}, Tipo ID: ${tipoDocumentoId})`);
+                // Obtener usuarioId del contexto o del cliente
+                const usuarioId = 1; // TODO: Obtener del contexto de autenticación
+                await apiService.actualizarDocumentoCliente(documentoExistente.id, file, undefined, usuarioId);
+                console.log(`✅ Documento ${documentNombre} reemplazado exitosamente`);
+              } else {
+                // Documento nuevo: crear
+                console.log(`📄 Creando nuevo documento: ${documentNombre} (Tipo ID: ${tipoDocumentoId})`);
+                await apiService.cargarDocumentoCliente(clienteId, tipoDocumentoId, file);
+                console.log(`✅ Documento ${documentNombre} (ID: ${tipoDocumentoId}) subido exitosamente`);
+              }
+            } catch (error: any) {
+              console.error(`❌ Error subiendo documento ${documentNombre} (ID: ${tipoDocumentoId}):`, error);
+              const statusCode = error?.response?.status || error?.status;
+              let errorMsg = error?.response?.data?.message || error?.message || 'Error desconocido';
+              
+              // Si el error es 400 (Bad Request), probablemente es tamaño de archivo
+              if (statusCode === 400 || errorMsg.includes('tamaño') || errorMsg.includes('tamaño máximo')) {
+                errorMsg = 'El archivo excede el tamaño máximo permitido (10MB)';
+              } else if (statusCode === 500) {
+                errorMsg = 'Error del servidor al subir el archivo';
+              }
+              
+              documentErrors.push(`${documentNombre}: ${errorMsg}`);
+              // No fallar todo el proceso por un documento
+            }
+          }
+        }
+        
+        // 2. Asignar arma si existe (solo si no está ya asignada)
+        let armaError: string | null = null;
+        if (currentSelectedWeapon) {
+          console.log('🔫 Verificando asignación de arma...');
+          try {
+            // Verificar reservas existentes del cliente (incluyendo canceladas para trazabilidad)
+            const reservasExistentes = await apiService.getArmasCliente(clienteId);
+            
+            // Filtrar reservas activas (no canceladas ni completadas)
+            const reservasActivas = reservasExistentes?.filter((reserva: any) => 
+              reserva.estado !== 'CANCELADA' && reserva.estado !== 'COMPLETADA'
+            ) || [];
+            
+            // Verificar si la misma arma ya está reservada activamente
+            const armaYaReservada = reservasActivas.some((reserva: any) => 
+              reserva.armaId === parseInt(currentSelectedWeapon.id.toString()) || 
+              reserva.arma?.id === parseInt(currentSelectedWeapon.id.toString())
+            );
+            
+            if (armaYaReservada) {
+              console.log('ℹ️ El arma ya está asignada/reservada activamente para este cliente, omitiendo...');
+              // No hacer nada, el arma ya está asignada
+            } else {
+              // Si hay reservas activas de otras armas, el backend las cancelará automáticamente
+              // para mantener trazabilidad. Solo creamos la nueva reserva.
+              const precioTotal = precioModificado * cantidad;
+              await apiService.crearReservaArma(
+                clienteId,
+                parseInt(currentSelectedWeapon.id.toString()),
+                cantidad,
+                precioModificado,
+                precioTotal
+              );
+              console.log('✅ Nueva arma asignada. Las anteriores serán canceladas automáticamente por el backend para mantener trazabilidad.');
+            }
+          } catch (error: any) {
+            // Extraer el mensaje de error real
+            const errorResponse = error?.response?.data;
+            const errorMessage = errorResponse?.message || errorResponse?.error || error?.message || '';
+            const statusCode = error?.response?.status || error?.status;
+            
+            console.log('🔍 Error al verificar/asignar arma:', { errorMessage, statusCode, errorResponse });
+            
+            // Si es un error 404 al obtener reservas, puede que no haya reservas aún (normal)
+            if (statusCode === 404 && errorMessage.includes('reserva')) {
+              console.log('ℹ️ No hay reservas previas, intentando crear nueva reserva...');
+              // Intentar crear la reserva de nuevo (aunque esto podría fallar si ya existe)
+              try {
+                const precioTotal = precioModificado * cantidad;
+                await apiService.crearReservaArma(
+                  clienteId,
+                  parseInt(currentSelectedWeapon.id.toString()),
+                  cantidad,
+                  precioModificado,
+                  precioTotal
+                );
+                console.log('✅ Arma asignada exitosamente (segundo intento)');
+              } catch (retryError: any) {
+                const retryMessage = retryError?.response?.data?.message || retryError?.message || '';
+                // Si falla por "ya existe", ignorar
+                if (retryMessage.includes('ya está asignada') || 
+                    retryMessage.includes('ya existe') || 
+                    retryMessage.includes('Ya existe una reserva')) {
+                  console.log('ℹ️ El arma ya está asignada (segundo intento), omitiendo...');
+                } else {
+                  console.warn('⚠️ Error al asignar arma (segundo intento):', retryMessage);
+                  armaError = retryMessage || 'Error al asignar arma';
+                }
+              }
+            } else if (errorMessage.includes('ya está asignada') || 
+                       errorMessage.includes('ya existe') || 
+                       errorMessage.includes('Ya existe una reserva')) {
+              console.log('ℹ️ El arma ya está asignada/reservada para este cliente, omitiendo...');
+              // No agregar a errores, es normal en modo edit
+            } else {
+              // Otros errores
+              console.warn('⚠️ Error desconocido al asignar arma:', errorMessage || 'Error desconocido');
+              armaError = errorMessage || 'Error desconocido';
+            }
+          }
+        }
+        
+        // Mostrar mensaje de resultado
+        if (documentErrors.length > 0 || armaError) {
+          const errores = [];
+          if (documentErrors.length > 0) {
+            errores.push(`documentos: ${documentErrors.join(', ')}`);
+          }
+          if (armaError) {
+            errores.push(`arma: ${armaError}`);
+          }
+          alert(`⚠️ Cliente actualizado exitosamente, pero hubo problemas con: ${errores.join(' y ')}. Puedes intentar subirlos nuevamente más tarde.`);
+          console.warn('⚠️ Cliente actualizado con advertencias:', { documentErrors, armaError });
+        } else {
+          alert('✅ Cliente actualizado exitosamente. Todos los datos, documentos y arma se guardaron correctamente.');
+          console.log('✅ Cliente editado con todos los datos adicionales exitosamente');
+          // Recargar documentos actualizados
+          if (setLoadedDocuments) {
+            const documentos = await apiService.getDocumentosCliente(clienteId);
+            const documentosMap: Record<string, any> = {};
+            documentos.forEach((doc: any) => {
+              if (doc.tipoDocumentoNombre && doc.rutaArchivo && doc.estado === 'CARGADO' && doc.id) {
+                documentosMap[doc.tipoDocumentoNombre] = {
+                  id: doc.id,
+                  nombre: doc.tipoDocumentoNombre,
+                  url: doc.rutaArchivo,
+                  tipo: doc.tipoArchivo || 'application/pdf',
+                  estado: doc.estado,
+                  nombreArchivo: doc.nombreArchivo,
+                  fechaCarga: doc.fechaCarga
+                };
+              }
+            });
+            setLoadedDocuments(documentosMap);
+          }
+        }
+        
+        setIsSubmitting(false);
       } else {
         // Crear nuevo cliente con estado y respuestas
         const respuestasParaBackend = (formData.respuestas || [])
@@ -1045,7 +1038,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
         };
         
         // Si hay arma seleccionada, incluirla en el requestData para que se guarde en la misma transacción
-        if (currentSelectedWeapon) {
+        // PERO: Si viene del stock, NO incluirla aquí (se reasignará después)
+        if (currentSelectedWeapon && !clienteArmaIdDelStock) {
           console.log('🔫 Incluyendo arma en requestData para guardado transaccional');
           const precioTotal = precioModificado * cantidad;
           requestData.arma = {
@@ -1059,6 +1053,32 @@ const ClientForm: React.FC<ClientFormProps> = ({
         console.log('🔍 Enviando datos completos al backend (transaccional):', requestData);
         const response = await apiService.createCliente(requestData);
         
+        // Si el arma viene del stock del vendedor, reasignarla después de crear el cliente
+        if (clienteArmaIdDelStock && currentSelectedWeapon) {
+          const clienteId = (response as any).clienteId || (response as any).id;
+          if (clienteId) {
+            try {
+              console.log('🔄 Reasignando arma del stock al nuevo cliente...');
+              await apiService.reasignarArmaACliente(clienteArmaIdDelStock, parseInt(clienteId.toString()));
+              console.log('✅ Arma reasignada del stock al nuevo cliente exitosamente.');
+              // Limpiar el ID del stock después de reasignar
+              setClienteArmaIdDelStock(null);
+            } catch (error: any) {
+              console.error('❌ Error reasignando arma del stock:', error);
+              const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido';
+              
+              // Si el error es por documentos incompletos, mostrar mensaje claro
+              if (errorMessage.includes('documentos obligatorios') || errorMessage.includes('documentos completos')) {
+                alert(`⚠️ No se pudo reasignar el arma del stock:\n\n${errorMessage}\n\n` +
+                      `Por favor, carga todos los documentos obligatorios del cliente y vuelve a intentar.`);
+              } else {
+                // Para otros errores, solo loggear (no fallar todo el proceso)
+                console.warn('⚠️ El arma del stock no se pudo reasignar, pero el cliente se creó correctamente.');
+              }
+            }
+          }
+        }
+        
         // El backend ahora maneja TODO en una transacción, incluyendo cliente, respuestas y arma (si está)
         // Los documentos deben subirse después porque son archivos (multipart), pero el cliente ya está creado
         if (response) {
@@ -1070,21 +1090,99 @@ const ClientForm: React.FC<ClientFormProps> = ({
           // pero el cliente ya está creado correctamente con respuestas y arma
           if (Object.keys(uploadedDocuments).length > 0) {
             console.log('📄 Subiendo documentos después de crear cliente...');
-            try {
-              for (const [documentoId, file] of Object.entries(uploadedDocuments)) {
-                await apiService.cargarDocumentoCliente(
+            const documentErrors: string[] = [];
+            const documentosSubidos = new Set<string>();
+            
+            for (const [key, file] of Object.entries(uploadedDocuments)) {
+              // Obtener el ID real del documento
+              let tipoDocumentoId: number | null = null;
+              let documentNombre: string = key;
+              
+              const parsedId = parseInt(key);
+              if (!isNaN(parsedId)) {
+                tipoDocumentoId = parsedId;
+              } else {
+                const documentoEncontrado = requiredDocuments.find(doc => doc.nombre === key || doc.id.toString() === key);
+                if (documentoEncontrado) {
+                  tipoDocumentoId = documentoEncontrado.id;
+                  documentNombre = documentoEncontrado.nombre;
+                } else {
+                  console.warn(`⚠️ No se encontró el ID del documento: ${key}`);
+                  documentErrors.push(`Documento ${key}`);
+                  continue;
+                }
+              }
+              
+              // Validar que tenemos un ID válido
+              if (!tipoDocumentoId) {
+                console.warn(`⚠️ No se pudo determinar el ID del documento: ${key}`);
+                documentErrors.push(`Documento ${documentNombre}`);
+                continue;
+              }
+              
+              // Evitar subir el mismo documento dos veces
+              if (documentosSubidos.has(tipoDocumentoId.toString())) {
+                console.log(`⏭️ Documento ${documentNombre} ya fue subido, omitiendo...`);
+                continue;
+              }
+              documentosSubidos.add(tipoDocumentoId.toString());
+              
+              try {
+                console.log(`📤 Intentando subir documento: ${documentNombre} (ID: ${tipoDocumentoId}) para cliente ${clienteId}`);
+                const resultado = await apiService.cargarDocumentoCliente(
                   parseInt(clienteId.toString()), 
-                  parseInt(documentoId), 
+                  tipoDocumentoId, 
                   file
                 );
-                console.log(`✅ Documento ${documentoId} subido exitosamente`);
+                console.log(`✅ Documento ${documentNombre} (ID: ${tipoDocumentoId}) subido exitosamente:`, resultado);
+                
+                // Si llegamos aquí, el documento se subió correctamente
+                // El backend devuelve 201 (CREATED) con un DTO, así que si no hay excepción, fue exitoso
+                // No necesitamos verificar resultado.success porque el backend devuelve un DTO directamente
+              } catch (docError: any) {
+                console.error(`❌ Error subiendo documento ${documentNombre} (ID: ${tipoDocumentoId}):`, docError);
+                
+                // Verificar si el error es realmente un error o si el documento se guardó
+                // Si el status es 201 (CREATED) o 200 (OK), el documento probablemente se guardó
+                const statusCode = docError?.status || docError?.response?.status;
+                if (statusCode === 201 || statusCode === 200) {
+                  console.log(`✅ El documento se guardó correctamente (status ${statusCode}), pero hubo un problema parseando la respuesta`);
+                  // No agregar a errores si el documento se guardó (status 201/200 = éxito)
+                  // El documento está en la BD aunque haya habido un problema con la respuesta
+                } else {
+                  // Solo agregar a errores si realmente hubo un error (status != 200/201)
+                  console.error(`❌ Detalles del error:`, {
+                    status: statusCode,
+                    statusText: docError?.response?.statusText,
+                    data: docError?.responseData || docError?.response?.data,
+                    message: docError?.message
+                  });
+                  
+                  // Construir mensaje de error más descriptivo
+                  let errorMsg = 'Error desconocido';
+                  if (docError?.responseData?.message) {
+                    errorMsg = docError.responseData.message;
+                  } else if (docError?.response?.data?.message) {
+                    errorMsg = docError.response.data.message;
+                  } else if (statusCode === 400) {
+                    errorMsg = 'Solicitud inválida (posiblemente archivo muy grande o formato no permitido)';
+                  } else if (statusCode === 404) {
+                    errorMsg = 'Cliente o tipo de documento no encontrado';
+                  } else if (statusCode === 500) {
+                    errorMsg = 'Error interno del servidor';
+                  } else if (docError?.message) {
+                    errorMsg = docError.message;
+                  }
+                  
+                  documentErrors.push(`${documentNombre}: ${errorMsg}`);
+                }
               }
+            }
+            
+            if (documentErrors.length > 0) {
+              alert(`⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos: ${documentErrors.join(', ')}. Puedes subirlos más tarde.`);
+            } else {
               console.log('✅ Todos los documentos subidos exitosamente');
-            } catch (docError) {
-              console.error('❌ Error subiendo documentos:', docError);
-              // Los documentos son opcionales en este punto, el cliente ya está creado
-              alert('⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos. Puedes subirlos más tarde.');
-              return; // No continuar si falla subir documentos
             }
           }
           
@@ -1092,6 +1190,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
           alert('✅ Cliente creado exitosamente con todos los datos.');
           updatedClient = response as any;
         }
+      }
+      
+      // Verificar que updatedClient esté definido antes de continuar
+      if (!updatedClient) {
+        setIsSubmitting(false);
+        console.error('❌ Error: updatedClient no está definido');
+        alert('❌ Error: No se pudo obtener el cliente actualizado. Por favor, intente nuevamente.');
+        return;
       }
       
       // Notificar al componente padre sobre el estado de bloqueo
@@ -1120,22 +1226,32 @@ const ClientForm: React.FC<ClientFormProps> = ({
         // Si no está listo, solo guardar
         onSave(updatedClient as any);
       }
-    } catch (error) {
-      console.error('Error al guardar cliente:', error);
-      alert('Error al guardar el cliente. Por favor, intente nuevamente.');
+    } catch (error: any) {
+      setIsSubmitting(false);
+      console.error('❌ Error al guardar cliente:', error);
+      const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Error desconocido';
+      const statusCode = error?.response?.status || error?.status;
+      
+      let userMessage = '❌ Error al guardar el cliente. Por favor, intente nuevamente.';
+      
+      if (statusCode === 400) {
+        userMessage = `❌ Error de validación: ${errorMessage}`;
+      } else if (statusCode === 403) {
+        userMessage = `Error de permisos: ${errorMessage}`;
+      } else if (statusCode === 404) {
+        userMessage = `Recurso no encontrado: ${errorMessage}`;
+      } else if (statusCode === 500) {
+        userMessage = `Error del servidor: ${errorMessage}`;
+      } else if (errorMessage && errorMessage !== 'Error desconocido') {
+        userMessage = `Error: ${errorMessage}`;
+      }
+      
+      alert(userMessage);
+      
+      // NO cerrar el formulario en caso de error - permitir al usuario corregir y reintentar
+      // NO llamar onCancel() aquí para que el usuario pueda ver los errores y corregir
+      return;
     }
-  };
-
-  // Función helper para obtener longitud máxima según tipo de identificación
-  const getMaxLength = () => {
-    const tipoIdentificacionCodigo = mapTipoIdentificacionToCode(formData.tipoIdentificacion);
-    return getMaxLengthIdentificacion(tipoIdentificacionCodigo);
-  };
-
-  // Helper para obtener el nombre del tipo de identificación desde el código
-  const getNombreTipoIdentificacion = (codigo: string): string => {
-    const tipo = tiposIdentificacion.find(t => t.codigo === codigo);
-    return tipo ? tipo.nombre : codigo;
   };
 
   const validateForm = () => {
@@ -1244,18 +1360,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
     return true;
   };
 
-  const edad = formData.fechaNacimiento ? calcularEdad(formData.fechaNacimiento) : null;
+  // Validación de edad (edad, edadValida, mensajeErrorEdad ahora están en ClientPersonalDataSection)
   const edadValida = formData.fechaNacimiento ? validarEdadMinima(formData.fechaNacimiento) : false;
-  const mensajeErrorEdad = formData.fechaNacimiento ? obtenerMensajeErrorEdad(formData.fechaNacimiento) : 'Fecha de nacimiento no especificada';
 
-  console.log('ClientForm render - mode:', mode, 'client:', client, 'formData:', formData);
-  console.log('🔍 Estado de catálogos:', { tiposCliente: tiposCliente.length, tiposIdentificacion: tiposIdentificacion.length });
-  console.log('🔍 Datos del cliente recibido:', {
-    id: client?.id,
-    tipoCliente: client?.tipoCliente,
-    tipoIdentificacion: client?.tipoIdentificacion,
-    nombres: client?.nombres
-  });
+  // OPTIMIZACIÓN: Logs de debug solo en modo desarrollo y solo cuando cambian valores relevantes
+  // Removidos logs del render que se ejecutaban en cada keystroke
+  // Si necesitas debug, usar React DevTools Profiler en lugar de console.log en render
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8 px-4">
@@ -1289,539 +1399,32 @@ const ClientForm: React.FC<ClientFormProps> = ({
             {/* ) // This line was removed */}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Datos Personales */}
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                <div className="flex items-center mb-6">
-                  <div className="bg-blue-100 p-3 rounded-full mr-4">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Datos Personales</h2>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Cliente *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.tipoCliente || 'No especificado'}
-                      </div>
-                    ) : (
-                      <select
-                        value={formData.tipoCliente}
-                        onChange={(e) => handleInputChange('tipoCliente', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                      >
-                        <option value="">Seleccionar tipo</option>
-                        {tiposCliente.map(tipo => (
-                          <option key={tipo.id} value={tipo.nombre}>{tipo.nombre}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+              {/* Datos Personales - Componente Extraído */}
+              <ClientPersonalDataSection
+                mode={mode}
+                formData={formData}
+                handleInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value)}
+                tiposCliente={tiposCliente}
+                tiposIdentificacion={tiposIdentificacion}
+                provincias={provincias}
+                availableCantons={availableCantons}
+                getNombreProvincia={getNombreProvincia}
+                isUniformadoByType={isUniformadoByType}
+                isMilitaryType={isMilitaryType}
+                getBorderColor={getBorderColor}
+              />
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Identificación *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.tipoIdentificacion ? getNombreTipoIdentificacion(formData.tipoIdentificacion) : 'No especificado'}
-                      </div>
-                    ) : (
-                      <select
-                        value={formData.tipoIdentificacion}
-                        onChange={(e) => handleInputChange('tipoIdentificacion', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                      >
-                        <option value="">Seleccionar tipo</option>
-                        {tiposIdentificacion.map(tipo => (
-                          <option key={tipo.id} value={tipo.codigo}>{tipo.nombre}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Número de Identificación *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.numeroIdentificacion || 'No especificado'}
-                      </div>
-                    ) : (
-                                             <input
-                         type="text"
-                         value={formData.numeroIdentificacion}
-                         onChange={(e) => handleInputChange('numeroIdentificacion', e.target.value)}
-                         required
-                         maxLength={getMaxLength()}
-                         className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('numeroIdentificacion', formData.numeroIdentificacion)}`}
-                         placeholder={`Ingrese ${formData.tipoIdentificacion ? getNombreTipoIdentificacion(formData.tipoIdentificacion).toLowerCase() : 'número de identificación'}`}
-                       />
-                    )}
-                  </div>
-
-                  {/* Campo Rango - Solo para militares y policías */}
-                  {isUniformadoByType && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Rango (Opcional)
-                      </label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.rango || 'No especificado'}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formData.rango}
-                          onChange={(e) => handleInputChange('rango', e.target.value.toUpperCase())}
-                          placeholder="Ej: TENIENTE, CAPITÁN, MAYOR, etc."
-                          maxLength={100}
-                          style={{ textTransform: 'uppercase' }}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        />
-                      )}
-                    </div>
-                  )}
-
-                                      <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Nombres *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.nombres || 'No especificado'}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formData.nombres}
-                          onChange={(e) => handleInputChange('nombres', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                          placeholder="Ingrese nombres"
-                        />
-                      )}
-                    </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Apellidos *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.apellidos || 'No especificado'}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={formData.apellidos}
-                        onChange={(e) => handleInputChange('apellidos', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="Ingrese los apellidos"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de Nacimiento *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.fechaNacimiento || 'No especificado'}
-                      </div>
-                    ) : (
-                      <>
-                        <input
-                          type="date"
-                          value={formData.fechaNacimiento}
-                          onChange={(e) => handleInputChange('fechaNacimiento', e.target.value)}
-                          min="1900-01-01"
-                          max={(() => {
-                            const hoy = new Date();
-                            const año = hoy.getFullYear();
-                            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-                            const dia = String(hoy.getDate()).padStart(2, '0');
-                            return `${año}-${mes}-${dia}`;
-                          })()}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                          Rango válido: 1900 - {new Date().getFullYear()} • El cliente debe tener al menos 25 años
-                        </p>
-                      </>
-                    )}
-                    {formData.fechaNacimiento && edad !== null && (
-                      <div className={`mt-2 p-3 rounded-lg text-sm ${edadValida ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-                        <span className="font-medium">Edad: {edad} años</span>
-                        {!edadValida && (
-                          <div className="mt-2">
-                            <p className="font-bold">⚠️ CLIENTE INHABILITADO PARA COMPRA DE ARMAS</p>
-                            <p className="mt-1">{mensajeErrorEdad}</p>
-                            <p className="mt-1 text-xs">El cliente se guardará pero NO podrá seleccionar armas hasta cumplir 25 años.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Correo Electrónico *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.email || 'No especificado'}
-                      </div>
-                    ) : (
-                                               <input
-                           type="email"
-                           value={formData.email}
-                           onChange={(e) => handleInputChange('email', e.target.value)}
-                           required
-                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('email', formData.email)}`}
-                           placeholder="ejemplo@correo.com"
-                         />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono Principal *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.telefonoPrincipal || 'No especificado'}
-                      </div>
-                    ) : (
-                                               <input
-                           type="tel"
-                           value={formData.telefonoPrincipal}
-                           onChange={(e) => handleInputChange('telefonoPrincipal', e.target.value)}
-                           required
-                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('telefonoPrincipal', formData.telefonoPrincipal)}`}
-                           placeholder="0999999999"
-                         />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono Secundario</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.telefonoSecundario || 'No especificado'}
-                      </div>
-                    ) : (
-                                               <input
-                           type="tel"
-                           value={formData.telefonoSecundario}
-                           onChange={(e) => handleInputChange('telefonoSecundario', e.target.value)}
-                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 ${getBorderColor('telefonoSecundario', formData.telefonoSecundario || '')}`}
-                           placeholder="0999999999 (opcional)"
-                         />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Provincia *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {getNombreProvincia(formData.provincia)}
-                      </div>
-                    ) : (
-                      <select
-                        value={formData.provincia}
-                        onChange={(e) => handleInputChange('provincia', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                      >
-                        <option value="">Seleccionar provincia</option>
-                        {provincias.map(provincia => (
-                          <option key={provincia.codigo} value={provincia.codigo}>{provincia.nombre}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Cantón *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.canton || 'No especificado'}
-                      </div>
-                    ) : (
-                      <select
-                        value={formData.canton}
-                        onChange={(e) => handleInputChange('canton', e.target.value)}
-                        disabled={!formData.provincia}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
-                      >
-                        <option value="">Seleccionar cantón</option>
-                        {availableCantons.map((canton, index) => (
-                          <option key={`canton-${index}-${canton}`} value={canton}>{canton}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección *</label>
-                    {mode === 'view' ? (
-                      <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                        {formData.direccion || 'No especificado'}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={formData.direccion}
-                        onChange={(e) => handleInputChange('direccion', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        placeholder="Ingrese la dirección completa"
-                      />
-                    )}
-                  </div>
-
-                  {isUniformadoByType && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Estado Militar *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.estadoMilitar || 'No especificado'}
-                        </div>
-                      ) : (
-                        <select
-                          value={formData.estadoMilitar}
-                          onChange={(e) => handleInputChange('estadoMilitar', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                        >
-                          <option value="">Seleccionar estado</option>
-                          <option value="ACTIVO">Activo</option>
-                          <option value="PASIVO">Pasivo</option>
-                        </select>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Campo Código ISSFA para tipos militares específicos */}
-                  {isMilitaryType && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Código ISSFA {formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO' ? '*' : ''}
-                      </label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.codigoIssfa || 'No especificado'}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formData.codigoIssfa}
-                          onChange={(e) => {
-                            // Solo permitir números de hasta 10 dígitos
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                            handleInputChange('codigoIssfa', value);
-                          }}
-                          placeholder="Ingrese código ISSFA de 10 dígitos"
-                          required={formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO'}
-                          maxLength={10}
-                          pattern="\d{10}"
-                          className={`w-full px-4 py-3 border-2 ${getBorderColor('codigoIssfa', formData.codigoIssfa || '')} rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200`}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Mensaje informativo para uniformados en estado pasivo */}
-                  {isUniformadoByType && formData.estadoMilitar === 'PASIVO' && (
-                    <div className="md:col-span-2">
-                      <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
-                        <div className="flex items-start">
-                          <div className="bg-yellow-100 p-2 rounded-full mr-4 mt-1">
-                            <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Proceso como Cliente Civil</h3>
-                            <p className="text-yellow-700">
-                              Al estar en estado pasivo, el proceso continuará como cliente Civil. 
-                              Se aplicarán las preguntas y documentos correspondientes a clientes Civiles.
-                              El código ISSFA es obligatorio.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-
-                </div>
-              </div>
-
-              {/* Datos de Empresa */}
+              {/* Datos de Empresa - Componente Extraído */}
               {isEmpresa && (
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-purple-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Datos de la Empresa</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Representante Legal *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.representanteLegal || 'No especificado'}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formData.representanteLegal}
-                          onChange={(e) => handleInputChange('representanteLegal', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                          placeholder="Nombres y apellidos del representante"
-                        />
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">RUC *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.ruc || 'No especificado'}
-                        </div>
-                      ) : (
-                                                 <input
-                           type="text"
-                           value={formData.ruc}
-                           onChange={(e) => handleInputChange('ruc', e.target.value)}
-                           required
-                           maxLength={13}
-                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 ${getBorderColor('ruc', formData.ruc || '')}`}
-                           placeholder="1234567890001"
-                         />
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre de la Empresa *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.nombreEmpresa || 'No especificado'}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formData.nombreEmpresa}
-                          onChange={(e) => handleInputChange('nombreEmpresa', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                          placeholder="Nombre completo de la empresa"
-                        />
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección Fiscal *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.direccionFiscal || 'No especificado'}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formData.direccionFiscal}
-                          onChange={(e) => handleInputChange('direccionFiscal', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                          placeholder="Dirección fiscal de la empresa"
-                        />
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono de Referencia *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.telefonoReferencia || 'No especificado'}
-                        </div>
-                      ) : (
-                                                 <input
-                           type="tel"
-                           value={formData.telefonoReferencia}
-                           onChange={(e) => handleInputChange('telefonoReferencia', e.target.value)}
-                           required
-                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 ${getBorderColor('telefonoReferencia', formData.telefonoReferencia || '')}`}
-                           placeholder="Teléfono de la empresa"
-                         />
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Correo de la Empresa *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.correoEmpresa || 'No especificado'}
-                        </div>
-                      ) : (
-                                                 <input
-                           type="email"
-                           value={formData.correoEmpresa}
-                           onChange={(e) => handleInputChange('correoEmpresa', e.target.value)}
-                           required
-                           className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 ${getBorderColor('correoEmpresa', formData.correoEmpresa || '')}`}
-                           placeholder="correo@empresa.com"
-                         />
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Provincia de la Empresa *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {getNombreProvincia(formData.provinciaEmpresa)}
-                        </div>
-                      ) : (
-                        <select
-                          value={formData.provinciaEmpresa}
-                          onChange={(e) => handleInputChange('provinciaEmpresa', e.target.value)}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                        >
-                          <option value="">Seleccionar provincia</option>
-                          {provincias.map(provincia => (
-                            <option key={provincia.codigo} value={provincia.codigo}>{provincia.nombre}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Cantón de la Empresa *</label>
-                      {mode === 'view' ? (
-                        <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                          {formData.cantonEmpresa || 'No especificado'}
-                        </div>
-                      ) : (
-                        <select
-                          value={formData.cantonEmpresa}
-                          onChange={(e) => handleInputChange('cantonEmpresa', e.target.value)}
-                          disabled={!formData.provinciaEmpresa}
-                          required
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
-                        >
-                          <option value="">Seleccionar cantón</option>
-                          {availableCantonsEmpresa.map((canton, index) => (
-                            <option key={`canton-empresa-${index}-${canton}`} value={canton}>{canton}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ClientCompanyDataSection
+                  mode={mode}
+                  formData={formData}
+                  handleInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value)}
+                  provincias={provincias}
+                  availableCantonsEmpresa={availableCantonsEmpresa}
+                  getNombreProvincia={getNombreProvincia}
+                  getBorderColor={getBorderColor}
+                />
               )}
 
               {/* Advertencia para Uniformado Pasivo */}
@@ -1844,653 +1447,69 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 </div>
               )}
 
-              {/* Documentos del Cliente */}
-              {formData.tipoCliente && requiredDocuments.length > 0 && (
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center">
-                      <div className="bg-green-100 p-3 rounded-full mr-4">
-                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-900">Documentos del Cliente</h2>
-                    </div>
-                    <div className={`px-4 py-2 rounded-lg border-2 ${getDocumentStatusColor()}`}>
-                      <span className="font-semibold">{getDocumentStatusText()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {requiredDocuments.map((document) => (
-                      <div 
-                        key={document.id} 
-                        className={`bg-white p-4 rounded-xl border-2 transition-all duration-200 ${
-                          document.urlDocumento 
-                            ? 'border-blue-200 hover:border-blue-300' 
-                            : 'border-gray-200 hover:border-gray-300'
-                        } ${
-                          uploadedDocuments[document.nombre] 
-                            ? 'bg-green-50 border-green-300' 
-                            : ''
-                        }`}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-800">{document.nombre}</h3>
-                            <p className="text-sm text-gray-500 mb-2">{document.descripcion}</p>
-                            <div className="flex flex-wrap gap-2">
-                              {document.urlDocumento && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
-                                  </svg>
-                                  📄 En Línea
-                                </span>
-                              )}
-                              {document.obligatorio && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  Obligatorio
-                                </span>
-                              )}
-                              {(uploadedDocuments[document.id.toString()] || loadedDocuments[document.nombre]) && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  ✅ Subido
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {document.urlDocumento && (
-                          <div className="mb-3 flex justify-center">
-                            <a 
-                              href={document.urlDocumento} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm"
-                            >
-                              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                              </svg>
-                              Acceder a la Fuente Oficial
-                            </a>
-                          </div>
-                        )}
-                        
-                        {/* Mostrar documento cargado */}
-                        {loadedDocuments[document.nombre] ? (
-                          <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center">
-                                <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                </svg>
-                                <span className="text-sm font-medium text-green-800">
-                                  {loadedDocuments[document.nombre].nombreArchivo}
-                                </span>
-                              </div>
-                              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                                {loadedDocuments[document.nombre].estado}
-                              </span>
-                            </div>
-                            
-                            {/* Previsualización del documento */}
-                            <div className="mb-3">
-                              <iframe
-                                src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
-                                className="w-full h-64 border border-gray-300 rounded-lg"
-                                title={`Previsualización de ${document.nombre}`}
-                              />
-                            </div>
-                            
-                            {/* Botones de acción */}
-                            <div className="flex gap-2">
-                              <a 
-                                href={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                              >
-                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                  <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                </svg>
-                                Abrir en Nueva Pestaña
-                              </a>
-                              
-                              {mode !== 'view' && (
-                                <button
-                                  onClick={() => {
-                                    // TODO: Implementar función para reemplazar documento
-                                    console.log('Reemplazar documento:', document.nombre);
-                                  }}
-                                  className="inline-flex items-center px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors duration-200"
-                                >
-                                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                                  </svg>
-                                  Reemplazar
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <input
-                            type="file"
-                            disabled={mode === 'view'}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                handleDocumentUpload(document.nombre, file);
-                              }
-                            }}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {/* Documentos del Cliente - Componente Extraído (solo en modo create/edit) */}
+              {formData.tipoCliente && requiredDocuments.length > 0 && mode !== 'view' && (
+                <ClientDocumentsSection
+                  mode={mode}
+                  requiredDocuments={requiredDocuments}
+                  uploadedDocuments={uploadedDocuments}
+                  loadedDocuments={loadedDocuments}
+                  handleDocumentUpload={handleDocumentUpload}
+                  getDocumentStatusColor={getDocumentStatusColor}
+                  getDocumentStatusText={getDocumentStatusText}
+                />
               )}
 
-              {/* Preguntas de Seguridad */}
+              {/* Preguntas de Seguridad - Componente Extraído */}
               {formData.tipoCliente && clientQuestions.length > 0 && (
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-purple-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Preguntas de Seguridad</h2>
-                  </div>
-
-                  {/* Advertencia de Cliente Bloqueado */}
-                  {clienteBloqueado && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 mb-6">
-                      <div className="flex items-start">
-                        <div className="bg-red-100 p-2 rounded-full mr-4 mt-1">
-                          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-red-800 mb-2">CLIENTE BLOQUEADO</h3>
-                          <p className="text-red-700 mb-3">
-                            <strong>Motivo:</strong> {motivoBloqueo}
-                          </p>
-                          <p className="text-red-600 text-sm">
-                            ⚠️ El cliente puede ser guardado pero NO podrá continuar con el proceso de selección de armas.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="space-y-4">
-                    {clientQuestions.map((question) => {
-                      console.log('Rendering question:', { 
-                        id: question.id, 
-                        pregunta: question.pregunta, 
-                        tipoRespuesta: question.tipoRespuesta,
-                        currentValue: getAnswerForQuestion(question.pregunta),
-                        isViolenceQuestion: question.pregunta.includes('denuncias de violencia'),
-                        fullQuestion: question
-                      });
-                      return (
-                      <div key={question.id} className="bg-white p-4 rounded-xl border-2 border-gray-200">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-800 mb-2">{question.pregunta}</h3>
-                            <div className="flex flex-wrap gap-2">
-                              {question.obligatoria && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  Obligatoria
-                                </span>
-                              )}
-                              {question.tipoRespuesta === 'SI_NO' && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  SI/NO
-                                </span>
-                              )}
-                              {question.bloquea_proceso && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                  Bloquea Proceso
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {mode === 'view' ? (
-                          <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
-                            {getAnswerForQuestion(question.pregunta) || 'Sin respuesta'}
-                          </div>
-                        ) : (
-                          question.tipoRespuesta === 'SI_NO' ? (
-                            <div className="space-y-3">
-                              {/* Primer dropdown: SI/NO */}
-                              <select
-                                key={`${question.id}-${getAnswerForQuestion(question.pregunta)}`}
-                                value={getAnswerForQuestion(question.pregunta)?.startsWith('SI') ? 'SI' : getAnswerForQuestion(question.pregunta)?.startsWith('NO') ? 'NO' : ''}
-                                onChange={(e) => {
-                                  console.log('Dropdown SI/NO onChange triggered:', { 
-                                    question: question.pregunta, 
-                                    newValue: e.target.value,
-                                    currentValue: getAnswerForQuestion(question.pregunta)
-                                  });
-                                  
-                                  if (e.target.value === 'NO') {
-                                    // Si es NO, solo guardar NO
-                                    handleAnswerChange(question.pregunta, 'NO', question.id);
-                                  } else if (e.target.value === 'SI') {
-                                    // Si es SI, mantener el valor actual si ya tiene cantidad, o poner solo SI
-                                    const currentAnswer = getAnswerForQuestion(question.pregunta);
-                                    if (currentAnswer && currentAnswer.startsWith('SI')) {
-                                      handleAnswerChange(question.pregunta, currentAnswer, question.id);
-                                    } else {
-                                      handleAnswerChange(question.pregunta, 'SI', question.id);
-                                    }
-                                  }
-                                }}
-                                required={question.obligatoria}
-                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                              >
-                                <option value="">Seleccionar respuesta</option>
-                                <option value="SI">Sí</option>
-                                <option value="NO">No</option>
-                              </select>
-
-                              {/* Segundo dropdown: Cantidad de armas (solo si responde SI y es la pregunta de armas registradas) */}
-                              {getAnswerForQuestion(question.pregunta)?.startsWith('SI') && 
-                               question.pregunta.toLowerCase().includes('armas registradas') && (
-                                <select
-                                  value={getAnswerForQuestion(question.pregunta)?.includes('1 arma') ? '1 arma' : 
-                                         getAnswerForQuestion(question.pregunta)?.includes('2 armas') ? '2 armas' : 
-                                         getAnswerForQuestion(question.pregunta)?.includes('más armas') ? 'más armas' : ''}
-                                  onChange={(e) => {
-                                    console.log('Dropdown cantidad onChange triggered:', { 
-                                      question: question.pregunta, 
-                                      newValue: e.target.value
-                                    });
-                                    
-                                    // Combinar SI con la cantidad seleccionada
-                                    const combinedAnswer = `SI, ${e.target.value}`;
-                                    handleAnswerChange(question.pregunta, combinedAnswer, question.id);
-                                  }}
-                                  required={question.obligatoria}
-                                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-                                >
-                                  <option value="">Seleccionar cantidad</option>
-                                  <option value="1 arma">1 arma</option>
-                                  <option value="2 armas">2 armas</option>
-                                  <option value="más armas">más armas</option>
-                                </select>
-                              )}
-                            </div>
-                          ) : (
-                            <textarea
-                              value={getAnswerForQuestion(question.pregunta)}
-                              onChange={(e) => handleAnswerChange(question.pregunta, e.target.value, question.id)}
-                              required={question.obligatoria}
-                              rows={3}
-                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 resize-none"
-                              placeholder="Escriba su respuesta aquí..."
-                            />
-                          )
-                        )}
-                      </div>
-                    );
-                    })}
-                  </div>
-                  
-                  {/* Aviso de bloqueo por exceso de armas */}
-                  {clienteBloqueado && motivoBloqueo.includes('arma registrada') && (
-                    <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-6">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                          <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                          </svg>
-                        </div>
-                        <div className="ml-4 flex-1">
-                          <h3 className="text-lg font-semibold text-red-800 mb-2">
-                            ⚠️ Cliente Bloqueado para Selección de Armas
-                          </h3>
-                          <p className="text-red-700 mb-3">
-                            {motivoBloqueo}
-                          </p>
-                          <p className="text-sm text-red-600 font-medium">
-                            El cliente puede ser guardado en el sistema, pero NO podrá continuar con la selección de armas hasta que se resuelva esta situación.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ClientAnswersSection
+                  mode={mode}
+                  clientQuestions={clientQuestions}
+                  getAnswerForQuestion={getAnswerForQuestion}
+                  handleAnswerChange={handleAnswerChange}
+                  clienteBloqueado={clienteBloqueado}
+                  motivoBloqueo={motivoBloqueo}
+                  tipoClienteCodigo={tipoClienteEncontrado?.codigo}
+                />
               )}
 
-              {/* Sección de Arma Reservada - Solo en modo edit */}
-              {mode === 'edit' && currentSelectedWeapon && (
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-yellow-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Arma Reservada</h2>
-                      <p className="text-sm text-gray-600">Esta arma está reservada pero aún no tiene número de serie asignado</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Detalles del Arma</h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="font-medium text-gray-700">Modelo:</span>
-                          <span className="text-gray-900">{currentSelectedWeapon.nombre}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium text-gray-700">Calibre:</span>
-                          <span className="text-gray-900">{currentSelectedWeapon.calibre}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium text-gray-700">Código:</span>
-                          <span className="text-gray-900">{currentSelectedWeapon.codigo}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Precios y Cantidad</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Precio Unitario:</label>
-                          <input
-                            type="number"
-                            value={precioModificado}
-                            onChange={(e) => onPriceChange?.(parseFloat(e.target.value) || 0)}
-                            disabled={false}
-                            step="0.01"
-                            min="0"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad:</label>
-                          <input
-                            type="number"
-                            value={cantidad}
-                            onChange={(e) => onQuantityChange?.(parseInt(e.target.value) || 1)}
-                            disabled={false}
-                            min="1"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
-                          />
-                        </div>
-                        
-                        <div className="bg-green-50 p-4 rounded-xl border border-green-200">
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="font-medium text-gray-700">Subtotal:</span>
-                              <span className="text-green-600 font-semibold">${(precioModificado * cantidad).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="font-medium text-gray-700">IVA ({ivaPorcentaje}%):</span>
-                              <span className="text-green-600 font-semibold">${(precioModificado * cantidad * ivaDecimal).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between text-base font-bold border-t pt-2">
-                              <span>Total:</span>
-                              <span className="text-green-600">${(precioModificado * cantidad * (1 + ivaDecimal)).toFixed(2)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {mode === 'edit' && (
-                    <div className="mt-6 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => onNavigateToWeaponSelection?.()}
-                        className="px-8 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold"
-                      >
-                        Cambiar Arma
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {/* Sección de Armas en Stock del Vendedor - Solo en modo create */}
+              {mode === 'create' && (
+                <VendedorStockWeaponsSection
+                  armasEnStock={armasEnStock}
+                  onAsignarArma={handleAsignarArmaDelStock}
+                  mode={mode}
+                />
               )}
 
-              {/* Sección de Contratos Generados - Solo en modo view */}
+              {/* Sección de Arma Reservada - Componente Extraído */}
+              <ClientReservedWeaponSection
+                mode={mode}
+                currentSelectedWeapon={currentSelectedWeapon || null}
+                precioModificado={precioModificado}
+                cantidad={cantidad}
+                onPriceChange={onPriceChange}
+                onQuantityChange={onQuantityChange}
+                onNavigateToWeaponSelection={onNavigateToWeaponSelection}
+                ivaDecimal={ivaDecimal}
+                ivaPorcentaje={ivaPorcentaje}
+              />
+
+              {/* Secciones de View - Componente Extraído */}
               {mode === 'view' && (
-                <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-purple-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Contratos Generados</h2>
-                      <p className="text-sm text-gray-600 mt-1">Documentos generados al finalizar el proceso de creación del cliente</p>
-                    </div>
-                  </div>
-                  
-                  {loadedContratos.length > 0 ? (
-                    <div className="space-y-4">
-                      {loadedContratos.map((contrato, index) => (
-                        <div key={index} className="bg-white p-6 rounded-xl border-2 border-purple-200">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-800 mb-2">{contrato.nombreArchivo}</h3>
-                              <p className="text-sm text-gray-500 mb-3">{contrato.descripcion}</p>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                  📄 Contrato
-                                </span>
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  ✅ Generado
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Previsualización del contrato */}
-                          <div className="mb-4">
-                            <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
-                              <iframe
-                                src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve-generated/${contrato.id}`}
-                                className="w-full h-96 rounded-lg border-0"
-                                title={`Previsualización de ${contrato.nombreArchivo}`}
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* Botones de acción */}
-                          <div className="flex justify-center space-x-3">
-                            <button
-                              type="button"
-                              onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 flex items-center space-x-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              <span>Ver Contrato</span>
-                            </button>
-                            
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = `${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve-generated/${contrato.id}`;
-                                link.download = contrato.nombreArchivo;
-                                link.click();
-                              }}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <span>Descargar</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-white p-8 rounded-xl border-2 border-dashed border-gray-300 text-center">
-                      <div className="bg-gray-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay contratos generados</h3>
-                      <p className="text-gray-500 mb-4">Los contratos se generarán automáticamente al finalizar el proceso de creación del cliente.</p>
-                      <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Pendiente de generación
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Sección de Armas Asignadas - Solo en modo view */}
-              {mode === 'view' && loadedArmas.length > 0 && (
-                <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-blue-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Armas Asignadas</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {loadedArmas.map((arma, index) => {
-                      const precioSinIva = parseFloat(arma.precioUnitario) || 0;
-                      const cantidad = parseInt(arma.cantidad) || 0;
-                      const subtotal = precioSinIva * cantidad;
-                      const ivaArma = subtotal * ivaDecimal;
-                      const totalConIva = subtotal + ivaArma;
-                      
-                      return (
-                        <div key={index} className="bg-white p-4 rounded-xl border-2 border-blue-200">
-                          <div className="flex items-start space-x-4">
-                            {/* Imagen del arma */}
-                            {arma.armaImagen && (
-                              <div className="flex-shrink-0">
-                                <img 
-                                  src={arma.armaImagen} 
-                                  alt={arma.armaNombre}
-                                  className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                            )}
-                            
-                            {/* Información del arma */}
-                            <div className="flex-1 space-y-2">
-                              <p><span className="font-medium">Arma:</span> {arma.armaNombre || 'N/A'}</p>
-                              <p><span className="font-medium">Modelo:</span> {arma.armaModelo || 'N/A'}</p>
-                              <p><span className="font-medium">Código:</span> {arma.armaCodigo || 'N/A'}</p>
-                              {arma.numeroSerie && (
-                                <p>
-                                  <span className="font-medium">Número de Serie:</span>{' '}
-                                  <span className="font-mono text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">
-                                    {arma.numeroSerie}
-                                  </span>
-                                </p>
-                              )}
-                              {arma.estado && (
-                                <p>
-                                  <span className="font-medium">Estado:</span>{' '}
-                                  <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                                    arma.estado === 'ASIGNADA' ? 'bg-green-100 text-green-800' :
-                                    arma.estado === 'RESERVADA' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {arma.estado}
-                                  </span>
-                                </p>
-                              )}
-                              <p><span className="font-medium">Cantidad:</span> {cantidad}</p>
-                              <p><span className="font-medium">Precio Unitario (sin IVA):</span> ${precioSinIva.toFixed(2)}</p>
-                              <div className="border-t pt-2 mt-2">
-                                <p><span className="font-medium">Subtotal:</span> ${subtotal.toFixed(2)}</p>
-                                <p><span className="font-medium">IVA ({ivaPorcentaje}%):</span> ${ivaArma.toFixed(2)}</p>
-                                <p className="font-bold text-lg"><span className="font-medium">Total (con IVA):</span> ${totalConIva.toFixed(2)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Sección de Pagos - Solo en modo view */}
-              {mode === 'view' && loadedPagos.length > 0 && (
-                <div className="bg-green-50 rounded-2xl p-6 border border-green-200">
-                  <div className="flex items-center mb-6">
-                    <div className="bg-green-100 p-3 rounded-full mr-4">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Información de Pagos</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {loadedPagos.map((pago, index) => {
-                      const montoTotal = parseFloat(pago.montoTotal) || 0;
-                      const subtotal = montoTotal / (1 + ivaDecimal); // Calcular subtotal sin IVA
-                      const ivaPago = montoTotal - subtotal; // Calcular IVA
-                      
-                      return (
-                        <div key={index} className="bg-white p-4 rounded-xl border-2 border-green-200">
-                          <div className="space-y-2">
-                            <p><span className="font-medium">Tipo de Pago:</span> {pago.tipoPago || 'N/A'}</p>
-                            <p><span className="font-medium">Estado:</span> {pago.estado || 'N/A'}</p>
-                            <p><span className="font-medium">Fecha de Creación:</span> {pago.fechaCreacion ? new Date(pago.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}</p>
-                            <div className="border-t pt-2 mt-2">
-                              <p><span className="font-medium">Subtotal (sin IVA):</span> ${subtotal.toFixed(2)}</p>
-                              <p><span className="font-medium">IVA ({ivaPorcentaje}%):</span> ${ivaPago.toFixed(2)}</p>
-                              <p className="font-bold text-lg"><span className="font-medium">Total (con IVA):</span> ${montoTotal.toFixed(2)}</p>
-                            </div>
-                            {pago.numeroCuotas && (
-                              <p><span className="font-medium">Número de Cuotas:</span> {pago.numeroCuotas}</p>
-                            )}
-                            {pago.montoCuota && (
-                              <p><span className="font-medium">Monto por Cuota:</span> ${parseFloat(pago.montoCuota).toFixed(2)}</p>
-                            )}
-                            {pago.montoPagado && (
-                              <p><span className="font-medium">Monto Pagado:</span> ${parseFloat(pago.montoPagado).toFixed(2)}</p>
-                            )}
-                            {pago.montoPendiente && (
-                              <p><span className="font-medium">Monto Pendiente:</span> ${parseFloat(pago.montoPendiente).toFixed(2)}</p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <ClientViewSections
+                  loadedContratos={loadedContratos}
+                  loadedArmas={loadedArmas}
+                  loadedPagos={loadedPagos}
+                  loadedDocuments={loadedDocuments}
+                  requiredDocuments={requiredDocuments}
+                  ivaDecimal={ivaDecimal}
+                  ivaPorcentaje={ivaPorcentaje}
+                  emailVerificado={client?.emailVerificado}
+                  grupoImportacionNombre={client?.grupoImportacionNombre}
+                  licenciaNombre={client?.licenciaNombre}
+                  licenciaNumero={client?.licenciaNumero}
+                />
               )}
 
               {/* Botones - Al final después de todas las secciones */}
@@ -2579,10 +1598,22 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     {mode === 'edit' && !clienteBloqueado && (
                       <button
                         type="submit"
-                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                        disabled={!validateForm()}
+                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
+                        disabled={!validateForm() || isSubmitting}
                       >
-                        ✅ Actualizar Cliente
+                        {isSubmitting ? (
+                          <>
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Actualizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            ✅ Actualizar Cliente
+                          </>
+                        )}
                       </button>
                     )}
                   </>

@@ -7,10 +7,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   
   // Obtener configuración del entorno
+  // NOTA: En Docker, el proxy debe usar el nombre del servicio del backend, no localhost
+  // El navegador usa VITE_API_BASE_URL directamente, pero el proxy de Vite (que corre en el servidor)
+  // necesita usar el nombre del servicio Docker cuando está en contenedor
   const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:8080'
   const frontendUrl = env.VITE_FRONTEND_URL || 'http://localhost:5173'
   const wsHost = env.VITE_WS_HOST || 'localhost'
   const wsPort = env.VITE_WS_PORT || '5173'
+  
+  // Para el proxy de Vite (que corre en el servidor de desarrollo dentro del contenedor),
+  // usar el nombre del servicio Docker si estamos en Docker, o localhost si estamos en desarrollo local
+  // Detectar si estamos en Docker verificando si existe el archivo /.dockerenv o si HOSTNAME contiene el nombre del contenedor
+  const isDocker = process.env.DOCKER_ENV === 'true' || process.env.HOSTNAME?.includes('gmarm-frontend')
+  const proxyTarget = isDocker ? 'http://backend_local:8080' : apiBaseUrl
   
   return {
     plugins: [react()],
@@ -28,16 +37,29 @@ export default defineConfig(({ mode }) => {
       // En producción, estas rutas se sirven directamente desde el backend
       proxy: {
         '/images': {
-          target: apiBaseUrl,
+          target: proxyTarget,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path // Mantener la ruta original
+          rewrite: (path) => path, // Mantener la ruta original
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('⚠️ Proxy error:', err.message);
+            });
+            proxy.on('proxyReq', (_proxyReq, req, _res) => {
+              console.log('🔄 Proxying request:', req.method, req.url, '→', proxyTarget);
+            });
+          }
         },
         '/uploads': {
-          target: apiBaseUrl,
+          target: proxyTarget,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path // Mantener la ruta original
+          rewrite: (path) => path, // Mantener la ruta original
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('⚠️ Proxy error:', err.message);
+            });
+          }
         }
       }
     },

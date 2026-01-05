@@ -41,6 +41,11 @@ public class DocumentoClienteController {
             
         } catch (IOException e) {
             log.error("Error al cargar archivo: {}", e.getMessage(), e);
+            // Si el error es por tamaño de archivo, devolver 400 (Bad Request) con mensaje claro
+            if (e.getMessage() != null && e.getMessage().contains("tamaño máximo")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(null); // El frontend debería manejar este error
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (RuntimeException e) {
             log.error("Error de validación: {}", e.getMessage(), e);
