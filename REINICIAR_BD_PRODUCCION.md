@@ -22,10 +22,14 @@ docker-compose -f docker-compose.prod.yml down
 
 # 4. Verificar nombre exacto del volumen
 docker volume ls | grep postgres
+# Deberías ver: prod_postgres_data_prod
+# Si ves prod_postgres_data_dev, es un volumen residual que puedes eliminar también
 
-# 5. Eliminar volumen de PostgreSQL (ESTO BORRA TODOS LOS DATOS)
-# El nombre del volumen es: prod_postgres_data_prod
+# 5. Eliminar volumen de PostgreSQL PRODUCCIÓN (ESTO BORRA TODOS LOS DATOS)
 docker volume rm prod_postgres_data_prod
+
+# 5.1. (Opcional) Si existe el volumen de DEV, también puedes eliminarlo
+# docker volume rm prod_postgres_data_dev
 
 # 6. Verificar que el volumen fue eliminado
 docker volume ls | grep postgres
@@ -49,7 +53,10 @@ docker logs gmarm-postgres-prod | grep -i "00_gmarm_completo\|executing\|initdb"
 # 11. El script maestro ya resetea las secuencias automáticamente
 # Los IDs empezarán desde 1 (o desde los valores iniciales del script)
 
-# 12. Verificar logs del backend
+# 12. (IMPORTANTE) Si la base de datos ya existía, asegurar UTF-8 correctamente
+docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "ALTER DATABASE gmarm_prod SET client_encoding = 'UTF8';"
+
+# 13. Verificar logs del backend
 docker logs gmarm-backend-prod | tail -50
 ```
 
