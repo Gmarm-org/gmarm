@@ -17,84 +17,41 @@ ssh usuario@servidor-produccion
 # 2. Ir al directorio del proyecto
 cd ~/deploy/prod  # O la ruta donde está tu proyecto
 
-# 3. HACER BACKUP PRIMERO (OBLIGATORIO)
-mkdir -p backups
-docker exec gmarm-postgres-prod pg_dump -U postgres -d gmarm_prod > backups/backup-antes-reset-$(date +%Y%m%d-%H%M%S).sql
-
-# 4. Guardar MAX(id) de tablas importantes para continuar IDs
-echo "Guardando MAX(id) de tablas importantes..."
-docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -tAc "
-SELECT 'cliente:' || COALESCE(MAX(id)::text, '0') FROM cliente
-UNION ALL
-SELECT 'usuario:' || COALESCE(MAX(id)::text, '0') FROM usuario
-UNION ALL
-SELECT 'pago:' || COALESCE(MAX(id)::text, '0') FROM pago
-UNION ALL
-SELECT 'arma:' || COALESCE(MAX(id)::text, '0') FROM arma
-UNION ALL
-SELECT 'grupo_importacion:' || COALESCE(MAX(id)::text, '0') FROM grupo_importacion;
-" > backups/max-ids-$(date +%Y%m%d-%H%M%S).txt
-
-# 5. Verificar que el backup se creó
-ls -lh backups/backup-antes-reset-*.sql
-ls -lh backups/max-ids-*.txt
-
-# 5. Detener servicios (IMPORTANTE: detener antes de eliminar volumen)
+# 3. Detener servicios (IMPORTANTE: detener antes de eliminar volumen)
 docker-compose -f docker-compose.prod.yml down
 
-# 6. Verificar nombre exacto del volumen
+# 4. Verificar nombre exacto del volumen
 docker volume ls | grep postgres
 
-# 7. Eliminar volumen de PostgreSQL (ESTO BORRA TODOS LOS DATOS)
+# 5. Eliminar volumen de PostgreSQL (ESTO BORRA TODOS LOS DATOS)
 # El nombre puede variar, verifica con: docker volume ls | grep postgres
 docker volume rm gmarm_postgres_data_prod
 # O si el nombre es diferente:
 # docker volume rm <nombre-del-volumen-postgres>
 
-# 8. Verificar que el volumen fue eliminado
+# 6. Verificar que el volumen fue eliminado
 docker volume ls | grep postgres
 # No debe aparecer ningún volumen de postgres
 
-# 9. Levantar servicios nuevamente (el script se ejecutará automáticamente)
+# 7. Levantar servicios nuevamente (el script se ejecutará automáticamente)
 docker-compose -f docker-compose.prod.yml up -d
 
-# 10. Esperar a que PostgreSQL esté listo y ejecute el script (60-90 segundos)
+# 8. Esperar a que PostgreSQL esté listo y ejecute el script (60-90 segundos)
 echo "Esperando a que PostgreSQL inicie y ejecute el script maestro..."
 sleep 90
 
-# 11. Verificar que el script se ejecutó correctamente (debe mostrar solo usuarios iniciales)
+# 9. Verificar que el script se ejecutó correctamente (debe mostrar solo usuarios iniciales)
 docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "SELECT COUNT(*) FROM usuario;"
 docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "SELECT COUNT(*) FROM cliente;"
 # Debe mostrar 0 clientes (o solo los datos iniciales del script)
 
-# 12. Verificar logs de PostgreSQL para confirmar que ejecutó el script
+# 10. Verificar logs de PostgreSQL para confirmar que ejecutó el script
 docker logs gmarm-postgres-prod | grep -i "00_gmarm_completo\|executing\|initdb"
 
-# 13. Si quieres que los IDs continúen desde donde estaban (no desde 1):
-#     Restaurar los MAX(id) guardados antes del reset
-if [ -f backups/max-ids-*.txt ]; then
-    echo "Restaurando secuencias desde MAX(id) guardados..."
-    # Leer los valores guardados y ajustar secuencias
-    CLIENTE_MAX=$(grep "cliente:" backups/max-ids-*.txt | cut -d: -f2)
-    USUARIO_MAX=$(grep "usuario:" backups/max-ids-*.txt | cut -d: -f2)
-    PAGO_MAX=$(grep "pago:" backups/max-ids-*.txt | cut -d: -f2)
-    ARMA_MAX=$(grep "arma:" backups/max-ids-*.txt | cut -d: -f2)
-    GRUPO_MAX=$(grep "grupo_importacion:" backups/max-ids-*.txt | cut -d: -f2)
-    
-    docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod <<EOF
-    SELECT setval('cliente_id_seq', GREATEST($CLIENTE_MAX, 1), true);
-    SELECT setval('usuario_id_seq', GREATEST($USUARIO_MAX, 1), true);
-    SELECT setval('pago_id_seq', GREATEST($PAGO_MAX, 1), true);
-    SELECT setval('arma_id_seq', GREATEST($ARMA_MAX, 1), true);
-    SELECT setval('grupo_importacion_id_seq', GREATEST($GRUPO_MAX, 1), true);
-EOF
-    echo "✅ Secuencias restauradas desde valores guardados"
-else
-    echo "⚠️  No se encontraron MAX(id) guardados. Los IDs empezarán desde 1."
-    echo "   Ejecutar script de fix de secuencias: bash scripts/fix-sequences-prod.sh"
-fi
+# 11. El script maestro ya resetea las secuencias automáticamente
+# Los IDs empezarán desde 1 (o desde los valores iniciales del script)
 
-# 14. Verificar logs del backend
+# 12. Verificar logs del backend
 docker logs gmarm-backend-prod | tail -50
 ```
 
