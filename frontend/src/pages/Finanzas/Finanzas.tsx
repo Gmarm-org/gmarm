@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import Header from '../../components/Header';
-import AsignacionSeries from '../AsignacionSeries';
 import ClientesAsignados from './ClientesAsignados';
 import PagosFinanzas from './PagosFinanzas';
 import CargaMasivaSeries from './CargaMasivaSeries';
 import GestionImportaciones from '../../components/shared/GestionImportaciones';
 
 const Finanzas: React.FC = () => {
-  const [vistaActual, setVistaActual] = useState<'pagos' | 'series' | 'clientes-asignados' | 'carga-series' | 'gestion-importaciones'>('pagos');
+  const [vistaActual, setVistaActual] = useState<'pagos' | 'clientes-asignados' | 'carga-series' | 'gestion-importaciones'>('pagos');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,16 +37,6 @@ const Finanzas: React.FC = () => {
             📋 Clientes con Armas Asignadas
           </button>
           
-          <button
-            onClick={() => setVistaActual('series')}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
-              vistaActual === 'series'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            🔢 Asignación de Series
-          </button>
 
           <button
             onClick={() => setVistaActual('carga-series')}
@@ -75,11 +64,6 @@ const Finanzas: React.FC = () => {
         {/* Contenido: Pagos */}
         {vistaActual === 'pagos' && (
           <PagosFinanzas />
-        )}
-
-        {/* Contenido: Asignación de Series */}
-        {vistaActual === 'series' && (
-          <AsignacionSeries />
         )}
 
         {/* Contenido: Clientes Asignados */}

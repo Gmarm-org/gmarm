@@ -160,4 +160,24 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Cerrar sesión", description = "Cierra la sesión del usuario (el token JWT se invalida en el cliente)")
+    public ResponseEntity<Map<String, Object>> logout() {
+        try {
+            // Con JWT stateless, el logout se maneja en el cliente eliminando el token
+            // Este endpoint solo confirma que la solicitud fue procesada
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Sesión cerrada exitosamente");
+            response.put("success", true);
+            
+            log.info("🔐 Logout exitoso");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("🔐 Error en logout: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error interno del servidor");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
 }

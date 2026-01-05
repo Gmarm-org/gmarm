@@ -2,7 +2,16 @@
 
 Este documento rastrea el progreso de implementación del módulo de operaciones para grupos de importación.
 
-**Última actualización:** 2024-12-23 - Corrección de ruta de visualización de documentos generados. Mejoras en manejo de errores de clave duplicada. Validación de documentos obligatorios implementada. Estructura de documentos actualizada.
+**Última actualización:** 2024-12-24 - Implementación de mejoras en módulo de Finanzas:
+- ✅ Cambio de "Número de Comprobante" a "NUMERO DE RECIBO" en registro de pago de cuota
+- ✅ Campo "Valor de Pago" editable con recálculo automático de saldo pendiente
+- ✅ Funcionalidad para agregar cuotas manualmente (backend + frontend)
+- ✅ Carga de comprobante (PDF/Foto) y campo de observaciones en registro de pago
+- ✅ Quitado "Asignación de Series" del perfil de Finanzas (solo disponible en Jefe de Ventas)
+- ✅ Agregadas columnas GRUPO DE IMPORTACIÓN y LICENCIA en ClientesAsignados
+- ⏳ Pendiente: Descargar RECIBO GENERADO y enviar por correo a CLIENTE, JOSE LUIS Y VALERIA
+- ⏳ Pendiente: Filtros completos, exportación a Excel, campos adicionales (IMPORTACION, PAGO PENDIENTE, OBSERVACIONES)
+- ⏳ Pendiente: Cargar factura, actualizar CargaMasivaSeries, pestaña de autorización de ventas
 
 ---
 
@@ -31,12 +40,14 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
 - [x] Actualizar configuraciones de expoferia (EXPOFERIA_ACTIVA=false, renombrar claves coordinador)
 - [x] Actualizar todas las armas para que expoferia=false
 - [x] Crear README.md para documentación de migraciones
+- [x] Agregar campos `numero_recibo`, `comprobante_archivo`, `observaciones` a tabla `cuota_pago`
 
 ### Modelos y Enums
 - [x] Actualizar enum `EstadoGrupoImportacion` con todos los estados del flujo
 - [x] Actualizar modelo `TipoDocumento` con campo `gruposImportacion`
 - [x] Actualizar modelo `GrupoImportacion` con campo `numeroPreviaImportacion`
 - [x] Actualizar modelo `DocumentoGrupoImportacion` para usar `TipoDocumento` (FK)
+- [x] Actualizar modelo `CuotaPago` con campos `numeroRecibo`, `comprobanteArchivo`, `observaciones`
 
 ### Repositorios
 - [x] Actualizar `DocumentoGrupoImportacionRepository` para usar `TipoDocumento`
@@ -89,6 +100,11 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
   - [x] **NUEVO:** Validar que el cliente tenga todos sus documentos obligatorios completos y aprobados
   - [x] Lanzar `BadRequestException` si faltan documentos obligatorios
 
+### PagoService - Mejoras Finanzas
+- [x] Método `pagarCuota` actualizado para aceptar monto editable y nuevos campos
+- [x] Método `crearCuotaManual` para agregar cuotas manualmente
+- [x] Recalcular saldo pendiente cuando se edita el monto de una cuota
+
 ---
 
 ## 🌐 Backend - Controladores
@@ -126,6 +142,10 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
   - [x] Ruta construida correctamente como `/app/documentacion/documentos_cliente/` + `rutaBD`
   - [x] Funciona tanto en Windows (Docker) como en Ubuntu (Docker)
   - [x] Manejo de errores mejorado para requests duplicados (clave única)
+
+### PagoController - Mejoras Finanzas
+- [x] Endpoint `POST /api/pagos/cuota/{cuotaId}/pagar` - Actualizado para aceptar `PagarCuotaDTO` con monto editable y nuevos campos
+- [x] Endpoint `POST /api/pagos/{pagoId}/cuotas` - Crear cuota manualmente
 
 ---
 
@@ -283,10 +303,13 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
 - [x] `DocumentoGrupoImportacionDTO`
 - [x] `GrupoImportacionResumenDTO` (con conteo de clientes por tipo)
 - [x] Los endpoints usan parámetros directos en lugar de DTOs de request (implementado así intencionalmente)
+- [x] `PagarCuotaDTO` - Para registro de pago de cuota con monto editable y nuevos campos
+- [x] `CuotaPagoDTO` - Actualizado con campos `numeroRecibo`, `comprobanteArchivo`, `observaciones`
 
 ### Mappers
 - [x] `DocumentoGrupoImportacionMapper`
 - [x] `GrupoImportacionMapper` tiene método para resumen
+- [x] `CuotaPagoMapper` - Actualizado para mapear nuevos campos
 
 ---
 
@@ -364,15 +387,48 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
   - La validación se realiza tanto en frontend (visual) como en backend (bloqueo)
   - Solo documentos con estado `APROBADO` se consideran válidos
   - La validación considera los documentos obligatorios según el `tipoProcesoId` del cliente
+- ⚠️ **Mejoras en Finanzas:**
+  - El campo "Valor de Pago" es editable y recalcula automáticamente el saldo pendiente
+  - Se pueden agregar cuotas manualmente sin relación directa con el contrato
+  - Los comprobantes (PDF/Foto) se pueden cargar al registrar el pago de una cuota
+  - El campo "NUMERO DE RECIBO" reemplaza a "Número de Comprobante"
 
 ---
 
 ## 🎯 Próximos Pasos (Prioridad)
 
-### 🔴 ALTA PRIORIDAD
+### 🔴 ALTA PRIORIDAD - PRIORIDAD #1
 1. ✅ **COMPLETADO** - Proceso "Definir Pedido" verificado e implementado completamente (Jefe de Ventas)
-2. **⏳ VERIFICAR** que el flujo completo de Operaciones funcione correctamente
-3. Revisar permisos específicos por rol en endpoints
+2. ✅ **COMPLETADO** - Generar Contrato desde vista de cliente (botón, popup con datos, guardar como contrato_apellidos_nombres_cedula.pdf, cargar contrato firmado)
+3. ✅ **COMPLETADO** - Mostrar Licencia y Grupo de Importación en información del cliente (vista y lista) para todos los roles
+4. ✅ **COMPLETADO** - Agregar límite de armas por vendedor en creación de Grupo de Importación con validación de CUPO
+5. ✅ **COMPLETADO** - Agregar filtros por todos los campos en lista de clientes para todos los roles
+6. ✅ **COMPLETADO** - Como JEFE DE VENTAS: agregar EDITAR y REASIGNAR ARMA en acciones, estado DESISTIMIENTO con observación
+7. ✅ **COMPLETADO** - Crear pestaña REASIGNAR ARMAS: mostrar armas REASIGNADAS, botón CLIENTE REASIGNADO, validar documentación
+8. **✅ COMPLETADO** - Crear Excel en lugar de PDF con lista de armas, números y licencias en cabecera
+9. **✅ COMPLETADO** - En GRUPO DE IMPORTACION agregar botón EDITAR en acciones para modificar límite de armas
+
+### 🔴 ALTA PRIORIDAD - FINANZAS (PRIORIDAD #2)
+1. ✅ **COMPLETADO** - En pagos: cambiar "Número de Comprobante" por "NUMERO DE RECIBO", hacer "Valor de Pago" editable y recalcular "SALDO PENDIENTE"
+2. ✅ **COMPLETADO** - En Cuotas de pago: agregar botón para agregar más cuotas, permitir cargar foto/PDF del comprobante y agregar campo de observación
+3. ✅ **COMPLETADO** - En Cuotas de Pago: agregar acciones para descargar RECIBO GENERADO y enviar por correo a CLIENTE, JOSE LUIS Y VALERIA
+   - ✅ Botones "Descargar RECIBO" y "Enviar por Correo" implementados
+   - ✅ Emails obtenidos desde configuración del sistema (CORREOS_RECIBO - lista genérica configurable)
+   - ✅ Configuraciones agregadas al SQL maestro
+   - ✅ **REFACTORIZADO**: Cambiado de EMAIL_JOSE_LUIS y EMAIL_VALERIA a CORREOS_RECIBO (lista JSON) para mayor flexibilidad
+4. ✅ **COMPLETADO** - Agregar filtros en todos los campos de pagos, exportar a Excel, agregar campos IMPORTACION, PAGO PENDIENTE, OBSERVACIONES para filtrar
+   - ✅ Filtros completos implementados usando useTableFilters
+   - ✅ Exportación a Excel con todos los campos requeridos
+   - ✅ Campos Grupo Importación, Saldo Pendiente y Observaciones incluidos
+, el i5. ✅ **COMPLETADO** - En acciones: agregar "cargar factura" por cada cliente (modal implementado, busca tipo de documento FACTURA y carga el archivo)
+6. ✅ **COMPLETADO** - Quitar "Asignación de Series" del perfil de Finanzas (solo en Jefe de Ventas)
+7. ✅ **COMPLETADO** - Carga masiva series: dropdown de grupos activos (el grupo ya incluye la licencia), las series se guardan con grupo_importacion_id y licencia_id, en asignación se filtran por grupo y solo se pueden asignar a clientes del mismo grupo
+8. ✅ **COMPLETADO** - Clientes con Armas Asignadas: agregar columnas GRUPO DE IMPORTACIÓN y LICENCIA
+9. ✅ **COMPLETADO** - Pestaña Clientes con armas asignadas: Generar solicitud de autorización de ventas, cargar archivos (AUTORIZACION RECIBIDA, SOLICITUD firmada, factura)
+
+### 🟡 MEDIA PRIORIDAD
+10. **⏳ VERIFICAR** que el flujo completo de Operaciones funcione correctamente
+11. Revisar permisos específicos por rol en endpoints
 
 ### 🟡 MEDIA PRIORIDAD
 4. Implementar gestión de documentos por cliente (finalización)
@@ -395,4 +451,13 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
 
 ---
 
-**Última actualización:** 2024-12-23 - Corrección de ruta de visualización de documentos generados. El método `construirRutaCompletaDocumentoGenerado` ahora construye correctamente la ruta como `/app/documentacion/documentos_cliente/` + `rutaBD`, funcionando tanto en Windows (Docker) como en Ubuntu (Docker). Mejoras en manejo de errores para requests duplicados (validación de clave única con mensajes claros). Proceso "Definir Pedido" verificado y funcional completamente. Validación de documentos obligatorios implementada. Backend valida que todos los documentos obligatorios estén completos y aprobados antes de asignar clientes. Frontend muestra estado visual y previene asignación. PDF se genera correctamente, estado cambia a `SOLICITAR_PROFORMA_FABRICA`, y el grupo pasa a la vista de Operaciones automáticamente.
+**Última actualización:** 2024-12-24 - Implementación de mejoras en módulo de Finanzas:
+- ✅ Cambio de "Número de Comprobante" a "NUMERO DE RECIBO" en registro de pago de cuota
+- ✅ Campo "Valor de Pago" editable con recálculo automático de saldo pendiente
+- ✅ Funcionalidad para agregar cuotas manualmente (backend + frontend)
+- ✅ Carga de comprobante (PDF/Foto) y campo de observaciones en registro de pago
+- ✅ Quitado "Asignación de Series" del perfil de Finanzas (solo disponible en Jefe de Ventas)
+- ✅ Agregadas columnas GRUPO DE IMPORTACIÓN y LICENCIA en ClientesAsignados
+- ⏳ Pendiente: Descargar RECIBO GENERADO y enviar por correo a CLIENTE, JOSE LUIS Y VALERIA
+- ⏳ Pendiente: Filtros completos, exportación a Excel, campos adicionales (IMPORTACION, PAGO PENDIENTE, OBSERVACIONES)
+- ⏳ Pendiente: Cargar factura, actualizar CargaMasivaSeries, pestaña de autorización de ventas

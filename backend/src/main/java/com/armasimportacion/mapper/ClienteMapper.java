@@ -27,6 +27,7 @@ public class ClienteMapper {
                 .provincia(cliente.getProvincia())
                 .canton(cliente.getCanton())
                 .email(cliente.getEmail())
+                .emailVerificado(cliente.getEmailVerificado())
                 .telefonoPrincipal(cliente.getTelefonoPrincipal())
                 .telefonoSecundario(cliente.getTelefonoSecundario())
                 .representanteLegal(cliente.getRepresentanteLegal())
@@ -63,7 +64,10 @@ public class ClienteMapper {
                 .tipoClienteEsCivil(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getEsCivil() : false)
                 .tipoClienteRequiereIssfa(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getRequiereIssfa() : false)
                 .tipoClienteTipoProcesoId(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getTipoProcesoId() : null)
-                .respuestas(mapRespuestasToDTO(cliente.getRespuestas()))
+                // OPTIMIZACIÓN CRÍTICA: NO incluir respuestas en el DTO por defecto
+                // Las respuestas se cargan por endpoint separado (/api/respuesta-cliente/cliente/{id})
+                // Esto evita cargar cientos de miles de respuestas innecesariamente
+                .respuestas(null)
                 .build();
         
         // Establecer el código ISSFA usando el setter

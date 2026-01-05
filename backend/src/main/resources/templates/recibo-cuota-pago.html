@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo de Pago - GMARM</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .recibo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2563eb;
+            margin: 0;
+            font-size: 28px;
+        }
+        .header p {
+            color: #666;
+            margin: 5px 0;
+        }
+        .recibo-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .info-section {
+            flex: 1;
+        }
+        .info-section h3 {
+            color: #333;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            margin: 10px 0;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            display: inline-block;
+            width: 150px;
+        }
+        .info-value {
+            color: #333;
+        }
+        .detalle-pago {
+            background-color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .detalle-pago h3 {
+            color: #2563eb;
+            margin-top: 0;
+        }
+        .pago-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .pago-row:last-child {
+            border-bottom: none;
+        }
+        .pago-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .pago-value {
+            color: #333;
+            font-size: 18px;
+        }
+        .total-row {
+            background-color: #2563eb;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .total-row .pago-label {
+            color: white;
+        }
+        .total-row .pago-value {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            color: #666;
+            font-size: 12px;
+        }
+        .observaciones {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px;
+        }
+        .observaciones h4 {
+            margin-top: 0;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="recibo-container">
+        <div class="header">
+            <h1>🔫 GMARM</h1>
+            <p>RECIBO DE PAGO</p>
+            <p style="font-size: 14px; color: #999;">Número de Recibo: <span th:text="${numeroRecibo}">REC-XXX</span></p>
+        </div>
+
+        <div class="recibo-info">
+            <div class="info-section">
+                <h3>Información del Cliente</h3>
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value" th:text="${clienteNombre}">Nombre Cliente</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cédula/RUC:</span>
+                    <span class="info-value" th:text="${clienteCedula}">XXXXXXXXX</span>
+                </div>
+            </div>
+            <div class="info-section">
+                <h3>Información del Recibo</h3>
+                <div class="info-row">
+                    <span class="info-label">Fecha de Pago:</span>
+                    <span class="info-value" th:text="${fechaPago}">DD/MM/YYYY</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cuota #:</span>
+                    <span class="info-value" th:text="${numeroCuota}">X</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Referencia:</span>
+                    <span class="info-value" th:text="${referenciaPago}">N/A</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detalle-pago">
+            <h3>Detalle de Pago</h3>
+            <div class="pago-row">
+                <span class="pago-label">Monto de la Cuota:</span>
+                <span class="pago-value" th:text="${montoFormateado}">$0.00</span>
+            </div>
+            <div class="pago-row">
+                <span class="pago-label">Monto Total del Pago:</span>
+                <span class="pago-value" th:text="${montoTotalPagoFormateado}">$0.00</span>
+            </div>
+            <div class="pago-row">
+                <span class="pago-label">Saldo Pendiente:</span>
+                <span class="pago-value" th:text="${saldoPendienteFormateado}">$0.00</span>
+            </div>
+            <div class="total-row">
+                <div class="pago-row">
+                    <span class="pago-label">Monto Pagado:</span>
+                    <span class="pago-value" th:text="${montoFormateado}">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${observaciones != null and !observaciones.isEmpty()}" class="observaciones">
+            <h4>Observaciones:</h4>
+            <p th:text="${observaciones}">Sin observaciones</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Este documento es válido como comprobante de pago</strong></p>
+            <p>© 2025 GMARM - Todos los derechos reservados</p>
+            <p>Este es un documento generado automáticamente</p>
+        </div>
+    </div>
+</body>
+</html>
+

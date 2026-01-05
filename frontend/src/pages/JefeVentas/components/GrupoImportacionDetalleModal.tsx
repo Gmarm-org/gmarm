@@ -8,6 +8,14 @@ interface GrupoImportacion {
   estado: string;
   fechaCreacion: string;
   fechaActualizacion?: string;
+  tipoGrupo?: 'CUPO' | 'JUSTIFICATIVO';
+  limitesCategoria?: Array<{
+    categoriaArmaId: number;
+    categoriaArmaNombre: string;
+    categoriaArmaCodigo: string;
+    limiteMaximo: number;
+  }>;
+  cuposDisponiblesPorCategoria?: Record<number, number>;
   licencia?: {
     id: number;
     numero: string;
@@ -181,6 +189,64 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
               <div className="mt-3 text-center">
                 <span className="text-sm text-gray-500">Total: </span>
                 <span className="text-lg font-bold">{resumen.totalClientes}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Alertas de Cupos por Categoría (solo para tipo CUPO) */}
+          {grupo?.tipoGrupo === 'CUPO' && grupo.limitesCategoria && grupo.limitesCategoria.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-blue-900">📊 Cupos Disponibles por Categoría</h3>
+              <div className="space-y-2">
+                {grupo.limitesCategoria.map((limite) => {
+                  const cuposDisponibles = grupo.cuposDisponiblesPorCategoria?.[limite.categoriaArmaId] ?? limite.limiteMaximo;
+                  const quedanPocos = cuposDisponibles <= 5 && cuposDisponibles > 0;
+                  const sinCupo = cuposDisponibles === 0;
+                  
+                  return (
+                    <div 
+                      key={limite.categoriaArmaId}
+                      className={`p-3 rounded-lg border ${
+                        sinCupo
+                          ? 'bg-red-50 border-red-300'
+                          : quedanPocos
+                          ? 'bg-yellow-50 border-yellow-300'
+                          : 'bg-green-50 border-green-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-semibold text-gray-900">{limite.categoriaArmaNombre}</span>
+                          <span className="text-xs text-gray-500 ml-2">({limite.categoriaArmaCodigo})</span>
+                        </div>
+                        <div className={`text-lg font-bold ${
+                          sinCupo
+                            ? 'text-red-700'
+                            : quedanPocos
+                            ? 'text-yellow-700'
+                            : 'text-green-700'
+                        }`}>
+                          {cuposDisponibles}/{limite.limiteMaximo} disponibles
+                        </div>
+                      </div>
+                      {sinCupo && (
+                        <div className="mt-2 text-xs text-red-700 font-medium">
+                          ⚠️ Cupo completo - No se pueden asignar más clientes de esta categoría
+                        </div>
+                      )}
+                      {quedanPocos && !sinCupo && (
+                        <div className="mt-2 text-xs text-yellow-700 font-medium">
+                          ⚠️ Quedan pocos cupos disponibles - {cuposDisponibles} restantes
+                        </div>
+                      )}
+                      {!quedanPocos && !sinCupo && (
+                        <div className="mt-1 text-xs text-green-700">
+                          ✅ Cupo disponible: {cuposDisponibles} de {limite.limiteMaximo}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

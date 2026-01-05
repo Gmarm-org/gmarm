@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +48,59 @@ public class DocumentoClienteService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
-        // Siempre crear un nuevo documento (permitir múltiples documentos del mismo tipo)
+        // TRAZABILIDAD: Marcar documentos anteriores del mismo tipo como REEMPLAZADOS
+        // Esto mantiene el historial completo en la BD sin perder información
+        // IMPORTANTE: Buscar TODOS los documentos del mismo tipo, incluso los que ya están REEMPLAZADOS
+        // para asegurar que solo quede UN documento activo del mismo tipo
+        List<DocumentoCliente> documentosAnteriores = repository.findByClienteId(clienteId).stream()
+            .filter(doc -> doc.getTipoDocumento().getId().equals(tipoDocumentoId))
+            .filter(doc -> doc.getEstado() != DocumentoCliente.EstadoDocumento.REEMPLAZADO) // No reemplazar los ya reemplazados
+            .collect(java.util.stream.Collectors.toList());
+        
+        if (!documentosAnteriores.isEmpty()) {
+            log.info("📋 Encontrados {} documento(s) anterior(es) del tipo '{}' que serán marcados como REEMPLAZADO y sus archivos físicos eliminados", 
+                    documentosAnteriores.size(), tipoDocumento.getNombre());
+            
+            int eliminadosExitosos = 0;
+            int eliminadosFallidos = 0;
+            
+            for (DocumentoCliente docAnterior : documentosAnteriores) {
+                // Eliminar archivo físico para liberar espacio en disco
+                if (docAnterior.getRutaArchivo() != null && !docAnterior.getRutaArchivo().trim().isEmpty()) {
+                    try {
+                        // La ruta en BD es relativa (ej: "documentos_clientes/{cedula}/documentos_cargados/archivo.pdf")
+                        // FileStorageService.deleteFile ya maneja la construcción de la ruta completa
+                        fileStorageService.deleteFile(docAnterior.getRutaArchivo());
+                        log.info("🗑️ Archivo físico eliminado exitosamente: {}", docAnterior.getRutaArchivo());
+                        eliminadosExitosos++;
+                    } catch (Exception e) {
+                        log.error("❌ ERROR CRÍTICO: No se pudo eliminar el archivo físico {}: {}", 
+                                docAnterior.getRutaArchivo(), e.getMessage(), e);
+                        eliminadosFallidos++;
+                        // Continuar aunque falle la eliminación del archivo (puede que ya no exista)
+                    }
+                } else {
+                    log.warn("⚠️ Documento ID {} no tiene ruta de archivo, solo se marcará como REEMPLAZADO en BD", docAnterior.getId());
+                }
+                
+                // Marcar como REEMPLAZADO en BD (mantener registro para trazabilidad)
+                docAnterior.setEstado(DocumentoCliente.EstadoDocumento.REEMPLAZADO);
+                docAnterior.setFechaActualizacion(LocalDateTime.now());
+                docAnterior.setUsuarioRevision(usuario);
+                // Limpiar ruta del archivo ya que fue eliminado (o no tenía)
+                docAnterior.setRutaArchivo(null);
+                docAnterior.setNombreArchivo(null);
+                repository.save(docAnterior);
+                log.info("✅ Documento ID {} marcado como REEMPLAZADO en BD", docAnterior.getId());
+            }
+            
+            log.info("✅ Proceso de reemplazo completado: {} archivo(s) eliminado(s) exitosamente, {} fallido(s). {} documento(s) marcado(s) como REEMPLAZADO en BD.", 
+                    eliminadosExitosos, eliminadosFallidos, documentosAnteriores.size());
+        } else {
+            log.info("ℹ️ No hay documentos anteriores del tipo '{}' para reemplazar. Se creará un nuevo documento.", tipoDocumento.getNombre());
+        }
+        
+        // Crear nuevo documento (siempre crear uno nuevo para mantener historial)
         DocumentoCliente documento = new DocumentoCliente();
         documento.setCliente(cliente);
         documento.setTipoDocumento(tipoDocumento);
@@ -57,8 +108,13 @@ public class DocumentoClienteService {
         documento.setFechaCarga(LocalDateTime.now());
         log.info("📄 Creando nuevo documento del tipo: {} (ID: {})", tipoDocumento.getNombre(), tipoDocumentoId);
         
-        // Guardar archivo físico usando numeroIdentificacion
-        String rutaArchivo = fileStorageService.storeClientDocument(cliente.getNumeroIdentificacion(), tipoDocumentoId, archivo);
+        // Guardar archivo físico usando numeroIdentificacion y nombre del tipo de documento
+        String rutaArchivo = fileStorageService.storeClientDocument(
+            cliente.getNumeroIdentificacion(), 
+            tipoDocumentoId, 
+            archivo, 
+            tipoDocumento.getNombre()
+        );
         
         // Extraer el nombre del archivo de la ruta (que ya incluye el nombre único generado)
         String nombreArchivoGenerado = Paths.get(rutaArchivo).getFileName().toString();
@@ -69,7 +125,7 @@ public class DocumentoClienteService {
         documento.setTipoArchivo(archivo.getContentType());
         documento.setTamanioArchivo(archivo.getSize());
         documento.setDescripcion(descripcion);
-        documento.setEstado(DocumentoCliente.EstadoDocumento.PENDIENTE);
+        documento.setEstado(DocumentoCliente.EstadoDocumento.CARGADO); // Documento cargado por el vendedor
         documento.setFechaActualizacion(LocalDateTime.now());
         
         DocumentoCliente saved = repository.save(documento);
@@ -91,11 +147,12 @@ public class DocumentoClienteService {
             fileStorageService.deleteFile(documento.getRutaArchivo());
         }
         
-        // Guardar nuevo archivo usando numeroIdentificacion
+        // Guardar nuevo archivo usando numeroIdentificacion y nombre del tipo de documento
         String rutaArchivo = fileStorageService.storeClientDocument(
             documento.getCliente().getNumeroIdentificacion(), 
             documento.getTipoDocumento().getId(), 
-            archivo
+            archivo,
+            documento.getTipoDocumento().getNombre()
         );
         
         // Extraer el nombre del archivo de la ruta (que ya incluye el nombre único generado)
@@ -107,6 +164,7 @@ public class DocumentoClienteService {
         documento.setTipoArchivo(archivo.getContentType());
         documento.setTamanioArchivo(archivo.getSize());
         documento.setDescripcion(descripcion);
+        documento.setEstado(DocumentoCliente.EstadoDocumento.CARGADO); // Documento cargado por el vendedor
         documento.setUsuarioRevision(usuario);
         documento.setFechaActualizacion(LocalDateTime.now());
         
@@ -167,13 +225,21 @@ public class DocumentoClienteService {
         // Obtener documentos cargados del cliente
         List<DocumentoCliente> documentosCargados = repository.findByClienteId(clienteId);
         
-        // Verificar que todos los tipos obligatorios tengan documentos aprobados
+        // Verificar que todos los tipos obligatorios tengan documentos CARGADOS (excluyendo los reemplazados)
+        // CARGADO = documento subido por el vendedor, listo para verificar completitud
+        // PENDIENTE = documento NO cargado (falta subirlo)
         for (TipoDocumento tipoObligatorio : tiposObligatorios) {
-            boolean tieneDocumentoAprobado = documentosCargados.stream()
-                .anyMatch(doc -> doc.getTipoDocumento().getId().equals(tipoObligatorio.getId()) &&
-                                doc.getEstado() == DocumentoCliente.EstadoDocumento.APROBADO);
+            boolean tieneDocumentoCargado = documentosCargados.stream()
+                .filter(doc -> doc.getEstado() != DocumentoCliente.EstadoDocumento.REEMPLAZADO) // Excluir reemplazados
+                .anyMatch(doc -> {
+                    boolean mismoTipo = doc.getTipoDocumento().getId().equals(tipoObligatorio.getId());
+                    // Solo CARGADO cuenta como válido. PENDIENTE significa que no está cargado.
+                    boolean estadoValido = doc.getEstado() == DocumentoCliente.EstadoDocumento.CARGADO;
+                    return mismoTipo && estadoValido;
+                });
             
-            if (!tieneDocumentoAprobado) {
+            if (!tieneDocumentoCargado) {
+                log.debug("❌ Falta documento obligatorio cargado: {} (ID: {})", tipoObligatorio.getNombre(), tipoObligatorio.getId());
                 return false;
             }
         }

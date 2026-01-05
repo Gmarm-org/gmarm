@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica tu correo electrónico - GMARM</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #4F46E5;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4F46E5;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            color: #1F2937;
+            margin: 20px 0;
+        }
+        .content {
+            margin: 30px 0;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .verify-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background-color: #4F46E5;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .verify-button:hover {
+            background-color: #4338CA;
+        }
+        .info-box {
+            background-color: #F3F4F6;
+            border-left: 4px solid #4F46E5;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E7EB;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+        .warning {
+            background-color: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #92400E;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">GMARM</div>
+            <h1 class="title">Verifica tu correo electrónico</h1>
+        </div>
+
+        <div class="content">
+            <p>Hola <strong th:text="${nombre + ' ' + apellidos}">Cliente</strong>,</p>
+            
+            <p>Gracias por registrarte en nuestro sistema. Por favor, <strong>revisa cuidadosamente</strong> los siguientes datos personales que tenemos registrados:</p>
+
+            <!-- Datos Personales -->
+            <div style="background-color: #F9FAFB; border: 2px solid #E5E7EB; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #1F2937; font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #4F46E5; padding-bottom: 10px;">📋 Tus Datos Personales</h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold; width: 40%;">Nombres:</td>
+                        <td style="padding: 8px 0; color: #1F2937;"><strong th:text="${nombre}">-</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Apellidos:</td>
+                        <td style="padding: 8px 0; color: #1F2937;"><strong th:text="${apellidos}">-</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Tipo de Identificación:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${tipoIdentificacion}">-</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Número de Identificación:</td>
+                        <td style="padding: 8px 0; color: #1F2937;"><strong th:text="${numeroIdentificacion}">-</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Dirección:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${direccion}">-</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Provincia:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${provincia}">-</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Cantón:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${canton}">-</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Fecha de Nacimiento:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${fechaNacimiento}">-</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Teléfono Principal:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${telefonoPrincipal}">-</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #6B7280; font-weight: bold;">Teléfono Secundario:</td>
+                        <td style="padding: 8px 0; color: #1F2937;" th:text="${telefonoSecundario}">-</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px; color: #92400E;">
+                <strong>⚠️ IMPORTANTE:</strong> Si alguno de estos datos es <strong>incorrecto</strong>, por favor haz clic en el botón "Datos Incorrectos" en la página de verificación y comunícate con el vendedor o la persona que gestionó tu compra.
+            </p>
+
+            <!-- Advertencia sobre cuenta en Sicoar (solo si respondió NO) -->
+            <div th:if="${noTieneCuentaSicoar}" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 20px 0; border-radius: 8px; color: #92400E;">
+                <div style="display: flex; align-items: start;">
+                    <div style="flex-shrink: 0; margin-right: 15px;">
+                        <svg style="width: 24px; height: 24px; color: #F59E0B;" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 16px; font-weight: bold; color: #92400E; margin: 0 0 10px 0;">
+                            ⚠️ Advertencia Importante: Cuenta en Sicoar
+                        </h3>
+                        <p style="margin: 0 0 10px 0; color: #92400E; line-height: 1.6;">
+                            <strong>Debe crear una cuenta en el Sicoar</strong> y la dirección registrada en el Sicoar <strong>debe coincidir con su domicilio actual</strong> que aparece en la tabla de datos personales arriba.
+                        </p>
+                        <p style="margin: 0; color: #92400E; line-height: 1.6;">
+                            Esta es una <strong>requisito obligatorio</strong> para continuar con el proceso de importación. Por favor, complete este trámite lo antes posible.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <p>Si todos los datos son correctos, haz clic en el siguiente botón para verificar tu correo electrónico:</p>
+
+            <div class="button-container">
+                <a th:href="${verificationUrl}" class="verify-button">✅ Verificar y Confirmar Datos</a>
+            </div>
+
+            <div class="info-box">
+                <p><strong>¿El botón no funciona?</strong></p>
+                <p>Copia y pega el siguiente enlace en tu navegador:</p>
+                <p style="word-break: break-all; color: #4F46E5; font-size: 12px;" th:text="${verificationUrl}"></p>
+            </div>
+
+            <div class="warning">
+                <p><strong>⚠️ Importante:</strong></p>
+                <p>Este enlace expirará en <strong th:text="${expirationHours}">48</strong> horas. Si no verificas tu correo en ese tiempo, deberás solicitar un nuevo enlace de verificación.</p>
+            </div>
+
+            <p>Si no creaste una cuenta en nuestro sistema, puedes ignorar este correo de forma segura.</p>
+        </div>
+
+        <div class="footer">
+            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+            <p>&copy; 2024 GMARM - Sistema de Gestión de Armas</p>
+        </div>
+    </div>
+</body>
+</html>
+

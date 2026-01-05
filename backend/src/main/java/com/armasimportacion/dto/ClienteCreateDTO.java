@@ -39,4 +39,7 @@ public class ClienteCreateDTO {
     private String estadoMilitar; // "ACTIVO" o "PASIVO"
     private String codigoIssfa; // Código ISSFA para tipos militares
     private String rango; // Rango militar/policial (opcional)
+    
+    // Estado del cliente (opcional, si no se proporciona se usa ACTIVO por defecto)
+    private String estado; // "EN_PROCESO", "ACTIVO", "PENDIENTE_ASIGNACION_CLIENTE", etc.
 }

@@ -23,6 +23,7 @@ interface WeaponReserveProps {
   getWeaponPriceForClient: (weaponId: number, clientId?: string) => number;
   currentClientId?: string;
   isCreatingClient?: boolean;
+  tipoCliente?: string; // Tipo de cliente para filtrar categorías
 }
 
 const WeaponReserve: React.FC<WeaponReserveProps> = ({
@@ -40,7 +41,8 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   onUpdateWeaponQuantity,
   getWeaponPriceForClient,
   currentClientId,
-  isCreatingClient = false
+  isCreatingClient = false,
+  tipoCliente
 }) => {
  
   // Validando estructura de armas recibidas
@@ -50,28 +52,138 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   
   // Obtener IVA dinámicamente desde la BD
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
-
+  
   // Estado local para cantidades por arma
   const [cantidades, setCantidades] = React.useState<Record<number, number>>({});
   const [preciosEnEdicion, setPreciosEnEdicion] = React.useState<Record<number, string>>({});
   
-  // Estado para control de expoferia
-  const [isExpoferiaActiva, setIsExpoferiaActiva] = React.useState<boolean>(false);
+  // Estado para categorías y filtro
+  const [todasLasCategorias, setTodasLasCategorias] = React.useState<Array<{ id: number; nombre: string; codigo: string }>>([]);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = React.useState<string>('TODAS');
+  
+  // Filtrar armas según el tipo de cliente
+  const getTipoClienteActual = (): string | null => {
+    return tipoCliente || 
+           currentClient?.tipoCliente || 
+           reservaParaCliente?.tipoCliente || 
+           clienteParaResumen?.tipoCliente || 
+           null;
+  };
+  
+  const esDeportista = (): boolean => {
+    const tipo = getTipoClienteActual();
+    return tipo === 'Deportista';
+  };
+  
+  // Función para verificar si una categoría está permitida
+  const categoriaPermitida = (categoriaNombre: string | undefined, categoriaCodigo: string | undefined): boolean => {
+    // Si es deportista, todas las categorías están permitidas
+    if (esDeportista()) {
+      return true;
+    }
+    
+    // Para otros tipos, solo permitir: PISTOLA, ESCOPETA, CARABINAS .22
+    if (!categoriaNombre && !categoriaCodigo) {
+      return false; // Sin categoría, no permitir
+    }
+    
+    const nombreUpper = (categoriaNombre || '').toUpperCase();
+    const codigoUpper = (categoriaCodigo || '').toUpperCase();
+    
+    // Permitir PISTOLA (nombre o código)
+    if (nombreUpper.includes('PISTOLA') || codigoUpper === 'PIST' || codigoUpper === 'PISTOLAS') {
+      return true;
+    }
+    
+    // Permitir ESCOPETA (nombre o código)
+    if (nombreUpper.includes('ESCOPETA') || codigoUpper === 'ESCO' || codigoUpper === 'ESCOPETAS') {
+      return true;
+    }
+    
+    // Permitir CARABINAS .22 (nombre o código)
+    if (nombreUpper.includes('CARABINA') && nombreUpper.includes('.22')) {
+      return true;
+    }
+    if (codigoUpper === 'CAR22') {
+      return true;
+    }
+    
+    // No permitir otras categorías (CARABINAS 9MM, RIFLE, etc.)
+    return false;
+  };
+  
+  // Obtener categorías permitidas según el tipo de cliente
+  const categoriasPermitidas = React.useMemo(() => {
+    if (!Array.isArray(todasLasCategorias)) {
+      return [];
+    }
+    
+    if (esDeportista()) {
+      // Deportista: todas las categorías
+      return todasLasCategorias;
+    }
+    
+    // Otros tipos: solo PISTOLA, ESCOPETA, CARABINAS .22
+    return todasLasCategorias.filter(cat => {
+      const nombreUpper = cat.nombre.toUpperCase();
+      const codigoUpper = cat.codigo.toUpperCase();
+      
+      return nombreUpper.includes('PISTOLA') || codigoUpper === 'PIST' || codigoUpper === 'PISTOLAS' ||
+             nombreUpper.includes('ESCOPETA') || codigoUpper === 'ESCO' || codigoUpper === 'ESCOPETAS' ||
+             (nombreUpper.includes('CARABINA') && nombreUpper.includes('.22')) || codigoUpper === 'CAR22';
+    });
+  }, [todasLasCategorias, tipoCliente, currentClient?.tipoCliente, reservaParaCliente?.tipoCliente, clienteParaResumen?.tipoCliente]);
+  
+  // Filtrar armas según la categoría seleccionada en el dropdown
+  const armasFiltradas = React.useMemo(() => {
+    if (!Array.isArray(weapons)) {
+      return [];
+    }
+    
+    // Si no hay tipo de cliente definido, mostrar todas las armas (comportamiento por defecto)
+    const tipo = getTipoClienteActual();
+    let armasPermitidas = weapons;
+    
+    if (tipo) {
+      // Primero filtrar por categorías permitidas según el tipo de cliente
+      armasPermitidas = weapons.filter(weapon => {
+        return categoriaPermitida(weapon.categoriaNombre, weapon.categoriaCodigo);
+      });
+    }
+    
+    // Luego filtrar por la categoría seleccionada en el dropdown
+    if (categoriaSeleccionada === 'TODAS') {
+      return armasPermitidas;
+    }
+    
+    return armasPermitidas.filter(weapon => {
+      const nombreUpper = (weapon.categoriaNombre || '').toUpperCase();
+      const codigoUpper = (weapon.categoriaCodigo || '').toUpperCase();
+      const categoriaSeleccionadaUpper = categoriaSeleccionada.toUpperCase();
+      
+      return nombreUpper.includes(categoriaSeleccionadaUpper) || 
+             codigoUpper === categoriaSeleccionadaUpper ||
+             nombreUpper === categoriaSeleccionadaUpper;
+    });
+  }, [weapons, categoriaSeleccionada, tipoCliente, currentClient?.tipoCliente, reservaParaCliente?.tipoCliente, clienteParaResumen?.tipoCliente]);
 
-  // Cargar estado de expoferia al montar el componente
+  // Cargar categorías al montar el componente
   useEffect(() => {
-    const cargarExpoferiaEstado = async () => {
+    const cargarCategorias = async () => {
       try {
-        const estado = await apiService.getExpoferiaEstado();
-        setIsExpoferiaActiva(estado);
-        console.log('🎯 Estado de Expoferia:', estado ? 'ACTIVA' : 'INACTIVA');
+        const categorias = await apiService.getCategoriasArma();
+        setTodasLasCategorias(categorias.filter((cat: any) => cat.estado).map((cat: any) => ({
+          id: cat.id,
+          nombre: cat.nombre,
+          codigo: cat.codigo
+        })));
       } catch (error) {
-        console.error('Error cargando estado de expoferia:', error);
-        setIsExpoferiaActiva(false);
+        console.error('Error cargando categorías:', error);
+        setTodasLasCategorias([]);
       }
     };
 
-    cargarExpoferiaEstado();
+    cargarCategorias();
   }, []);
 
   // Handler para cantidad
@@ -112,8 +224,9 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
   // Función para formatear el precio para mostrar
   const formatPrecioForDisplay = (precio: number | undefined | null) => {
-    if (precio === undefined || precio === null || precio === 0) return '';
+    if (precio === undefined || precio === null) return '';
     // Mostrar el precio con formato uniforme usando punto como separador decimal
+    // Si es 0, mostrar '0.00' para que el vendedor pueda editarlo
     return precio.toFixed(2);
   };
 
@@ -276,39 +389,43 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
               {/* Grid de Armas */}
               
-              {/* Contador de armas visible */}
-              <div className={`${isExpoferiaActiva ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'} border rounded-xl p-4 mb-6`}>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-                  <div className="flex items-center">
-                    {isExpoferiaActiva ? (
-                      <svg className="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                    <span className={`${isExpoferiaActiva ? 'text-orange-800' : 'text-blue-800'} font-bold`}>
-                      {weapons?.length || 0} modelo{weapons && weapons.length !== 1 ? 's' : ''} disponible{weapons && weapons.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <span className={`${isExpoferiaActiva ? 'text-orange-600' : 'text-blue-600'} text-sm hidden sm:inline`}>•</span>
-                  <span className={`${isExpoferiaActiva ? 'text-orange-700' : 'text-blue-700'} text-sm`}>
-                    {isExpoferiaActiva ? '🎯 Modo EXPOFERIA - Armas piloto con stock limitado' : 'Armas disponibles del catálogo'}
-                  </span>
+              {/* Filtro por categoría */}
+              {categoriasPermitidas.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Filtrar por categoría:
+                  </label>
+                  <select
+                    value={categoriaSeleccionada}
+                    onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+                    className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="TODAS">Todas las categorías</option>
+                    {categoriasPermitidas.map((categoria) => (
+                      <option key={categoria.id} value={categoria.nombre}>
+                        {categoria.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
+              )}
               
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {weapons.map((weapon) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {armasFiltradas.map((weapon) => {
                   const cantidad = cantidades[weapon.id] || 1;
-                  const precioBase = getWeaponPriceForClient(weapon.id, currentClientId);
+                  const precioBaseArma = weapon.precioReferencia || 0; // Precio base del arma desde BD
+                  const precioActual = getWeaponPriceForClient(weapon.id, currentClientId);
                   
-                  // Usar el precio modificado si existe, sino el precio base
+                  // Usar el precio en edición si existe, sino el precio actual, sino 0
                   const precioModificado = preciosEnEdicion[weapon.id] !== undefined 
-                    ? parseFloat(preciosEnEdicion[weapon.id]) || precioBase
-                    : precioBase;
+                    ? (parseFloat(preciosEnEdicion[weapon.id]) || 0)
+                    : (precioActual || 0);
+                  
+                  // Validar si el precio es menor al precio base del arma
+                  const precioIngresado = preciosEnEdicion[weapon.id] !== undefined 
+                    ? (parseFloat(preciosEnEdicion[weapon.id]) || 0)
+                    : precioModificado;
+                  const precioMenorAlBase = precioIngresado > 0 && precioIngresado < precioBaseArma;
                   
                   // Calculando precios con IVA dinámico
                   const subtotal = precioModificado * cantidad;
@@ -353,48 +470,42 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                               <span className="font-semibold text-gray-900">{weapon.capacidad}</span>
                             </div>
                           )}
-                          {/* Información de stock - SOLO EN MODO EXPOFERIA */}
-                          {isExpoferiaActiva && weapon.cantidadTotal !== undefined && weapon.cantidadDisponible !== undefined && (
-                            <div className="flex justify-between items-center bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-                              <span className="text-green-700 font-medium flex items-center">
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                </svg>
-                                Stock:
-                              </span>
-                              <span className={`font-bold text-lg ${weapon.cantidadDisponible > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {weapon.cantidadDisponible} / {weapon.cantidadTotal}
-                              </span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Sección de Precio */}
                         <div className="bg-gray-50 rounded-xl p-4 mb-4">
                           <div className="space-y-3">
                             {/* Precio Base */}
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-semibold text-gray-700">Precio Base:</label>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-gray-500">$</span>
-                                <input
-                                  type="text"
-                                  value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(precioModificado)}
-                                  onChange={e => handlePrecioChange(weapon.id, e.target.value)}
-                                  onBlur={e => {
-                                    const value = parseFloat(e.target.value) || precioBase;
-                                    onUpdateWeaponPrice(weapon.id, value);
-                                    setPreciosEnEdicion(prev => {
-                                      const newState = { ...prev };
-                                      delete newState[weapon.id];
-                                      return newState;
-                                    });
-                                  }}
-                                  placeholder="0.00"
-                                  className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-red-500"
-                                  inputMode="decimal"
-                                />
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-sm font-semibold text-gray-700">Precio Base:</label>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-gray-500">$</span>
+                                  <input
+                                    type="text"
+                                    value={preciosEnEdicion[weapon.id] !== undefined ? preciosEnEdicion[weapon.id] : formatPrecioForDisplay(precioModificado)}
+                                    onChange={e => handlePrecioChange(weapon.id, e.target.value)}
+                                    onBlur={e => {
+                                      const value = parseFloat(e.target.value) || 0;
+                                      onUpdateWeaponPrice(weapon.id, value);
+                                      setPreciosEnEdicion(prev => {
+                                        const newState = { ...prev };
+                                        delete newState[weapon.id];
+                                        return newState;
+                                      });
+                                    }}
+                                    placeholder="0.00"
+                                    className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-red-500"
+                                    inputMode="decimal"
+                                  />
+                                </div>
                               </div>
+                              {/* Advertencia si el precio es menor al precio base */}
+                              {precioMenorAlBase && precioBaseArma > 0 && (
+                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 rounded text-xs text-yellow-800">
+                                  <p className="font-medium">⚠️ No se permite un precio menor a ${precioBaseArma.toFixed(2)} USD</p>
+                                </div>
+                              )}
                             </div>
 
                             {/* Cantidad para empresas */}
@@ -448,21 +559,49 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
               </div>
 
               {/* Botón Confirmar */}
-              {(clienteParaResumen || (!currentClient && !reservaParaCliente)) && (
-                <div className="flex justify-center">
-                  <button 
-                    onClick={onConfirmData}
-                    disabled={!armaSeleccionadaEnReserva}
-                    className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
-                      armaSeleccionadaEnReserva
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {armaSeleccionadaEnReserva ? '✓ Confirmar Selección' : 'Selecciona un arma para continuar'}
-                  </button>
-                </div>
-              )}
+              {(clienteParaResumen || (!currentClient && !reservaParaCliente)) && (() => {
+                // Validar si el precio del arma seleccionada es válido
+                let precioValido = true;
+                let mensajeDeshabilitado = 'Selecciona un arma para continuar';
+                
+                if (armaSeleccionadaEnReserva) {
+                  const precioArmaSeleccionada = getWeaponPriceForClient(armaSeleccionadaEnReserva.id, currentClientId);
+                  const precioBaseArma = armaSeleccionadaEnReserva.precioReferencia || 0;
+                  
+                  // Verificar si hay un precio en edición para esta arma
+                  const precioEnEdicion = preciosEnEdicion[armaSeleccionadaEnReserva.id];
+                  const precioFinal = precioEnEdicion !== undefined 
+                    ? (parseFloat(precioEnEdicion) || 0)
+                    : precioArmaSeleccionada;
+                  
+                  // El precio debe ser mayor o igual al precio base, y mayor que 0
+                  if (precioFinal <= 0) {
+                    precioValido = false;
+                    mensajeDeshabilitado = 'Ingresa un precio válido';
+                  } else if (precioBaseArma > 0 && precioFinal < precioBaseArma) {
+                    precioValido = false;
+                    mensajeDeshabilitado = `El precio debe ser mayor o igual a $${precioBaseArma.toFixed(2)} USD`;
+                  }
+                }
+                
+                const puedeConfirmar = armaSeleccionadaEnReserva && precioValido;
+                
+                return (
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={onConfirmData}
+                      disabled={!puedeConfirmar}
+                      className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                        puedeConfirmar
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {puedeConfirmar ? '✓ Confirmar Selección' : mensajeDeshabilitado}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

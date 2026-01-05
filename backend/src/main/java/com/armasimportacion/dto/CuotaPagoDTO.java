@@ -22,6 +22,9 @@ public class CuotaPagoDTO {
     private EstadoCuotaPago estado;
     private LocalDateTime fechaPago;
     private String referenciaPago;
+    private String numeroRecibo;
+    private String comprobanteArchivo;
+    private String observaciones;
     private Long usuarioConfirmadorId;
     private String usuarioConfirmadorNombre;
     private LocalDateTime fechaCreacion;

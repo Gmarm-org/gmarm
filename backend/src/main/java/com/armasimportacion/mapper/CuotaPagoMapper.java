@@ -28,6 +28,9 @@ public class CuotaPagoMapper {
         dto.setEstado(cuotaPago.getEstado());
         dto.setFechaPago(cuotaPago.getFechaPago());
         dto.setReferenciaPago(cuotaPago.getReferenciaPago());
+        dto.setNumeroRecibo(cuotaPago.getNumeroRecibo());
+        dto.setComprobanteArchivo(cuotaPago.getComprobanteArchivo());
+        dto.setObservaciones(cuotaPago.getObservaciones());
         dto.setUsuarioConfirmadorId(cuotaPago.getUsuarioConfirmador() != null ? 
             cuotaPago.getUsuarioConfirmador().getId() : null);
         dto.setUsuarioConfirmadorNombre(cuotaPago.getUsuarioConfirmador() != null ? 
@@ -61,6 +64,9 @@ public class CuotaPagoMapper {
         cuotaPago.setEstado(dto.getEstado());
         cuotaPago.setFechaPago(dto.getFechaPago());
         cuotaPago.setReferenciaPago(dto.getReferenciaPago());
+        cuotaPago.setNumeroRecibo(dto.getNumeroRecibo());
+        cuotaPago.setComprobanteArchivo(dto.getComprobanteArchivo());
+        cuotaPago.setObservaciones(dto.getObservaciones());
         cuotaPago.setFechaCreacion(dto.getFechaCreacion());
         cuotaPago.setFechaActualizacion(dto.getFechaActualizacion());
         

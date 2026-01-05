@@ -129,4 +129,12 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     
     @Query("SELECT COUNT(c) FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.procesoCompletado = false")
     Long countByUsuarioCreadorAndProcesoCompletadoFalse(@Param("usuarioId") Long usuarioId);
+    
+    // Buscar cliente fantasma del vendedor (para armas sin cliente)
+    @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado = :estado ORDER BY c.fechaCreacion ASC")
+    List<Cliente> findByUsuarioCreadorIdAndEstado(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
+    
+    // Buscar el primer cliente fantasma del vendedor (el más antiguo)
+    @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado = :estado ORDER BY c.fechaCreacion ASC")
+    Optional<Cliente> findFirstByUsuarioCreadorIdAndEstadoOrderByFechaCreacionAsc(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
 } 

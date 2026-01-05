@@ -10,11 +10,22 @@ export const useVendedorUtils = (
   clientWeaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>
 ) => {
   // Función para determinar el estado del cliente
+  // NOTA: El estado ahora viene calculado del backend de manera consistente
+  // Esta función solo se usa como fallback si el estado no viene del backend
   const getClientStatus = useCallback((client: Client) => {
+    // Si el estado viene del backend, usarlo directamente
     if (client.estado) {
+      // Mapear estados del backend a estados del frontend si es necesario
+      if (client.estado === 'PENDIENTE_DOCUMENTOS') {
+        return 'PENDIENTE_DOCUMENTOS';
+      }
+      if (client.estado === 'EN_PROCESO') {
+        return 'EN_PROCESO';
+      }
       return client.estado;
     }
     
+    // Fallback: calcular estado localmente si no viene del backend
     if (clientesBloqueados[client.id]?.bloqueado) {
       return 'BLOQUEADO';
     }
@@ -23,7 +34,7 @@ export const useVendedorUtils = (
     const uploadedDocuments = client.documentos?.filter(doc => doc.status === 'approved') || [];
     
     if (requiredDocuments.length > 0 && uploadedDocuments.length < requiredDocuments.length) {
-      return 'FALTAN_DOCUMENTOS';
+      return 'PENDIENTE_DOCUMENTOS';
     }
     
     const hasWeapon = clientWeaponAssignments[client.id];
@@ -31,17 +42,29 @@ export const useVendedorUtils = (
       return 'LISTO_IMPORTACION';
     }
     
-    return 'FALTAN_DOCUMENTOS';
+    return 'PENDIENTE_DOCUMENTOS';
   }, [clientesBloqueados, clientWeaponAssignments]);
 
   // Función para obtener el color del estado
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'BLOQUEADO':
+      case 'RECHAZADO':
+      case 'CANCELADO':
+      case 'INHABILITADO_COMPRA':
         return 'bg-red-100 text-red-800';
       case 'FALTAN_DOCUMENTOS':
+      case 'PENDIENTE_DOCUMENTOS':
         return 'bg-yellow-100 text-yellow-800';
+      case 'EN_PROCESO':
+      case 'ACTIVO': // ACTIVO se mapea al mismo color que EN_PROCESO
+      case 'PENDIENTE_ASIGNACION_CLIENTE':
+      case 'CONTRATO_ENVIADO':
+        return 'bg-blue-100 text-blue-800';
       case 'LISTO_IMPORTACION':
+      case 'APROBADO':
+      case 'PROCESO_COMPLETADO':
+      case 'CONTRATO_FIRMADO':
         return 'bg-green-100 text-green-800';
       case 'INACTIVO':
         return 'bg-gray-100 text-gray-800';
@@ -56,17 +79,37 @@ export const useVendedorUtils = (
       case 'BLOQUEADO':
         return 'Bloqueado';
       case 'FALTAN_DOCUMENTOS':
-        return 'Faltan documentos';
       case 'PENDIENTE_DOCUMENTOS':
-        return 'Pendiente de documentos';
+        return 'Faltan documentos';
+      case 'EN_PROCESO':
+        return 'En proceso';
+      case 'ACTIVO':
+        // ACTIVO es un estado interno, debe convertirse a estado descriptivo
+        // Si viene ACTIVO del backend, significa que el estado calculado no se aplicó
+        // Por ahora, mapearlo a "En proceso" hasta que se calcule correctamente
+        return 'En proceso';
       case 'PROCESO_COMPLETADO':
         return 'Proceso completado';
       case 'LISTO_IMPORTACION':
         return 'Listo para importación';
       case 'INACTIVO':
         return 'Inactivo';
+      case 'PENDIENTE_ASIGNACION_CLIENTE':
+        return 'Pendiente asignación cliente';
+      case 'RECHAZADO':
+        return 'Rechazado';
+      case 'CANCELADO':
+        return 'Cancelado';
+      case 'INHABILITADO_COMPRA':
+        return 'Inhabilitado para compra';
+      case 'APROBADO':
+        return 'Aprobado';
+      case 'CONTRATO_ENVIADO':
+        return 'Contrato enviado';
+      case 'CONTRATO_FIRMADO':
+        return 'Contrato firmado';
       default:
-        return 'Faltan documentos';
+        return status || 'Faltan documentos';
     }
   }, []);
 

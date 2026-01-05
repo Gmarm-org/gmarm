@@ -69,4 +69,8 @@ public interface GrupoImportacionRepository extends JpaRepository<GrupoImportaci
     // Generar código único
     @Query("SELECT COUNT(gi) FROM GrupoImportacion gi WHERE gi.codigo LIKE :prefijo%")
     Long countByCodigoPrefijo(@Param("prefijo") String prefijo);
+    
+    // Búsquedas por TRA
+    Optional<GrupoImportacion> findByTra(String tra);
+    boolean existsByTra(String tra);
 } 

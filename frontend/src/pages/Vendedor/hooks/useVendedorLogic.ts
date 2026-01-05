@@ -212,6 +212,7 @@ export const useVendedorLogic = () => {
     handleBackToWeaponSelection: handlers.handleBackToWeaponSelection,
     handleViewClient: handlers.handleViewClient,
     handleEditClient: handlers.handleEditClient,
+    handleValidarDatosPersonales: handlers.handleValidarDatosPersonales,
     handleFilterByType: handlers.handleFilterByType,
     clearFilter: handlers.clearFilter,
     handlePriceChangeWrapper: handlers.handlePriceChangeWrapper,

@@ -45,6 +45,9 @@ public class Cliente {
     @Column(name = "email", length = 100)
     private String email;
 
+    @Column(name = "email_verificado", nullable = true)
+    private Boolean emailVerificado; // null = Pendiente, true = Validado, false = Datos incorrectos
+
     @Column(name = "telefono_principal", length = 20)
     private String telefonoPrincipal;
 

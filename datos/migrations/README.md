@@ -1,89 +1,51 @@
 # Scripts de Migración de Base de Datos
 
-Este directorio contiene scripts de migración SQL para aplicar cambios al esquema de la base de datos en producción.
+Este directorio contiene documentación y planes de ejecución para migraciones de base de datos.
 
-## ⚠️ IMPORTANTE
+## ⚠️ IMPORTANTE - CAMBIO DE ESTRATEGIA
 
-**Estos scripts son para PRODUCCIÓN**. El archivo `00_gmarm_completo.sql` sigue siendo la fuente única de verdad para nuevas instalaciones, pero los cambios en producción deben aplicarse mediante estos scripts de migración.
+**Todos los scripts de migración (001, 002, 003, 004) han sido consolidados en el script maestro `00_gmarm_completo.sql`.**
 
-## Uso
+### Nueva Estrategia
 
-### ⚡ Aplicación Automática (Recomendado)
+- **Para nuevas instalaciones:** Usar `datos/00_gmarm_completo.sql` (script maestro completo)
+- **Para reseteo de producción:** Usar `datos/00_gmarm_completo.sql` (incluye limpieza de tablas obsoletas)
+- **Scripts de migración individuales:** Ya no existen, todo está en el script maestro
 
-**Las migraciones se ejecutan automáticamente** durante el despliegue a producción usando el script `scripts/deploy-prod.sh`.
+## Script Maestro
 
-El script:
-1. ✅ Busca todos los archivos `.sql` en `datos/migrations/`
-2. ✅ Los ejecuta en orden numérico (001, 002, 003, etc.)
-3. ✅ Continúa aunque una migración ya haya sido ejecutada (idempotencia)
+El archivo `datos/00_gmarm_completo.sql` es ahora la **única fuente de verdad** y contiene:
 
-**No necesitas ejecutar migraciones manualmente si usas el script de deploy.**
+- ✅ Limpieza de tablas obsoletas (DROP TABLE IF EXISTS)
+- ✅ Creación completa del esquema de base de datos
+- ✅ Todos los datos iniciales
+- ✅ Todas las migraciones consolidadas (001, 002, 003, 004)
+- ✅ Configuraciones del sistema
+- ✅ Es idempotente (se puede ejecutar múltiples veces)
 
-### 🔧 Aplicación Manual (Solo si es necesario)
-
-Si necesitas aplicar una migración manualmente (por ejemplo, fuera del proceso de deploy):
+### Uso del Script Maestro
 
 ```bash
-# Conectarse a la base de datos de producción
-psql -U postgres -d gmarm_prod -f datos/migrations/001_modulo_operaciones_grupos_importacion.sql
+# Para nueva instalación o reset completo
+psql -U postgres -d gmarm_prod -f datos/00_gmarm_completo.sql
 
 # O desde Docker
-docker exec -i gmarm-postgres-prod psql -U postgres -d gmarm_prod < datos/migrations/001_modulo_operaciones_grupos_importacion.sql
+docker exec -i gmarm-postgres-prod psql -U postgres -d gmarm_prod < datos/00_gmarm_completo.sql
 ```
 
-### Verificar migración
+## Archivos en este Directorio
 
-```sql
--- Verificar que las columnas existen
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name = 'tipo_documento' 
-AND column_name = 'grupos_importacion';
+- `README.md` - Este archivo (documentación actualizada)
+- `003_PLAN_EJECUCION_PRODUCCION.md` - Plan de ejecución para migración específica (referencia histórica)
 
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name = 'grupo_importacion' 
-AND column_name = 'numero_previa_importacion';
+## Migraciones Consolidadas
 
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name = 'documento_grupo_importacion' 
-AND column_name = 'tipo_documento_id';
+Las siguientes migraciones fueron consolidadas en el script maestro:
 
--- Verificar tipos de documento creados
-SELECT nombre, grupos_importacion 
-FROM tipo_documento 
-WHERE grupos_importacion = true;
-```
+1. **001 - Módulo de Operaciones:** Soporte para documentos de grupos de importación
+2. **002 - Documentos Finales:** Resolución para migrar serie y Guía de libre tránsito
+3. **003 - Eliminaciones:** Eliminación de "Formulario de solicitud" y pregunta Sicoar, actualización documentos Deportista
+4. **004 - Verificación Email:** Tabla y columna para verificación de correo electrónico
 
-## Convenciones de Nomenclatura
-
-- `001_<descripcion>.sql` - Primera migración
-- `002_<descripcion>.sql` - Segunda migración
-- etc.
-
-## Características de los Scripts
-
-Todos los scripts de migración deben:
-
-1. ✅ Ser **idempotentes** (pueden ejecutarse múltiples veces sin errores)
-2. ✅ Usar `DO $$ ... END $$` para verificaciones condicionales
-3. ✅ Incluir comentarios descriptivos
-4. ✅ Verificar existencia antes de crear/modificar
-5. ✅ Incluir verificaciones post-migración
-6. ✅ No eliminar datos existentes sin verificación explícita
-
-## Orden de Ejecución
-
-Las migraciones deben ejecutarse en orden numérico:
-
-1. `001_modulo_operaciones_grupos_importacion.sql`
-2. `002_<siguiente>.sql`
-3. etc.
-
-## Rollback
-
-Si necesitas revertir una migración, crea un script de rollback con el mismo número pero sufijo `_rollback`:
-
-- `001_modulo_operaciones_grupos_importacion_rollback.sql`
+Todas estas migraciones están ahora integradas en `00_gmarm_completo.sql` y se aplican automáticamente al ejecutar el script maestro.
 

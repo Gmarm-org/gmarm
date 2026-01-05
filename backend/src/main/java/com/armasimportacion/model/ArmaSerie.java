@@ -57,6 +57,16 @@ public class ArmaSerie {
     @Column(name = "lote", length = 50)
     private String lote;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grupo_importacion_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private com.armasimportacion.model.GrupoImportacion grupoImportacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "licencia_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private com.armasimportacion.model.Licencia licencia;
+
     @Column(name = "observaciones", columnDefinition = "TEXT")
     private String observaciones;
 

@@ -59,8 +59,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Endpoints públicos
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/logout").permitAll() // Logout puede ser público (solo confirma)
                 .requestMatchers("/api/auth/me").permitAll()
                 .requestMatchers("/api/health/**").permitAll()
+                .requestMatchers("/api/verification/**").permitAll() // Verificación de correo (público)
                 .requestMatchers("/api/tipo-cliente/**").permitAll()
                 .requestMatchers("/api/tipos-cliente/**").permitAll()
                 .requestMatchers("/api/tipo-identificacion/**").permitAll()
@@ -149,7 +151,7 @@ public class SecurityConfig {
             }
             configuration.setAllowedMethods(Arrays.asList(methods));
         } else {
-            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
         }
         
         // Obtener headers permitidos desde variables de entorno

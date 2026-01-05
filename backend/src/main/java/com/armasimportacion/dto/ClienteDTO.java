@@ -61,6 +61,19 @@ public class ClienteDTO {
     private String motivoRechazo;
     private LocalDateTime fechaRechazo;
     
+    // Verificación de email
+    private Boolean emailVerificado;
+    
+    // Estado de pago
+    private String estadoPago; // IMPAGO, ABONADO, PAGO_COMPLETO
+    
+    // Grupo de importación
+    private String grupoImportacionNombre; // Nombre del grupo de importación activo al que está asignado
+    
+    // Licencia del grupo de importación
+    private String licenciaNombre; // Nombre de la licencia del grupo de importación
+    private String licenciaNumero; // Número de la licencia del grupo de importación
+    
     // Información de catálogos (solo IDs y nombres)
     private Long tipoIdentificacionId;
     private String tipoIdentificacionNombre;

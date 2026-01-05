@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -70,6 +71,34 @@ public class GrupoImportacionDTO {
     private Integer cupoTotal;
     private Integer cupoDisponible;
     private String observaciones;
+    
+    // Nuevos campos
+    private String tipoGrupo; // CUPO o JUSTIFICATIVO
+    private String tra; // TRA-XXXXXXXXXX
+    private List<VendedorDTO> vendedores; // Vendedores asignados
+    private List<LimiteCategoriaDTO> limitesCategoria; // Límites por categoría
+    private Map<Long, Integer> cuposDisponiblesPorCategoria; // Cupos disponibles por categoría (solo para tipo CUPO)
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VendedorDTO {
+        private Long id;
+        private String nombres;
+        private String apellidos;
+        private String email;
+        private Integer limiteArmas; // Límite de armas para este vendedor en el grupo
+    }
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LimiteCategoriaDTO {
+        private Long categoriaArmaId;
+        private String categoriaArmaNombre;
+        private String categoriaArmaCodigo;
+        private Integer limiteMaximo;
+    }
     
     // Métodos de utilidad
     public boolean estaActivo() {

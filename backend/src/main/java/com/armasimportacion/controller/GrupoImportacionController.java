@@ -38,6 +38,7 @@ public class GrupoImportacionController {
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
     private final DocumentoClienteService documentoClienteService;
+    private final com.armasimportacion.service.CategoriaArmaService categoriaArmaService;
 
     /**
      * Obtiene el usuario actual desde el token JWT
@@ -160,6 +161,55 @@ public class GrupoImportacionController {
             } catch (Exception e) {
                 log.warn("⚠️ No se pudieron cargar los documentos generados para el grupo {}: {}", id, e.getMessage());
                 grupoDTO.put("documentosGenerados", new java.util.ArrayList<>());
+            }
+            
+            // Calcular cupos disponibles por categoría (solo para tipo CUPO)
+            if ("CUPO".equals(grupo.getTipoGrupo())) {
+                Map<Long, Integer> cuposDisponibles = grupoImportacionService.calcularCuposDisponiblesPorCategoria(id);
+                grupoDTO.put("cuposDisponiblesPorCategoria", cuposDisponibles);
+                
+                // Calcular cupo total disponible
+                Integer cupoTotalDisponible = grupoImportacionService.calcularCupoTotalDisponible(id);
+                grupoDTO.put("cupoTotalDisponible", cupoTotalDisponible);
+            }
+            
+            // Agregar tipo de grupo y TRA
+            grupoDTO.put("tipoGrupo", grupo.getTipoGrupo());
+            grupoDTO.put("tra", grupo.getTra());
+            
+            // Agregar vendedores asignados con sus límites
+            if (grupo.getVendedores() != null && !grupo.getVendedores().isEmpty()) {
+                List<Map<String, Object>> vendedoresDTO = grupo.getVendedores().stream()
+                    .map(gv -> {
+                        Map<String, Object> vendedorMap = new HashMap<>();
+                        vendedorMap.put("id", gv.getVendedor().getId());
+                        vendedorMap.put("nombres", gv.getVendedor().getNombres());
+                        vendedorMap.put("apellidos", gv.getVendedor().getApellidos());
+                        vendedorMap.put("email", gv.getVendedor().getEmail());
+                        vendedorMap.put("limiteArmas", gv.getLimiteArmas() != null ? gv.getLimiteArmas() : 0);
+                        return vendedorMap;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+                grupoDTO.put("vendedores", vendedoresDTO);
+            } else {
+                grupoDTO.put("vendedores", new java.util.ArrayList<>());
+            }
+            
+            // Agregar límites por categoría
+            if (grupo.getLimitesCategoria() != null && !grupo.getLimitesCategoria().isEmpty()) {
+                List<Map<String, Object>> limitesDTO = grupo.getLimitesCategoria().stream()
+                    .map(gl -> {
+                        Map<String, Object> limiteMap = new HashMap<>();
+                        limiteMap.put("categoriaArmaId", gl.getCategoriaArma().getId());
+                        limiteMap.put("categoriaArmaNombre", gl.getCategoriaArma().getNombre());
+                        limiteMap.put("categoriaArmaCodigo", gl.getCategoriaArma().getCodigo());
+                        limiteMap.put("limiteMaximo", gl.getLimiteMaximo());
+                        return limiteMap;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+                grupoDTO.put("limitesCategoria", limitesDTO);
+            } else {
+                grupoDTO.put("limitesCategoria", new java.util.ArrayList<>());
             }
             
             return ResponseEntity.ok(grupoDTO);
@@ -293,13 +343,15 @@ public class GrupoImportacionController {
      */
     @GetMapping("/clientes-disponibles")
     @Operation(summary = "Obtener clientes disponibles", 
-               description = "Retorna los clientes que no están asignados a ningún grupo de importación activo")
-    public ResponseEntity<List<Map<String, Object>>> obtenerClientesDisponibles() {
+               description = "Retorna los clientes que no están asignados a ningún grupo de importación activo. Si se proporciona grupoId, filtra por compatibilidad con el tipo de grupo (CUPO/JUSTIFICATIVO).")
+    public ResponseEntity<List<Map<String, Object>>> obtenerClientesDisponibles(
+            @RequestParam(required = false) Long grupoId) {
         try {
-            log.info("🔍 Obteniendo clientes disponibles para asignar a grupos");
+            log.info("🔍 Obteniendo clientes disponibles para asignar a grupos{}", 
+                    grupoId != null ? " (grupo ID: " + grupoId + ")" : "");
             
             List<com.armasimportacion.model.Cliente> clientes = 
-                grupoImportacionService.obtenerClientesDisponibles();
+                grupoImportacionService.obtenerClientesDisponibles(grupoId);
             
             List<Map<String, Object>> clientesDTO = clientes.stream().map(cliente -> {
                 Map<String, Object> clienteMap = new HashMap<>();
@@ -447,6 +499,71 @@ public class GrupoImportacionController {
     }
 
     /**
+     * Obtiene todos los vendedores activos (usuarios con rol VENDOR)
+     */
+    @GetMapping("/vendedores")
+    @Operation(summary = "Obtener vendedores", 
+               description = "Obtiene la lista de todos los vendedores activos para asignar a grupos")
+    public ResponseEntity<List<Map<String, Object>>> obtenerVendedores() {
+        try {
+            log.info("👥 Obteniendo lista de vendedores");
+            
+            List<com.armasimportacion.model.Usuario> vendedores = usuarioService.findByRol("Vendedor");
+            
+            List<Map<String, Object>> vendedoresDTO = vendedores.stream()
+                .map(v -> {
+                    Map<String, Object> vendedorMap = new HashMap<>();
+                    vendedorMap.put("id", v.getId());
+                    vendedorMap.put("nombres", v.getNombres());
+                    vendedorMap.put("apellidos", v.getApellidos());
+                    vendedorMap.put("email", v.getEmail());
+                    vendedorMap.put("nombreCompleto", v.getNombres() + " " + v.getApellidos());
+                    return vendedorMap;
+                })
+                .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(vendedoresDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo vendedores: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
+        }
+    }
+    
+    /**
+     * Obtiene todas las categorías de armas
+     */
+    @GetMapping("/categorias-armas")
+    @Operation(summary = "Obtener categorías de armas", 
+               description = "Obtiene la lista de todas las categorías de armas para configurar límites")
+    public ResponseEntity<List<Map<String, Object>>> obtenerCategoriasArmas() {
+        try {
+            log.info("🔫 Obteniendo lista de categorías de armas");
+            
+            List<com.armasimportacion.model.CategoriaArma> categorias = categoriaArmaService.getAllCategorias();
+            
+            List<Map<String, Object>> categoriasDTO = categorias.stream()
+                .map(c -> {
+                    Map<String, Object> categoriaMap = new HashMap<>();
+                    categoriaMap.put("id", c.getId());
+                    categoriaMap.put("nombre", c.getNombre());
+                    categoriaMap.put("codigo", c.getCodigo());
+                    categoriaMap.put("descripcion", c.getDescripcion());
+                    return categoriaMap;
+                })
+                .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(categoriasDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo categorías de armas: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
+        }
+    }
+
+    /**
      * Crea un nuevo grupo de importación
      */
     @PostMapping
@@ -466,11 +583,47 @@ public class GrupoImportacionController {
             response.put("id", grupo.getId());
             response.put("nombre", grupo.getNombre());
             response.put("codigo", grupo.getCodigo());
+            response.put("tra", grupo.getTra());
+            response.put("tipoGrupo", grupo.getTipoGrupo());
             response.put("message", "Grupo de importación creado exitosamente");
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             log.error("❌ Error creando grupo de importación: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+    
+    /**
+     * Actualiza un grupo de importación (editar vendedores y límites)
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar grupo de importación", 
+               description = "Actualiza un grupo de importación, permitiendo modificar vendedores y límites por categoría")
+    public ResponseEntity<Map<String, Object>> actualizarGrupo(
+            @PathVariable @NotNull @Positive Long id,
+            @Valid @RequestBody GrupoImportacionCreateDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            log.info("✏️ Actualizando grupo de importación ID: {}", id);
+            
+            Long usuarioId = obtenerUsuarioId(authHeader);
+            com.armasimportacion.model.GrupoImportacion grupo = 
+                grupoImportacionService.actualizarGrupoDesdeDTO(id, dto, usuarioId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", grupo.getId());
+            response.put("nombre", grupo.getNombre());
+            response.put("codigo", grupo.getCodigo());
+            response.put("tra", grupo.getTra());
+            response.put("tipoGrupo", grupo.getTipoGrupo());
+            response.put("message", "Grupo de importación actualizado exitosamente");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Error actualizando grupo de importación ID {}: {}", id, e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);

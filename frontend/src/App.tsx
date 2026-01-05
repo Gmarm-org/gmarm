@@ -21,6 +21,7 @@ import AdminRoutes from './pages/Admin/AdminRoutes';
 // import LicenseManagementPage from './pages/Admin/LicenseManagementPage';
 import Usuario from './pages/Usuario/Usuario';
 import Profile from './pages/Profile/Profile';
+import VerifyPage from './pages/Verify/VerifyPage';
 // import ClientManagementPage from './pages/JefeVentas/ClientManagementPage';
 
 const App = React.memo(() => {
@@ -33,6 +34,7 @@ const App = React.memo(() => {
             {/* Rutas públicas */}
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/verify" element={<VerifyPage />} />
             
             {/* Rutas protegidas */}
             <Route 

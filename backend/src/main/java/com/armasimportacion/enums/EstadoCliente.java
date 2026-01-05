@@ -13,11 +13,13 @@ public enum EstadoCliente {
     APROBADO("Aprobado"),
     RECHAZADO("Rechazado"),
     PENDIENTE_DOCUMENTOS("Pendiente de documentos"),
+    PENDIENTE_ASIGNACION_CLIENTE("Pendiente asignación cliente"),
     LISTO_IMPORTACION("Listo para importación"),
     CONTRATO_ENVIADO("Contrato enviado"),
     CONTRATO_FIRMADO("Contrato firmado recibido"),
     PROCESO_COMPLETADO("Proceso completado"),
-    CANCELADO("Cancelado");
+    CANCELADO("Cancelado"),
+    DESISTIMIENTO("Desistimiento");
     
     private final String descripcion;
     

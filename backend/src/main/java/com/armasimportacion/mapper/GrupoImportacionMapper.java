@@ -15,7 +15,7 @@ public class GrupoImportacionMapper {
             return null;
         }
 
-        return GrupoImportacionDTO.builder()
+        GrupoImportacionDTO.GrupoImportacionDTOBuilder builder = GrupoImportacionDTO.builder()
                 .id(grupoImportacion.getId())
                 .nombre(grupoImportacion.getNombre())
                 .descripcion(grupoImportacion.getDescripcion())
@@ -25,7 +25,43 @@ public class GrupoImportacionMapper {
                 .usuarioCreadorId(grupoImportacion.getUsuarioCreador() != null ? grupoImportacion.getUsuarioCreador().getId() : null)
                 .usuarioCreadorNombre(grupoImportacion.getUsuarioCreador() != null ? 
                     grupoImportacion.getUsuarioCreador().getNombres() + " " + grupoImportacion.getUsuarioCreador().getApellidos() : null)
-                .build();
+                .codigo(grupoImportacion.getCodigo())
+                .fechaInicio(grupoImportacion.getFechaInicio())
+                .fechaFin(grupoImportacion.getFechaFin())
+                .cupoTotal(grupoImportacion.getCupoTotal())
+                .cupoDisponible(grupoImportacion.getCupoDisponible())
+                .observaciones(grupoImportacion.getObservaciones())
+                .tipoGrupo(grupoImportacion.getTipoGrupo())
+                .tra(grupoImportacion.getTra());
+        
+        // Mapear vendedores
+        if (grupoImportacion.getVendedores() != null && !grupoImportacion.getVendedores().isEmpty()) {
+            List<GrupoImportacionDTO.VendedorDTO> vendedoresDTO = grupoImportacion.getVendedores().stream()
+                .map(gv -> new GrupoImportacionDTO.VendedorDTO(
+                    gv.getVendedor().getId(),
+                    gv.getVendedor().getNombres(),
+                    gv.getVendedor().getApellidos(),
+                    gv.getVendedor().getEmail(),
+                    gv.getLimiteArmas() != null ? gv.getLimiteArmas() : 0
+                ))
+                .collect(Collectors.toList());
+            builder.vendedores(vendedoresDTO);
+        }
+        
+        // Mapear límites por categoría
+        if (grupoImportacion.getLimitesCategoria() != null && !grupoImportacion.getLimitesCategoria().isEmpty()) {
+            List<GrupoImportacionDTO.LimiteCategoriaDTO> limitesDTO = grupoImportacion.getLimitesCategoria().stream()
+                .map(gl -> new GrupoImportacionDTO.LimiteCategoriaDTO(
+                    gl.getCategoriaArma().getId(),
+                    gl.getCategoriaArma().getNombre(),
+                    gl.getCategoriaArma().getCodigo(),
+                    gl.getLimiteMaximo()
+                ))
+                .collect(Collectors.toList());
+            builder.limitesCategoria(limitesDTO);
+        }
+        
+        return builder.build();
     }
 
     public List<GrupoImportacionDTO> toDTOList(List<GrupoImportacion> gruposImportacion) {

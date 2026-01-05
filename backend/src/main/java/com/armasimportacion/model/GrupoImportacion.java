@@ -56,6 +56,12 @@ public class GrupoImportacion {
     @JoinColumn(name = "tipo_proceso_id", nullable = true)
     private TipoProceso tipoProceso; // Opcional: los grupos pueden tener cualquier tipo de cliente
 
+    @Column(name = "tipo_grupo", nullable = false, length = 20)
+    private String tipoGrupo = "CUPO"; // CUPO o JUSTIFICATIVO
+
+    @Column(name = "tra", unique = true, length = 20)
+    private String tra; // TRA-XXXXXXXXXX
+
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fechaInicio;
 
@@ -122,4 +128,10 @@ public class GrupoImportacion {
 
     @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DocumentoGenerado> documentosGenerados = new ArrayList<>();
+
+    @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<GrupoImportacionVendedor> vendedores = new ArrayList<>();
+
+    @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<GrupoImportacionLimiteCategoria> limitesCategoria = new ArrayList<>();
 } 

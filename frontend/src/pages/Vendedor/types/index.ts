@@ -54,8 +54,13 @@ export interface Client {
   canton?: string;
   vendedorId?: string; // ID del vendedor que creó el cliente
   
-  // Estado del cliente
-  estado?: 'FALTAN_DOCUMENTOS' | 'BLOQUEADO' | 'LISTO_IMPORTACION' | 'INACTIVO';
+  // Estado del cliente (calculado de manera consistente en el backend)
+  estado?: 'ACTIVO' | 'FALTAN_DOCUMENTOS' | 'PENDIENTE_DOCUMENTOS' | 'EN_PROCESO' | 'BLOQUEADO' | 'LISTO_IMPORTACION' | 'INACTIVO' | 'PENDIENTE_ASIGNACION_CLIENTE' | 'INHABILITADO_COMPRA' | 'RECHAZADO' | 'CANCELADO' | 'APROBADO' | 'CONTRATO_ENVIADO' | 'CONTRATO_FIRMADO' | 'PROCESO_COMPLETADO';
+  estadoPago?: string; // IMPAGO, ABONADO, PAGO_COMPLETO
+  grupoImportacionNombre?: string; // Nombre del grupo de importación activo
+  licenciaNombre?: string; // Nombre de la licencia del grupo de importación
+  licenciaNumero?: string; // Número de la licencia del grupo de importación
+  emailVerificado?: boolean | null; // true = Validado, false = Datos incorrectos, null/undefined = Pendiente
   
   // Documentos y preguntas
   documentos?: Documento[];

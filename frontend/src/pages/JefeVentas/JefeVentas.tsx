@@ -24,11 +24,16 @@ interface ClienteConVendedor extends Client {
   vendedorNombre?: string;
   vendedorApellidos?: string;
   fechaCreacion?: string;
+  estadoPago?: string;
+  grupoImportacionNombre?: string;
+  licenciaNombre?: string; // Nombre de la licencia del grupo de importación
+  licenciaNumero?: string; // Número de la licencia del grupo de importación
+  emailVerificado?: boolean | null; // true = Validado, false = Datos incorrectos, null/undefined = Pendiente
 }
 
 const JefeVentas: React.FC = () => {
   const { user } = useAuth();
-  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'series'>('clientes');
+  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'series' | 'reasignar-armas'>('clientes');
   
   // Hook para exportación a Excel
   const { exportarClientesAExcel } = useJefeVentasExport();
@@ -62,18 +67,110 @@ const JefeVentas: React.FC = () => {
   const [contratosCliente, setContratosCliente] = useState<any[]>([]);
   const [pagosCliente, setPagosCliente] = useState<any[]>([]);
   const [loadingDetalleCliente, setLoadingDetalleCliente] = useState(false);
+  
+  // Estados para modal de generar contrato
+  const [modalGenerarContrato, setModalGenerarContrato] = useState<{ isOpen: boolean; datosContrato: any | null; isLoading: boolean }>({
+    isOpen: false,
+    datosContrato: null,
+    isLoading: false
+  });
+  
+  // Estados para cargar contrato firmado
+  const [mostrarCargarFirmado, setMostrarCargarFirmado] = useState<number | null>(null);
+  const [archivoFirmado, setArchivoFirmado] = useState<File | null>(null);
+  const [cargandoFirmado, setCargandoFirmado] = useState(false);
+
+  // Estados para editar cliente
+  const [clienteAEditar, setClienteAEditar] = useState<ClienteConVendedor | null>(null);
+  const [mostrarFormEditar, setMostrarFormEditar] = useState(false);
+
+  // Estados para reasignar arma
+  const [modalReasignarArma, setModalReasignarArma] = useState<{ isOpen: boolean; cliente: ClienteConVendedor | null; isLoading: boolean }>({
+    isOpen: false,
+    cliente: null,
+    isLoading: false
+  });
+
+  // Estados para desistimiento
+  const [modalDesistimiento, setModalDesistimiento] = useState<{ isOpen: boolean; cliente: ClienteConVendedor | null; observacion: string; isLoading: boolean }>({
+    isOpen: false,
+    cliente: null,
+    observacion: '',
+    isLoading: false
+  });
+
+  // Estados para armas reasignadas
+  const [armasReasignadas, setArmasReasignadas] = useState<any[]>([]);
+  const [loadingArmasReasignadas, setLoadingArmasReasignadas] = useState(false);
+  
+  // Función para cargar armas reasignadas
+  const cargarArmasReasignadas = async () => {
+    setLoadingArmasReasignadas(true);
+    try {
+      // TODO: Implementar endpoint para obtener armas reasignadas
+      // const armas = await apiService.getArmasReasignadas();
+      // setArmasReasignadas(armas);
+      setArmasReasignadas([]);
+    } catch (error) {
+      console.error('Error cargando armas reasignadas:', error);
+    } finally {
+      setLoadingArmasReasignadas(false);
+    }
+  };
+  
+  // Handler para abrir modal de cliente reasignado
+  const handleAbrirModalClienteReasignado = (arma: any) => {
+    setModalClienteReasignado({
+      isOpen: true,
+      arma,
+      nuevoClienteId: null,
+      isLoading: false
+    });
+  };
+  
+  // Handler para confirmar reasignación de cliente
+  const handleConfirmarClienteReasignado = async () => {
+    if (!modalClienteReasignado.arma || !modalClienteReasignado.nuevoClienteId) return;
+    
+    setModalClienteReasignado(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      // TODO: Implementar endpoint para confirmar reasignación
+      // await apiService.confirmarReasignacionCliente(modalClienteReasignado.arma.id, modalClienteReasignado.nuevoClienteId);
+      alert('Reasignación confirmada (pendiente de implementar)');
+      setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false });
+      cargarArmasReasignadas();
+    } catch (error) {
+      console.error('Error confirmando reasignación:', error);
+      alert('Error al confirmar reasignación');
+    } finally {
+      setModalClienteReasignado(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+  const [modalClienteReasignado, setModalClienteReasignado] = useState<{ isOpen: boolean; arma: any | null; nuevoClienteId: number | null; isLoading: boolean }>({
+    isOpen: false,
+    arma: null,
+    nuevoClienteId: null,
+    isLoading: false
+  });
 
   // Hooks para filtros y ordenamiento
   const {
     filteredAndSortedData: clientesFiltrados,
     sortConfig: sortConfigClientes,
     handleSort: handleSortClientes,
+    filters: filtersClientes,
+    setFilter: setFilterClientes,
+    clearFilters: clearFiltersClientes,
   } = useTableFilters<ClienteConVendedor>(clientes);
 
   const {
     filteredAndSortedData: clientesAsignadosFiltrados,
     sortConfig: sortConfigAsignados,
     handleSort: handleSortAsignados,
+    filters: filtersAsignados,
+    setFilter: setFilterAsignados,
+    clearFilters: clearFiltersAsignados,
   } = useTableFilters<ClienteConVendedor>(clientesAsignados);
 
   // Cargar estado de expoferia al inicio
@@ -101,6 +198,9 @@ const JefeVentas: React.FC = () => {
     } else if (vistaActual === 'clientes-asignados') {
       console.log('🔄 JefeVentas - Cargando clientes asignados...');
       cargarClientesAsignados();
+    } else if (vistaActual === 'reasignar-armas') {
+      console.log('🔄 JefeVentas - Cargando armas reasignadas...');
+      cargarArmasReasignadas();
     }
   }, [vistaActual]);
 
@@ -257,6 +357,156 @@ const JefeVentas: React.FC = () => {
     setPagosCliente([]);
   };
 
+  // Handler para editar cliente
+  const handleEditarCliente = (cliente: ClienteConVendedor) => {
+    setClienteAEditar(cliente);
+    setMostrarFormEditar(true);
+  };
+
+  // Handler para cerrar formulario de edición
+  const handleCerrarFormEditar = () => {
+    setClienteAEditar(null);
+    setMostrarFormEditar(false);
+    // Recargar clientes después de editar
+    cargarClientes();
+  };
+
+  // Handler para abrir modal de reasignar arma
+  const handleAbrirModalReasignarArma = (cliente: ClienteConVendedor) => {
+    setModalReasignarArma({ isOpen: true, cliente, isLoading: false });
+  };
+
+  // Handler para reasignar arma (usado en modal de reasignación)
+  // @ts-ignore - Función usada en modal pero TypeScript no la detecta
+  const handleReasignarArma = async (nuevoClienteId: number) => {
+    if (!modalReasignarArma.cliente) return;
+    
+    setModalReasignarArma(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      // Obtener el clienteArmaId del cliente actual
+      const armas = await apiService.getArmasCliente(Number(modalReasignarArma.cliente!.id));
+      if (armas.length === 0) {
+        alert('El cliente no tiene armas asignadas');
+        return;
+      }
+      
+      const clienteArmaId = armas[0].id;
+      await apiService.reasignarArmaACliente(clienteArmaId, nuevoClienteId);
+      
+      alert('Arma reasignada exitosamente');
+      setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false });
+      cargarClientes();
+    } catch (error: any) {
+      console.error('Error reasignando arma:', error);
+      alert(`Error al reasignar arma: ${error.message || error}`);
+    } finally {
+      setModalReasignarArma(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Handler para abrir modal de desistimiento
+  const handleAbrirModalDesistimiento = (cliente: ClienteConVendedor) => {
+    setModalDesistimiento({ isOpen: true, cliente, observacion: '', isLoading: false });
+  };
+
+  // Handler para confirmar desistimiento
+  const handleConfirmarDesistimiento = async () => {
+    if (!modalDesistimiento.cliente) return;
+    
+    setModalDesistimiento(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      await apiService.cambiarEstadoDesistimiento(
+        Number(modalDesistimiento.cliente!.id),
+        modalDesistimiento.observacion
+      );
+      
+      alert('Estado del cliente actualizado a DESISTIMIENTO exitosamente');
+      setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false });
+      cargarClientes();
+    } catch (error: any) {
+      console.error('Error cambiando estado a DESISTIMIENTO:', error);
+      alert(`Error al cambiar estado: ${error.message || error}`);
+    } finally {
+      setModalDesistimiento(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Handler para abrir modal de generar contrato
+  const handleAbrirModalGenerarContrato = async () => {
+    console.log('🚀 handleAbrirModalGenerarContrato - INICIANDO');
+    if (!clienteSeleccionado) {
+      console.warn('⚠️ handleAbrirModalGenerarContrato - No hay cliente seleccionado');
+      return;
+    }
+    
+    console.log('🚀 handleAbrirModalGenerarContrato - Cliente ID:', clienteSeleccionado.id);
+    setModalGenerarContrato({ isOpen: true, datosContrato: null, isLoading: true });
+    
+    try {
+      console.log('🚀 handleAbrirModalGenerarContrato - Llamando a obtenerDatosContrato...');
+      const datos = await apiService.obtenerDatosContrato(Number(clienteSeleccionado.id));
+      console.log('📋 Datos del contrato recibidos:', datos);
+      console.log('📋 documentosCompletos:', datos?.documentosCompletos);
+      console.log('📋 emailVerificado:', datos?.cliente?.emailVerificado);
+      console.log('📋 Tipo de documentosCompletos:', typeof datos?.documentosCompletos);
+      console.log('📋 Tipo de emailVerificado:', typeof datos?.cliente?.emailVerificado);
+      setModalGenerarContrato({ isOpen: true, datosContrato: datos, isLoading: false });
+    } catch (error) {
+      console.error('❌ Error obteniendo datos del contrato:', error);
+      alert('Error al obtener datos del contrato. Por favor, intente nuevamente.');
+      setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
+    }
+  };
+
+  // useEffect para loguear cuando cambien los datos del contrato
+  useEffect(() => {
+    if (modalGenerarContrato.datosContrato) {
+      const emailVerificado = modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true;
+      const documentosCompletos = modalGenerarContrato.datosContrato?.documentosCompletos === true;
+      const isDisabled = modalGenerarContrato.isLoading || !emailVerificado || !documentosCompletos;
+      
+      console.log('🔍 useEffect - Estado del botón generar contrato:', {
+        isLoading: modalGenerarContrato.isLoading,
+        emailVerificado,
+        documentosCompletos,
+        isDisabled,
+        datosCompletosRaw: modalGenerarContrato.datosContrato?.documentosCompletos,
+        emailVerificadoRaw: modalGenerarContrato.datosContrato?.cliente?.emailVerificado,
+        tipoDocumentosCompletos: typeof modalGenerarContrato.datosContrato?.documentosCompletos,
+        tipoEmailVerificado: typeof modalGenerarContrato.datosContrato?.cliente?.emailVerificado
+      });
+    }
+  }, [modalGenerarContrato.datosContrato, modalGenerarContrato.isLoading]);
+
+  // Handler para generar contrato
+  const handleGenerarContrato = async () => {
+    if (!clienteSeleccionado) return;
+    
+    setModalGenerarContrato(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const response = await apiService.generarContrato(Number(clienteSeleccionado.id));
+      
+      if (response.success) {
+        alert('✅ Contrato generado exitosamente');
+        // Recargar contratos del cliente
+        const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
+        setContratosCliente(contratos);
+        // Cerrar modal
+        setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
+      } else {
+        alert('Error al generar contrato: ' + (response.message || 'Error desconocido'));
+        setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));
+      }
+    } catch (error: any) {
+      console.error('Error generando contrato:', error);
+      alert('Error al generar contrato: ' + (error.message || 'Error desconocido'));
+      setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
@@ -313,6 +563,18 @@ const JefeVentas: React.FC = () => {
             }`}
           >
             📦 Importaciones
+          </button>
+          
+          {/* Pestaña de Reasignar Armas */}
+          <button
+            onClick={() => setVistaActual('reasignar-armas')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'reasignar-armas'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            🔄 Reasignar Armas
           </button>
           
           {/* Pestaña de Asignación de Series - Solo para SALES_CHIEF y FINANCE */}
@@ -461,6 +723,18 @@ const JefeVentas: React.FC = () => {
                 >
                   🔄 Actualizar
                 </button>
+                {Object.keys(filtersClientes).length > 0 && (
+                  <button
+                    onClick={clearFiltersClientes}
+                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
+                    title="Limpiar filtros"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="text-xs">Limpiar filtros</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -480,6 +754,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigClientes.key}
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
+                        filterValue={filtersClientes.numeroIdentificacion || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <TableHeaderWithFilters
                         column="nombres"
@@ -487,6 +763,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigClientes.key}
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
+                        filterValue={filtersClientes.nombres || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <TableHeaderWithFilters
                         column="tipoClienteNombre"
@@ -494,6 +772,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigClientes.key}
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
+                        filterValue={filtersClientes.tipoClienteNombre || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <TableHeaderWithFilters
                         column="vendedorNombre"
@@ -501,6 +781,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigClientes.key}
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
+                        filterValue={filtersClientes.vendedorNombre || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <TableHeaderWithFilters
                         column="email"
@@ -508,6 +790,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigClientes.key}
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
+                        filterValue={filtersClientes.email || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <TableHeaderWithFilters
                         column="estado"
@@ -516,6 +800,48 @@ const JefeVentas: React.FC = () => {
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
                         align="center"
+                        filterValue={filtersClientes.estado || ''}
+                        onFilterChange={setFilterClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="estadoPago"
+                        label="Estado de Pago"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                        align="center"
+                        filterValue={filtersClientes.estadoPago || ''}
+                        onFilterChange={setFilterClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="emailVerificado"
+                        label="Validado por Cliente"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                        align="center"
+                        filterValue={filtersClientes.emailVerificado !== undefined ? String(filtersClientes.emailVerificado) : ''}
+                        onFilterChange={setFilterClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="grupoImportacionNombre"
+                        label="Grupo de Importación"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                        align="center"
+                        filterValue={filtersClientes.grupoImportacionNombre || ''}
+                        onFilterChange={setFilterClientes}
+                      />
+                      <TableHeaderWithFilters
+                        column="licenciaNombre"
+                        label="Licencia"
+                        sortKey={sortConfigClientes.key}
+                        sortDirection={sortConfigClientes.direction}
+                        onSort={handleSortClientes}
+                        align="center"
+                        filterValue={filtersClientes.licenciaNombre || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <TableHeaderWithFilters
                         column="fechaCreacion"
@@ -524,6 +850,8 @@ const JefeVentas: React.FC = () => {
                         sortDirection={sortConfigClientes.direction}
                         onSort={handleSortClientes}
                         align="center"
+                        filterValue={filtersClientes.fechaCreacion || ''}
+                        onFilterChange={setFilterClientes}
                       />
                       <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
                     </tr>
@@ -531,7 +859,7 @@ const JefeVentas: React.FC = () => {
                   <tbody>
                     {clientesFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                        <td colSpan={12} className="px-4 py-12 text-center text-gray-500">
                           No hay clientes registrados
                         </td>
                       </tr>
@@ -558,22 +886,87 @@ const JefeVentas: React.FC = () => {
                             <span className={`px-3 py-1 text-xs font-medium rounded-full ${
                               cliente.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
                               cliente.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
+                              cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
+                              cliente.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
                               cliente.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
+                               cliente.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
+                               cliente.estado === 'EN_PROCESO' ? 'En proceso' :
+                               cliente.estado === 'BLOQUEADO' ? 'Bloqueado' :
+                               cliente.estado || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                              cliente.estadoPago === 'PAGO_COMPLETO' ? 'bg-green-100 text-green-800' :
+                              cliente.estadoPago === 'ABONADO' ? 'bg-yellow-100 text-yellow-800' :
+                              cliente.estadoPago === 'IMPAGO' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {cliente.estadoPago || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                              cliente.emailVerificado === true ? 'bg-green-100 text-green-800' :
+                              cliente.emailVerificado === false ? 'bg-red-100 text-red-800' :
                               'bg-yellow-100 text-yellow-800'
                             }`}>
-                              {cliente.estado}
+                              {cliente.emailVerificado === true ? 'Validado' :
+                               cliente.emailVerificado === false ? 'Datos incorrectos' :
+                               'Pendiente'}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm">
+                            {cliente.grupoImportacionNombre ? (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                {cliente.grupoImportacionNombre}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Sin asignar</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm">
+                            {cliente.licenciaNombre ? (
+                              <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                {cliente.licenciaNombre}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Sin licencia</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center text-sm text-gray-600">
                             {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => handleVerDetalleCliente(cliente)}
-                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              Ver Detalle
-                            </button>
+                            <div className="flex items-center justify-center space-x-2">
+                              <button
+                                onClick={() => handleVerDetalleCliente(cliente)}
+                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                Ver Detalle
+                              </button>
+                              <button
+                                onClick={() => handleEditarCliente(cliente)}
+                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleAbrirModalReasignarArma(cliente)}
+                                className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors"
+                              >
+                                Reasignar Arma
+                              </button>
+                              <button
+                                onClick={() => handleAbrirModalDesistimiento(cliente)}
+                                className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
+                              >
+                                Desistimiento
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -593,12 +986,26 @@ const JefeVentas: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-800">✅ Clientes con Armas Asignadas</h2>
                 <p className="text-sm text-gray-600 mt-1">Supervisión de clientes con número de serie asignado</p>
               </div>
-              <button
-                onClick={cargarClientesAsignados}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                🔄 Actualizar
-              </button>
+              <div className="flex items-center space-x-3">
+                {Object.keys(filtersAsignados).length > 0 && (
+                  <button
+                    onClick={clearFiltersAsignados}
+                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
+                    title="Limpiar filtros"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="text-xs">Limpiar filtros</span>
+                  </button>
+                )}
+                <button
+                  onClick={cargarClientesAsignados}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  🔄 Actualizar
+                </button>
+              </div>
             </div>
 
             {loadingClientes ? (
@@ -617,6 +1024,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigAsignados.key}
                         sortDirection={sortConfigAsignados.direction}
                         onSort={handleSortAsignados}
+                        filterValue={filtersAsignados.numeroIdentificacion || ''}
+                        onFilterChange={setFilterAsignados}
                       />
                       <TableHeaderWithFilters
                         column="nombres"
@@ -624,6 +1033,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigAsignados.key}
                         sortDirection={sortConfigAsignados.direction}
                         onSort={handleSortAsignados}
+                        filterValue={filtersAsignados.nombres || ''}
+                        onFilterChange={setFilterAsignados}
                       />
                       <TableHeaderWithFilters
                         column="tipoClienteNombre"
@@ -631,6 +1042,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigAsignados.key}
                         sortDirection={sortConfigAsignados.direction}
                         onSort={handleSortAsignados}
+                        filterValue={filtersAsignados.tipoClienteNombre || ''}
+                        onFilterChange={setFilterAsignados}
                       />
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Arma Asignada</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Serie</th>
@@ -640,6 +1053,8 @@ const JefeVentas: React.FC = () => {
                         sortKey={sortConfigAsignados.key}
                         sortDirection={sortConfigAsignados.direction}
                         onSort={handleSortAsignados}
+                        filterValue={filtersAsignados.vendedorNombre || ''}
+                        onFilterChange={setFilterAsignados}
                       />
                       <TableHeaderWithFilters
                         column="fechaCreacion"
@@ -648,6 +1063,8 @@ const JefeVentas: React.FC = () => {
                         sortDirection={sortConfigAsignados.direction}
                         onSort={handleSortAsignados}
                         align="center"
+                        filterValue={filtersAsignados.fechaCreacion || ''}
+                        onFilterChange={setFilterAsignados}
                       />
                       <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
                     </tr>
@@ -801,11 +1218,46 @@ const JefeVentas: React.FC = () => {
                       <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                         clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
                         clienteSeleccionado.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
+                        clienteSeleccionado.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
+                        clienteSeleccionado.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
                         clienteSeleccionado.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {clienteSeleccionado.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
+                         clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
+                         clienteSeleccionado.estado === 'EN_PROCESO' ? 'En proceso' :
+                         clienteSeleccionado.estado === 'BLOQUEADO' ? 'Bloqueado' :
+                         clienteSeleccionado.estado || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Validado por Cliente</p>
+                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                        clienteSeleccionado.emailVerificado === true ? 'bg-green-100 text-green-800' :
+                        clienteSeleccionado.emailVerificado === false ? 'bg-red-100 text-red-800' :
                         'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {clienteSeleccionado.estado}
+                        {clienteSeleccionado.emailVerificado === true ? 'Validado' :
+                         clienteSeleccionado.emailVerificado === false ? 'Datos incorrectos' :
+                         'Pendiente'}
                       </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Grupo de Importación</p>
+                      <p className="font-medium text-blue-600">{clienteSeleccionado.grupoImportacionNombre || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Licencia</p>
+                      {clienteSeleccionado.licenciaNombre ? (
+                        <div>
+                          <p className="font-medium text-purple-600">{clienteSeleccionado.licenciaNombre}</p>
+                          {clienteSeleccionado.licenciaNumero && (
+                            <p className="text-xs text-gray-500">Número: {clienteSeleccionado.licenciaNumero}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="font-medium text-gray-400">N/A</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -937,47 +1389,135 @@ const JefeVentas: React.FC = () => {
                         </div>
                       ) : (
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                          {contratosCliente.map((contrato, index) => (
-                            <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold text-blue-600">{contrato.nombreArchivo || 'Contrato de Compra-Venta'}</p>
-                                {contrato.fechaCreacion && (
-                                  <p className="text-sm text-gray-600">Fecha: {new Date(contrato.fechaCreacion).toLocaleDateString('es-ES')}</p>
-                                )}
-                                {contrato.descripcion && (
-                                  <p className="text-sm text-gray-500 mt-1">{contrato.descripcion}</p>
+                          {contratosCliente.map((contrato, index) => {
+                            const handleCargarContratoFirmado = async () => {
+                              if (!archivoFirmado || !clienteSeleccionado) return;
+                              
+                              setCargandoFirmado(true);
+                              try {
+                                await apiService.cargarContratoFirmado(Number(clienteSeleccionado.id), archivoFirmado);
+                                alert('✅ Contrato firmado cargado exitosamente');
+                                // Recargar contratos
+                                const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
+                                setContratosCliente(contratos);
+                                setMostrarCargarFirmado(null);
+                                setArchivoFirmado(null);
+                              } catch (error: any) {
+                                console.error('Error cargando contrato firmado:', error);
+                                alert('Error al cargar contrato firmado: ' + (error.message || 'Error desconocido'));
+                              } finally {
+                                setCargandoFirmado(false);
+                              }
+                            };
+                            
+                            return (
+                              <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div>
+                                    <p className="font-semibold text-blue-600">{contrato.nombreArchivo || 'Contrato de Compra-Venta'}</p>
+                                    {contrato.fechaCreacion && (
+                                      <p className="text-sm text-gray-600">Fecha: {new Date(contrato.fechaCreacion).toLocaleDateString('es-ES')}</p>
+                                    )}
+                                    {contrato.descripcion && (
+                                      <p className="text-sm text-gray-500 mt-1">{contrato.descripcion}</p>
+                                    )}
+                                    {contrato.estado === 'FIRMADO' && (
+                                      <span className="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                        ✅ Firmado
+                                      </span>
+                                    )}
+                                  </div>
+                                  {contrato.id && (
+                                    <div className="flex space-x-2">
+                                      <button
+                                        onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
+                                      >
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Ver PDF
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const link = document.createElement('a');
+                                          link.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`;
+                                          link.download = contrato.nombreArchivo || 'contrato.pdf';
+                                          link.click();
+                                        }}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center"
+                                      >
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Descargar
+                                      </button>
+                                      {contrato.estado !== 'FIRMADO' && (
+                                        <button
+                                          onClick={() => setMostrarCargarFirmado(mostrarCargarFirmado === contrato.id ? null : contrato.id)}
+                                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center"
+                                        >
+                                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                          </svg>
+                                          Cargar Firmado
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Formulario para cargar contrato firmado */}
+                                {mostrarCargarFirmado === contrato.id && (
+                                  <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Seleccionar Contrato Firmado (PDF)
+                                    </label>
+                                    <input
+                                      type="file"
+                                      accept=".pdf"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          setArchivoFirmado(file);
+                                        }
+                                      }}
+                                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                                    />
+                                    {archivoFirmado && (
+                                      <div className="mt-3 flex justify-end space-x-2">
+                                        <button
+                                          onClick={() => {
+                                            setMostrarCargarFirmado(null);
+                                            setArchivoFirmado(null);
+                                          }}
+                                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                                          disabled={cargandoFirmado}
+                                        >
+                                          Cancelar
+                                        </button>
+                                        <button
+                                          onClick={handleCargarContratoFirmado}
+                                          disabled={cargandoFirmado}
+                                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center disabled:opacity-50"
+                                        >
+                                          {cargandoFirmado ? (
+                                            <>
+                                              <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                              Cargando...
+                                            </>
+                                          ) : (
+                                            'Cargar Contrato Firmado'
+                                          )}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                              {contrato.id && (
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
-                                  >
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    Ver PDF
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const link = document.createElement('a');
-                                      link.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`;
-                                      link.download = contrato.nombreArchivo || 'contrato.pdf';
-                                      link.click();
-                                    }}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center"
-                                  >
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Descargar
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1032,7 +1572,27 @@ const JefeVentas: React.FC = () => {
                   </>
                 )}
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end space-x-3">
+                  {/* Botón Generar Contrato - Solo para JEFE DE VENTAS */}
+                  {user?.roles?.some(role => {
+                    const codigo = role.rol?.codigo || (role as any).codigo;
+                    return codigo === 'SALES_CHIEF';
+                  }) && (
+                    <button
+                      onClick={(e) => {
+                        console.log('🟢 CLICK EN BOTÓN GENERAR CONTRATO - Handler ejecutándose');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAbrirModalGenerarContrato();
+                      }}
+                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Generar Contrato
+                    </button>
+                  )}
                   <button
                     onClick={handleCerrarDetalle}
                     className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -1045,14 +1605,466 @@ const JefeVentas: React.FC = () => {
           </div>
         )}
 
+        {/* Modal de Generar Contrato */}
+        {modalGenerarContrato.isOpen && (() => {
+          console.log('🟡 MODAL RENDERIZÁNDOSE - Estado:', {
+            isOpen: modalGenerarContrato.isOpen,
+            isLoading: modalGenerarContrato.isLoading,
+            tieneDatosContrato: !!modalGenerarContrato.datosContrato,
+            datosContrato: modalGenerarContrato.datosContrato
+          });
+          return null;
+        })()}
+        {modalGenerarContrato.isOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">Generar Contrato</h2>
+                  <button
+                    onClick={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {modalGenerarContrato.isLoading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <p className="mt-4 text-gray-600">Cargando datos del contrato...</p>
+                  </div>
+                ) : modalGenerarContrato.datosContrato ? (
+                  <>
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Datos del Cliente</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Nombres</p>
+                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.nombres || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Apellidos</p>
+                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.apellidos || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Número de Identificación</p>
+                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.numeroIdentificacion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Email</p>
+                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.email || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Teléfono</p>
+                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.telefonoPrincipal || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Dirección</p>
+                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.direccion || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {modalGenerarContrato.datosContrato.pago && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Datos del Pago</h3>
+                        <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600">Monto Total</p>
+                            <p className="font-medium">${parseFloat(modalGenerarContrato.datosContrato.pago.montoTotal || 0).toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Tipo de Pago</p>
+                            <p className="font-medium">{modalGenerarContrato.datosContrato.pago.tipoPago || 'N/A'}</p>
+                          </div>
+                          {modalGenerarContrato.datosContrato.pago.numeroCuotas && (
+                            <div>
+                              <p className="text-sm text-gray-600">Número de Cuotas</p>
+                              <p className="font-medium">{modalGenerarContrato.datosContrato.pago.numeroCuotas}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {modalGenerarContrato.datosContrato.armas && modalGenerarContrato.datosContrato.armas.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Armas Asignadas</h3>
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          {modalGenerarContrato.datosContrato.armas.map((arma: any, index: number) => (
+                            <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
+                              <p className="font-medium">{arma.nombre || 'N/A'}</p>
+                              <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                <div>
+                                  <span className="text-gray-600">Cantidad:</span> {arma.cantidad || 1}
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Precio Unitario:</span> ${parseFloat(arma.precioUnitario || 0).toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                      <button
+                        onClick={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
+                        className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        disabled={modalGenerarContrato.isLoading}
+                      >
+                        Cancelar
+                      </button>
+                      {(() => {
+                        const emailVerificado = modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true;
+                        const documentosCompletos = modalGenerarContrato.datosContrato?.documentosCompletos === true;
+                        const isDisabled = modalGenerarContrato.isLoading || !emailVerificado || !documentosCompletos;
+                        
+                        // Log directo en el render para debug
+                        console.log('🔴 RENDER BOTÓN - Estado actual:', {
+                          isLoading: modalGenerarContrato.isLoading,
+                          emailVerificado,
+                          documentosCompletos,
+                          isDisabled,
+                          datosCompletosRaw: modalGenerarContrato.datosContrato?.documentosCompletos,
+                          emailVerificadoRaw: modalGenerarContrato.datosContrato?.cliente?.emailVerificado,
+                          tieneDatosContrato: !!modalGenerarContrato.datosContrato,
+                          datosContratoCompleto: modalGenerarContrato.datosContrato
+                        });
+                        
+                        return (
+                          <button
+                            onClick={handleGenerarContrato}
+                            disabled={isDisabled}
+                            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            title={
+                              modalGenerarContrato.isLoading 
+                                ? 'Cargando...'
+                                : !emailVerificado
+                                ? 'Email no validado'
+                                : !documentosCompletos
+                                ? 'Documentos incompletos'
+                                : 'Generar contrato'
+                            }
+                          >
+                        {modalGenerarContrato.isLoading ? (
+                          <>
+                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Generando...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Generar Contrato
+                          </>
+                        )}
+                          </button>
+                        );
+                      })()}
+                    </div>
+                    {(!(modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true) || 
+                      !(modalGenerarContrato.datosContrato?.documentosCompletos === true)) && (
+                      <div className="mt-4 space-y-2">
+                        {!(modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true) && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-800">
+                              ⚠️ El cliente no tiene su email validado. Debe validar los datos personales del cliente primero.
+                            </p>
+                          </div>
+                        )}
+                        {!(modalGenerarContrato.datosContrato?.documentosCompletos === true) && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-800">
+                              ⚠️ El cliente no tiene todos sus documentos obligatorios cargados. Debe completar todos los documentos antes de generar el contrato.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-600">No se pudieron cargar los datos del contrato.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Contenido: Importaciones */}
         {vistaActual === 'importaciones' && (
           <ImportGroupManagement />
         )}
 
+        {/* Contenido: Reasignar Armas */}
+        {vistaActual === 'reasignar-armas' && (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">🔄 Reasignar Armas</h2>
+                <p className="text-sm text-gray-600 mt-1">Armas con estado REASIGNADO esperando asignación a nuevo cliente</p>
+              </div>
+              <button
+                onClick={cargarArmasReasignadas}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                🔄 Actualizar
+              </button>
+            </div>
+
+            {loadingArmasReasignadas ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                <p className="mt-4 text-gray-600">Cargando armas reasignadas...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Arma</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Categoría</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Cliente Anterior</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Precio</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Cantidad</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Número de Serie</th>
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {armasReasignadas.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p className="text-gray-500 text-lg font-medium">
+                              No hay armas reasignadas
+                            </p>
+                            <p className="text-gray-400 text-sm mt-2">Las armas reasignadas aparecerán aquí</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      armasReasignadas.map((arma) => (
+                        <tr key={arma.id} className="border-b hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm">
+                            <div>
+                              <div className="font-medium">{arma.armaNombre}</div>
+                              {arma.armaCalibre && (
+                                <div className="text-xs text-gray-500">Calibre: {arma.armaCalibre}</div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{arma.armaCategoriaNombre || 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <div>
+                              <div className="font-medium">{arma.clienteNombre || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">ID: {arma.clienteId}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">${arma.precioUnitario?.toFixed(2) || '0.00'}</td>
+                          <td className="px-4 py-3 text-center text-sm">{arma.cantidad || 1}</td>
+                          <td className="px-4 py-3 text-sm font-mono">{arma.numeroSerie || 'Sin serie'}</td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => handleAbrirModalClienteReasignado(arma)}
+                              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+                            >
+                              Cliente Reasignado
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Contenido: Asignación de Series */}
         {vistaActual === 'series' && (
           <AsignacionSeries />
+        )}
+
+        {/* Modal de Editar Cliente */}
+        {mostrarFormEditar && clienteAEditar && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Editar Cliente</h2>
+                <button
+                  onClick={handleCerrarFormEditar}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              {/* Aquí se puede integrar el ClientForm del módulo Vendedor */}
+              <p className="text-gray-600">Funcionalidad de edición en desarrollo. Por favor, use el módulo de Vendedor para editar clientes.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Reasignar Arma */}
+        {modalReasignarArma.isOpen && modalReasignarArma.cliente && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Reasignar Arma</h2>
+                <button
+                  onClick={() => setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Cliente actual: {modalReasignarArma.cliente.nombres} {modalReasignarArma.cliente.apellidos}
+              </p>
+              <p className="text-gray-600 mb-4">
+                Esta funcionalidad requiere seleccionar un nuevo cliente. Por favor, use la pestaña "REASIGNAR ARMAS" para esta operación.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false })}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Desistimiento */}
+        {modalDesistimiento.isOpen && modalDesistimiento.cliente && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Cambiar Estado a DESISTIMIENTO</h2>
+                <button
+                  onClick={() => setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Cliente: {modalDesistimiento.cliente.nombres} {modalDesistimiento.cliente.apellidos}
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observación (opcional)
+                </label>
+                <textarea
+                  value={modalDesistimiento.observacion}
+                  onChange={(e) => setModalDesistimiento(prev => ({ ...prev, observacion: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  rows={4}
+                  placeholder="Ingrese la observación del desistimiento..."
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false })}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  disabled={modalDesistimiento.isLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarDesistimiento}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  disabled={modalDesistimiento.isLoading}
+                >
+                  {modalDesistimiento.isLoading ? 'Procesando...' : 'Confirmar Desistimiento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Cliente Reasignado */}
+        {modalClienteReasignado.isOpen && modalClienteReasignado.arma && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Asignar Arma a Nuevo Cliente</h2>
+                <button
+                  onClick={() => setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-gray-800 mb-2">Información del Arma</h3>
+                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaNombre}</p>
+                {modalClienteReasignado.arma.armaCalibre && (
+                  <p className="text-sm text-gray-600"><strong>Calibre:</strong> {modalClienteReasignado.arma.armaCalibre}</p>
+                )}
+                <p className="text-sm text-gray-600"><strong>Cliente Anterior:</strong> {modalClienteReasignado.arma.clienteNombre}</p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleccionar Nuevo Cliente *
+                </label>
+                <select
+                  value={modalClienteReasignado.nuevoClienteId || ''}
+                  onChange={(e) => setModalClienteReasignado(prev => ({ ...prev, nuevoClienteId: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="">-- Seleccione un cliente --</option>
+                  {clientes.map((cliente) => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.nombres} {cliente.apellidos} - {cliente.numeroIdentificacion}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  ⚠️ El cliente seleccionado debe tener todos sus documentos aprobados para poder recibir el arma.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false })}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  disabled={modalClienteReasignado.isLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarClienteReasignado}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  disabled={modalClienteReasignado.isLoading || !modalClienteReasignado.nuevoClienteId}
+                >
+                  {modalClienteReasignado.isLoading ? 'Procesando...' : 'Confirmar Reasignación'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -87,16 +87,24 @@ public class LicenciaService {
      * Obtiene las licencias disponibles para asignar a grupos de importación
      * Una licencia está disponible si:
      * - Está activa (estado = true)
-     * - Tiene estado de ocupación DISPONIBLE
+     * - No está vencida
+     * 
+     * NOTA: Una licencia puede estar en múltiples grupos (tanto CUPO como JUSTIFICATIVO),
+     * por lo que NO se filtra por estado de ocupación. La licencia puede estar DISPONIBLE
+     * o BLOQUEADA y aún así puede ser asignada a nuevos grupos.
      */
     public List<Licencia> obtenerLicenciasDisponibles() {
-        log.info("🔍 Buscando licencias disponibles (activas y no ocupadas)");
-        List<Licencia> licencias = licenciaRepository.findByEstadoAndEstadoOcupacion(true, EstadoOcupacionLicencia.DISPONIBLE);
-        log.info("✅ Encontradas {} licencias disponibles", licencias.size());
-        if (licencias.isEmpty()) {
-            log.warn("⚠️ No se encontraron licencias disponibles. Verificar que existan licencias activas con estado DISPONIBLE");
+        log.info("🔍 Buscando licencias disponibles (activas y no vencidas)");
+        List<Licencia> todasLasLicencias = licenciaRepository.findByEstado(true);
+        List<Licencia> licenciasDisponibles = todasLasLicencias.stream()
+            .filter(licencia -> !licencia.isVencida())
+            .collect(java.util.stream.Collectors.toList());
+        log.info("✅ Encontradas {} licencias disponibles de {} totales activas", 
+            licenciasDisponibles.size(), todasLasLicencias.size());
+        if (licenciasDisponibles.isEmpty()) {
+            log.warn("⚠️ No se encontraron licencias disponibles. Verificar que existan licencias activas y no vencidas");
         }
-        return licencias;
+        return licenciasDisponibles;
     }
 
     public List<Licencia> obtenerLicenciasConCupoCivilDisponible() {

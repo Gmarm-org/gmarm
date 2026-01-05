@@ -47,6 +47,7 @@ const ImportGroupManagement: React.FC = () => {
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<number | null>(null);
   const [mostrarAgregarClientes, setMostrarAgregarClientes] = useState<number | null>(null);
   const [mostrarCrearGrupo, setMostrarCrearGrupo] = useState(false);
+  const [grupoAEditar, setGrupoAEditar] = useState<number | null>(null);
   const [documentoGenerado, setDocumentoGenerado] = useState<{
     documentoId: number;
     nombreArchivo: string;
@@ -340,6 +341,15 @@ const ImportGroupManagement: React.FC = () => {
                           👁️ Ver
                         </button>
                         
+                        {/* Botón Editar */}
+                        <button
+                          onClick={() => setGrupoAEditar(resumen.grupoId)}
+                          className="text-purple-600 hover:text-purple-900 bg-purple-50 px-3 py-1 rounded-md text-xs font-medium"
+                          title="Editar vendedores y límites del grupo"
+                        >
+                          ✏️ Editar
+                        </button>
+                        
                         {/* Botón Agregar Clientes - siempre visible, deshabilitado si el estado no lo permite */}
                         {(() => {
                           const puedeAgregar = !grupoCompleto || // Si no se ha cargado, permitir
@@ -432,6 +442,19 @@ const ImportGroupManagement: React.FC = () => {
           onClose={() => setMostrarCrearGrupo(false)}
           onSuccess={() => {
             setMostrarCrearGrupo(false);
+            cargarGrupos();
+          }}
+          modo="crear"
+        />
+      )}
+      
+      {grupoAEditar && (
+        <ModalCrearGrupo
+          grupoId={grupoAEditar}
+          modo="editar"
+          onClose={() => setGrupoAEditar(null)}
+          onSuccess={() => {
+            setGrupoAEditar(null);
             cargarGrupos();
           }}
         />

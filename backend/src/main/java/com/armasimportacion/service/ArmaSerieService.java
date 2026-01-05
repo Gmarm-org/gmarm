@@ -11,6 +11,7 @@ import com.armasimportacion.repository.ArmaRepository;
 import com.armasimportacion.repository.ArmaSerieRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.UsuarioRepository;
+import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,8 @@ public class ArmaSerieService {
     private final ArmaRepository armaRepository;
     private final ClienteArmaRepository clienteArmaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final com.armasimportacion.repository.GrupoImportacionRepository grupoImportacionRepository;
+    private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
     // private final EmailService emailService;  // TODO: Configurar cuando se implemente envío de correos
 
     /**
@@ -195,6 +198,20 @@ public class ArmaSerieService {
             throw new IllegalStateException("El número de serie no corresponde al arma reservada");
         }
 
+        // Validar que el cliente esté en el mismo grupo de importación que la serie
+        if (serie.getGrupoImportacion() != null) {
+            com.armasimportacion.model.Cliente cliente = clienteArma.getCliente();
+            List<com.armasimportacion.model.ClienteGrupoImportacion> gruposCliente = 
+                clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
+            
+            boolean clienteEnGrupo = gruposCliente.stream()
+                .anyMatch(cgi -> cgi.getGrupoImportacion().getId().equals(serie.getGrupoImportacion().getId()));
+            
+            if (!clienteEnGrupo) {
+                throw new IllegalStateException("El cliente no está en el mismo grupo de importación que la serie. Solo se pueden asignar series del grupo al que pertenece el cliente.");
+            }
+        }
+
         // Buscar el usuario asignador
         Usuario usuarioAsignador = usuarioRepository.findById(usuarioAsignadorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + usuarioAsignadorId));
@@ -220,13 +237,30 @@ public class ArmaSerieService {
 
     /**
      * Obtiene todas las series disponibles de un arma
+     * Si se proporciona grupoImportacionId, filtra solo las series de ese grupo
      */
     @Transactional(readOnly = true)
-    public List<ArmaSerieDTO> getSeriesDisponiblesByArma(Long armaId) {
-        List<ArmaSerie> series = armaSerieRepository.findSeriesDisponiblesByArmaId(armaId);
+    public List<ArmaSerieDTO> getSeriesDisponiblesByArma(Long armaId, Long grupoImportacionId) {
+        List<ArmaSerie> series;
+        if (grupoImportacionId != null) {
+            // Filtrar por arma y grupo de importación
+            series = armaSerieRepository.findSeriesDisponiblesByArmaIdAndGrupoImportacionId(armaId, grupoImportacionId);
+        } else {
+            // Obtener todas las series disponibles del arma (sin filtro de grupo)
+            series = armaSerieRepository.findSeriesDisponiblesByArmaId(armaId);
+        }
         return series.stream()
                 .map(ArmaSerieDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene todas las series disponibles de un arma (sin filtro de grupo)
+     * Mantiene compatibilidad con código existente
+     */
+    @Transactional(readOnly = true)
+    public List<ArmaSerieDTO> getSeriesDisponiblesByArma(Long armaId) {
+        return getSeriesDisponiblesByArma(armaId, null);
     }
 
     /**
@@ -342,11 +376,21 @@ public class ArmaSerieService {
      * Carga masiva de series desde JSON procesado en frontend
      * 
      * @param seriesData Lista de mapas con: serialNumber, codigo, model, caliber, observaciones
+     * @param grupoImportacionId ID del grupo de importación al que pertenecen estas series
      * @return Map con success (cantidad) y errors (lista de errores)
      */
     @Transactional
-    public Map<String, Object> bulkUploadSeriesFromJson(List<Map<String, String>> seriesData) {
-        log.info("📤 Iniciando carga masiva de {} series desde JSON", seriesData.size());
+    public Map<String, Object> bulkUploadSeriesFromJson(List<Map<String, String>> seriesData, Long grupoImportacionId) {
+        log.info("📤 Iniciando carga masiva de {} series desde JSON para grupo de importación ID: {}", seriesData.size(), grupoImportacionId);
+        
+        // Obtener el grupo de importación y su licencia
+        com.armasimportacion.model.GrupoImportacion grupoImportacion = grupoImportacionRepository.findById(grupoImportacionId)
+            .orElseThrow(() -> new IllegalArgumentException("Grupo de importación no encontrado con ID: " + grupoImportacionId));
+        
+        com.armasimportacion.model.Licencia licencia = grupoImportacion.getLicencia();
+        if (licencia == null) {
+            throw new IllegalArgumentException("El grupo de importación no tiene una licencia asociada");
+        }
         
         int successCount = 0;
         List<String> errors = new ArrayList<>();
@@ -386,18 +430,20 @@ public class ArmaSerieService {
                     continue;
                 }
                 
-                // Crear la serie
+                // Crear la serie con grupo de importación y licencia
                 ArmaSerie serie = new ArmaSerie();
                 serie.setNumeroSerie(serialNumber);
                 serie.setArma(arma);
                 serie.setEstado(EstadoSerie.DISPONIBLE);
                 serie.setObservaciones(observaciones);
+                serie.setGrupoImportacion(grupoImportacion);
+                serie.setLicencia(licencia);
                 // fechaCreacion y fechaCarga se setean automáticamente con @PrePersist
                 
                 armaSerieRepository.save(serie);
                 successCount++;
                 
-                log.debug("✅ Fila {}: Serie {} asignada a arma {}", rowNum, serialNumber, arma.getNombre());
+                log.debug("✅ Fila {}: Serie {} asignada a arma {} en grupo {}", rowNum, serialNumber, arma.getNombre(), grupoImportacion.getCodigo());
                 
             } catch (Exception e) {
                 String errorMsg = "Fila " + rowNum + ": Error procesando - " + e.getMessage();

@@ -66,7 +66,8 @@ public class ClienteArma {
         RESERVADA,
         ASIGNADA,
         CANCELADA,
-        COMPLETADA
+        COMPLETADA,
+        REASIGNADO
     }
 
     // Métodos de negocio
