@@ -8,7 +8,7 @@
 
 ### Opción 1: Reset Completo (Eliminar todo y empezar de cero) ⚠️
 
-**⚠️ ESTO ELIMINARÁ TODOS LOS DATOS EXISTENTES**
+**⚠️ ESTO ELIMINARÁ TODOS LOS DATOS EXISTENTES (clientes, usuarios, etc.)**
 
 ```bash
 # 1. Conectarse al servidor de producción
@@ -24,28 +24,51 @@ docker exec gmarm-postgres-prod pg_dump -U postgres -d gmarm_prod > backups/back
 # 4. Verificar que el backup se creó
 ls -lh backups/backup-antes-reset-*.sql
 
-# 5. Detener servicios
+# 5. Detener servicios (IMPORTANTE: detener antes de eliminar volumen)
 docker-compose -f docker-compose.prod.yml down
 
-# 6. Eliminar volumen de PostgreSQL (ESTO BORRA TODOS LOS DATOS)
-docker volume rm gmarm_postgres_data_prod
+# 6. Verificar nombre exacto del volumen
+docker volume ls | grep postgres
 
-# 7. Levantar servicios nuevamente (el script se ejecutará automáticamente)
+# 7. Eliminar volumen de PostgreSQL (ESTO BORRA TODOS LOS DATOS)
+# El nombre puede variar, verifica con: docker volume ls | grep postgres
+docker volume rm gmarm_postgres_data_prod
+# O si el nombre es diferente:
+# docker volume rm <nombre-del-volumen-postgres>
+
+# 8. Verificar que el volumen fue eliminado
+docker volume ls | grep postgres
+# No debe aparecer ningún volumen de postgres
+
+# 9. Levantar servicios nuevamente (el script se ejecutará automáticamente)
 docker-compose -f docker-compose.prod.yml up -d
 
-# 8. Esperar a que PostgreSQL esté listo (60-90 segundos)
+# 10. Esperar a que PostgreSQL esté listo y ejecute el script (60-90 segundos)
+echo "Esperando a que PostgreSQL inicie y ejecute el script maestro..."
 sleep 90
 
-# 9. Verificar que el script se ejecutó correctamente
+# 11. Verificar que el script se ejecutó correctamente (debe mostrar solo usuarios iniciales)
 docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "SELECT COUNT(*) FROM usuario;"
+docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "SELECT COUNT(*) FROM cliente;"
+# Debe mostrar 0 clientes (o solo los datos iniciales del script)
 
-# 10. Verificar logs del backend
+# 12. Verificar logs de PostgreSQL para confirmar que ejecutó el script
+docker logs gmarm-postgres-prod | grep -i "00_gmarm_completo\|executing\|initdb"
+
+# 13. El script maestro ya resetea las secuencias automáticamente
+# Pero si necesitas ajustarlas manualmente, puedes usar:
+# bash scripts/fix-sequences-all-tables.sh
+# (Nota: ajusta el script para producción cambiando gmarm-postgres-dev por gmarm-postgres-prod)
+
+# 14. Verificar logs del backend
 docker logs gmarm-backend-prod | tail -50
 ```
 
-### Opción 2: Ejecutar Script Maestro Manualmente (Recomendado) ✅
+### Opción 2: Ejecutar Script Maestro Manualmente (Solo actualiza esquema) ⚠️
 
-**✅ ESTO MANTIENE LOS DATOS EXISTENTES Y ACTUALIZA EL ESQUEMA**
+**⚠️ ESTO NO ELIMINA DATOS EXISTENTES - Solo actualiza el esquema**
+
+**Si quieres eliminar TODOS los datos, usa la Opción 1 (Reset Completo)**
 
 ```bash
 # 1. Conectarse al servidor de producción
