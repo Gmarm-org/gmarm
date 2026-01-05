@@ -56,7 +56,11 @@ docker logs gmarm-postgres-prod | grep -i "00_gmarm_completo\|executing\|initdb"
 # 12. (IMPORTANTE) Si la base de datos ya existía, asegurar UTF-8 correctamente
 docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "ALTER DATABASE gmarm_prod SET client_encoding = 'UTF8';"
 
-# 13. Verificar logs del backend
+# 13. (IMPORTANTE) Corregir caracteres mal codificados en datos existentes
+# Si tienes datos con caracteres extraños (Ã¡, Ã©, etc.), ejecutar:
+docker exec -i gmarm-postgres-prod psql -U postgres -d gmarm_prod < datos/fix-utf8-caracteres.sql
+
+# 14. Verificar logs del backend
 docker logs gmarm-backend-prod | tail -50
 ```
 
@@ -90,13 +94,20 @@ docker exec -i gmarm-postgres-prod psql -U postgres -d gmarm_prod < datos/00_gma
 docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "SELECT COUNT(*) FROM usuario;"
 docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "SELECT COUNT(*) FROM configuracion_sistema;"
 
-# 8. Reiniciar backend para que cargue el nuevo esquema
+# 8. (IMPORTANTE) Asegurar UTF-8 en la base de datos
+docker exec gmarm-postgres-prod psql -U postgres -d gmarm_prod -c "ALTER DATABASE gmarm_prod SET client_encoding = 'UTF8';"
+
+# 9. (IMPORTANTE) Corregir caracteres mal codificados en datos existentes
+# Si tienes datos con caracteres extraños (Ã¡, Ã©, etc.), ejecutar:
+docker exec -i gmarm-postgres-prod psql -U postgres -d gmarm_prod < datos/fix-utf8-caracteres.sql
+
+# 10. Reiniciar backend para que cargue el nuevo esquema
 docker-compose -f docker-compose.prod.yml restart backend
 
-# 9. Esperar a que el backend inicie (60 segundos)
+# 11. Esperar a que el backend inicie (60 segundos)
 sleep 60
 
-# 10. Verificar que el backend inició correctamente
+# 12. Verificar que el backend inició correctamente
 docker logs gmarm-backend-prod | tail -50
 curl http://localhost:8080/api/health
 ```
