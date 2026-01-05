@@ -24,10 +24,8 @@ docker-compose -f docker-compose.prod.yml down
 docker volume ls | grep postgres
 
 # 5. Eliminar volumen de PostgreSQL (ESTO BORRA TODOS LOS DATOS)
-# El nombre puede variar, verifica con: docker volume ls | grep postgres
-docker volume rm gmarm_postgres_data_prod
-# O si el nombre es diferente:
-# docker volume rm <nombre-del-volumen-postgres>
+# El nombre del volumen es: prod_postgres_data_prod
+docker volume rm prod_postgres_data_prod
 
 # 6. Verificar que el volumen fue eliminado
 docker volume ls | grep postgres
