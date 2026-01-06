@@ -663,6 +663,7 @@ class ApiService {
     observaciones?: string;
     tipoGrupo?: 'CUPO' | 'JUSTIFICATIVO';
     tra?: string;
+    licenciaId?: number; // Permite cambiar la licencia en edición
     vendedores?: Array<{ vendedorId: number; limiteArmas: number }>;
     vendedorIds?: number[]; // Mantener para compatibilidad
     limitesCategoria?: Array<{ categoriaArmaId: number; limiteMaximo: number }>;
@@ -1696,6 +1697,20 @@ class ApiService {
   // Obtener armas reservadas de un cliente
   async getArmasCliente(clienteId: number): Promise<any[]> {
     return this.request<any[]>(`/api/cliente-arma/cliente/${clienteId}`);
+  }
+
+  // Actualizar arma en una reserva existente (Jefe de Ventas)
+  async actualizarArmaReserva(clienteArmaId: number, nuevaArmaId: number, nuevoPrecioUnitario?: number): Promise<any> {
+    const params = new URLSearchParams({
+      nuevaArmaId: nuevaArmaId.toString()
+    });
+    if (nuevoPrecioUnitario !== undefined) {
+      params.append('nuevoPrecioUnitario', nuevoPrecioUnitario.toString());
+    }
+    
+    return this.request<any>(`/api/cliente-arma/${clienteArmaId}/actualizar-arma?${params.toString()}`, {
+      method: 'PUT'
+    });
   }
 
   // Obtener armas en stock del vendedor (armas asignadas a clientes fantasma)

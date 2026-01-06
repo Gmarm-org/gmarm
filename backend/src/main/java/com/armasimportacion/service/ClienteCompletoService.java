@@ -364,13 +364,18 @@ public class ClienteCompletoService {
         // 6. Asignar automáticamente a grupo de importación disponible (provisional)
         // Solo si el cliente no es fantasma (PENDIENTE_ASIGNACION_CLIENTE)
         if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
-            try {
+            // VALIDACIÓN OBLIGATORIA: Debe existir un grupo de importación disponible
+            com.armasimportacion.model.ClienteGrupoImportacion asignacion = 
                 grupoImportacionService.asignarClienteAGrupoDisponible(cliente, usuarioId);
-                log.info("✅ Cliente ID {} asignado automáticamente a grupo disponible", cliente.getId());
-            } catch (Exception e) {
-                log.warn("⚠️ No se pudo asignar cliente a grupo automáticamente: {}", e.getMessage());
-                // No fallar la creación del cliente si no hay grupo disponible
+            
+            if (asignacion == null) {
+                log.error("❌ No hay grupo de importación disponible para asignar cliente ID: {}", cliente.getId());
+                throw new com.armasimportacion.exception.BadRequestException(
+                    "No hay grupos de importación disponibles. Por favor, comuníquese con el jefe de ventas para crear un grupo de importación antes de crear clientes."
+                );
             }
+            
+            log.info("✅ Cliente ID {} asignado automáticamente a grupo disponible (estado: PENDIENTE)", cliente.getId());
         }
         
         // 7. Enviar correo de verificación (si el cliente tiene email)
@@ -689,6 +694,18 @@ public class ClienteCompletoService {
      * Solo se envía si el cliente tiene email
      */
     private void enviarCorreoVerificacion(Cliente cliente) {
+        // NO enviar correo a clientes fantasma (vendedores)
+        if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            log.info("📧 Cliente ID {} es cliente fantasma (vendedor), no se enviará correo de verificación", cliente.getId());
+            return;
+        }
+        
+        // NO enviar correo a compañías de seguridad
+        if (cliente.esEmpresa()) {
+            log.info("📧 Cliente ID {} es compañía de seguridad, no se enviará correo de verificación", cliente.getId());
+            return;
+        }
+        
         if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
             log.info("📧 Cliente ID {} no tiene email, no se enviará correo de verificación", cliente.getId());
             return;

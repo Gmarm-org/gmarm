@@ -247,6 +247,41 @@ public class GrupoImportacionController {
     }
 
     /**
+     * Obtiene la lista de grupos de importación activos
+     */
+    @GetMapping("/activos")
+    @Operation(summary = "Obtener grupos activos", 
+               description = "Obtiene la lista de grupos de importación que están activos (no completados ni cancelados)")
+    public ResponseEntity<List<Map<String, Object>>> obtenerGruposActivos() {
+        try {
+            log.info("📋 Obteniendo grupos de importación activos");
+            
+            List<com.armasimportacion.model.GrupoImportacion> grupos = 
+                grupoImportacionService.obtenerGruposActivos();
+            
+            List<Map<String, Object>> gruposDTO = grupos.stream().map(grupo -> {
+                Map<String, Object> grupoMap = new HashMap<>();
+                grupoMap.put("id", grupo.getId());
+                grupoMap.put("nombre", grupo.getNombre());
+                grupoMap.put("codigo", grupo.getCodigo());
+                grupoMap.put("estado", grupo.getEstado());
+                grupoMap.put("tipoGrupo", grupo.getTipoGrupo());
+                grupoMap.put("fechaInicio", grupo.getFechaInicio());
+                grupoMap.put("fechaFin", grupo.getFechaFin());
+                return grupoMap;
+            }).collect(java.util.stream.Collectors.toList());
+            
+            log.info("✅ Retornando {} grupos activos", gruposDTO.size());
+            return ResponseEntity.ok(gruposDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo grupos activos: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Error al obtener los grupos activos");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
+        }
+    }
+
+    /**
      * Lista grupos de importación para Jefe de Ventas
      * Incluye filtros por estado y búsqueda
      */

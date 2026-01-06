@@ -9,9 +9,24 @@ import { useVendedorLogic } from './hooks/useVendedorLogic';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import { ModalValidarDatos } from './components/ModalValidarDatos';
+import { apiService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Vendedor: React.FC = React.memo(() => {
   // Componente Vendedor inicializado
+  const { user } = useAuth();
+  
+  // Verificar si el usuario es vendedor (no jefe de ventas)
+  const esVendedor = React.useMemo(() => {
+    if (!user?.roles) return true; // Por defecto asumir que es vendedor
+    return user.roles.some((role: any) => {
+      const codigo = role.rol?.codigo || (role as any).codigo || role;
+      return codigo === 'VENDOR' || codigo === 'VENDEDOR';
+    }) && !user.roles.some((role: any) => {
+      const codigo = role.rol?.codigo || (role as any).codigo || role;
+      return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
+    });
+  }, [user]);
   
   // Estado para pestaña activa
   const [activeTab, setActiveTab] = React.useState<'en-proceso' | 'asignados'>('en-proceso');
@@ -26,6 +41,28 @@ const Vendedor: React.FC = React.memo(() => {
     client: null,
     isLoading: false
   });
+  
+  // Estado para verificar si hay grupos de importación disponibles
+  const [hayGruposDisponibles, setHayGruposDisponibles] = React.useState<boolean | null>(null);
+  const [cargandoGrupos, setCargandoGrupos] = React.useState(true);
+  
+  // Verificar grupos disponibles al cargar el componente
+  React.useEffect(() => {
+    const verificarGrupos = async () => {
+      try {
+        setCargandoGrupos(true);
+        const grupos = await apiService.getGruposActivos();
+        setHayGruposDisponibles(grupos && grupos.length > 0);
+      } catch (error) {
+        console.error('❌ Error verificando grupos de importación:', error);
+        setHayGruposDisponibles(false);
+      } finally {
+        setCargandoGrupos(false);
+      }
+    };
+    
+    verificarGrupos();
+  }, []);
   
   // Usar el hook personalizado para toda la lógica
   const {
@@ -277,19 +314,45 @@ const Vendedor: React.FC = React.memo(() => {
 
             {/* Botones de acción (solo en "En Proceso") */}
             {activeTab === 'en-proceso' && (
-              <div className="flex space-x-4 mb-6">
-                <button
-                  onClick={handleCreateClient}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
-                >
-                  Crear Cliente
-                </button>
-                <button
-                  onClick={handleAssignWeaponWithoutClient}
-                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
-                >
-                  Asignar Arma Sin Cliente
-                </button>
+              <div className="space-y-4 mb-6">
+                {/* Mensaje de advertencia si no hay grupos disponibles */}
+                {!cargandoGrupos && hayGruposDisponibles === false && (
+                  <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-lg font-bold text-yellow-800">Grupos de Importación No Disponibles</h3>
+                        <p className="mt-2 text-sm text-yellow-700">
+                          Para crear clientes deben estar cargados grupos de importación, comuníquese con su Jefe de ventas.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex space-x-4">
+                  <button
+                    onClick={handleCreateClient}
+                    disabled={!cargandoGrupos && hayGruposDisponibles === false}
+                    className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg ${
+                      !cargandoGrupos && hayGruposDisponibles === false
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
+                    }`}
+                  >
+                    Crear Cliente
+                  </button>
+                  <button
+                    onClick={handleAssignWeaponWithoutClient}
+                    className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+                  >
+                    Asignar Arma Sin Cliente
+                  </button>
+                </div>
               </div>
             )}
 
@@ -561,9 +624,20 @@ const Vendedor: React.FC = React.memo(() => {
                               >
                                 Ver
                               </button>
+                              {/* Botón Editar: Deshabilitado si es vendedor y el cliente ya confirmó sus datos */}
                               <button
                                 onClick={() => handleEditClient(client)}
-                                className="text-green-600 hover:text-green-900 font-medium"
+                                disabled={esVendedor && client.emailVerificado === true}
+                                className={`font-medium ${
+                                  esVendedor && client.emailVerificado === true
+                                    ? 'text-gray-400 cursor-not-allowed opacity-50'
+                                    : 'text-green-600 hover:text-green-900'
+                                }`}
+                                title={
+                                  esVendedor && client.emailVerificado === true
+                                    ? 'No puede editar: El cliente ya confirmó sus datos. Solo el Jefe de Ventas puede editar clientes confirmados.'
+                                    : 'Editar cliente'
+                                }
                               >
                                 Editar
                               </button>

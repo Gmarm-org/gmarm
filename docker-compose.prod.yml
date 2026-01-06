@@ -22,6 +22,8 @@ services:
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - MAIL_FROM=${MAIL_FROM:-noreply@gmarm.com}
+      # 🌐 URL del frontend para enlaces de verificación
+      - FRONTEND_URL=${FRONTEND_URL:-https://gmarm.com}
       # Configuración JVM optimizada para producción (768MB límite)
       - JAVA_OPTS=-Xms256m -Xmx640m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:+UseStringDeduplication -XX:+UseCompressedOops
     depends_on:

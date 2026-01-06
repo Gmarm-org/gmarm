@@ -1534,7 +1534,28 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         window.dispatchEvent(event);
                       }
                     }}
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg"
+                    disabled={user ? (!user.roles?.some((role: any) => {
+                      const codigo = role.rol?.codigo || (role as any).codigo || role;
+                      return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
+                    }) && client?.emailVerificado === true) : false}
+                    className={`px-8 py-3 rounded-xl transition-all duration-200 font-semibold shadow-lg ${
+                      user ? (!user.roles?.some((role: any) => {
+                        const codigo = role.rol?.codigo || (role as any).codigo || role;
+                        return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
+                      }) && client?.emailVerificado === true)
+                        ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                    }`}
+                    title={
+                      user ? (!user.roles?.some((role: any) => {
+                        const codigo = role.rol?.codigo || (role as any).codigo || role;
+                        return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
+                      }) && client?.emailVerificado === true)
+                        ? 'No puede editar: El cliente ya confirmó sus datos. Solo el Jefe de Ventas puede editar clientes confirmados.'
+                        : 'Editar cliente'
+                      : 'Editar cliente'
+                    }
                   >
                     Editar Cliente
                   </button>

@@ -99,6 +99,16 @@ const JefeVentas: React.FC = () => {
     isLoading: false
   });
 
+  // Estados para editar arma
+  const [modalEditarArma, setModalEditarArma] = useState<{ isOpen: boolean; clienteArma: any | null; armasDisponibles: any[]; armaSeleccionada: any | null; nuevoPrecio: string; isLoading: boolean }>({
+    isOpen: false,
+    clienteArma: null,
+    armasDisponibles: [],
+    armaSeleccionada: null,
+    nuevoPrecio: '',
+    isLoading: false
+  });
+
   // Estados para armas reasignadas
   const [armasReasignadas, setArmasReasignadas] = useState<any[]>([]);
   const [loadingArmasReasignadas, setLoadingArmasReasignadas] = useState(false);
@@ -412,24 +422,110 @@ const JefeVentas: React.FC = () => {
 
   // Handler para confirmar desistimiento
   const handleConfirmarDesistimiento = async () => {
-    if (!modalDesistimiento.cliente) return;
+    if (!modalDesistimiento.cliente) {
+      alert('❌ Error: No hay cliente seleccionado');
+      return;
+    }
     
     setModalDesistimiento(prev => ({ ...prev, isLoading: true }));
     
     try {
-      await apiService.cambiarEstadoDesistimiento(
+      console.log('🔄 Cambiando estado a DESISTIMIENTO para cliente:', modalDesistimiento.cliente.id);
+      console.log('📝 Observación:', modalDesistimiento.observacion);
+      
+      const response = await apiService.cambiarEstadoDesistimiento(
         Number(modalDesistimiento.cliente!.id),
-        modalDesistimiento.observacion
+        modalDesistimiento.observacion || '' // Asegurar que siempre se envíe un string
       );
       
-      alert('Estado del cliente actualizado a DESISTIMIENTO exitosamente');
+      console.log('✅ Respuesta del servidor:', response);
+      
+      alert('✅ Estado del cliente actualizado a DESISTIMIENTO exitosamente');
       setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false });
+      
+      // Recargar clientes para reflejar el cambio
       cargarClientes();
     } catch (error: any) {
-      console.error('Error cambiando estado a DESISTIMIENTO:', error);
-      alert(`Error al cambiar estado: ${error.message || error}`);
+      console.error('❌ Error cambiando estado a DESISTIMIENTO:', error);
+      
+      // Extraer mensaje de error más específico
+      let errorMessage = 'Error desconocido al cambiar estado';
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`❌ Error al cambiar estado: ${errorMessage}`);
     } finally {
       setModalDesistimiento(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Handler para abrir modal de editar arma
+  const handleAbrirModalEditarArma = async (clienteArma: any) => {
+    if (!clienteArma) return;
+    
+    try {
+      // Cargar armas disponibles
+      const armas = await apiService.getArmas();
+      setModalEditarArma({
+        isOpen: true,
+        clienteArma,
+        armasDisponibles: armas || [],
+        armaSeleccionada: null,
+        nuevoPrecio: clienteArma.precioUnitario?.toString() || '',
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Error cargando armas:', error);
+      alert('Error al cargar armas disponibles');
+    }
+  };
+
+  // Handler para confirmar edición de arma
+  const handleConfirmarEditarArma = async () => {
+    if (!modalEditarArma.clienteArma || !modalEditarArma.armaSeleccionada) {
+      alert('❌ Por favor, selecciona una nueva arma');
+      return;
+    }
+
+    setModalEditarArma(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const nuevoPrecio = modalEditarArma.nuevoPrecio ? parseFloat(modalEditarArma.nuevoPrecio) : undefined;
+      
+      await apiService.actualizarArmaReserva(
+        modalEditarArma.clienteArma.id,
+        modalEditarArma.armaSeleccionada.id,
+        nuevoPrecio
+      );
+
+      alert('✅ Arma actualizada exitosamente. Puedes generar un nuevo contrato si lo deseas.');
+      
+      // Cerrar modal
+      setModalEditarArma({
+        isOpen: false,
+        clienteArma: null,
+        armasDisponibles: [],
+        armaSeleccionada: null,
+        nuevoPrecio: '',
+        isLoading: false
+      });
+
+      // Recargar armas del cliente
+      if (clienteSeleccionado) {
+        const armas = await apiService.getArmasCliente(Number(clienteSeleccionado.id));
+        setArmasCliente(armas);
+      }
+    } catch (error: any) {
+      console.error('Error actualizando arma:', error);
+      const errorMessage = error?.response?.data?.error || error?.message || 'Error desconocido';
+      alert(`❌ Error al actualizar arma: ${errorMessage}`);
+    } finally {
+      setModalEditarArma(prev => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -1285,7 +1381,7 @@ const JefeVentas: React.FC = () => {
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           {armasCliente.map((arma, index) => (
                             <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                                 <div>
                                   <p className="text-sm text-gray-600">Arma</p>
                                   <p className="font-semibold text-blue-600">{arma.armaNombre || 'N/A'}</p>
@@ -1301,6 +1397,19 @@ const JefeVentas: React.FC = () => {
                                 <div>
                                   <p className="text-sm text-gray-600">Precio Unitario</p>
                                   <p className="font-medium">${arma.precioUnitario?.toFixed(2) || '0.00'}</p>
+                                </div>
+                                <div className="flex items-end">
+                                  {arma.estado !== 'ASIGNADA' && arma.estado !== 'COMPLETADA' ? (
+                                    <button
+                                      onClick={() => handleAbrirModalEditarArma(arma)}
+                                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                                      title="Editar arma asignada"
+                                    >
+                                      Editar Arma
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-500">No editable</span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1945,6 +2054,110 @@ const JefeVentas: React.FC = () => {
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
                 >
                   Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Editar Arma */}
+        {modalEditarArma.isOpen && modalEditarArma.clienteArma && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Editar Arma Asignada</h2>
+                <button
+                  onClick={() => setModalEditarArma({
+                    isOpen: false,
+                    clienteArma: null,
+                    armasDisponibles: [],
+                    armaSeleccionada: null,
+                    nuevoPrecio: '',
+                    isLoading: false
+                  })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Arma Actual</p>
+                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaNombre || 'N/A'}</p>
+                <p className="text-sm text-gray-600 mt-2">Precio Actual</p>
+                <p className="font-medium">${modalEditarArma.clienteArma.precioUnitario?.toFixed(2) || '0.00'}</p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleccionar Nueva Arma *
+                </label>
+                <select
+                  value={modalEditarArma.armaSeleccionada?.id || ''}
+                  onChange={(e) => {
+                    const armaSeleccionada = modalEditarArma.armasDisponibles.find(
+                      a => a.id.toString() === e.target.value
+                    );
+                    setModalEditarArma(prev => ({
+                      ...prev,
+                      armaSeleccionada,
+                      nuevoPrecio: armaSeleccionada?.precioReferencia?.toString() || ''
+                    }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecciona una arma...</option>
+                  {modalEditarArma.armasDisponibles.map((arma: any) => (
+                    <option key={arma.id} value={arma.id}>
+                      {arma.nombre} - ${arma.precioReferencia?.toFixed(2) || '0.00'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {modalEditarArma.armaSeleccionada && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nuevo Precio Unitario (USD) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={modalEditarArma.nuevoPrecio}
+                    onChange={(e) => setModalEditarArma(prev => ({ ...prev, nuevoPrecio: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Precio de referencia: ${modalEditarArma.armaSeleccionada.precioReferencia?.toFixed(2) || '0.00'}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setModalEditarArma({
+                    isOpen: false,
+                    clienteArma: null,
+                    armasDisponibles: [],
+                    armaSeleccionada: null,
+                    nuevoPrecio: '',
+                    isLoading: false
+                  })}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  disabled={modalEditarArma.isLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarEditarArma}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={modalEditarArma.isLoading || !modalEditarArma.armaSeleccionada}
+                >
+                  {modalEditarArma.isLoading ? 'Procesando...' : 'Confirmar Cambio'}
                 </button>
               </div>
             </div>

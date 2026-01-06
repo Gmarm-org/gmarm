@@ -57,6 +57,25 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   const [cantidades, setCantidades] = React.useState<Record<number, number>>({});
   const [preciosEnEdicion, setPreciosEnEdicion] = React.useState<Record<number, string>>({});
   
+  // Estado para cantidad de armas a seleccionar (solo para Cliente Civil: 1 o 2)
+  const [cantidadArmasACeleccionar, setCantidadArmasACeleccionar] = React.useState<number>(1);
+  
+  // Estado para múltiples armas seleccionadas (para Cliente Civil con 2 armas)
+  const [armasSeleccionadas, setArmasSeleccionadas] = React.useState<Arma[]>([]);
+  
+  // Sincronizar armasSeleccionadas con armaSeleccionadaEnReserva cuando cambia desde afuera
+  React.useEffect(() => {
+    if (armaSeleccionadaEnReserva && !armasSeleccionadas.some(a => a.id === armaSeleccionadaEnReserva.id)) {
+      // Si hay una arma seleccionada desde afuera y no está en la lista, agregarla (para compatibilidad)
+      if (!esCivil() || armasSeleccionadas.length < cantidadArmasACeleccionar) {
+        setArmasSeleccionadas([...armasSeleccionadas, armaSeleccionadaEnReserva]);
+      }
+    } else if (!armaSeleccionadaEnReserva && armasSeleccionadas.length > 0 && !esCivil()) {
+      // Si se deselecciona desde afuera y no es Civil, limpiar la lista
+      setArmasSeleccionadas([]);
+    }
+  }, [armaSeleccionadaEnReserva]);
+  
   // Estado para categorías y filtro
   const [todasLasCategorias, setTodasLasCategorias] = React.useState<Array<{ id: number; nombre: string; codigo: string }>>([]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = React.useState<string>('TODAS');
@@ -73,6 +92,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   const esDeportista = (): boolean => {
     const tipo = getTipoClienteActual();
     return tipo === 'Deportista';
+  };
+  
+  const esCivil = (): boolean => {
+    const tipo = getTipoClienteActual();
+    return tipo === 'Civil' || tipo === 'Cliente Civil';
   };
   
   // Función para verificar si una categoría está permitida
@@ -266,14 +290,44 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
       }
     }
 
-    // Si ya está seleccionada, deseleccionarla
-    if (armaSeleccionadaEnReserva?.id === weapon.id) {
-      onWeaponSelectionInReserve(null);
-      return;
-    }
+    // Si es Cliente Civil, manejar múltiples selecciones (máximo 2)
+    if (esCivil()) {
+      const index = armasSeleccionadas.findIndex(a => a.id === weapon.id);
+      if (index >= 0) {
+        // Deseleccionar si ya está seleccionada
+        const nuevasArmas = armasSeleccionadas.filter(a => a.id !== weapon.id);
+        setArmasSeleccionadas(nuevasArmas);
+        // Si solo queda una arma, actualizar la selección única
+        if (nuevasArmas.length === 1) {
+          onWeaponSelectionInReserve(nuevasArmas[0]);
+        } else if (nuevasArmas.length === 0) {
+          onWeaponSelectionInReserve(null);
+        }
+      } else {
+        // Verificar límite de cantidad
+        if (armasSeleccionadas.length >= cantidadArmasACeleccionar) {
+          alert(`❌ Ya has seleccionado el máximo de ${cantidadArmasACeleccionar} ${cantidadArmasACeleccionar === 1 ? 'arma' : 'armas'} permitidas para Cliente Civil. Deselecciona una arma primero.`);
+          return;
+        }
+        // Agregar a la selección múltiple
+        const nuevasArmas = [...armasSeleccionadas, weapon];
+        setArmasSeleccionadas(nuevasArmas);
+        // Si es solo una arma, mantener compatibilidad con el comportamiento anterior
+        if (nuevasArmas.length === 1) {
+          onWeaponSelectionInReserve(weapon);
+        }
+      }
+    } else {
+      // Para otros tipos (Deportista, etc.), comportamiento normal (solo una arma)
+      // Si ya está seleccionada, deseleccionarla
+      if (armaSeleccionadaEnReserva?.id === weapon.id) {
+        onWeaponSelectionInReserve(null);
+        return;
+      }
 
-    // Seleccionar la nueva arma
-    onWeaponSelectionInReserve(weapon);
+      // Seleccionar la nueva arma
+      onWeaponSelectionInReserve(weapon);
+    }
   };
 
   return (
@@ -387,6 +441,66 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                 </div>
               )}
 
+              {/* Dropdown para cantidad de armas (solo Cliente Civil) */}
+              {esCivil() && (currentClient || reservaParaCliente) && (
+                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6 mb-8">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <svg className="w-6 h-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-lg font-bold text-yellow-800 mb-1">Cantidad de Armas a Seleccionar</h3>
+                        <p className="text-sm text-yellow-700">Cliente Civil puede solicitar máximo 2 armas (mismo tipo o diferentes)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mr-3">Cantidad:</label>
+                      <select
+                        value={cantidadArmasACeleccionar}
+                        onChange={(e) => {
+                          const nuevaCantidad = parseInt(e.target.value);
+                          setCantidadArmasACeleccionar(nuevaCantidad);
+                          // Si se reduce la cantidad y hay más armas seleccionadas, quitar las sobrantes
+                          if (armasSeleccionadas.length > nuevaCantidad) {
+                            const armasReducidas = armasSeleccionadas.slice(0, nuevaCantidad);
+                            setArmasSeleccionadas(armasReducidas);
+                            if (armasReducidas.length === 1) {
+                              onWeaponSelectionInReserve(armasReducidas[0]);
+                            } else if (armasReducidas.length === 0) {
+                              onWeaponSelectionInReserve(null);
+                            }
+                          }
+                        }}
+                        className="px-4 py-2 border-2 border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white text-gray-900 font-semibold"
+                      >
+                        <option value={1}>1 arma</option>
+                        <option value={2}>2 armas</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Indicador de progreso */}
+                  {armasSeleccionadas.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-yellow-300">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-yellow-800">
+                          Armas seleccionadas: {armasSeleccionadas.length} / {cantidadArmasACeleccionar}
+                        </span>
+                        {armasSeleccionadas.length === cantidadArmasACeleccionar && (
+                          <span className="text-sm font-bold text-green-600 flex items-center">
+                            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Completado
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Grid de Armas */}
               
               {/* Filtro por categoría */}
@@ -431,7 +545,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                   const subtotal = precioModificado * cantidad;
                   const ivaCalculado = subtotal * ivaDecimal;
                   const precioFinal = subtotal + ivaCalculado;
-                  const isSelected = armaSeleccionadaEnReserva?.id === weapon.id;
+                  
+                  // Verificar si está seleccionada (comportamiento diferente para Civil vs otros)
+                  const isSelected = esCivil() 
+                    ? armasSeleccionadas.some(a => a.id === weapon.id)
+                    : armaSeleccionadaEnReserva?.id === weapon.id;
                   
                   return (
                     <div 
@@ -560,36 +678,64 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
               {/* Botón Confirmar */}
               {(clienteParaResumen || (!currentClient && !reservaParaCliente)) && (() => {
-                // Validar si el precio del arma seleccionada es válido
-                let precioValido = true;
-                let mensajeDeshabilitado = 'Selecciona un arma para continuar';
+                // Para Cliente Civil: validar múltiples armas
+                // Para otros tipos: validar arma única
+                const armasParaValidar = esCivil() && armasSeleccionadas.length > 0 
+                  ? armasSeleccionadas 
+                  : (armaSeleccionadaEnReserva ? [armaSeleccionadaEnReserva] : []);
                 
-                if (armaSeleccionadaEnReserva) {
-                  const precioArmaSeleccionada = getWeaponPriceForClient(armaSeleccionadaEnReserva.id, currentClientId);
-                  const precioBaseArma = armaSeleccionadaEnReserva.precioReferencia || 0;
-                  
-                  // Verificar si hay un precio en edición para esta arma
-                  const precioEnEdicion = preciosEnEdicion[armaSeleccionadaEnReserva.id];
-                  const precioFinal = precioEnEdicion !== undefined 
-                    ? (parseFloat(precioEnEdicion) || 0)
-                    : precioArmaSeleccionada;
-                  
-                  // El precio debe ser mayor o igual al precio base, y mayor que 0
-                  if (precioFinal <= 0) {
-                    precioValido = false;
-                    mensajeDeshabilitado = 'Ingresa un precio válido';
-                  } else if (precioBaseArma > 0 && precioFinal < precioBaseArma) {
-                    precioValido = false;
-                    mensajeDeshabilitado = `El precio debe ser mayor o igual a $${precioBaseArma.toFixed(2)} USD`;
+                let precioValido = true;
+                let mensajeDeshabilitado = esCivil() 
+                  ? `Selecciona ${cantidadArmasACeleccionar === 1 ? '1 arma' : '2 armas'} para continuar`
+                  : 'Selecciona un arma para continuar';
+                
+                // Si es Civil, verificar que se haya seleccionado la cantidad requerida
+                if (esCivil() && armasSeleccionadas.length !== cantidadArmasACeleccionar) {
+                  precioValido = false;
+                  mensajeDeshabilitado = `Debes seleccionar ${cantidadArmasACeleccionar} ${cantidadArmasACeleccionar === 1 ? 'arma' : 'armas'}. Actualmente seleccionadas: ${armasSeleccionadas.length}`;
+                } else if (armasParaValidar.length === 0) {
+                  precioValido = false;
+                } else {
+                  // Validar precios de todas las armas seleccionadas
+                  for (const arma of armasParaValidar) {
+                    const precioArmaSeleccionada = getWeaponPriceForClient(arma.id, currentClientId);
+                    const precioBaseArma = arma.precioReferencia || 0;
+                    
+                    // Verificar si hay un precio en edición para esta arma
+                    const precioEnEdicion = preciosEnEdicion[arma.id];
+                    const precioFinal = precioEnEdicion !== undefined 
+                      ? (parseFloat(precioEnEdicion) || 0)
+                      : precioArmaSeleccionada;
+                    
+                    // El precio debe ser mayor o igual al precio base, y mayor que 0
+                    if (precioFinal <= 0) {
+                      precioValido = false;
+                      mensajeDeshabilitado = `Ingresa un precio válido para ${arma.nombre}`;
+                      break;
+                    } else if (precioBaseArma > 0 && precioFinal < precioBaseArma) {
+                      precioValido = false;
+                      mensajeDeshabilitado = `El precio de ${arma.nombre} debe ser mayor o igual a $${precioBaseArma.toFixed(2)} USD`;
+                      break;
+                    }
                   }
                 }
                 
-                const puedeConfirmar = armaSeleccionadaEnReserva && precioValido;
+                const puedeConfirmar = armasParaValidar.length > 0 && precioValido;
                 
                 return (
                   <div className="flex justify-center">
                     <button 
-                      onClick={onConfirmData}
+                      onClick={() => {
+                        // Pasar las armas seleccionadas al callback
+                        if (esCivil() && armasSeleccionadas.length > 0) {
+                          // Para Civil, pasar todas las armas seleccionadas
+                          // El callback puede recibir un objeto con las armas
+                          (onConfirmData as any)({ armas: armasSeleccionadas, esMultiple: true });
+                        } else if (armaSeleccionadaEnReserva) {
+                          // Para otros tipos, mantener comportamiento normal
+                          onConfirmData();
+                        }
+                      }}
                       disabled={!puedeConfirmar}
                       className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
                         puedeConfirmar
@@ -597,7 +743,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      {puedeConfirmar ? '✓ Confirmar Selección' : mensajeDeshabilitado}
+                      {puedeConfirmar 
+                        ? (esCivil() && armasSeleccionadas.length === 2 
+                            ? `✓ Confirmar ${armasSeleccionadas.length} Armas Seleccionadas`
+                            : '✓ Confirmar Selección')
+                        : mensajeDeshabilitado}
                     </button>
                   </div>
                 );

@@ -249,6 +249,48 @@ public class GrupoImportacionService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         
+        // Actualizar licencia si se proporciona
+        if (dto.getLicenciaId() != null) {
+            Licencia nuevaLicencia = licenciaRepository.findById(dto.getLicenciaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + dto.getLicenciaId()));
+            
+            // Verificar que la licencia esté activa y no vencida
+            if (Boolean.FALSE.equals(nuevaLicencia.getEstado()) || nuevaLicencia.isVencida()) {
+                throw new BadRequestException("La licencia seleccionada no está activa o está vencida");
+            }
+            
+            // Si cambió la licencia, recalcular cupos
+            if (!nuevaLicencia.getId().equals(grupo.getLicencia() != null ? grupo.getLicencia().getId() : null)) {
+                log.info("📋 Cambiando licencia del grupo de {} a {}", 
+                    grupo.getLicencia() != null ? grupo.getLicencia().getNumero() : "ninguna",
+                    nuevaLicencia.getNumero());
+                
+                // Liberar licencia anterior si existe
+                if (grupo.getLicencia() != null) {
+                    grupo.getLicencia().liberar();
+                    licenciaRepository.save(grupo.getLicencia());
+                }
+                
+                // Bloquear nueva licencia
+                nuevaLicencia.bloquear();
+                licenciaRepository.save(nuevaLicencia);
+                
+                // Actualizar licencia del grupo
+                grupo.setLicencia(nuevaLicencia);
+                
+                // Recalcular cupos desde la nueva licencia
+                int cupoTotal = (nuevaLicencia.getCupoCivil() != null ? nuevaLicencia.getCupoCivil() : 0) +
+                               (nuevaLicencia.getCupoMilitar() != null ? nuevaLicencia.getCupoMilitar() : 0) +
+                               (nuevaLicencia.getCupoEmpresa() != null ? nuevaLicencia.getCupoEmpresa() : 0) +
+                               (nuevaLicencia.getCupoDeportista() != null ? nuevaLicencia.getCupoDeportista() : 0);
+                grupo.setCupoTotal(cupoTotal);
+                
+                // El cupo disponible se mantiene igual (ya hay clientes asignados)
+                // O se puede recalcular si es necesario
+                log.info("✅ Licencia actualizada. Nuevo cupo total: {}", cupoTotal);
+            }
+        }
+        
         // Actualizar campos básicos si se proporcionan
         if (dto.getNombre() != null && !dto.getNombre().trim().isEmpty()) {
             grupo.setNombre(dto.getNombre());
@@ -977,6 +1019,172 @@ public class GrupoImportacionService {
         log.info("✅ Número de previa importación registrado para grupo ID: {}", grupoId);
     }
 
+    /**
+     * Encuentra un grupo de importación disponible para una arma específica
+     * Prioriza grupos que estén cerca del límite (ej: 24/25 armas) para completar el grupo
+     * 
+     * @param vendedorId ID del vendedor
+     * @param cliente Cliente a asignar
+     * @param categoriaArmaId ID de la categoría del arma (para priorizar grupos con espacio en esa categoría)
+     * @param esSegundaArma Si es true, buscar un grupo diferente al que ya tiene el cliente asignado (para Civiles con 2 armas)
+     * @return Grupo de importación disponible, o null si no hay ninguno
+     */
+    @Transactional(readOnly = true)
+    public GrupoImportacion encontrarGrupoDisponibleParaArma(Long vendedorId, Cliente cliente, Long categoriaArmaId, boolean esSegundaArma) {
+        log.info("🔍 Buscando grupo disponible para arma de categoría {} (segunda arma: {})", categoriaArmaId, esSegundaArma);
+        
+        Usuario vendedor = usuarioRepository.findById(vendedorId)
+            .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
+        
+        // Obtener todos los grupos donde el vendedor está asignado
+        List<GrupoImportacionVendedor> asignacionesVendedor = grupoImportacionVendedorRepository.findByVendedor(vendedor);
+        
+        if (asignacionesVendedor.isEmpty()) {
+            log.info("📭 No hay grupos asignados para el vendedor ID: {}", vendedorId);
+            return null;
+        }
+        
+        // Si es segunda arma, obtener grupos donde el cliente YA está asignado para excluirlos
+        Set<Long> gruposYaAsignados = new java.util.HashSet<>();
+        if (esSegundaArma) {
+            List<ClienteGrupoImportacion> asignacionesCliente = clienteGrupoRepository.findByClienteId(cliente.getId());
+            gruposYaAsignados = asignacionesCliente.stream()
+                .filter(cgi -> cgi.getEstado() != EstadoClienteGrupo.CANCELADO && 
+                              cgi.getEstado() != EstadoClienteGrupo.COMPLETADO)
+                .map(cgi -> cgi.getGrupoImportacion().getId())
+                .collect(java.util.stream.Collectors.toSet());
+            log.info("🚫 Excluyendo {} grupo(s) donde el cliente ya está asignado", gruposYaAsignados.size());
+        }
+        
+        // Lista de grupos candidatos con su "puntuación" (prioridad)
+        List<GrupoImportacionConPrioridad> gruposCandidatos = new java.util.ArrayList<>();
+        
+        // Filtrar grupos activos y disponibles
+        for (GrupoImportacionVendedor asignacion : asignacionesVendedor) {
+            GrupoImportacion grupo = asignacion.getGrupoImportacion();
+            
+            // Si es segunda arma, excluir grupos donde ya está asignado
+            if (esSegundaArma && gruposYaAsignados.contains(grupo.getId())) {
+                continue;
+            }
+            
+            // Verificar que el grupo esté en estado válido
+            if (grupo.getEstado() != EstadoGrupoImportacion.EN_PREPARACION &&
+                grupo.getEstado() != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES) {
+                continue;
+            }
+            
+            // Verificar compatibilidad del cliente con el tipo de grupo
+            if (!esClienteCompatibleConGrupo(cliente, grupo)) {
+                log.debug("⚠️ Cliente ID {} no es compatible con grupo ID {} (tipo: {})", 
+                    cliente.getId(), grupo.getId(), grupo.getTipoGrupo());
+                continue;
+            }
+            
+            // Verificar cupo disponible por categoría (solo para tipo CUPO)
+            if ("CUPO".equals(grupo.getTipoGrupo())) {
+                // Obtener límites por categoría del grupo
+                List<GrupoImportacionLimiteCategoria> limites = grupoImportacionLimiteCategoriaRepository
+                    .findByGrupoImportacion(grupo);
+                
+                // Buscar límite para esta categoría
+                Optional<GrupoImportacionLimiteCategoria> limiteOpt = limites.stream()
+                    .filter(l -> l.getCategoriaArma().getId().equals(categoriaArmaId))
+                    .findFirst();
+                
+                if (limiteOpt.isPresent()) {
+                    GrupoImportacionLimiteCategoria limite = limiteOpt.get();
+                    Integer limiteMaximo = limite.getLimiteMaximo();
+                    
+                    // Contar clientes CONFIRMADOS con armas de esta categoría en este grupo
+                    long clientesConfirmadosConCategoria = clienteGrupoRepository.findByGrupoImportacionId(grupo.getId()).stream()
+                        .filter(cgi -> cgi.getEstado() == EstadoClienteGrupo.CONFIRMADO ||
+                                      cgi.getEstado() == EstadoClienteGrupo.APROBADO ||
+                                      cgi.getEstado() == EstadoClienteGrupo.EN_PROCESO)
+                        .filter(cgi -> {
+                            Cliente c = cgi.getCliente();
+                            TipoCliente tc = c.getTipoCliente();
+                            
+                            // Solo contar CIVILES, DEPORTISTAS y UNIFORMADOS PASIVOS
+                            if (tc == null) return false;
+                            if (tc.esCivil()) return true;
+                            if (tc.esDeportista()) return true;
+                            if (tc.esUniformado() && c.getEstadoMilitar() != null && 
+                                c.getEstadoMilitar().name().equals("PASIVO")) {
+                                return true;
+                            }
+                            return false;
+                        })
+                        .filter(cgi -> {
+                            // Verificar si el cliente tiene armas de esta categoría
+                            return clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
+                                .anyMatch(ca -> ca.getArma().getCategoria().getId().equals(categoriaArmaId));
+                        })
+                        .count();
+                    
+                    // Verificar si hay cupo disponible
+                    if (clientesConfirmadosConCategoria >= limiteMaximo) {
+                        log.debug("⚠️ Grupo ID {} no tiene cupo disponible para categoría {} (ocupados: {}, límite: {})", 
+                            grupo.getId(), categoriaArmaId, clientesConfirmadosConCategoria, limiteMaximo);
+                        continue; // No hay cupo disponible
+                    }
+                    
+                    // Calcular prioridad: grupos cerca del límite tienen mayor prioridad
+                    int cupoDisponible = limiteMaximo - (int)clientesConfirmadosConCategoria;
+                    int porcentajeOcupado = (int)((clientesConfirmadosConCategoria * 100) / limiteMaximo);
+                    
+                    // Prioridad: mayor si está más cerca del límite (ej: 24/25 = 96% = alta prioridad)
+                    // Pero aún debe tener espacio (cupoDisponible > 0)
+                    gruposCandidatos.add(new GrupoImportacionConPrioridad(grupo, porcentajeOcupado, cupoDisponible));
+                } else {
+                    // Si no hay límite para esta categoría, grupo no disponible
+                    continue;
+                }
+            } else {
+                // Para JUSTIFICATIVO, no hay límites por categoría, solo verificar que el cliente sea compatible
+                gruposCandidatos.add(new GrupoImportacionConPrioridad(grupo, 0, Integer.MAX_VALUE));
+            }
+        }
+        
+        // Ordenar grupos por prioridad (mayor porcentaje ocupado primero, pero que tenga cupo disponible)
+        gruposCandidatos.sort((a, b) -> {
+            // Primero: grupos que están cerca del límite pero aún tienen espacio
+            if (a.cupoDisponible > 0 && b.cupoDisponible > 0) {
+                return Integer.compare(b.porcentajeOcupado, a.porcentajeOcupado); // Mayor porcentaje primero
+            }
+            // Segundo: si uno tiene cupo y otro no, el que tiene cupo tiene prioridad
+            if (a.cupoDisponible > 0) return -1;
+            if (b.cupoDisponible > 0) return 1;
+            return 0;
+        });
+        
+        if (!gruposCandidatos.isEmpty()) {
+            GrupoImportacion grupoSeleccionado = gruposCandidatos.get(0).grupo;
+            log.info("✅ Grupo disponible encontrado: ID={}, nombre={}, ocupado={}%, cupo disponible={}", 
+                grupoSeleccionado.getId(), grupoSeleccionado.getNombre(),
+                gruposCandidatos.get(0).porcentajeOcupado, gruposCandidatos.get(0).cupoDisponible);
+            return grupoSeleccionado;
+        }
+        
+        log.info("📭 No se encontró grupo disponible para vendedor ID: {} y categoría {}", vendedorId, categoriaArmaId);
+        return null;
+    }
+    
+    /**
+     * Clase auxiliar para ordenar grupos por prioridad
+     */
+    private static class GrupoImportacionConPrioridad {
+        GrupoImportacion grupo;
+        int porcentajeOcupado;
+        int cupoDisponible;
+        
+        GrupoImportacionConPrioridad(GrupoImportacion grupo, int porcentajeOcupado, int cupoDisponible) {
+            this.grupo = grupo;
+            this.porcentajeOcupado = porcentajeOcupado;
+            this.cupoDisponible = cupoDisponible;
+        }
+    }
+    
     /**
      * Encuentra el primer grupo de importación disponible para un vendedor
      * Un grupo está disponible si:

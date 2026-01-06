@@ -200,8 +200,27 @@ public class PagoService {
 
         Pago pago = pagoOpt.get();
         
-        // Obtener el siguiente número de cuota
+        // Obtener todas las cuotas existentes
         List<CuotaPago> cuotasExistentes = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pagoId);
+        
+        // Separar cuotas pagadas de cuotas pendientes
+        List<CuotaPago> cuotasPagadas = cuotasExistentes.stream()
+            .filter(c -> c.getEstado() == com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .collect(java.util.stream.Collectors.toList());
+        
+        List<CuotaPago> cuotasPendientes = cuotasExistentes.stream()
+            .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .collect(java.util.stream.Collectors.toList());
+        
+        // Calcular monto ya pagado
+        BigDecimal montoPagado = cuotasPagadas.stream()
+            .map(CuotaPago::getMonto)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // Calcular saldo pendiente (monto total - monto pagado)
+        BigDecimal saldoPendiente = pago.getMontoTotal().subtract(montoPagado);
+        
+        // Obtener el siguiente número de cuota
         int siguienteNumeroCuota = cuotasExistentes.isEmpty() 
             ? 1 
             : cuotasExistentes.stream()
@@ -209,10 +228,10 @@ public class PagoService {
                 .max()
                 .orElse(0) + 1;
 
+        // Crear nueva cuota
         CuotaPago cuota = new CuotaPago();
         cuota.setPago(pago);
         cuota.setNumeroCuota(dto.getNumeroCuota() != null ? dto.getNumeroCuota() : siguienteNumeroCuota);
-        cuota.setMonto(dto.getMonto());
         cuota.setFechaVencimiento(dto.getFechaVencimiento());
         cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PENDIENTE);
         cuota.setReferenciaPago(dto.getReferenciaPago());
@@ -224,12 +243,39 @@ public class PagoService {
             cuota.setUsuarioConfirmador(usuario);
         }
 
-        // Actualizar monto pendiente del pago
-        pago.setMontoPendiente(pago.getMontoPendiente().add(dto.getMonto()));
-        pago.setMontoTotal(pago.getMontoTotal().add(dto.getMonto()));
+        // RECALCULAR: Dividir saldo pendiente entre todas las cuotas pendientes (existentes + nueva)
+        int totalCuotasPendientes = cuotasPendientes.size() + 1;
+        BigDecimal montoPorCuota = saldoPendiente.divide(
+            BigDecimal.valueOf(totalCuotasPendientes), 
+            2, 
+            java.math.RoundingMode.HALF_UP
+        );
+        
+        // Actualizar montos de cuotas pendientes existentes
+        BigDecimal totalRedistribuido = BigDecimal.ZERO;
+        for (int i = 0; i < cuotasPendientes.size(); i++) {
+            CuotaPago cuotaExistente = cuotasPendientes.get(i);
+            cuotaExistente.setMonto(montoPorCuota);
+            totalRedistribuido = totalRedistribuido.add(montoPorCuota);
+            cuotaPagoRepository.save(cuotaExistente);
+        }
+        
+        // Establecer monto de la nueva cuota (lo que sobra después de redistribuir para compensar redondeos)
+        BigDecimal montoNuevaCuota = saldoPendiente.subtract(totalRedistribuido);
+        cuota.setMonto(montoNuevaCuota);
+        
+        // Guardar nueva cuota
+        CuotaPago cuotaGuardada = cuotaPagoRepository.save(cuota);
+        
+        // El monto total y pendiente del pago NO cambian (solo se redistribuye)
+        // El monto pendiente ya es correcto: montoTotal - montoPagado
+        pago.setMontoPendiente(saldoPendiente);
         pagoRepository.save(pago);
+        
+        log.info("✅ Nueva cuota creada y cuotas recalculadas. Saldo pendiente: {} distribuido en {} cuotas", 
+            saldoPendiente, totalCuotasPendientes);
 
-        return cuotaPagoRepository.save(cuota);
+        return cuotaGuardada;
     }
 
     public DocumentoGenerado generarRecibo(Long cuotaId) {

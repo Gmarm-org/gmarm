@@ -238,10 +238,65 @@ public class ClienteController {
     
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar cliente completo", description = "Actualiza un cliente completo con todos sus datos relacionados")
-    public ResponseEntity<?> actualizarClienteCompleto(@PathVariable Long id, @RequestBody Map<String, Object> requestData) {
+    public ResponseEntity<?> actualizarClienteCompleto(
+            @PathVariable Long id, 
+            @RequestBody Map<String, Object> requestData,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             log.info("🔄 ClienteController: Actualizando cliente completo ID: {}", id);
             log.info("🔍 ClienteController: requestData keys: {}", requestData.keySet());
+            
+            // Obtener usuario actual desde JWT
+            Long usuarioId = null;
+            Usuario usuario = null;
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.error("❌ Token JWT requerido para actualizar clientes");
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Token JWT requerido"));
+            }
+            
+            try {
+                String token = authHeader.substring(7);
+                String email = jwtTokenProvider.getUsernameFromToken(token);
+                if (email == null) {
+                    log.error("❌ Token JWT inválido");
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Token JWT inválido"));
+                }
+                
+                usuario = usuarioService.findByEmail(email);
+                usuarioId = usuario.getId();
+                log.info("✅ Usuario actual obtenido desde JWT: ID={}, Email={}", usuarioId, email);
+            } catch (Exception e) {
+                log.error("❌ Error obteniendo usuario desde JWT: {}", e.getMessage());
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Error procesando token JWT: " + e.getMessage()));
+            }
+            
+            // Validar permisos: si es vendedor y el cliente ya confirmó sus datos, no puede editar
+            Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + id));
+            
+            boolean esVendedor = usuario.getRoles().stream()
+                .anyMatch(rol -> "VENDOR".equals(rol.getCodigo()) || "VENDEDOR".equals(rol.getCodigo()));
+            
+            boolean esJefeVentas = usuario.getRoles().stream()
+                .anyMatch(rol -> "SALES_CHIEF".equals(rol.getCodigo()) || "JEFE_VENTAS".equals(rol.getCodigo()));
+            
+            boolean esAdmin = usuario.getRoles().stream()
+                .anyMatch(rol -> "ADMIN".equals(rol.getCodigo()));
+            
+            // Si es vendedor (no jefe ni admin) y el cliente ya confirmó datos, rechazar edición
+            if (esVendedor && !esJefeVentas && !esAdmin) {
+                Boolean emailVerificado = cliente.getEmailVerificado();
+                if (Boolean.TRUE.equals(emailVerificado)) {
+                    log.warn("⚠️ Vendedor {} intentó editar cliente {} que ya confirmó sus datos", 
+                        usuarioId, id);
+                    throw new BadRequestException(
+                        "No puede editar este cliente: El cliente ya confirmó sus datos. " +
+                        "Solo el Jefe de Ventas puede editar clientes que confirmaron sus datos.");
+                }
+            }
             
             // Usar ClienteCompletoService para actualización completa
             Map<String, Object> response = clienteCompletoService.actualizarClienteCompleto(id, requestData);
@@ -262,10 +317,65 @@ public class ClienteController {
     
     @PatchMapping("/{id}")
     @Operation(summary = "Actualizar cliente parcial", description = "Actualiza solo los campos modificados del cliente (más eficiente que PUT)")
-    public ResponseEntity<?> actualizarClienteParcial(@PathVariable Long id, @RequestBody Map<String, Object> requestData) {
+    public ResponseEntity<?> actualizarClienteParcial(
+            @PathVariable Long id, 
+            @RequestBody Map<String, Object> requestData,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             log.info("🔄 ClienteController: Actualizando cliente parcial ID: {}", id);
             log.info("🔍 ClienteController: Campos recibidos: {}", requestData.keySet());
+            
+            // Obtener usuario actual desde JWT
+            Long usuarioId = null;
+            Usuario usuario = null;
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.error("❌ Token JWT requerido para actualizar clientes");
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Token JWT requerido"));
+            }
+            
+            try {
+                String token = authHeader.substring(7);
+                String email = jwtTokenProvider.getUsernameFromToken(token);
+                if (email == null) {
+                    log.error("❌ Token JWT inválido");
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Token JWT inválido"));
+                }
+                
+                usuario = usuarioService.findByEmail(email);
+                usuarioId = usuario.getId();
+                log.info("✅ Usuario actual obtenido desde JWT: ID={}, Email={}", usuarioId, email);
+            } catch (Exception e) {
+                log.error("❌ Error obteniendo usuario desde JWT: {}", e.getMessage());
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Error procesando token JWT: " + e.getMessage()));
+            }
+            
+            // Validar permisos: si es vendedor y el cliente ya confirmó sus datos, no puede editar
+            Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + id));
+            
+            boolean esVendedor = usuario.getRoles().stream()
+                .anyMatch(rol -> "VENDOR".equals(rol.getCodigo()) || "VENDEDOR".equals(rol.getCodigo()));
+            
+            boolean esJefeVentas = usuario.getRoles().stream()
+                .anyMatch(rol -> "SALES_CHIEF".equals(rol.getCodigo()) || "JEFE_VENTAS".equals(rol.getCodigo()));
+            
+            boolean esAdmin = usuario.getRoles().stream()
+                .anyMatch(rol -> "ADMIN".equals(rol.getCodigo()));
+            
+            // Si es vendedor (no jefe ni admin) y el cliente ya confirmó datos, rechazar edición
+            if (esVendedor && !esJefeVentas && !esAdmin) {
+                Boolean emailVerificado = cliente.getEmailVerificado();
+                if (Boolean.TRUE.equals(emailVerificado)) {
+                    log.warn("⚠️ Vendedor {} intentó editar cliente {} que ya confirmó sus datos", 
+                        usuarioId, id);
+                    throw new BadRequestException(
+                        "No puede editar este cliente: El cliente ya confirmó sus datos. " +
+                        "Solo el Jefe de Ventas puede editar clientes que confirmaron sus datos.");
+                }
+            }
             
             // Usar ClienteCompletoService para actualización parcial optimizada
             Map<String, Object> response = clienteCompletoService.actualizarClienteParcial(id, requestData);
@@ -343,26 +453,40 @@ public class ClienteController {
     @Operation(summary = "Cambiar estado del cliente a DESISTIMIENTO", description = "Permite al Jefe de Ventas cambiar el estado del cliente a DESISTIMIENTO con una observación")
     public ResponseEntity<?> cambiarEstadoDesistimiento(
             @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, Object> request) {
         try {
             log.info("🔄 ClienteController: Cambiando estado del cliente ID {} a DESISTIMIENTO", id);
+            
+            // Validar que el cliente existe
             Cliente cliente = clienteService.findById(id);
+            
+            // Cambiar estado a DESISTIMIENTO
             cliente.setEstado(com.armasimportacion.enums.EstadoCliente.DESISTIMIENTO);
             
             // Usar motivoRechazo para almacenar la observación del desistimiento
-            String observacion = request.get("observacion");
+            Object observacionObj = request.get("observacion");
+            String observacion = observacionObj != null ? observacionObj.toString() : null;
             if (observacion != null && !observacion.trim().isEmpty()) {
                 cliente.setMotivoRechazo(observacion.trim());
             }
             
-            clienteRepository.save(cliente);
-            log.info("✅ Estado del cliente ID {} cambiado a DESISTIMIENTO con observación", id);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Estado del cliente actualizado a DESISTIMIENTO exitosamente"));
+            // Establecer fecha de rechazo (usamos este campo también para desistimiento)
+            cliente.setFechaRechazo(java.time.LocalDateTime.now());
+            
+            Cliente clienteActualizado = clienteRepository.save(cliente);
+            log.info("✅ Estado del cliente ID {} cambiado a DESISTIMIENTO con observación: {}", 
+                id, observacion != null ? observacion : "sin observación");
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true, 
+                "message", "Estado del cliente actualizado a DESISTIMIENTO exitosamente",
+                "cliente", clienteService.findByIdAsDTO(clienteActualizado.getId())
+            ));
         } catch (ResourceNotFoundException e) {
-            log.error("Cliente no encontrado: {}", e.getMessage());
+            log.error("❌ Cliente no encontrado: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Error inesperado al cambiar estado del cliente: {}", e.getMessage(), e);
+            log.error("❌ Error inesperado al cambiar estado del cliente a DESISTIMIENTO: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Error al cambiar estado del cliente: " + e.getMessage()));
         }
@@ -534,6 +658,12 @@ public class ClienteController {
             
             Cliente cliente = clienteService.findById(id);
             
+            // VALIDACIÓN 0: Verificar que NO sea cliente fantasma (vendedor)
+            if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No se puede generar contrato para clientes fantasma (vendedores). Los vendedores no requieren contrato."));
+            }
+            
             // VALIDACIÓN 1: Verificar que el email esté validado
             if (cliente.getEmailVerificado() == null || !cliente.getEmailVerificado()) {
                 return ResponseEntity.badRequest()
@@ -551,8 +681,13 @@ public class ClienteController {
             List<Pago> pagos = pagoRepository.findByClienteId(id);
             Pago pago = pagos != null && !pagos.isEmpty() ? pagos.get(0) : null;
             
-            // Generar contrato usando GestionDocumentosServiceHelper
-            DocumentoGenerado documento = gestionDocumentosServiceHelper.generarYGuardarContrato(cliente, pago);
+            // Generar documentos según tipo de grupo usando GestionDocumentosServiceHelper
+            List<DocumentoGenerado> documentos = gestionDocumentosServiceHelper.generarYGuardarDocumentos(cliente, pago);
+            
+            if (documentos == null || documentos.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "No se generaron documentos"));
+            }
             
             // CONFIRMAR ASIGNACIÓN DEFINITIVA AL GRUPO
             // Si el cliente tiene una asignación PENDIENTE, confirmarla (cambiar a CONFIRMADO)
@@ -561,17 +696,35 @@ public class ClienteController {
                 log.info("✅ Asignación del cliente ID {} confirmada definitivamente al grupo", id);
             } catch (Exception e) {
                 log.warn("⚠️ No se pudo confirmar asignación del cliente al grupo (puede no tener asignación pendiente): {}", e.getMessage());
-                // No fallar la generación del contrato si no hay asignación pendiente
+                // No fallar la generación de documentos si no hay asignación pendiente
             }
+            
+            // Para compatibilidad, usar el primer documento como referencia
+            DocumentoGenerado documentoPrincipal = documentos.get(0);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Contrato generado exitosamente");
-            response.put("documentoId", documento.getId());
-            response.put("nombreArchivo", documento.getNombreArchivo());
-            response.put("urlArchivo", documento.getUrlArchivo());
+            response.put("message", documentos.size() + " documento(s) generado(s) exitosamente");
+            response.put("documentosGenerados", documentos.size());
+            response.put("documentoId", documentoPrincipal.getId());
+            response.put("nombreArchivo", documentoPrincipal.getNombreArchivo());
+            response.put("urlArchivo", documentoPrincipal.getUrlArchivo());
             
-            log.info("✅ Contrato generado exitosamente: {}", documento.getNombreArchivo());
+            // Agregar lista de documentos generados
+            List<Map<String, Object>> documentosInfo = documentos.stream()
+                .map(doc -> {
+                    Map<String, Object> docInfo = new HashMap<>();
+                    docInfo.put("id", doc.getId());
+                    docInfo.put("nombre", doc.getNombre());
+                    docInfo.put("tipoDocumento", doc.getTipoDocumento().name());
+                    docInfo.put("nombreArchivo", doc.getNombreArchivo());
+                    docInfo.put("urlArchivo", doc.getUrlArchivo());
+                    return docInfo;
+                })
+                .collect(Collectors.toList());
+            response.put("documentos", documentosInfo);
+            
+            log.info("✅ {} documento(s) generado(s) exitosamente: {}", documentos.size(), documentoPrincipal.getNombreArchivo());
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());

@@ -40,6 +40,8 @@ public class ClienteArmaService {
     private final GestionDocumentosServiceHelper documentosHelper;
     private final InventarioService inventarioService;
     private final DocumentoClienteService documentoClienteService;
+    private final com.armasimportacion.service.GrupoImportacionService grupoImportacionService;
+    private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
 
     /**
      * Verifica si un cliente tiene armas asignadas (en estado ASIGNADA)
@@ -67,37 +69,78 @@ public class ClienteArmaService {
         Arma arma = armaRepository.findById(armaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + armaId));
         
-        // TRAZABILIDAD: Cancelar reservas anteriores activas del cliente para mantener historial
-        // Esto permite que el cliente cambie de arma manteniendo el registro en BD
-        List<ClienteArma> reservasAnteriores = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId).stream()
-            .filter(ca -> !ca.estaCancelada()) // Solo cancelar las que no estén ya canceladas
-            .filter(ca -> !ca.estaCompletada()) // No cancelar las completadas (ya entregadas)
+        // Obtener reservas activas del cliente (no canceladas ni completadas)
+        List<ClienteArma> reservasActivas = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId).stream()
+            .filter(ca -> !ca.estaCancelada()) // Solo las que no estén canceladas
+            .filter(ca -> !ca.estaCompletada()) // No las completadas (ya entregadas)
             .collect(java.util.stream.Collectors.toList());
         
-        if (!reservasAnteriores.isEmpty()) {
-            log.info("📋 Cancelando {} reserva(s) anterior(es) del cliente {} para mantener trazabilidad al cambiar de arma", 
-                    reservasAnteriores.size(), clienteId);
+        // Validar límites según tipo de cliente
+        if (cliente.getTipoCliente() != null) {
+            String tipoClienteCodigo = cliente.getTipoCliente().getCodigo();
+            String tipoClienteNombre = cliente.getTipoCliente().getNombre();
+            boolean esCivil = "CIVIL".equals(tipoClienteCodigo) || 
+                             "Civil".equalsIgnoreCase(tipoClienteNombre) ||
+                             "Cliente Civil".equalsIgnoreCase(tipoClienteNombre);
             
-            for (ClienteArma reservaAnterior : reservasAnteriores) {
-                reservaAnterior.cancelar();
-                reservaAnterior.setFechaActualizacion(java.time.LocalDateTime.now());
-                clienteArmaRepository.save(reservaAnterior);
-                log.info("✅ Reserva anterior ID {} cancelada (arma ID: {})", 
-                        reservaAnterior.getId(), reservaAnterior.getArma().getId());
+            if (esCivil) {
+                // Cliente Civil: máximo 2 armas
+                if (reservasActivas.size() >= 2) {
+                    throw new BadRequestException(
+                        String.format("Cliente Civil puede solicitar máximo 2 armas. " +
+                                    "Actualmente tiene %d reserva(s) activa(s). " +
+                                    "Debe cancelar una reserva antes de crear una nueva.", 
+                                    reservasActivas.size()));
+                }
+                
+                // Verificar que no exista ya una reserva de la misma arma
+                boolean existeMismaArma = reservasActivas.stream()
+                    .anyMatch(ca -> ca.getArma().getId().equals(armaId));
+                
+                if (existeMismaArma) {
+                    throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
+                }
+                
+                log.info("✅ Cliente Civil detectado. Reservas activas: {}/2", reservasActivas.size());
+            } else {
+                // Para otros tipos (Deportista, Militar, etc.): sin límite
+                // Pero verificamos que no exista ya una reserva de la misma arma
+                boolean existeMismaArma = reservasActivas.stream()
+                    .anyMatch(ca -> ca.getArma().getId().equals(armaId));
+                
+                if (existeMismaArma) {
+                    throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
+                }
+                
+                log.info("✅ Cliente tipo {} detectado. Sin límite de armas. Reservas activas: {}", 
+                        tipoClienteNombre, reservasActivas.size());
+            }
+        } else {
+            // Si no tiene tipo de cliente definido, comportamiento conservador: máximo 2 armas
+            if (reservasActivas.size() >= 2) {
+                throw new BadRequestException(
+                    String.format("El cliente puede solicitar máximo 2 armas. " +
+                                "Actualmente tiene %d reserva(s) activa(s).", 
+                                reservasActivas.size()));
             }
             
-            log.info("✅ Reservas anteriores canceladas. Trazabilidad mantenida.");
-        }
-        
-        // Validar que no existe ya una reserva activa de la MISMA arma
-        if (clienteArmaRepository.existsByClienteIdAndArmaId(clienteId, armaId)) {
-            throw new BadRequestException("Ya existe una reserva de esta arma para este cliente");
+            // Verificar que no exista ya una reserva de la misma arma
+            boolean existeMismaArma = reservasActivas.stream()
+                .anyMatch(ca -> ca.getArma().getId().equals(armaId));
+            
+            if (existeMismaArma) {
+                throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
+            }
         }
         
         // Validar cantidad
         if (cantidad == null || cantidad <= 0) {
             cantidad = 1;
         }
+        
+        // NOTA: No cancelamos reservas anteriores automáticamente ahora
+        // El frontend puede crear múltiples reservas si el tipo de cliente lo permite
+        // Las reservas anteriores solo se cancelan si el usuario lo hace explícitamente
         
         // NOTA: No validamos stock aquí porque estas son armas para importación
         // que aún no están físicamente disponibles. Se reservan para el cliente
@@ -121,6 +164,65 @@ public class ClienteArmaService {
         
         ClienteArma saved = clienteArmaRepository.save(clienteArma);
         log.info("Reserva creada exitosamente con ID: {}", saved.getId());
+        
+        // ASIGNACIÓN AUTOMÁTICA INTELIGENTE: Asignar cliente a grupo basado en la categoría del arma
+        // Solo si el cliente no es fantasma
+        if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            try {
+                // Obtener vendedor del cliente
+                Long vendedorId = cliente.getUsuarioCreador() != null ? cliente.getUsuarioCreador().getId() : null;
+                
+                if (vendedorId != null) {
+                    // Obtener categoría del arma
+                    Long categoriaArmaId = arma.getCategoria() != null ? arma.getCategoria().getId() : null;
+                    
+                    if (categoriaArmaId != null) {
+                        // Verificar si es segunda arma (para Cliente Civil con 2 armas)
+                        // reservasActivas ya incluye la reserva que acabamos de crear (aún no está guardada, pero la contamos)
+                        boolean esSegundaArma = reservasActivas.size() >= 1; // Si ya había 1 reserva activa, esta es la segunda
+                        
+                        // Buscar grupo disponible para esta categoría de arma
+                        com.armasimportacion.model.GrupoImportacion grupoDisponible = 
+                            grupoImportacionService.encontrarGrupoDisponibleParaArma(
+                                vendedorId, 
+                                cliente, 
+                                categoriaArmaId,
+                                esSegundaArma
+                            );
+                        
+                        if (grupoDisponible != null) {
+                            // Verificar si el cliente ya está asignado a este grupo
+                            boolean yaAsignado = clienteGrupoImportacionRepository.existsByClienteAndGrupoImportacion(
+                                cliente, grupoDisponible);
+                            
+                            if (!yaAsignado) {
+                                // Crear asignación al grupo (estado PENDIENTE)
+                                com.armasimportacion.model.ClienteGrupoImportacion clienteGrupo = 
+                                    new com.armasimportacion.model.ClienteGrupoImportacion();
+                                clienteGrupo.setCliente(cliente);
+                                clienteGrupo.setGrupoImportacion(grupoDisponible);
+                                clienteGrupo.setEstado(com.armasimportacion.enums.EstadoClienteGrupo.PENDIENTE);
+                                clienteGrupo.setFechaAsignacion(java.time.LocalDateTime.now());
+                                
+                                clienteGrupoImportacionRepository.save(clienteGrupo);
+                                
+                                log.info("✅ Cliente ID {} asignado automáticamente al grupo ID {} (categoría arma: {}, segunda arma: {})", 
+                                    cliente.getId(), grupoDisponible.getId(), categoriaArmaId, esSegundaArma);
+                            } else {
+                                log.info("ℹ️ Cliente ID {} ya está asignado al grupo ID {}", 
+                                    cliente.getId(), grupoDisponible.getId());
+                            }
+                        } else {
+                            log.warn("⚠️ No se encontró grupo disponible para asignar cliente ID {} con arma categoría {}", 
+                                cliente.getId(), categoriaArmaId);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // No fallar la creación de la reserva si falla la asignación automática
+                log.error("❌ Error en asignación automática a grupo (no crítico): {}", e.getMessage(), e);
+            }
+        }
         
         // NOTA: El contrato se genera en ClienteCompletoService, no aquí
         log.info("✅ Reserva creada. El contrato será generado por ClienteCompletoService");
@@ -334,6 +436,56 @@ public class ClienteArmaService {
         return armasEnStock.stream()
             .map(this::convertirADTO)
             .collect(Collectors.toList());
+    }
+    
+    /**
+     * Actualizar el arma asignada en una reserva existente
+     * Permite al Jefe de Ventas cambiar el arma que un cliente tiene reservada
+     * 
+     * @param clienteArmaId ID de la relación ClienteArma a actualizar
+     * @param nuevaArmaId ID de la nueva arma a asignar
+     * @param nuevoPrecioUnitario Nuevo precio unitario (opcional, mantiene el anterior si es null)
+     * @return ClienteArmaDTO actualizado
+     */
+    @Transactional
+    public ClienteArmaDTO actualizarArmaReserva(Long clienteArmaId, Long nuevaArmaId, BigDecimal nuevoPrecioUnitario) {
+        log.info("🔄 Actualizando arma en reserva ID: {}, nueva arma ID: {}", clienteArmaId, nuevaArmaId);
+        
+        // Obtener la reserva existente
+        ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con ID: " + clienteArmaId));
+        
+        // Validar que el arma existe
+        Arma nuevaArma = armaRepository.findById(nuevaArmaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + nuevaArmaId));
+        
+        // Validar que no esté ya asignada o completada (no se puede cambiar si ya fue entregada)
+        if (clienteArma.estaAsignada() || clienteArma.estaCompletada()) {
+            throw new BadRequestException("No se puede cambiar el arma de una reserva que ya fue asignada o completada");
+        }
+        
+        // Guardar referencia al arma anterior para logging
+        Long armaAnteriorId = clienteArma.getArma().getId();
+        String nombreArmaAnterior = clienteArma.getArma().getNombre();
+        String nombreNuevaArma = nuevaArma.getNombre();
+        
+        // Actualizar el arma
+        clienteArma.setArma(nuevaArma);
+        
+        // Actualizar precio si se proporciona
+        if (nuevoPrecioUnitario != null) {
+            clienteArma.setPrecioUnitario(nuevoPrecioUnitario);
+        }
+        
+        // Actualizar fecha de actualización
+        clienteArma.setFechaActualizacion(java.time.LocalDateTime.now());
+        
+        ClienteArma saved = clienteArmaRepository.save(clienteArma);
+        
+        log.info("✅ Arma actualizada en reserva ID: {} - Anterior: {} (ID: {}), Nueva: {} (ID: {})", 
+            clienteArmaId, nombreArmaAnterior, armaAnteriorId, nombreNuevaArma, nuevaArmaId);
+        
+        return convertirADTO(saved);
     }
     
     /**

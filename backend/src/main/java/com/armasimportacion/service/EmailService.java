@@ -88,6 +88,7 @@ public class EmailService {
             context.setVariable("fechaNacimiento", cliente.getFechaNacimiento() != null ? cliente.getFechaNacimiento().toString() : "No especificada");
             context.setVariable("telefonoPrincipal", cliente.getTelefonoPrincipal() != null ? cliente.getTelefonoPrincipal() : "No especificado");
             context.setVariable("telefonoSecundario", cliente.getTelefonoSecundario() != null ? cliente.getTelefonoSecundario() : "No especificado");
+            context.setVariable("email", cliente.getEmail() != null ? cliente.getEmail() : "No especificado");
             context.setVariable("verificationUrl", verificationUrl);
             context.setVariable("expirationHours", 48);
             context.setVariable("noTieneCuentaSicoar", noTieneCuentaSicoar);

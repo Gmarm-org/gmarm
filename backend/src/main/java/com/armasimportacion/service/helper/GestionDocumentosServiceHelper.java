@@ -41,9 +41,99 @@ public class GestionDocumentosServiceHelper {
     private final com.armasimportacion.service.ConfiguracionSistemaService configuracionService;
     private final com.armasimportacion.service.LocalizacionService localizacionService;
     private final com.armasimportacion.service.FileStorageService fileStorageService;
+    private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
 
     /**
+     * Genera y guarda los documentos según el tipo de grupo del cliente
+     * - CUPO: Solo Cotización
+     * - JUSTIFICATIVO: Solicitud de compra, Contrato, Cotización
+     */
+    public List<DocumentoGenerado> generarYGuardarDocumentos(Cliente cliente, Pago pago) {
+        try {
+            log.info("📄 GENERANDO DOCUMENTOS PARA CLIENTE ID: {}", cliente.getId());
+            log.info("🔍 DEBUG: Cliente nombres: {}, apellidos: {}", cliente.getNombres(), cliente.getApellidos());
+            
+            // Obtener tipo de grupo del cliente
+            String tipoGrupo = obtenerTipoGrupoCliente(cliente.getId());
+            if (tipoGrupo == null) {
+                log.warn("⚠️ No se encontró grupo asignado al cliente, usando CUPO por defecto");
+                tipoGrupo = "CUPO";
+            }
+            
+            log.info("📋 Tipo de grupo del cliente: {}", tipoGrupo);
+            
+            java.util.List<DocumentoGenerado> documentosGenerados = new java.util.ArrayList<>();
+            
+            if ("CUPO".equals(tipoGrupo)) {
+                // CUPO: Solo Cotización
+                log.info("📄 Generando Cotización para grupo CUPO");
+                DocumentoGenerado cotizacion = generarYGuardarCotizacion(cliente, pago);
+                documentosGenerados.add(cotizacion);
+            } else if ("JUSTIFICATIVO".equals(tipoGrupo)) {
+                // JUSTIFICATIVO: Solicitud de compra, Contrato, Cotización
+                log.info("📄 Generando documentos para grupo JUSTIFICATIVO");
+                
+                // 1. Solicitud de compra
+                log.info("📄 1/3: Generando Solicitud de compra");
+                DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
+                documentosGenerados.add(solicitud);
+                
+                // 2. Contrato
+                log.info("📄 2/3: Generando Contrato");
+                DocumentoGenerado contrato = generarYGuardarContrato(cliente, pago);
+                documentosGenerados.add(contrato);
+                
+                // 3. Cotización
+                log.info("📄 3/3: Generando Cotización");
+                DocumentoGenerado cotizacion = generarYGuardarCotizacion(cliente, pago);
+                documentosGenerados.add(cotizacion);
+            } else {
+                // Por defecto, generar solo contrato (comportamiento anterior)
+                log.warn("⚠️ Tipo de grupo desconocido: {}, generando solo contrato", tipoGrupo);
+                DocumentoGenerado contrato = generarYGuardarContrato(cliente, pago);
+                documentosGenerados.add(contrato);
+            }
+            
+            log.info("✅ {} documento(s) generado(s) exitosamente para cliente ID: {}", 
+                documentosGenerados.size(), cliente.getId());
+            
+            return documentosGenerados;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando documentos para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            throw new RuntimeException("Error generando documentos", e);
+        }
+    }
+    
+    /**
+     * Obtiene el tipo de grupo de importación asignado al cliente
+     * @param clienteId ID del cliente
+     * @return Tipo de grupo (CUPO o JUSTIFICATIVO) o null si no tiene grupo asignado
+     */
+    private String obtenerTipoGrupoCliente(Long clienteId) {
+        List<com.armasimportacion.model.ClienteGrupoImportacion> gruposCliente = 
+            clienteGrupoImportacionRepository.findByClienteId(clienteId);
+        
+        if (gruposCliente == null || gruposCliente.isEmpty()) {
+            return null;
+        }
+        
+        // Buscar el grupo activo (no completado ni cancelado)
+        for (com.armasimportacion.model.ClienteGrupoImportacion cgi : gruposCliente) {
+            com.armasimportacion.enums.EstadoClienteGrupo estado = cgi.getEstado();
+            if (estado != com.armasimportacion.enums.EstadoClienteGrupo.COMPLETADO && 
+                estado != com.armasimportacion.enums.EstadoClienteGrupo.CANCELADO) {
+                String tipoGrupo = cgi.getGrupoImportacion().getTipoGrupo();
+                return tipoGrupo != null ? tipoGrupo : "CUPO"; // Valor por defecto
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
      * Genera y guarda un contrato PDF para el cliente usando Flying Saucer + Thymeleaf
+     * (Método mantenido para compatibilidad, ahora es parte de generarYGuardarDocumentos)
      */
     public DocumentoGenerado generarYGuardarContrato(Cliente cliente, Pago pago) {
         try {
@@ -61,7 +151,7 @@ public class GestionDocumentosServiceHelper {
             String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
                 cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
             
-            DocumentoGenerado documento = crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes);
+            DocumentoGenerado documento = crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.CONTRATO);
             DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
             
             log.info("✅ Contrato generado y guardado con ID: {}, archivo: {}", 
@@ -72,6 +162,68 @@ public class GestionDocumentosServiceHelper {
         } catch (Exception e) {
             log.error("❌ Error generando contrato para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando contrato", e);
+        }
+    }
+    
+    /**
+     * Genera y guarda una Cotización PDF para el cliente
+     */
+    public DocumentoGenerado generarYGuardarCotizacion(Cliente cliente, Pago pago) {
+        try {
+            log.info("📄 GENERANDO COTIZACIÓN PARA CLIENTE ID: {}", cliente.getId());
+            
+            // Generar PDF de cotización
+            byte[] pdfBytes = generarPDFCotizacion(cliente, pago);
+            log.info("🔍 DEBUG: PDF de cotización generado, tamaño: {} bytes", pdfBytes.length);
+            
+            String nombreArchivo = generarNombreArchivoCotizacion(cliente, pago);
+            
+            // Guardar archivo
+            String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
+            
+            DocumentoGenerado documento = crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.COTIZACION);
+            DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
+            
+            log.info("✅ Cotización generada y guardada con ID: {}, archivo: {}", 
+                documentoGuardado.getId(), nombreArchivo);
+            
+            return documentoGuardado;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando cotización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            throw new RuntimeException("Error generando cotización", e);
+        }
+    }
+    
+    /**
+     * Genera y guarda una Solicitud de Compra PDF para el cliente
+     */
+    public DocumentoGenerado generarYGuardarSolicitudCompra(Cliente cliente, Pago pago) {
+        try {
+            log.info("📄 GENERANDO SOLICITUD DE COMPRA PARA CLIENTE ID: {}", cliente.getId());
+            
+            // Generar PDF de solicitud de compra
+            byte[] pdfBytes = generarPDFSolicitudCompra(cliente, pago);
+            log.info("🔍 DEBUG: PDF de solicitud de compra generado, tamaño: {} bytes", pdfBytes.length);
+            
+            String nombreArchivo = generarNombreArchivoSolicitudCompra(cliente, pago);
+            
+            // Guardar archivo
+            String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
+            
+            DocumentoGenerado documento = crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.SOLICITUD_COMPRA);
+            DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
+            
+            log.info("✅ Solicitud de compra generada y guardada con ID: {}, archivo: {}", 
+                documentoGuardado.getId(), nombreArchivo);
+            
+            return documentoGuardado;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando solicitud de compra para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            throw new RuntimeException("Error generando solicitud de compra", e);
         }
     }
 
@@ -150,6 +302,30 @@ public class GestionDocumentosServiceHelper {
         
         return String.format("contrato_%s_%s_%s.pdf", apellidos, nombres, cedula);
     }
+    
+    private String generarNombreArchivoCotizacion(Cliente cliente, Pago pago) {
+        // Formato: cotizacion_apellidos_nombres_cedula.pdf
+        String apellidos = cliente.getApellidos() != null ? cliente.getApellidos().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim() : "";
+        String nombres = cliente.getNombres() != null ? cliente.getNombres().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim() : "";
+        String cedula = cliente.getNumeroIdentificacion() != null ? cliente.getNumeroIdentificacion() : "";
+        
+        apellidos = apellidos.replaceAll("\\s+", "_").toLowerCase();
+        nombres = nombres.replaceAll("\\s+", "_").toLowerCase();
+        
+        return String.format("cotizacion_%s_%s_%s.pdf", apellidos, nombres, cedula);
+    }
+    
+    private String generarNombreArchivoSolicitudCompra(Cliente cliente, Pago pago) {
+        // Formato: solicitud_compra_apellidos_nombres_cedula.pdf
+        String apellidos = cliente.getApellidos() != null ? cliente.getApellidos().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim() : "";
+        String nombres = cliente.getNombres() != null ? cliente.getNombres().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim() : "";
+        String cedula = cliente.getNumeroIdentificacion() != null ? cliente.getNumeroIdentificacion() : "";
+        
+        apellidos = apellidos.replaceAll("\\s+", "_").toLowerCase();
+        nombres = nombres.replaceAll("\\s+", "_").toLowerCase();
+        
+        return String.format("solicitud_compra_%s_%s_%s.pdf", apellidos, nombres, cedula);
+    }
 
     /**
      * Construye la ruta del archivo de contrato usando la cédula del cliente
@@ -163,17 +339,38 @@ public class GestionDocumentosServiceHelper {
      * Crea el objeto DocumentoGenerado con todos los datos necesarios
      */
     private DocumentoGenerado crearDocumentoGenerado(Cliente cliente, Pago pago, 
-                                                   String nombreArchivo, String rutaArchivo, byte[] pdfBytes) {
+                                                   String nombreArchivo, String rutaArchivo, byte[] pdfBytes,
+                                                   TipoDocumentoGenerado tipoDocumento) {
         DocumentoGenerado documento = new DocumentoGenerado();
         documento.setCliente(cliente);
-        documento.setNombre("Contrato de Compraventa");
-        documento.setDescripcion("Contrato generado automáticamente para la compra de arma");
-        documento.setTipoDocumento(TipoDocumentoGenerado.CONTRATO);
+        
+        // Establecer nombre y descripción según el tipo de documento
+        switch (tipoDocumento) {
+            case CONTRATO:
+                documento.setNombre("Contrato de Compraventa");
+                documento.setDescripcion("Contrato generado automáticamente para la compra de arma");
+                break;
+            case COTIZACION:
+                documento.setNombre("Cotización");
+                documento.setDescripcion("Cotización de arma generada automáticamente");
+                break;
+            case SOLICITUD_COMPRA:
+                documento.setNombre("Solicitud de Compra");
+                documento.setDescripcion("Solicitud de compra de arma generada automáticamente");
+                break;
+            default:
+                documento.setNombre("Documento Generado");
+                documento.setDescripcion("Documento generado automáticamente");
+                break;
+        }
+        
+        documento.setTipoDocumento(tipoDocumento);
         documento.setNombreArchivo(nombreArchivo);
         documento.setRutaArchivo(rutaArchivo);
         documento.setTamanioBytes((long) pdfBytes.length);
         documento.setFechaGeneracion(LocalDateTime.now());
         documento.setEstado(com.armasimportacion.enums.EstadoDocumentoGenerado.GENERADO);
+        
         // Obtener el usuario actual del contexto de seguridad
         try {
             String emailUsuarioActual = org.springframework.security.core.context.SecurityContextHolder
@@ -422,6 +619,87 @@ public class GestionDocumentosServiceHelper {
     }
 
     /**
+     * Genera PDF de Cotización usando Flying Saucer con template HTML/CSS
+     */
+    private byte[] generarPDFCotizacion(Cliente cliente, Pago pago) throws Exception {
+        log.info("🔧 Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
+        
+        try {
+            // Buscar arma asignada al cliente
+            ClienteArma clienteArma = clienteArmaRepository.findByClienteId(cliente.getId())
+                .stream()
+                .findFirst()
+                .orElse(null);
+            
+            if (clienteArma == null) {
+                log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
+                throw new RuntimeException("No se encontró arma asignada al cliente");
+            }
+            
+            // Obtener IVA dinámicamente
+            String ivaValor = configuracionService.getValorConfiguracion("IVA");
+            double ivaPorcentaje = Double.parseDouble(ivaValor);
+            double ivaDecimal = ivaPorcentaje / 100.0;
+            
+            // Preparar variables para el template
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("cliente", cliente);
+            variables.put("pago", pago != null ? pago : null);
+            variables.put("arma", clienteArma.getArma());
+            variables.put("ivaPorcentaje", ivaPorcentaje);
+            variables.put("ivaDecimal", ivaDecimal);
+            variables.put("numberToTextService", numberToTextService);
+            
+            // Generar PDF usando Flying Saucer con template de cotización
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("cotizaciones/cotizacion", variables);
+            
+            log.info("✅ PDF de cotización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
+            return pdfBytes;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando PDF de cotización: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Genera PDF de Solicitud de Compra usando Flying Saucer con template HTML/CSS
+     */
+    private byte[] generarPDFSolicitudCompra(Cliente cliente, Pago pago) throws Exception {
+        log.info("🔧 Generando PDF de Solicitud de Compra con Flying Saucer para cliente: {}", cliente.getNombres());
+        
+        try {
+            // Buscar arma asignada al cliente
+            ClienteArma clienteArma = clienteArmaRepository.findByClienteId(cliente.getId())
+                .stream()
+                .findFirst()
+                .orElse(null);
+            
+            if (clienteArma == null) {
+                log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
+                throw new RuntimeException("No se encontró arma asignada al cliente");
+            }
+            
+            // Preparar variables para el template
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("cliente", cliente);
+            variables.put("pago", pago != null ? pago : null);
+            variables.put("arma", clienteArma.getArma());
+            variables.put("numberToTextService", numberToTextService);
+            
+            // Generar PDF usando Flying Saucer con template de solicitud de compra
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("solicitudes/solicitud_compra", variables);
+            
+            log.info("✅ PDF de solicitud de compra generado exitosamente, tamaño: {} bytes", pdfBytes.length);
+            return pdfBytes;
+            
+        } catch (Exception e) {
+            log.error("❌ Error generando PDF de solicitud de compra: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
      * Genera PDF de autorización de venta usando Flying Saucer con template HTML/CSS
      */
     private byte[] generarPDFAutorizacion(Cliente cliente, ClienteArma clienteArma, 
@@ -565,37 +843,8 @@ public class GestionDocumentosServiceHelper {
         documento.setCliente(cliente);
         documento.setNombre("Autorización de Venta de Arma");
         documento.setDescripcion("Autorización de venta generada automáticamente para el arma asignada al cliente");
-        documento.setTipoDocumento(TipoDocumentoGenerado.AUTORIZACION);
-        documento.setNombreArchivo(nombreArchivo);
-        documento.setRutaArchivo(rutaArchivo);
-        documento.setTamanioBytes((long) pdfBytes.length);
-        documento.setFechaGeneracion(LocalDateTime.now());
-        documento.setEstado(com.armasimportacion.enums.EstadoDocumentoGenerado.GENERADO);
-        
-        // Obtener el usuario actual del contexto de seguridad
-        try {
-            String emailUsuarioActual = org.springframework.security.core.context.SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-            
-            Usuario usuarioActual = buscarUsuarioPorEmail(emailUsuarioActual);
-            if (usuarioActual != null) {
-                documento.setUsuarioGenerador(usuarioActual);
-            } else {
-                // Fallback a usuario admin por defecto
-                Usuario usuarioAdmin = new Usuario();
-                usuarioAdmin.setId(1L);
-                documento.setUsuarioGenerador(usuarioAdmin);
-            }
-        } catch (Exception e) {
-            log.error("❌ Error obteniendo usuario actual: {}", e.getMessage());
-            Usuario usuarioAdmin = new Usuario();
-            usuarioAdmin.setId(1L);
-            documento.setUsuarioGenerador(usuarioAdmin);
-        }
-        
-        return documento;
+        // Usar el método sobrecargado con tipo de documento
+        return crearDocumentoGenerado(cliente, null, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.AUTORIZACION);
     }
     
     /**

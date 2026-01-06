@@ -52,11 +52,23 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
   const [limitesCategoria, setLimitesCategoria] = useState<Array<{ categoriaArmaId: number; limiteMaximo: number }>>([]);
 
   useEffect(() => {
-    cargarDatos();
-    if (modo === 'editar' && grupoId) {
+    if (modo === 'crear') {
+      cargarDatos();
+    } else if (modo === 'editar' && grupoId) {
       cargarDatosGrupo();
+      // Cargar todas las licencias activas para poder cambiarlas
+      cargarLicenciasParaEdicion();
     }
   }, [modo, grupoId]);
+  
+  const cargarLicenciasParaEdicion = async () => {
+    try {
+      const licenciasActivas = await apiService.getLicenciasActivas();
+      setLicencias(licenciasActivas);
+    } catch (error) {
+      console.error('Error cargando licencias para edición:', error);
+    }
+  };
   
   const cargarDatosGrupo = async () => {
     if (!grupoId) return;
@@ -155,12 +167,21 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
   const handleVendedorToggle = (vendedorId: number) => {
     setVendedorIdsSeleccionados(prev => {
       if (prev.includes(vendedorId)) {
-        // Remover vendedor
-        setLimitesVendedores(prevLimites => prevLimites.filter(l => l.vendedorId !== vendedorId));
+        // Remover vendedor - PERO mantener el límite en el estado por si se vuelve a seleccionar
+        // setLimitesVendedores(prevLimites => prevLimites.filter(l => l.vendedorId !== vendedorId));
         return prev.filter(id => id !== vendedorId);
       } else {
-        // Agregar vendedor con límite 0 por defecto
-        setLimitesVendedores(prevLimites => [...prevLimites, { vendedorId, limiteArmas: 0 }]);
+        // Agregar vendedor - preservar límite existente si ya estaba configurado, sino usar 1 por defecto
+        setLimitesVendedores(prevLimites => {
+          const limiteExistente = prevLimites.find(l => l.vendedorId === vendedorId);
+          if (limiteExistente) {
+            // Ya tiene un límite, mantenerlo
+            return prevLimites;
+          } else {
+            // Nuevo vendedor, usar 1 por defecto en lugar de 0
+            return [...prevLimites, { vendedorId, limiteArmas: 1 }];
+          }
+        });
         return [...prev, vendedorId];
       }
     });
@@ -254,9 +275,15 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
     try {
       setCreando(true);
       
-      // Preparar vendedores con límites para el payload
-      const vendedoresPayload = limitesVendedores.length > 0 
-        ? limitesVendedores.map(l => ({ vendedorId: l.vendedorId, limiteArmas: l.limiteArmas }))
+      // Preparar vendedores con límites para el payload - SOLO los seleccionados
+      const vendedoresPayload = vendedorIdsSeleccionados.length > 0
+        ? vendedorIdsSeleccionados.map(vendedorId => {
+            const limite = limitesVendedores.find(l => l.vendedorId === vendedorId);
+            return {
+              vendedorId,
+              limiteArmas: limite ? limite.limiteArmas : 1 // Si no tiene límite configurado, usar 1 por defecto
+            };
+          })
         : undefined;
       
       if (modo === 'editar' && grupoId) {
@@ -267,6 +294,7 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
           observaciones: observaciones.trim() || undefined,
           tipoGrupo,
           tra: tra.trim() || undefined,
+          licenciaId: licenciaId || undefined, // Incluir licencia para edición
           vendedores: vendedoresPayload,
           limitesCategoria: tipoGrupo === 'CUPO' && limitesCategoria.length > 0 ? limitesCategoria : []
         });
@@ -359,42 +387,45 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
             />
           </div>
 
-          {/* Licencia - Solo en modo creación */}
-          {modo === 'crear' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Licencia <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={licenciaId || ''}
-                onChange={(e) => setLicenciaId(Number(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona una licencia</option>
-                {licencias.map((licencia) => {
-                  const cupoTotal = (licencia.cupoCivil || 0) + 
-                                   (licencia.cupoMilitar || 0) + 
-                                   (licencia.cupoEmpresa || 0) + 
-                                   (licencia.cupoDeportista || 0);
-                  return (
-                    <option key={licencia.id} value={licencia.id}>
-                      {licencia.numero} - {licencia.nombre} 
-                      {cupoTotal > 0 && ` (Cupo Total: ${cupoTotal})`}
-                    </option>
-                  );
-                })}
-              </select>
-              {licencias.length === 0 && (
-                <p className="text-sm text-red-500 mt-1">No hay licencias disponibles</p>
-              )}
-              {licenciaId && (
-                <p className="text-sm text-gray-600 mt-1">
-                  💡 Los cupos se calcularán automáticamente desde la licencia seleccionada
-                </p>
-              )}
-            </div>
-          )}
+          {/* Licencia - Editable en creación y edición */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Licencia <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={licenciaId || ''}
+              onChange={(e) => setLicenciaId(Number(e.target.value))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Selecciona una licencia</option>
+              {licencias.map((licencia) => {
+                const cupoTotal = (licencia.cupoCivil || 0) + 
+                                 (licencia.cupoMilitar || 0) + 
+                                 (licencia.cupoEmpresa || 0) + 
+                                 (licencia.cupoDeportista || 0);
+                return (
+                  <option key={licencia.id} value={licencia.id}>
+                    {licencia.numero} - {licencia.nombre} 
+                    {cupoTotal > 0 && ` (Cupo Total: ${cupoTotal})`}
+                  </option>
+                );
+              })}
+            </select>
+            {licencias.length === 0 && (
+              <p className="text-sm text-red-500 mt-1">No hay licencias disponibles</p>
+            )}
+            {licenciaId && (
+              <p className="text-sm text-gray-600 mt-1">
+                💡 Los cupos se calcularán automáticamente desde la licencia seleccionada
+              </p>
+            )}
+            {modo === 'editar' && licenciaId && (
+              <p className="text-xs text-blue-600 mt-1">
+                ℹ️ Puedes cambiar la licencia del grupo. Los cupos se recalcularán automáticamente.
+              </p>
+            )}
+          </div>
 
           {/* Tipo de Grupo */}
           <div>

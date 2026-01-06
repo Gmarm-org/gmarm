@@ -191,4 +191,20 @@ public class ClienteArmaController {
         List<ClienteArmaDTO> armasReasignadas = clienteArmaService.obtenerArmasReasignadas();
         return ResponseEntity.ok(armasReasignadas);
     }
+    
+    /**
+     * Actualizar el arma asignada en una reserva existente
+     * Permite al Jefe de Ventas cambiar el arma que un cliente tiene reservada
+     */
+    @PutMapping("/{id}/actualizar-arma")
+    public ResponseEntity<ClienteArmaDTO> actualizarArmaReserva(
+            @PathVariable Long id,
+            @RequestParam Long nuevaArmaId,
+            @RequestParam(required = false) BigDecimal nuevoPrecioUnitario) {
+        
+        log.info("PUT /api/cliente-arma/{}/actualizar-arma - Actualizando arma a ID: {}", id, nuevaArmaId);
+        
+        ClienteArmaDTO reserva = clienteArmaService.actualizarArmaReserva(id, nuevaArmaId, nuevoPrecioUnitario);
+        return ResponseEntity.ok(reserva);
+    }
 }

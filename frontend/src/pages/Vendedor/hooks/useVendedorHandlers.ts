@@ -221,10 +221,14 @@ export const useVendedorHandlers = (
     setCurrentPage('weaponSelection');
   }, [getCodigoTipoCliente, mapearProvinciaACodigo, provinciasCompletas, setClientFormData, setCurrentPage]);
 
-  const handleWeaponSelectionConfirm = useCallback(async () => {
+  const handleWeaponSelectionConfirm = useCallback(async (data?: any) => {
     if (!clientFormData && selectedClient) {
       setClientFormData(selectedClient);
     }
+    
+    // Detectar si viene con múltiples armas (para Cliente Civil)
+    const armasMultiples = data?.armas && Array.isArray(data.armas) && data.armas.length > 0;
+    const armasParaReservar = armasMultiples ? data.armas : (selectedWeapon ? [selectedWeapon] : []);
     
     // Si no hay cliente ni datos del cliente, usar el cliente fantasma del vendedor
     if (!clientFormData && !selectedClient) {
@@ -233,8 +237,8 @@ export const useVendedorHandlers = (
         return;
       }
       
-      if (!selectedWeapon) {
-        alert('❌ Error: Debes seleccionar un arma primero.');
+      if (armasParaReservar.length === 0) {
+        alert('❌ Error: Debes seleccionar al menos un arma primero.');
         return;
       }
       
@@ -245,20 +249,22 @@ export const useVendedorHandlers = (
         const clienteFantasma = await apiService.buscarOCrearClienteFantasmaVendedor();
         console.log('✅ Cliente fantasma obtenido:', clienteFantasma);
         
-        // Crear la reserva de arma para el cliente fantasma
-        const precioTotal = precioModificado * cantidad;
-        await apiService.crearReservaArma(
-          parseInt(clienteFantasma.id.toString()),
-          parseInt(selectedWeapon.id.toString()),
-          cantidad,
-          precioModificado,
-          precioTotal
-        );
+        // Crear reservas para todas las armas seleccionadas
+        for (const arma of armasParaReservar) {
+          const precioTotal = precioModificado * cantidad;
+          await apiService.crearReservaArma(
+            parseInt(clienteFantasma.id.toString()),
+            parseInt(arma.id.toString()),
+            cantidad,
+            precioModificado,
+            precioTotal
+          );
+        }
         
-        console.log('✅ Arma asignada al cliente fantasma del vendedor. El arma quedará en stock para asignar a un cliente posteriormente.');
+        console.log(`✅ ${armasParaReservar.length} arma(s) asignada(s) al cliente fantasma del vendedor.`);
         
         // Mostrar mensaje y volver al dashboard
-        alert('✅ Arma asignada exitosamente. La arma quedará en tu stock y podrás asignarla a un cliente cuando lo crees.');
+        alert(`✅ ${armasParaReservar.length} arma(s) asignada(s) exitosamente. Las armas quedarán en tu stock.`);
         
         // Limpiar selección y volver al dashboard
         setSelectedWeapon(null);
@@ -267,37 +273,42 @@ export const useVendedorHandlers = (
         setCurrentPage('dashboard');
         return; // No continuar con el flujo de pago para armas sin cliente
       } catch (error: any) {
-        console.error('❌ Error asignando arma al cliente fantasma:', error);
+        console.error('❌ Error asignando arma(s) al cliente fantasma:', error);
         const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al asignar arma';
-        alert(`❌ Error al asignar arma: ${errorMessage}`);
+        alert(`❌ Error al asignar arma(s): ${errorMessage}`);
         return;
       }
     }
     
-    // Si el cliente ya existe (tiene ID) y hay arma seleccionada, guardar la reserva
+    // Si el cliente ya existe (tiene ID) y hay armas seleccionadas, guardar las reservas
     const clienteActual = clientFormData || selectedClient;
-    if (clienteActual?.id && selectedWeapon) {
+    if (clienteActual?.id && armasParaReservar.length > 0) {
       try {
-        console.log('🔫 Guardando reserva de arma para cliente:', clienteActual.id);
-        const precioTotal = precioModificado * cantidad;
-        await apiService.crearReservaArma(
-          parseInt(clienteActual.id.toString()),
-          parseInt(selectedWeapon.id.toString()),
-          cantidad,
-          precioModificado,
-          precioTotal
-        );
-        console.log('✅ Reserva de arma guardada exitosamente al confirmar selección');
+        console.log(`🔫 Guardando ${armasParaReservar.length} reserva(s) de arma para cliente:`, clienteActual.id);
+        
+        // Crear reservas para todas las armas seleccionadas
+        for (const arma of armasParaReservar) {
+          const precioTotal = precioModificado * cantidad;
+          await apiService.crearReservaArma(
+            parseInt(clienteActual.id.toString()),
+            parseInt(arma.id.toString()),
+            cantidad,
+            precioModificado,
+            precioTotal
+          );
+        }
+        
+        console.log(`✅ ${armasParaReservar.length} reserva(s) de arma guardada(s) exitosamente`);
       } catch (error: any) {
-        console.error('❌ Error guardando reserva de arma:', error);
+        console.error('❌ Error guardando reserva(s) de arma:', error);
         const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al guardar reserva';
-        alert(`⚠️ Error al guardar la reserva del arma: ${errorMessage}`);
+        alert(`⚠️ Error al guardar la(s) reserva(s) del arma: ${errorMessage}`);
         return; // No continuar si falla guardar la reserva
       }
     } else {
       console.log('⚠️ No se puede guardar reserva:', { 
         clienteId: clienteActual?.id, 
-        tieneArma: !!selectedWeapon 
+        tieneArma: armasParaReservar.length > 0 
       });
     }
     
