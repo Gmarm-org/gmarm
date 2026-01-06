@@ -211,8 +211,8 @@ Write-Host ""
 Write-Host "🎯 Base de datos lista desde cero" -ForegroundColor Green
 Write-Host "📁 Documentos y uploads eliminados" -ForegroundColor Green
 Write-Host ""
-Write-Host "💡 Próximos pasos:" -ForegroundColor Yellow
-Write-Host "   1. Verificar que los servicios estén corriendo: docker-compose -f $dockerComposeFile ps"
-Write-Host "   2. Acceder a la aplicación y probar funcionalidades"
-Write-Host ""
+Write-Host '💡 Proximos pasos:' -ForegroundColor Yellow
+Write-Host "   1. Verificar que los servicios esten corriendo: docker-compose -f $dockerComposeFile ps"
+Write-Host '   2. Acceder a la aplicacion y probar funcionalidades'
+Write-Host ''
 

@@ -107,7 +107,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/autorizaciones/**").permitAll()
                 .requestMatchers("/api/contratos/**").permitAll()
                 .requestMatchers("/api/operaciones/**").permitAll() // TEMPORAL: Para desarrollo
-                .requestMatchers("/api/grupos-importacion/**").permitAll() // TEMPORAL: Para desarrollo
+                // Endpoints de grupos de importación - algunos requieren autenticación
+                .requestMatchers("/api/grupos-importacion/activos").authenticated() // Requiere autenticación (necesita token JWT)
+                .requestMatchers("/api/grupos-importacion/**").permitAll() // TEMPORAL: Para desarrollo (otros endpoints)
                 .requestMatchers("/api/licencia/**").permitAll() // TEMPORAL: Para desarrollo
                 .requestMatchers("/api/tipo-proceso/**").permitAll() // TEMPORAL: Para desarrollo
                 // Todos los demás endpoints requieren autenticación

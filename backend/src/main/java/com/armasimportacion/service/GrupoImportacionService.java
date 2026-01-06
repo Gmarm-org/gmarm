@@ -543,35 +543,71 @@ public class GrupoImportacionService {
         Usuario vendedor = usuarioRepository.findById(vendedorId)
             .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
         
-        // Obtener grupos donde el vendedor está asignado
+        // Usar JOIN directo: obtener grupos donde el vendedor está asignado Y están en estados válidos
+        // Esto es más eficiente que buscar todos y filtrar
         List<GrupoImportacionVendedor> asignacionesVendedor = grupoImportacionVendedorRepository.findByVendedor(vendedor);
         
+        log.info("📊 Total de asignaciones encontradas para vendedor ID {}: {}", vendedorId, asignacionesVendedor.size());
+        
         if (asignacionesVendedor.isEmpty()) {
-            log.info("📭 No hay grupos asignados para el vendedor ID: {}", vendedorId);
+            log.warn("📭 Vendedor ID {} no está asignado a ningún grupo", vendedorId);
             return List.of();
         }
         
-        // Filtrar grupos que estén en estados que permitan asignar clientes
-        // Solo EN_PREPARACION y EN_PROCESO_ASIGNACION_CLIENTES permiten agregar clientes
+        // Filtrar grupos que estén en estados válidos Y tengan cupos disponibles
         List<GrupoImportacion> gruposDisponibles = asignacionesVendedor.stream()
             .map(GrupoImportacionVendedor::getGrupoImportacion)
-            .filter(grupo -> grupo.getEstado() == EstadoGrupoImportacion.EN_PREPARACION ||
-                           grupo.getEstado() == EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES)
             .filter(grupo -> {
-                // Verificar cupos disponibles
-                if ("CUPO".equals(grupo.getTipoGrupo())) {
-                    // Para CUPO, verificar que tenga cupo disponible
-                    return grupo.getCupoDisponible() != null && grupo.getCupoDisponible() > 0;
-                } else if ("JUSTIFICATIVO".equals(grupo.getTipoGrupo())) {
-                    // Para JUSTIFICATIVO, siempre disponible (sin límites de cupo)
-                    return true;
+                // Verificar estado válido
+                boolean estadoValido = grupo.getEstado() == EstadoGrupoImportacion.EN_PREPARACION ||
+                                      grupo.getEstado() == EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES;
+                if (!estadoValido) {
+                    log.debug("⏭️ Grupo ID={} filtrado por estado: {} (requiere EN_PREPARACION o EN_PROCESO_ASIGNACION_CLIENTES)", 
+                        grupo.getId(), grupo.getEstado());
+                    return false;
                 }
-                // Por defecto, si no tiene tipo definido, considerar disponible
                 return true;
             })
+            .filter(grupo -> {
+                // Verificar cupos disponibles según tipo
+                if ("CUPO".equals(grupo.getTipoGrupo())) {
+                    boolean tieneCupo = grupo.getCupoDisponible() != null && grupo.getCupoDisponible() > 0;
+                    if (!tieneCupo) {
+                        log.warn("⚠️ Grupo ID={} (CUPO) filtrado: sin cupo disponible (disponible={}, total={})", 
+                            grupo.getId(), grupo.getCupoDisponible(), grupo.getCupoTotal());
+                    }
+                    return tieneCupo;
+                } else if ("JUSTIFICATIVO".equals(grupo.getTipoGrupo())) {
+                    // JUSTIFICATIVO siempre disponible (sin límites de cupo)
+                    log.debug("✅ Grupo ID={} (JUSTIFICATIVO) disponible", grupo.getId());
+                    return true;
+                }
+                // Por defecto disponible si no tiene tipo definido
+                log.warn("⚠️ Grupo ID={} sin tipo definido, considerando disponible", grupo.getId());
+                return true;
+            })
+            .peek(grupo -> log.info("✅ Grupo DISPONIBLE: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}, CupoTotal={}", 
+                grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(), 
+                grupo.getCupoDisponible(), grupo.getCupoTotal()))
             .collect(Collectors.toList());
         
-        log.info("✅ Encontrados {} grupos disponibles para vendedor ID: {}", gruposDisponibles.size(), vendedorId);
+        log.info("✅ RESULTADO FINAL: {} grupo(s) disponible(s) de {} asignación(es) para vendedor ID: {}", 
+            gruposDisponibles.size(), asignacionesVendedor.size(), vendedorId);
+        
+        if (gruposDisponibles.isEmpty() && !asignacionesVendedor.isEmpty()) {
+            // Diagnosticar por qué no hay grupos disponibles
+            long gruposEnEstadosInvalidos = asignacionesVendedor.stream()
+                .map(GrupoImportacionVendedor::getGrupoImportacion)
+                .filter(g -> g.getEstado() != EstadoGrupoImportacion.EN_PREPARACION &&
+                            g.getEstado() != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES)
+                .count();
+            
+            log.warn("❌ DIAGNÓSTICO: Vendedor tiene {} asignación(es), pero:", asignacionesVendedor.size());
+            log.warn("   - {} grupo(s) en estados inválidos", gruposEnEstadosInvalidos);
+            log.warn("   - {} grupo(s) sin cupos disponibles o tipo no válido", 
+                asignacionesVendedor.size() - gruposEnEstadosInvalidos - gruposDisponibles.size());
+        }
+        
         return gruposDisponibles;
     }
     

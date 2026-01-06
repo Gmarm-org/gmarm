@@ -690,7 +690,7 @@ class ApiService {
   }
 
   async getGruposActivos(): Promise<GrupoImportacion[]> {
-    return this.request<GrupoImportacion[]>('/grupos-importacion/activos');
+    return this.request<GrupoImportacion[]>('/api/grupos-importacion/activos');
   }
 
   async agregarClienteAGrupo(grupoId: number, clienteId: number): Promise<void> {

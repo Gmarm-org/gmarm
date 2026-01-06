@@ -51,7 +51,11 @@ const Vendedor: React.FC = React.memo(() => {
     const verificarGrupos = async () => {
       try {
         setCargandoGrupos(true);
+        console.log('🔍 Vendedor - Verificando grupos activos...');
         const grupos = await apiService.getGruposActivos();
+        console.log('📋 Vendedor - Grupos recibidos:', grupos);
+        console.log('📊 Vendedor - Cantidad de grupos:', grupos?.length || 0);
+        console.log('📊 Vendedor - hayGruposDisponibles será:', grupos && grupos.length > 0);
         setHayGruposDisponibles(grupos && grupos.length > 0);
       } catch (error) {
         console.error('❌ Error verificando grupos de importación:', error);
