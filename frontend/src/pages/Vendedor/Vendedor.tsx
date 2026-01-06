@@ -348,7 +348,12 @@ const Vendedor: React.FC = React.memo(() => {
                   </button>
                   <button
                     onClick={handleAssignWeaponWithoutClient}
-                    className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+                    disabled={!cargandoGrupos && hayGruposDisponibles === false}
+                    className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg ${
+                      !cargandoGrupos && hayGruposDisponibles === false
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800'
+                    }`}
                   >
                     Asignar Arma Sin Cliente
                   </button>
