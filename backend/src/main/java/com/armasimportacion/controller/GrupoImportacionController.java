@@ -247,17 +247,25 @@ public class GrupoImportacionController {
     }
 
     /**
-     * Obtiene la lista de grupos de importación activos
+     * Obtiene la lista de grupos de importación activos para el vendedor actual
+     * Filtra por vendedor asignado y verifica cupos disponibles
+     * Solo retorna grupos en estados: EN_PREPARACION o EN_PROCESO_ASIGNACION_CLIENTES
      */
     @GetMapping("/activos")
-    @Operation(summary = "Obtener grupos activos", 
-               description = "Obtiene la lista de grupos de importación que están activos (no completados ni cancelados)")
-    public ResponseEntity<List<Map<String, Object>>> obtenerGruposActivos() {
+    @Operation(summary = "Obtener grupos activos para vendedor", 
+               description = "Obtiene la lista de grupos de importación activos asignados al vendedor actual con cupos disponibles")
+    public ResponseEntity<List<Map<String, Object>>> obtenerGruposActivos(
+            @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📋 Obteniendo grupos de importación activos");
+            log.info("📋 Obteniendo grupos de importación activos para vendedor");
             
+            // Obtener ID del vendedor desde el token
+            Long vendedorId = obtenerUsuarioId(authHeader);
+            log.info("🔍 Buscando grupos para vendedor ID: {}", vendedorId);
+            
+            // Obtener grupos disponibles para este vendedor (con cupos verificados)
             List<com.armasimportacion.model.GrupoImportacion> grupos = 
-                grupoImportacionService.obtenerGruposActivos();
+                grupoImportacionService.obtenerGruposActivosParaVendedor(vendedorId);
             
             List<Map<String, Object>> gruposDTO = grupos.stream().map(grupo -> {
                 Map<String, Object> grupoMap = new HashMap<>();
@@ -268,15 +276,17 @@ public class GrupoImportacionController {
                 grupoMap.put("tipoGrupo", grupo.getTipoGrupo());
                 grupoMap.put("fechaInicio", grupo.getFechaInicio());
                 grupoMap.put("fechaFin", grupo.getFechaFin());
+                grupoMap.put("cupoDisponible", grupo.getCupoDisponible());
+                grupoMap.put("cupoTotal", grupo.getCupoTotal());
                 return grupoMap;
             }).collect(java.util.stream.Collectors.toList());
             
-            log.info("✅ Retornando {} grupos activos", gruposDTO.size());
+            log.info("✅ Retornando {} grupos activos disponibles para vendedor ID: {}", gruposDTO.size(), vendedorId);
             return ResponseEntity.ok(gruposDTO);
         } catch (Exception e) {
             log.error("❌ Error obteniendo grupos activos: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "Error al obtener los grupos activos");
+            error.put("error", "Error al obtener los grupos activos: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
         }
     }

@@ -523,7 +523,56 @@ public class GrupoImportacionService {
     
     // Business Logic
     public List<GrupoImportacion> obtenerGruposActivos() {
-        return grupoImportacionRepository.findGruposActivos();
+        return grupoImportacionRepository.findGruposActivosParaAsignacion();
+    }
+    
+    /**
+     * Obtiene grupos activos disponibles para un vendedor específico
+     * Un grupo está disponible si:
+     * 1. Está en estado EN_PREPARACION o EN_PROCESO_ASIGNACION_CLIENTES
+     * 2. Tiene al vendedor asignado
+     * 3. Tiene cupos disponibles (para tipo CUPO) o es JUSTIFICATIVO
+     * 
+     * @param vendedorId ID del vendedor
+     * @return Lista de grupos disponibles para el vendedor
+     */
+    @Transactional(readOnly = true)
+    public List<GrupoImportacion> obtenerGruposActivosParaVendedor(Long vendedorId) {
+        log.info("🔍 Obteniendo grupos activos disponibles para vendedor ID: {}", vendedorId);
+        
+        Usuario vendedor = usuarioRepository.findById(vendedorId)
+            .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
+        
+        // Obtener grupos donde el vendedor está asignado
+        List<GrupoImportacionVendedor> asignacionesVendedor = grupoImportacionVendedorRepository.findByVendedor(vendedor);
+        
+        if (asignacionesVendedor.isEmpty()) {
+            log.info("📭 No hay grupos asignados para el vendedor ID: {}", vendedorId);
+            return List.of();
+        }
+        
+        // Filtrar grupos que estén en estados que permitan asignar clientes
+        // Solo EN_PREPARACION y EN_PROCESO_ASIGNACION_CLIENTES permiten agregar clientes
+        List<GrupoImportacion> gruposDisponibles = asignacionesVendedor.stream()
+            .map(GrupoImportacionVendedor::getGrupoImportacion)
+            .filter(grupo -> grupo.getEstado() == EstadoGrupoImportacion.EN_PREPARACION ||
+                           grupo.getEstado() == EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES)
+            .filter(grupo -> {
+                // Verificar cupos disponibles
+                if ("CUPO".equals(grupo.getTipoGrupo())) {
+                    // Para CUPO, verificar que tenga cupo disponible
+                    return grupo.getCupoDisponible() != null && grupo.getCupoDisponible() > 0;
+                } else if ("JUSTIFICATIVO".equals(grupo.getTipoGrupo())) {
+                    // Para JUSTIFICATIVO, siempre disponible (sin límites de cupo)
+                    return true;
+                }
+                // Por defecto, si no tiene tipo definido, considerar disponible
+                return true;
+            })
+            .collect(Collectors.toList());
+        
+        log.info("✅ Encontrados {} grupos disponibles para vendedor ID: {}", gruposDisponibles.size(), vendedorId);
+        return gruposDisponibles;
     }
     
     public List<GrupoImportacion> obtenerGruposCompletos() {

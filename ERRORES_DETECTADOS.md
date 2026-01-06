@@ -131,3 +131,28 @@
 - Muestra mensaje claro explicando cuándo aparecerán los grupos
 - No requiere cambios adicionales
 
+### ✅ 8. CRÍTICO: Lógica de grupos activos mejorada (Backend + Frontend)
+**Archivos:** 
+- `backend/src/main/java/com/armasimportacion/repository/GrupoImportacionRepository.java`
+- `backend/src/main/java/com/armasimportacion/service/GrupoImportacionService.java`
+- `backend/src/main/java/com/armasimportacion/controller/GrupoImportacionController.java`
+
+**Problema:** 
+- Los grupos en estado `EN_PREPARACION` no eran detectados como "activos" para asignación
+- El endpoint `/activos` retornaba TODOS los grupos activos, sin filtrar por vendedor asignado
+- No se verificaban cupos disponibles antes de permitir asignación de clientes
+- Se incluían estados que ya no permiten agregar clientes (PEDIDO_DEFINIDO, etc.)
+
+**Solución:**
+1. **Simplificación de estados permitidos:** Solo `EN_PREPARACION` y `EN_PROCESO_ASIGNACION_CLIENTES` permiten agregar clientes
+2. **Filtrado por vendedor:** El endpoint ahora filtra por el vendedor logueado (obtenido del token JWT)
+3. **Verificación de cupos:** Se verifica que el grupo tenga cupos disponibles (para tipo CUPO) o sea JUSTIFICATIVO
+4. **Nuevo método en servicio:** `obtenerGruposActivosParaVendedor(Long vendedorId)` que implementa toda la lógica
+
+**Impacto:**
+- Los grupos en `EN_PREPARACION` ahora son detectados correctamente como disponibles
+- Solo se muestran grupos donde el vendedor está asignado
+- Los botones "Crear Cliente" y "Asignar Arma Sin Cliente" se habilitan/deshabilitan correctamente
+- Se evita que se intente asignar clientes a grupos sin cupos disponibles
+- Mejor experiencia de usuario con validación más precisa
+

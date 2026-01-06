@@ -26,15 +26,12 @@ public interface GrupoImportacionRepository extends JpaRepository<GrupoImportaci
     // Búsquedas por fecha
     List<GrupoImportacion> findByFechaEstimadaLlegadaBetween(LocalDate fechaInicio, LocalDate fechaFin);
     
-    // Grupos activos (incluye todos los estados que permiten asignar clientes)
+    // Grupos activos para asignación de clientes (solo estados que permiten agregar clientes)
+    // Estados permitidos: EN_PREPARACION y EN_PROCESO_ASIGNACION_CLIENTES
     @Query("SELECT gi FROM GrupoImportacion gi WHERE gi.estado IN (" +
            "'EN_PREPARACION', " +
-           "'EN_PROCESO_ASIGNACION_CLIENTES', " +
-           "'SOLICITAR_PROFORMA_FABRICA', " +
-           "'EN_PROCESO_OPERACIONES', " +
-           "'NOTIFICAR_AGENTE_ADUANERO', " +
-           "'EN_ESPERA_DOCUMENTOS_CLIENTE')")
-    List<GrupoImportacion> findGruposActivos();
+           "'EN_PROCESO_ASIGNACION_CLIENTES')")
+    List<GrupoImportacion> findGruposActivosParaAsignacion();
     
     // Grupos completos
     @Query("SELECT gi FROM GrupoImportacion gi WHERE gi.estado = 'COMPLETO'")
