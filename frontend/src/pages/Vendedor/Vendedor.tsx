@@ -316,6 +316,16 @@ const Vendedor: React.FC = React.memo(() => {
             {activeTab === 'en-proceso' && (
               <div className="space-y-4 mb-6">
                 {/* Mensaje de advertencia si no hay grupos disponibles */}
+                {cargandoGrupos && (
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                      <p className="text-sm text-blue-800">
+                        ⏳ Verificando grupos de importación disponibles...
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {!cargandoGrupos && hayGruposDisponibles === false && (
                   <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
                     <div className="flex items-start">
@@ -324,10 +334,15 @@ const Vendedor: React.FC = React.memo(() => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <div className="ml-3">
-                        <h3 className="text-lg font-bold text-yellow-800">Grupos de Importación No Disponibles</h3>
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-lg font-bold text-yellow-800">
+                          ⚠️ Grupos de Importación No Disponibles
+                        </h3>
                         <p className="mt-2 text-sm text-yellow-700">
-                          Para crear clientes deben estar cargados grupos de importación, comuníquese con su Jefe de ventas.
+                          Para crear clientes o asignar armas deben estar cargados grupos de importación activos.
+                        </p>
+                        <p className="mt-1 text-xs text-yellow-600">
+                          📞 Comuníquese con su Jefe de Ventas para crear los grupos necesarios.
                         </p>
                       </div>
                     </div>

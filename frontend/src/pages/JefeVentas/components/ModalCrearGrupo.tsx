@@ -395,10 +395,21 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
             <select
               value={licenciaId || ''}
               onChange={(e) => setLicenciaId(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
+              disabled={loading || licencias.length === 0}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                loading || licencias.length === 0
+                  ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'border-gray-300'
+              }`}
+              required={!loading && licencias.length > 0}
             >
-              <option value="">Selecciona una licencia</option>
+              <option value="">
+                {loading 
+                  ? 'Cargando licencias...' 
+                  : licencias.length === 0 
+                    ? 'No hay licencias disponibles' 
+                    : 'Selecciona una licencia'}
+              </option>
               {licencias.map((licencia) => {
                 const cupoTotal = (licencia.cupoCivil || 0) + 
                                  (licencia.cupoMilitar || 0) + 
@@ -412,15 +423,25 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
                 );
               })}
             </select>
-            {licencias.length === 0 && (
-              <p className="text-sm text-red-500 mt-1">No hay licencias disponibles</p>
+            {loading && (
+              <p className="text-sm text-gray-500 mt-1">⏳ Cargando licencias disponibles...</p>
             )}
-            {licenciaId && (
+            {!loading && licencias.length === 0 && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">
+                  ⚠️ No hay licencias disponibles
+                </p>
+                <p className="text-xs text-red-500 mt-1">
+                  Debe crear licencias primero antes de crear grupos de importación.
+                </p>
+              </div>
+            )}
+            {!loading && licencias.length > 0 && licenciaId && (
               <p className="text-sm text-gray-600 mt-1">
                 💡 Los cupos se calcularán automáticamente desde la licencia seleccionada
               </p>
             )}
-            {modo === 'editar' && licenciaId && (
+            {modo === 'editar' && !loading && licencias.length > 0 && licenciaId && (
               <p className="text-xs text-blue-600 mt-1">
                 ℹ️ Puedes cambiar la licencia del grupo. Los cupos se recalcularán automáticamente.
               </p>

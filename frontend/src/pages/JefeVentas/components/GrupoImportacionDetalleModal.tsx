@@ -129,6 +129,20 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
               <p className="text-lg font-semibold">{grupo?.nombre || resumen?.grupoNombre || 'N/A'}</p>
             </div>
             <div>
+              <label className="text-sm font-medium text-gray-500">Tipo de Grupo</label>
+              <p className="text-lg font-semibold">
+                {grupo?.tipoGrupo ? (
+                  <span className={`px-2 py-1 rounded text-sm font-medium ${
+                    grupo.tipoGrupo === 'CUPO' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {grupo.tipoGrupo}
+                  </span>
+                ) : 'N/A'}
+              </p>
+            </div>
+            <div>
               <label className="text-sm font-medium text-gray-500">Estado</label>
               <p className="text-lg font-semibold">{grupo?.estado || 'N/A'}</p>
             </div>
@@ -143,49 +157,101 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
             </div>
           </div>
 
-          {/* Resumen de Clientes */}
+          {/* Resumen de Clientes - Varía según tipo de grupo */}
           {resumen && (
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-3">📊 Resumen de Clientes</h3>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{resumen.clientesCiviles}</div>
-                  <div className="text-sm text-gray-600">Civiles</div>
-                  {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante <= 5 && resumen.cupoCivilRestante > 0 && (
-                    <div className={`mt-2 px-2 py-1 rounded text-xs font-medium ${
-                      resumen.cupoCivilRestante <= 1 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : resumen.cupoCivilRestante <= 3
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-blue-50 text-blue-600'
-                    }`}>
-                      ℹ️ {resumen.cupoCivilRestante === 1 ? 'Casi completo' : `${resumen.cupoCivilRestante} cupos restantes`}
+              {grupo?.tipoGrupo === 'CUPO' ? (
+                // Para CUPO: Solo Civiles y Deportistas
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{resumen.clientesCiviles}</div>
+                    <div className="text-sm text-gray-600">Civiles</div>
+                    {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante <= 5 && resumen.cupoCivilRestante > 0 && (
+                      <div className={`mt-2 px-2 py-1 rounded text-xs font-medium ${
+                        resumen.cupoCivilRestante <= 1 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : resumen.cupoCivilRestante <= 3
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-blue-50 text-blue-600'
+                      }`}>
+                        ℹ️ {resumen.cupoCivilRestante === 1 ? 'Casi completo' : `${resumen.cupoCivilRestante} cupos restantes`}
+                      </div>
+                    )}
+                    {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0 && (
+                      <div className="mt-2 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✅ Cupo completo ({resumen.cupoCivilTotal || 25}/{resumen.cupoCivilTotal || 25})
+                      </div>
+                    )}
+                    {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante > 5 && (
+                      <div className="mt-1 text-xs text-gray-500">
+                        Disponible: {resumen.cupoCivilRestante}/{resumen.cupoCivilTotal || 25}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">{resumen.clientesDeportistas}</div>
+                    <div className="text-sm text-gray-600">Deportistas</div>
+                  </div>
+                </div>
+              ) : grupo?.tipoGrupo === 'JUSTIFICATIVO' ? (
+                // Para JUSTIFICATIVO: Uniformados por categoría y Empresas
+                <div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{resumen.clientesUniformados}</div>
+                      <div className="text-sm text-gray-600">Uniformados</div>
+                      <p className="text-xs text-gray-500 mt-1">(Por categoría de arma)</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">{resumen.clientesEmpresas}</div>
+                      <div className="text-sm text-gray-600">Compañías de Seguridad</div>
+                    </div>
+                  </div>
+                  {grupo?.limitesCategoria && grupo.limitesCategoria.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-300">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Uniformados por Categoría:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {grupo.limitesCategoria.map((limite: any) => {
+                          const categoria = (grupo as any).categorias?.find((c: any) => c.id === limite.categoriaArmaId) 
+                                          || limite.categoria; // Fallback
+                          return categoria ? (
+                            <div key={limite.categoriaArmaId} className="text-center p-2 bg-white rounded border">
+                              <div className="text-lg font-semibold text-gray-800">{categoria.nombre || `Categoría ${limite.categoriaArmaId}`}</div>
+                              <div className="text-xs text-gray-600">{limite.limiteMaximo} disponibles</div>
+                            </div>
+                          ) : (
+                            <div key={limite.categoriaArmaId} className="text-center p-2 bg-white rounded border">
+                              <div className="text-lg font-semibold text-gray-800">Categoría {limite.categoriaArmaId}</div>
+                              <div className="text-xs text-gray-600">{limite.limiteMaximo} disponibles</div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                  {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0 && (
-                    <div className="mt-2 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                      ✅ Cupo completo ({resumen.cupoCivilTotal || 25}/{resumen.cupoCivilTotal || 25})
-                    </div>
-                  )}
-                  {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante > 5 && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      Disponible: {resumen.cupoCivilRestante}/{resumen.cupoCivilTotal || 25}
-                    </div>
-                  )}
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{resumen.clientesUniformados}</div>
-                  <div className="text-sm text-gray-600">Uniformados</div>
+              ) : (
+                // Fallback: Mostrar todos (comportamiento anterior)
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{resumen.clientesCiviles}</div>
+                    <div className="text-sm text-gray-600">Civiles</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{resumen.clientesUniformados}</div>
+                    <div className="text-sm text-gray-600">Uniformados</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{resumen.clientesEmpresas}</div>
+                    <div className="text-sm text-gray-600">Empresas</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">{resumen.clientesDeportistas}</div>
+                    <div className="text-sm text-gray-600">Deportistas</div>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{resumen.clientesEmpresas}</div>
-                  <div className="text-sm text-gray-600">Empresas</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{resumen.clientesDeportistas}</div>
-                  <div className="text-sm text-gray-600">Deportistas</div>
-                </div>
-              </div>
+              )}
               <div className="mt-3 text-center">
                 <span className="text-sm text-gray-500">Total: </span>
                 <span className="text-lg font-bold">{resumen.totalClientes}</span>

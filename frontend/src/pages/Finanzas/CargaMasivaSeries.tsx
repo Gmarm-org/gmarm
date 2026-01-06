@@ -184,10 +184,21 @@ const CargaMasivaSeries: React.FC = () => {
         <select
           value={grupoSeleccionado || ''}
           onChange={(e) => setGrupoSeleccionado(e.target.value ? parseInt(e.target.value) : null)}
-          disabled={cargandoGrupos}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          disabled={cargandoGrupos || gruposDisponibles.length === 0}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            cargandoGrupos || gruposDisponibles.length === 0
+              ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+              : 'border-gray-300'
+          }`}
+          required
         >
-          <option value="">-- Seleccione un grupo de importación --</option>
+          <option value="">
+            {cargandoGrupos 
+              ? 'Cargando grupos...' 
+              : gruposDisponibles.length === 0 
+                ? 'No hay grupos de importación disponibles' 
+                : '-- Seleccione un grupo de importación --'}
+          </option>
           {gruposDisponibles.map((grupo) => {
             const grupoAny = grupo as any;
             return (
@@ -198,7 +209,22 @@ const CargaMasivaSeries: React.FC = () => {
           })}
         </select>
         {cargandoGrupos && (
-          <p className="text-sm text-gray-500 mt-1">Cargando grupos...</p>
+          <p className="text-sm text-gray-500 mt-1">⏳ Cargando grupos de importación...</p>
+        )}
+        {!cargandoGrupos && gruposDisponibles.length === 0 && (
+          <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800 font-medium">
+              ⚠️ No hay grupos de importación disponibles
+            </p>
+            <p className="text-xs text-yellow-700 mt-1">
+              Debe crear grupos de importación activos antes de cargar series. Comuníquese con el Jefe de Ventas.
+            </p>
+          </div>
+        )}
+        {!cargandoGrupos && gruposDisponibles.length > 0 && (
+          <p className="text-xs text-gray-500 mt-1">
+            {gruposDisponibles.length} grupo(s) de importación disponible(s)
+          </p>
         )}
       </div>
 
