@@ -70,53 +70,61 @@ docker-compose -f "$DOCKER_COMPOSE_FILE" down -v
 echo ""
 echo "🗑️  Paso 2/6: Eliminando documentos generados y subidos..."
 
+# Función para eliminar con manejo de permisos
+delete_directory_contents() {
+    local dir="$1"
+    if [ -d "$dir" ]; then
+        echo "   Eliminando: $dir"
+        # Primero intentar cambiar permisos recursivamente
+        chmod -R u+w "$dir" 2>/dev/null || true
+        # Intentar eliminar sin sudo
+        if rm -rf "$dir"/* 2>/dev/null; then
+            echo "      ✅ Eliminado exitosamente"
+        else
+            # Si falla, intentar con sudo (si está disponible)
+            if command -v sudo >/dev/null 2>&1; then
+                echo "      ⚠️  Permisos insuficientes, intentando con sudo..."
+                sudo chmod -R u+w "$dir" 2>/dev/null || true
+                sudo rm -rf "$dir"/* 2>/dev/null && echo "      ✅ Eliminado con sudo" || echo "      ⚠️  Algunos archivos no se pudieron eliminar (pueden estar en uso o ser de otro usuario)"
+            else
+                echo "      ⚠️  Algunos archivos no se pudieron eliminar (permisos insuficientes)"
+            fi
+        fi
+        # Limpiar directorios vacíos
+        find "$dir" -type d -empty -delete 2>/dev/null || true
+    fi
+}
+
 # Eliminar documentos de clientes
-if [ -d "documentacion/documentos_cliente" ]; then
-    echo "   Eliminando: documentacion/documentos_cliente"
-    rm -rf "documentacion/documentos_cliente"/*
-    find "documentacion/documentos_cliente" -type d -empty -delete 2>/dev/null || true
-fi
+delete_directory_contents "documentacion/documentos_cliente"
 
 # Eliminar contratos generados
-if [ -d "documentacion/contratos_generados" ]; then
-    echo "   Eliminando: documentacion/contratos_generados"
-    rm -rf "documentacion/contratos_generados"/*
-    find "documentacion/contratos_generados" -type d -empty -delete 2>/dev/null || true
-fi
+delete_directory_contents "documentacion/contratos_generados"
 
 # Eliminar documentos de importación
-if [ -d "documentacion/documentos_importacion" ]; then
-    echo "   Eliminando: documentacion/documentos_importacion"
-    rm -rf "documentacion/documentos_importacion"/*
-    find "documentacion/documentos_importacion" -type d -empty -delete 2>/dev/null || true
-fi
+delete_directory_contents "documentacion/documentos_importacion"
 
 # Eliminar autorizaciones
-if [ -d "documentacion/autorizaciones" ]; then
-    echo "   Eliminando: documentacion/autorizaciones"
-    rm -rf "documentacion/autorizaciones"/*
-    find "documentacion/autorizaciones" -type d -empty -delete 2>/dev/null || true
-fi
+delete_directory_contents "documentacion/autorizaciones"
 
 # Eliminar uploads de clientes
-if [ -d "uploads/clientes" ]; then
-    echo "   Eliminando: uploads/clientes"
-    rm -rf "uploads/clientes"/*
-    find "uploads/clientes" -type d -empty -delete 2>/dev/null || true
-fi
+delete_directory_contents "uploads/clientes"
 
 # Eliminar imágenes de armas (mantener estructura)
 if [ -d "uploads/images/weapons" ]; then
     echo "   Eliminando imágenes de armas en: uploads/images/weapons"
-    find "uploads/images/weapons" -type f -delete 2>/dev/null || true
+    chmod -R u+w "uploads/images/weapons" 2>/dev/null || true
+    if find "uploads/images/weapons" -type f -delete 2>/dev/null; then
+        echo "      ✅ Imágenes eliminadas"
+    else
+        if command -v sudo >/dev/null 2>&1; then
+            sudo find "uploads/images/weapons" -type f -delete 2>/dev/null || true
+        fi
+    fi
 fi
 
 # Eliminar uploads del backend
-if [ -d "backend/uploads" ]; then
-    echo "   Eliminando: backend/uploads"
-    rm -rf "backend/uploads"/*
-    find "backend/uploads" -type d -empty -delete 2>/dev/null || true
-fi
+delete_directory_contents "backend/uploads"
 
 # Calcular espacio liberado
 echo ""
