@@ -137,26 +137,69 @@ echo "🚀 Paso 3/6: Iniciando solo PostgreSQL..."
 docker-compose -f "$DOCKER_COMPOSE_FILE" up -d postgres_"${AMBIENTE}" 2>/dev/null || docker-compose -f "$DOCKER_COMPOSE_FILE" up -d postgres 2>/dev/null
 
 echo ""
-echo "⏳ Paso 4/6: Esperando a que PostgreSQL inicie..."
-for i in {1..30}; do
-  if docker exec "$DB_CONTAINER" pg_isready -U postgres > /dev/null 2>&1; then
+echo "⏳ Esperando a que el contenedor se inicie (5 segundos)..."
+sleep 5
+
+echo ""
+echo "⏳ Paso 4/6: Esperando a que PostgreSQL esté listo..."
+
+# Obtener el ID real del contenedor
+DB_CONTAINER_ID=$(docker ps --filter "name=$DB_CONTAINER" --format "{{.Names}}" | head -1)
+
+if [ -z "$DB_CONTAINER_ID" ]; then
+    echo "❌ Error: No se encontró el contenedor $DB_CONTAINER"
+    echo "   Contenedores PostgreSQL disponibles:"
+    docker ps --filter "name=postgres" --format "table {{.Names}}\t{{.Status}}"
+    exit 1
+fi
+
+echo "   Usando contenedor: $DB_CONTAINER_ID"
+
+# Esperar a que PostgreSQL esté completamente listo
+for i in {1..45}; do
+  # Verificar que el contenedor esté corriendo
+  if ! docker ps --filter "name=$DB_CONTAINER_ID" --format "{{.Names}}" | grep -q "$DB_CONTAINER_ID"; then
+    echo "   ⚠️  Contenedor no está corriendo, esperando..."
+    sleep 2
+    continue
+  fi
+  
+  # Verificar que PostgreSQL responda
+  if docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
     echo "✅ PostgreSQL listo después de $i intentos"
+    sleep 2  # Esperar un poco más para asegurar que está completamente listo
     break
   fi
-  echo "   Intento $i/30..."
+  echo "   Intento $i/45..."
   sleep 2
 done
+
+# Verificación final
+if ! docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
+    echo "❌ Error: PostgreSQL no está listo después de 45 intentos"
+    echo "   Verificando logs..."
+    docker logs "$DB_CONTAINER_ID" --tail 20
+    exit 1
+fi
 
 echo ""
 echo "💾 Paso 5/6: Recreando base de datos desde SQL maestro..."
 
 # Eliminar base de datos si existe
 echo "   Eliminando base de datos existente..."
-docker exec "$DB_CONTAINER" psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+docker exec "$DB_CONTAINER_ID" psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+
+# Esperar un momento después de eliminar
+sleep 1
 
 # Crear nueva base de datos
 echo "   Creando nueva base de datos con UTF-8..."
-docker exec "$DB_CONTAINER" psql -U postgres -d postgres -c "CREATE DATABASE $DB_NAME WITH ENCODING='UTF8' LC_COLLATE='C.UTF-8' LC_CTYPE='C.UTF-8';"
+if ! docker exec "$DB_CONTAINER_ID" psql -U postgres -d postgres -c "CREATE DATABASE $DB_NAME WITH ENCODING='UTF8' LC_COLLATE='C.UTF-8' LC_CTYPE='C.UTF-8';"; then
+    echo "❌ Error creando la base de datos"
+    echo "   Verificando estado del contenedor..."
+    docker ps --filter "name=$DB_CONTAINER_ID" --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
+    exit 1
+fi
 
 # Cargar SQL maestro
 echo "   Cargando SQL maestro (esto puede tardar 1-2 minutos)..."
@@ -165,7 +208,7 @@ if [ ! -f "datos/00_gmarm_completo.sql" ]; then
     exit 1
 fi
 
-docker exec -i "$DB_CONTAINER" psql -U postgres -d "$DB_NAME" < datos/00_gmarm_completo.sql
+docker exec -i "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" < datos/00_gmarm_completo.sql
 
 if [ $? -eq 0 ]; then
     echo "✅ SQL maestro cargado correctamente"
@@ -178,9 +221,9 @@ echo ""
 echo "🔧 Paso 6/6: Verificando datos cargados..."
 
 # Verificar datos
-USUARIOS=$(docker exec "$DB_CONTAINER" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM usuario;" 2>/dev/null || echo "0")
-ARMAS=$(docker exec "$DB_CONTAINER" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM arma;" 2>/dev/null || echo "0")
-CLIENTES=$(docker exec "$DB_CONTAINER" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM cliente;" 2>/dev/null || echo "0")
+USUARIOS=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM usuario;" 2>/dev/null || echo "0")
+ARMAS=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM arma;" 2>/dev/null || echo "0")
+CLIENTES=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM cliente;" 2>/dev/null || echo "0")
 
 echo "   ✅ Usuarios: $USUARIOS"
 echo "   ✅ Armas: $ARMAS"
