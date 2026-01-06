@@ -28,12 +28,12 @@ public interface GrupoImportacionRepository extends JpaRepository<GrupoImportaci
     
     // Grupos activos (incluye todos los estados que permiten asignar clientes)
     @Query("SELECT gi FROM GrupoImportacion gi WHERE gi.estado IN (" +
-           "com.armasimportacion.enums.EstadoGrupoImportacion.EN_PREPARACION, " +
-           "com.armasimportacion.enums.EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES, " +
-           "com.armasimportacion.enums.EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA, " +
-           "com.armasimportacion.enums.EstadoGrupoImportacion.EN_PROCESO_OPERACIONES, " +
-           "com.armasimportacion.enums.EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO, " +
-           "com.armasimportacion.enums.EstadoGrupoImportacion.EN_ESPERA_DOCUMENTOS_CLIENTE)")
+           "'EN_PREPARACION', " +
+           "'EN_PROCESO_ASIGNACION_CLIENTES', " +
+           "'SOLICITAR_PROFORMA_FABRICA', " +
+           "'EN_PROCESO_OPERACIONES', " +
+           "'NOTIFICAR_AGENTE_ADUANERO', " +
+           "'EN_ESPERA_DOCUMENTOS_CLIENTE')")
     List<GrupoImportacion> findGruposActivos();
     
     // Grupos completos
