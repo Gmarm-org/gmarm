@@ -156,50 +156,103 @@ fi
 echo "   Usando contenedor: $DB_CONTAINER_ID"
 
 # Esperar a que PostgreSQL esté completamente listo
-for i in {1..45}; do
+READY_COUNT=0
+for i in {1..60}; do
   # Verificar que el contenedor esté corriendo
-  if ! docker ps --filter "name=$DB_CONTAINER_ID" --format "{{.Names}}" | grep -q "$DB_CONTAINER_ID"; then
-    echo "   ⚠️  Contenedor no está corriendo, esperando..."
-    sleep 2
+  CONTAINER_STATUS=$(docker ps --filter "name=$DB_CONTAINER_ID" --format "{{.Status}}" 2>/dev/null)
+  if [ -z "$CONTAINER_STATUS" ]; then
+    echo "   ⚠️  Contenedor no está corriendo (intento $i/60), esperando..."
+    sleep 3
     continue
   fi
   
-  # Verificar que PostgreSQL responda
-  if docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
-    echo "✅ PostgreSQL listo después de $i intentos"
-    sleep 2  # Esperar un poco más para asegurar que está completamente listo
-    break
+  # Verificar que el contenedor no esté reiniciándose
+  if echo "$CONTAINER_STATUS" | grep -q "Restarting"; then
+    echo "   ⚠️  Contenedor reiniciándose (intento $i/60), esperando..."
+    sleep 3
+    continue
   fi
-  echo "   Intento $i/45..."
+  
+  # Verificar que PostgreSQL responda (necesita múltiples verificaciones consecutivas)
+  if docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
+    READY_COUNT=$((READY_COUNT + 1))
+    if [ $READY_COUNT -ge 3 ]; then
+      echo "✅ PostgreSQL listo y estable después de $i intentos"
+      # Esperar más tiempo para asegurar que el proceso de init está completo
+      echo "   Esperando estabilización completa (10 segundos)..."
+      sleep 10
+      break
+    fi
+  else
+    READY_COUNT=0
+  fi
+  
+  if [ $((i % 5)) -eq 0 ]; then
+    echo "   Intento $i/60... (PostgreSQL aún no está listo)"
+  fi
   sleep 2
 done
 
 # Verificación final
 if ! docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
-    echo "❌ Error: PostgreSQL no está listo después de 45 intentos"
+    echo "❌ Error: PostgreSQL no está listo después de 60 intentos"
     echo "   Verificando logs..."
-    docker logs "$DB_CONTAINER_ID" --tail 20
+    docker logs "$DB_CONTAINER_ID" --tail 30
     exit 1
 fi
 
 echo ""
 echo "💾 Paso 5/6: Recreando base de datos desde SQL maestro..."
 
+# Función para ejecutar comando SQL con reintentos
+execute_sql_with_retry() {
+    local sql_command="$1"
+    local max_attempts=5
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Verificar que el contenedor esté listo antes de ejecutar
+        if ! docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
+            echo "   ⚠️  PostgreSQL no responde (intento $attempt/$max_attempts), esperando..."
+            sleep 3
+            attempt=$((attempt + 1))
+            continue
+        fi
+        
+        # Intentar ejecutar el comando
+        if docker exec "$DB_CONTAINER_ID" psql -U postgres -d postgres -c "$sql_command" > /dev/null 2>&1; then
+            return 0
+        fi
+        
+        if [ $attempt -lt $max_attempts ]; then
+            echo "   ⚠️  Error en intento $attempt/$max_attempts, reintentando en 3 segundos..."
+            sleep 3
+        fi
+        attempt=$((attempt + 1))
+    done
+    
+    return 1
+}
+
 # Eliminar base de datos si existe
 echo "   Eliminando base de datos existente..."
-docker exec "$DB_CONTAINER_ID" psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+execute_sql_with_retry "DROP DATABASE IF EXISTS $DB_NAME;" || true
 
 # Esperar un momento después de eliminar
-sleep 1
+sleep 2
 
 # Crear nueva base de datos
 echo "   Creando nueva base de datos con UTF-8..."
-if ! docker exec "$DB_CONTAINER_ID" psql -U postgres -d postgres -c "CREATE DATABASE $DB_NAME WITH ENCODING='UTF8' LC_COLLATE='C.UTF-8' LC_CTYPE='C.UTF-8';"; then
-    echo "❌ Error creando la base de datos"
+if ! execute_sql_with_retry "CREATE DATABASE $DB_NAME WITH ENCODING='UTF8' LC_COLLATE='C.UTF-8' LC_CTYPE='C.UTF-8';"; then
+    echo "❌ Error creando la base de datos después de 5 intentos"
     echo "   Verificando estado del contenedor..."
     docker ps --filter "name=$DB_CONTAINER_ID" --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
+    docker logs "$DB_CONTAINER_ID" --tail 20
     exit 1
 fi
+
+# Esperar un momento después de crear
+sleep 2
 
 # Cargar SQL maestro
 echo "   Cargando SQL maestro (esto puede tardar 1-2 minutos)..."
@@ -208,12 +261,31 @@ if [ ! -f "datos/00_gmarm_completo.sql" ]; then
     exit 1
 fi
 
-docker exec -i "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" < datos/00_gmarm_completo.sql
+# Cargar SQL maestro con reintentos
+SQL_LOADED=false
+for sql_attempt in {1..3}; do
+    echo "   Cargando SQL maestro (intento $sql_attempt/3)..."
+    if docker exec -i "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" < datos/00_gmarm_completo.sql 2>&1; then
+        echo "✅ SQL maestro cargado correctamente"
+        SQL_LOADED=true
+        break
+    else
+        if [ $sql_attempt -lt 3 ]; then
+            echo "   ⚠️  Error cargando SQL (intento $sql_attempt/3), esperando 5 segundos..."
+            sleep 5
+            # Verificar que el contenedor siga funcionando
+            if ! docker exec "$DB_CONTAINER_ID" pg_isready -U postgres > /dev/null 2>&1; then
+                echo "   ⚠️  PostgreSQL no responde, esperando más tiempo..."
+                sleep 10
+            fi
+        fi
+    fi
+done
 
-if [ $? -eq 0 ]; then
-    echo "✅ SQL maestro cargado correctamente"
-else
-    echo "❌ Error cargando SQL maestro"
+if [ "$SQL_LOADED" != "true" ]; then
+    echo "❌ Error cargando SQL maestro después de 3 intentos"
+    echo "   Verificando estado..."
+    docker logs "$DB_CONTAINER_ID" --tail 30
     exit 1
 fi
 
