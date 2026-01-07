@@ -735,6 +735,36 @@ const JefeVentas: React.FC = () => {
       
       <div className="max-w-7xl mx-auto p-6">
 
+        {/* Si estamos en modo edición de cliente, mostrar solo el formulario */}
+        {currentPage === 'clientForm' && selectedClient ? (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Editar Cliente</h2>
+              <button
+                onClick={handleCloseForm}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                ← Volver a la lista
+              </button>
+            </div>
+            <ClientForm
+              mode={clientFormMode}
+              client={selectedClient as any}
+              onSave={handleClientSaved as any}
+              onCancel={handleCloseForm}
+              onEdit={() => selectedClient && handleEditarCliente(selectedClient as ClienteConVendedor)}
+              selectedWeapon={selectedWeapon}
+              precioModificado={precioModificado}
+              cantidad={cantidad}
+              onPriceChange={handlePriceChangeWrapper}
+              onQuantityChange={handleQuantityChangeWrapper}
+              onNavigateToWeaponSelection={handleNavigateToWeaponSelection}
+              onConfirmData={handleClientDataConfirm}
+              onClienteBloqueado={handleClienteBloqueado}
+            />
+          </div>
+        ) : (
+          <>
         {/* Navegación de pestañas */}
         <div className="flex space-x-2 mb-6">
           <button
@@ -2128,26 +2158,7 @@ const JefeVentas: React.FC = () => {
         {vistaActual === 'series' && (
           <AsignacionSeries />
         )}
-
-        {/* Formulario de Edición de Cliente (usando ClientForm del módulo Vendedor) */}
-        {currentPage === 'clientForm' && selectedClient && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <ClientForm
-              mode={clientFormMode}
-              client={selectedClient as any}
-              onSave={handleClientSaved as any}
-              onCancel={handleCloseForm}
-              onEdit={() => selectedClient && handleEditarCliente(selectedClient as ClienteConVendedor)}
-              selectedWeapon={selectedWeapon}
-              precioModificado={precioModificado}
-              cantidad={cantidad}
-              onPriceChange={handlePriceChangeWrapper}
-              onQuantityChange={handleQuantityChangeWrapper}
-              onNavigateToWeaponSelection={handleNavigateToWeaponSelection}
-              onConfirmData={handleClientDataConfirm}
-              onClienteBloqueado={handleClienteBloqueado}
-            />
-          </div>
+          </>
         )}
 
         {/* Modal de Reasignar Arma */}
