@@ -59,6 +59,25 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   const [cantidades, setCantidades] = React.useState<Record<number, number>>({});
   const [preciosEnEdicion, setPreciosEnEdicion] = React.useState<Record<number, string>>({});
   
+  // Filtrar armas según el tipo de cliente - DEFINIR PRIMERO para poder usar en useMemo
+  const getTipoClienteActual = (): string | null => {
+    return tipoCliente || 
+           currentClient?.tipoCliente || 
+           reservaParaCliente?.tipoCliente || 
+           clienteParaResumen?.tipoCliente || 
+           null;
+  };
+  
+  const esDeportista = (): boolean => {
+    const tipo = getTipoClienteActual();
+    return tipo === 'Deportista';
+  };
+  
+  const esCivil = (): boolean => {
+    const tipo = getTipoClienteActual();
+    return tipo === 'Civil' || tipo === 'Cliente Civil';
+  };
+  
   // Obtener respuesta sobre armas registradas del cliente
   const obtenerRespuestaArmasRegistradas = React.useMemo(() => {
     if (!respuestas || respuestas.length === 0) return null;
@@ -70,12 +89,16 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
   // Determinar límite máximo de armas según respuesta del cliente
   const limiteMaximoArmas = React.useMemo(() => {
+    // Si no es Civil, aplicar límites según tipo
     if (!esCivil()) {
       return esDeportista() ? Infinity : 1; // Deportista sin límite, otros 1
     }
     
+    // Cliente Civil: verificar si tiene armas registradas
+    // NOTA: Para "Asignar arma sin cliente" (cliente fantasma), siempre se permite 2 armas
+    // ya que el cliente fantasma no tiene respuestas previamente guardadas
     const respuesta = obtenerRespuestaArmasRegistradas;
-    if (!respuesta) return 2; // Si no hay respuesta, permitir 2 por defecto
+    if (!respuesta) return 2; // Si no hay respuesta (cliente fantasma o nuevo), permitir 2 por defecto
     
     // Si respondió "NO" o no tiene armas, puede seleccionar 2
     if (respuesta.toUpperCase().includes('NO') || respuesta.toUpperCase().includes('NO TIENE')) {
@@ -131,25 +154,6 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   // Estado para categorías y filtro
   const [todasLasCategorias, setTodasLasCategorias] = React.useState<Array<{ id: number; nombre: string; codigo: string }>>([]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = React.useState<string>('TODAS');
-  
-  // Filtrar armas según el tipo de cliente
-  const getTipoClienteActual = (): string | null => {
-    return tipoCliente || 
-           currentClient?.tipoCliente || 
-           reservaParaCliente?.tipoCliente || 
-           clienteParaResumen?.tipoCliente || 
-           null;
-  };
-  
-  const esDeportista = (): boolean => {
-    const tipo = getTipoClienteActual();
-    return tipo === 'Deportista';
-  };
-  
-  const esCivil = (): boolean => {
-    const tipo = getTipoClienteActual();
-    return tipo === 'Civil' || tipo === 'Cliente Civil';
-  };
   
   // Función para verificar si una categoría está permitida
   const categoriaPermitida = (categoriaNombre: string | undefined, categoriaCodigo: string | undefined): boolean => {

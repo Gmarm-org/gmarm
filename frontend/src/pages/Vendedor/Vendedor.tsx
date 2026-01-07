@@ -762,6 +762,17 @@ const Vendedor: React.FC = React.memo(() => {
 
 
       case 'weaponSelection':
+        // Si no hay cliente seleccionado (Asignar arma sin cliente), el cliente fantasma es tipo CIVIL por defecto
+        // IMPORTANTE: Los clientes fantasma creados en el backend siempre son de tipo CIVIL
+        let tipoClienteParaReserva: string | undefined;
+        if (clientFormData?.tipoCliente) {
+          tipoClienteParaReserva = clientFormData.tipoCliente;
+        } else if (selectedClient?.tipoCliente) {
+          tipoClienteParaReserva = selectedClient.tipoCliente;
+        } else if (!selectedClient && !clientFormData) {
+          // Asignar arma sin cliente: el cliente fantasma es siempre CIVIL
+          tipoClienteParaReserva = 'Civil';
+        }
         return (
           <div className="p-6">
             <WeaponReserve
@@ -771,7 +782,7 @@ const Vendedor: React.FC = React.memo(() => {
               clienteParaResumen={selectedClient as any}
               armaSeleccionadaEnReserva={selectedWeapon}
               isCreatingClient={!!clientFormData}
-              tipoCliente={clientFormData?.tipoCliente || selectedClient?.tipoCliente}
+              tipoCliente={tipoClienteParaReserva}
               respuestas={clientFormData?.respuestas || []}
               onBack={() => {
                 // Si hay datos del cliente guardados (flujo de creación), volver al formulario
