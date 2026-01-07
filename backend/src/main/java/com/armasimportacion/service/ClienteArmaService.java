@@ -9,18 +9,12 @@ import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.ArmaRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.exception.BadRequestException;
-import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
-import com.armasimportacion.service.InventarioService;
-import com.armasimportacion.service.DocumentoClienteService;
-import com.armasimportacion.model.Pago;
-import com.armasimportacion.enums.EstadoPago;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,9 +31,7 @@ public class ClienteArmaService {
     private final ClienteArmaRepository clienteArmaRepository;
     private final ClienteRepository clienteRepository;
     private final ArmaRepository armaRepository;
-    private final GestionDocumentosServiceHelper documentosHelper;
-    private final InventarioService inventarioService;
-    private final DocumentoClienteService documentoClienteService;
+    private final com.armasimportacion.service.DocumentoClienteService documentoClienteService;
     private final com.armasimportacion.service.GrupoImportacionService grupoImportacionService;
     private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
 
@@ -213,8 +205,26 @@ public class ClienteArmaService {
                                     cliente.getId(), grupoDisponible.getId());
                             }
                         } else {
-                            log.warn("⚠️ No se encontró grupo disponible para asignar cliente ID {} con arma categoría {}", 
-                                cliente.getId(), categoriaArmaId);
+                            // Si no hay grupo disponible, informar pero solo lanzar excepción si no es cliente fantasma
+                            String mensajeError = esSegundaArma
+                                ? String.format(
+                                    "No se encontró un segundo grupo de importación disponible para asignar la segunda arma del cliente. " +
+                                    "El cliente ya está asignado a un grupo para su primera arma. " +
+                                    "Solo se procesará la primera arma seleccionada. Por favor, contacte al jefe de ventas para crear grupos adicionales."
+                                )
+                                : String.format(
+                                    "No se encontró grupo de importación disponible para asignar el cliente con arma de categoría %s. " +
+                                    "Por favor, comuníquese con el jefe de ventas para crear un grupo de importación o verificar la disponibilidad.",
+                                    categoriaArmaId
+                                );
+                            
+                            log.warn("⚠️ No se encontró grupo disponible para asignar cliente ID {} con arma categoría {} (segunda arma: {})", 
+                                cliente.getId(), categoriaArmaId, esSegundaArma);
+                            
+                            // Solo lanzar excepción si no es cliente fantasma (los fantasmas no necesitan grupos)
+                            if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+                                throw new BadRequestException(mensajeError);
+                            }
                         }
                     }
                 }

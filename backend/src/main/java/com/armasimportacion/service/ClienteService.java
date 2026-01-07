@@ -20,8 +20,6 @@ import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
 import com.armasimportacion.enums.EstadoClienteGrupo;
-import com.armasimportacion.service.DocumentoClienteService;
-import com.armasimportacion.service.ClienteArmaService;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -827,53 +825,81 @@ public class ClienteService {
      * @param usuarioId ID del vendedor
      * @return Cliente fantasma del vendedor (reutiliza el existente o crea uno nuevo)
      */
+    @Transactional
     public Cliente buscarOCrearClienteFantasmaVendedor(Long usuarioId) {
-        log.info("🔍 Buscando cliente fantasma del vendedor ID: {}", usuarioId);
-        
-        // Buscar si ya existe un cliente fantasma para este vendedor
-        List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
-            usuarioId, 
-            EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
-        );
-        
-        if (!clientesFantasma.isEmpty()) {
-            // Reutilizar el cliente fantasma más antiguo
-            Cliente clienteFantasma = clientesFantasma.get(0);
-            log.info("✅ Cliente fantasma encontrado: ID={}, nombres={}", 
-                clienteFantasma.getId(), clienteFantasma.getNombres());
-            return clienteFantasma;
+        try {
+            log.info("🔍 Buscando cliente fantasma del vendedor ID: {}", usuarioId);
+            
+            // Buscar si ya existe un cliente fantasma para este vendedor
+            List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
+                usuarioId, 
+                EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+            );
+            
+            if (!clientesFantasma.isEmpty()) {
+                // Reutilizar el cliente fantasma más antiguo
+                Cliente clienteFantasma = clientesFantasma.get(0);
+                log.info("✅ Cliente fantasma encontrado: ID={}, nombres={}", 
+                    clienteFantasma.getId(), clienteFantasma.getNombres());
+                return clienteFantasma;
+            }
+            
+            // Si no existe, crear uno nuevo
+            log.info("📝 No se encontró cliente fantasma, creando uno nuevo para vendedor ID: {}", usuarioId);
+            
+            var usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + usuarioId));
+            
+            // Buscar tipo "Civil" y "Cédula"
+            TipoCliente tipoClienteCivil = tipoClienteRepository.findByCodigo("CIV")
+                .orElseThrow(() -> {
+                    log.error("❌ Tipo de cliente 'Civil' (CIV) no encontrado en la base de datos");
+                    return new BadRequestException("Tipo de cliente 'Civil' no encontrado. Contacte al administrador.");
+                });
+            
+            TipoIdentificacion tipoIdentificacionCedula = tipoIdentificacionRepository.findByCodigo("CED")
+                .orElseThrow(() -> {
+                    log.error("❌ Tipo de identificación 'Cédula' (CED) no encontrado en la base de datos");
+                    return new BadRequestException("Tipo de identificación 'Cédula' no encontrado. Contacte al administrador.");
+                });
+            
+            // Crear cliente fantasma con datos mínimos requeridos
+            Cliente clienteFantasma = new Cliente();
+            clienteFantasma.setNombres(usuario.getNombres() != null ? usuario.getNombres() : "Vendedor");
+            clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
+            
+            // Generar número de identificación único
+            String numeroIdentificacion = "VEND-" + usuarioId + "-" + System.currentTimeMillis();
+            clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
+            clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
+            clienteFantasma.setTipoCliente(tipoClienteCivil);
+            clienteFantasma.setEstado(EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE);
+            clienteFantasma.setEmail(usuario.getEmail());
+            clienteFantasma.setUsuarioCreador(usuario);
+            clienteFantasma.setFechaCreacion(java.time.LocalDateTime.now());
+            
+            // Guardar cliente fantasma
+            Cliente clienteGuardado = clienteRepository.save(clienteFantasma);
+            log.info("✅ Cliente fantasma creado exitosamente: ID={}, nombres={}, numeroIdentificacion={}", 
+                clienteGuardado.getId(), clienteGuardado.getNombres(), clienteGuardado.getNumeroIdentificacion());
+            
+            return clienteGuardado;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("❌ Error de integridad al crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
+            // Si falla por duplicado, intentar buscar nuevamente
+            List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
+                usuarioId, 
+                EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+            );
+            if (!clientesFantasma.isEmpty()) {
+                log.info("✅ Cliente fantasma encontrado después de error de integridad: ID={}", clientesFantasma.get(0).getId());
+                return clientesFantasma.get(0);
+            }
+            throw new BadRequestException("Error al crear cliente fantasma: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Error inesperado al buscar/crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
+            throw new RuntimeException("Error al buscar/crear cliente fantasma: " + e.getMessage(), e);
         }
-        
-        // Si no existe, crear uno nuevo
-        log.info("📝 No se encontró cliente fantasma, creando uno nuevo para vendedor ID: {}", usuarioId);
-        
-        var usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + usuarioId));
-        
-        // Buscar tipo "Civil" y "Cédula"
-        TipoCliente tipoClienteCivil = tipoClienteRepository.findByCodigo("CIV")
-            .orElseThrow(() -> new BadRequestException("Tipo de cliente 'Civil' no encontrado"));
-        
-        TipoIdentificacion tipoIdentificacionCedula = tipoIdentificacionRepository.findByCodigo("CED")
-            .orElseThrow(() -> new BadRequestException("Tipo de identificación 'Cédula' no encontrado"));
-        
-        // Crear cliente fantasma
-        Cliente clienteFantasma = new Cliente();
-        clienteFantasma.setNombres(usuario.getNombres() != null ? usuario.getNombres() : "Vendedor");
-        clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
-        clienteFantasma.setNumeroIdentificacion("VEND-" + usuarioId + "-" + System.currentTimeMillis());
-        clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
-        clienteFantasma.setTipoCliente(tipoClienteCivil);
-        clienteFantasma.setEstado(EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE);
-        clienteFantasma.setEmail(usuario.getEmail());
-        clienteFantasma.setUsuarioCreador(usuario);
-        clienteFantasma.setFechaCreacion(java.time.LocalDateTime.now());
-        
-        Cliente clienteGuardado = clienteRepository.save(clienteFantasma);
-        log.info("✅ Cliente fantasma creado: ID={}, nombres={}", 
-            clienteGuardado.getId(), clienteGuardado.getNombres());
-        
-        return clienteGuardado;
     }
     
     /**
