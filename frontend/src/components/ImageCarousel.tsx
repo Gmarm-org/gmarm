@@ -44,8 +44,12 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
     setImageError(false);
   };
   
-  const handleImageError = () => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // Silenciosamente cambiar a placeholder sin imprimir errores
+    const target = e.target as HTMLImageElement;
     setImageError(true);
+    // Prevenir que se intente cargar la imagen nuevamente
+    target.style.display = 'none';
   };
   
   if (totalImages === 0) {

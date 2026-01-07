@@ -61,6 +61,11 @@ export const VendedorStockWeaponsSection: React.FC<VendedorStockWeaponsSectionPr
                   src={armaEnStock.armaImagen}
                   alt={armaEnStock.armaNombre}
                   className="w-16 h-16 object-cover rounded-lg ml-2"
+                  onError={(e) => {
+                    // Silenciosamente ocultar imagen si falla al cargar
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
                 />
               )}
             </div>

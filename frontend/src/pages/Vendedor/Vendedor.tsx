@@ -648,23 +648,17 @@ const Vendedor: React.FC = React.memo(() => {
                               >
                                 Ver
                               </button>
-                              {/* Botón Editar: Deshabilitado si es vendedor y el cliente ya confirmó sus datos */}
-                              <button
-                                onClick={() => handleEditClient(client)}
-                                disabled={esVendedor && client.emailVerificado === true}
-                                className={`font-medium ${
-                                  esVendedor && client.emailVerificado === true
-                                    ? 'text-gray-400 cursor-not-allowed opacity-50'
-                                    : 'text-green-600 hover:text-green-900'
-                                }`}
-                                title={
-                                  esVendedor && client.emailVerificado === true
-                                    ? 'No puede editar: El cliente ya confirmó sus datos. Solo el Jefe de Ventas puede editar clientes confirmados.'
-                                    : 'Editar cliente'
-                                }
-                              >
-                                Editar
-                              </button>
+                              {/* Botón Editar: NO se muestra si es vendedor y el cliente ya confirmó sus datos */}
+                              {/* Solo el Jefe de Ventas puede editar clientes confirmados */}
+                              {!(esVendedor && client.emailVerificado === true) && (
+                                <button
+                                  onClick={() => handleEditClient(client)}
+                                  className="text-green-600 hover:text-green-900 font-medium"
+                                  title="Editar cliente"
+                                >
+                                  Editar
+                                </button>
+                              )}
                               {(client.emailVerificado === null || client.emailVerificado === undefined) && (
                                 <button
                                   onClick={() => setModalValidarDatos({ isOpen: true, client, isLoading: false })}
@@ -778,6 +772,7 @@ const Vendedor: React.FC = React.memo(() => {
               armaSeleccionadaEnReserva={selectedWeapon}
               isCreatingClient={!!clientFormData}
               tipoCliente={clientFormData?.tipoCliente || selectedClient?.tipoCliente}
+              respuestas={clientFormData?.respuestas || []}
               onBack={() => {
                 // Si hay datos del cliente guardados (flujo de creación), volver al formulario
                 if (clientFormData) {

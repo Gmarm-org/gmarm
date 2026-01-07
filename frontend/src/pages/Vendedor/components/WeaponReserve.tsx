@@ -24,6 +24,7 @@ interface WeaponReserveProps {
   currentClientId?: string;
   isCreatingClient?: boolean;
   tipoCliente?: string; // Tipo de cliente para filtrar categorías
+  respuestas?: Array<{ pregunta: string; respuesta: string }>; // Respuestas del cliente para validar límites
 }
 
 const WeaponReserve: React.FC<WeaponReserveProps> = ({
@@ -42,7 +43,8 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   getWeaponPriceForClient,
   currentClientId,
   isCreatingClient = false,
-  tipoCliente
+  tipoCliente,
+  respuestas = []
 }) => {
  
   // Validando estructura de armas recibidas
@@ -57,8 +59,60 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   const [cantidades, setCantidades] = React.useState<Record<number, number>>({});
   const [preciosEnEdicion, setPreciosEnEdicion] = React.useState<Record<number, string>>({});
   
+  // Obtener respuesta sobre armas registradas del cliente
+  const obtenerRespuestaArmasRegistradas = React.useMemo(() => {
+    if (!respuestas || respuestas.length === 0) return null;
+    const preguntaArmas = respuestas.find(r => 
+      r.pregunta && r.pregunta.toLowerCase().includes('armas registradas')
+    );
+    return preguntaArmas?.respuesta || null;
+  }, [respuestas]);
+
+  // Determinar límite máximo de armas según respuesta del cliente
+  const limiteMaximoArmas = React.useMemo(() => {
+    if (!esCivil()) {
+      return esDeportista() ? Infinity : 1; // Deportista sin límite, otros 1
+    }
+    
+    const respuesta = obtenerRespuestaArmasRegistradas;
+    if (!respuesta) return 2; // Si no hay respuesta, permitir 2 por defecto
+    
+    // Si respondió "NO" o no tiene armas, puede seleccionar 2
+    if (respuesta.toUpperCase().includes('NO') || respuesta.toUpperCase().includes('NO TIENE')) {
+      return 2;
+    }
+    
+    // Si respondió "1 arma", solo puede seleccionar 1 más (máximo 2 total)
+    if (respuesta.includes('1 arma') || respuesta.includes('1 ARMA')) {
+      return 1; // Solo puede agregar 1 más
+    }
+    
+    // Si respondió "2 armas" o más, no puede seleccionar ninguna (ya tiene el máximo)
+    if (respuesta.includes('2 armas') || respuesta.includes('más armas') || 
+        respuesta.includes('2 ARMAS') || respuesta.includes('MÁS')) {
+      return 0; // Ya tiene el máximo legal
+    }
+    
+    // Por defecto, si responde "SI" sin especificar cantidad, permitir 2
+    return 2;
+  }, [obtenerRespuestaArmasRegistradas]);
+
   // Estado para cantidad de armas a seleccionar (solo para Cliente Civil: 1 o 2)
-  const [cantidadArmasACeleccionar, setCantidadArmasACeleccionar] = React.useState<number>(1);
+  const [cantidadArmasACeleccionar, setCantidadArmasACeleccionar] = React.useState<number>(() => {
+    // Inicializar según el límite máximo
+    return limiteMaximoArmas >= 2 ? 2 : (limiteMaximoArmas >= 1 ? 1 : 0);
+  });
+
+  // Actualizar cantidad cuando cambia el límite
+  React.useEffect(() => {
+    if (limiteMaximoArmas === 0) {
+      setCantidadArmasACeleccionar(0);
+    } else if (limiteMaximoArmas === 1) {
+      setCantidadArmasACeleccionar(1);
+    } else {
+      setCantidadArmasACeleccionar(2);
+    }
+  }, [limiteMaximoArmas]);
   
   // Estado para múltiples armas seleccionadas (para Cliente Civil con 2 armas)
   const [armasSeleccionadas, setArmasSeleccionadas] = React.useState<Arma[]>([]);
@@ -263,8 +317,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
           alt={weapon.nombre}
           className="max-w-full max-h-full object-contain"
           onError={(e) => {
+            // Silenciosamente cambiar a imagen por defecto sin imprimir errores
             const target = e.target as HTMLImageElement;
-            target.src = getWeaponImageUrlWithCacheBusting(null);
+            if (target.src !== getWeaponImageUrlWithCacheBusting(null)) {
+              target.src = getWeaponImageUrlWithCacheBusting(null);
+            }
           }}
         />
       </div>
@@ -290,8 +347,14 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
       }
     }
 
-    // Si es Cliente Civil, manejar múltiples selecciones (máximo 2)
+    // Si es Cliente Civil, manejar múltiples selecciones (máximo según límite)
     if (esCivil()) {
+      // Si ya tiene el máximo de armas permitidas, no permitir más
+      if (limiteMaximoArmas === 0) {
+        alert('❌ El cliente ya tiene el máximo de armas registradas permitidas (2). No se pueden seleccionar más armas.');
+        return;
+      }
+      
       const index = armasSeleccionadas.findIndex(a => a.id === weapon.id);
       if (index >= 0) {
         // Deseleccionar si ya está seleccionada
@@ -304,9 +367,12 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
           onWeaponSelectionInReserve(null);
         }
       } else {
-        // Verificar límite de cantidad
-        if (armasSeleccionadas.length >= cantidadArmasACeleccionar) {
-          alert(`❌ Ya has seleccionado el máximo de ${cantidadArmasACeleccionar} ${cantidadArmasACeleccionar === 1 ? 'arma' : 'armas'} permitidas para Cliente Civil. Deselecciona una arma primero.`);
+        // Verificar límite de cantidad (usar límite máximo en lugar de cantidadArmasACeleccionar)
+        if (armasSeleccionadas.length >= limiteMaximoArmas) {
+          const mensajeLimite = limiteMaximoArmas === 1 
+            ? 'Ya has seleccionado 1 arma. El cliente solo puede agregar 1 arma más porque ya tiene 1 registrada (máximo legal: 2).'
+            : `Ya has seleccionado el máximo de ${limiteMaximoArmas} armas permitidas. Deselecciona una arma primero.`;
+          alert(`❌ ${mensajeLimite}`);
           return;
         }
         // Agregar a la selección múltiple
@@ -441,8 +507,8 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                 </div>
               )}
 
-              {/* Dropdown para cantidad de armas (solo Cliente Civil) */}
-              {esCivil() && (currentClient || reservaParaCliente) && (
+              {/* Dropdown para cantidad de armas (solo Cliente Civil) - Mostrar solo si no hay armas seleccionadas todavía */}
+              {esCivil() && (currentClient || reservaParaCliente) && limiteMaximoArmas > 0 && armasSeleccionadas.length === 0 && (
                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6 mb-8">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -451,7 +517,16 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                       </svg>
                       <div>
                         <h3 className="text-lg font-bold text-yellow-800 mb-1">Cantidad de Armas a Seleccionar</h3>
-                        <p className="text-sm text-yellow-700">Cliente Civil puede solicitar máximo 2 armas (mismo tipo o diferentes)</p>
+                        <p className="text-sm text-yellow-700">
+                          {limiteMaximoArmas === 1 
+                            ? 'El cliente puede agregar 1 arma más (ya tiene 1 registrada, máximo legal: 2)'
+                            : 'Cliente Civil puede solicitar máximo 2 armas (mismo tipo o diferentes)'}
+                        </p>
+                        {obtenerRespuestaArmasRegistradas && (
+                          <p className="text-xs text-yellow-600 mt-1 italic">
+                            Respuesta: {obtenerRespuestaArmasRegistradas}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -460,44 +535,48 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                         value={cantidadArmasACeleccionar}
                         onChange={(e) => {
                           const nuevaCantidad = parseInt(e.target.value);
-                          setCantidadArmasACeleccionar(nuevaCantidad);
-                          // Si se reduce la cantidad y hay más armas seleccionadas, quitar las sobrantes
-                          if (armasSeleccionadas.length > nuevaCantidad) {
-                            const armasReducidas = armasSeleccionadas.slice(0, nuevaCantidad);
-                            setArmasSeleccionadas(armasReducidas);
-                            if (armasReducidas.length === 1) {
-                              onWeaponSelectionInReserve(armasReducidas[0]);
-                            } else if (armasReducidas.length === 0) {
-                              onWeaponSelectionInReserve(null);
-                            }
+                          if (nuevaCantidad > limiteMaximoArmas) {
+                            alert(`❌ No se puede seleccionar ${nuevaCantidad} armas. El límite máximo permitido es ${limiteMaximoArmas}.`);
+                            return;
                           }
+                          setCantidadArmasACeleccionar(nuevaCantidad);
                         }}
                         className="px-4 py-2 border-2 border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white text-gray-900 font-semibold"
+                        disabled={limiteMaximoArmas === 1} // Deshabilitar si solo puede 1
                       >
-                        <option value={1}>1 arma</option>
-                        <option value={2}>2 armas</option>
+                        {limiteMaximoArmas >= 2 && <option value={1}>1 arma</option>}
+                        {limiteMaximoArmas >= 2 && <option value={2}>2 armas</option>}
+                        {limiteMaximoArmas === 1 && <option value={1}>1 arma</option>}
                       </select>
                     </div>
                   </div>
-                  
-                  {/* Indicador de progreso */}
-                  {armasSeleccionadas.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-yellow-300">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-yellow-800">
-                          Armas seleccionadas: {armasSeleccionadas.length} / {cantidadArmasACeleccionar}
-                        </span>
-                        {armasSeleccionadas.length === cantidadArmasACeleccionar && (
-                          <span className="text-sm font-bold text-green-600 flex items-center">
-                            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Completado
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                </div>
+              )}
+
+              {/* Contador dinámico de armas seleccionadas - Mostrar solo si ya hay armas seleccionadas */}
+              {esCivil() && armasSeleccionadas.length > 0 && (
+                <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 mb-8">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-green-800">
+                      Armas seleccionadas: <strong>{armasSeleccionadas.length}</strong> / {limiteMaximoArmas}
+                    </span>
+                    {armasSeleccionadas.length === limiteMaximoArmas && (
+                      <span className="text-sm font-bold text-green-600 flex items-center">
+                        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Máximo alcanzado
+                      </span>
+                    )}
+                    {limiteMaximoArmas === 0 && (
+                      <span className="text-sm font-bold text-red-600 flex items-center">
+                        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Ya tiene el máximo legal
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -676,6 +755,59 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                 })}
               </div>
 
+              {/* Resumen de Totales (solo si hay múltiples armas seleccionadas) */}
+              {esCivil() && armasSeleccionadas.length > 1 && (
+                <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-8">
+                  <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center">
+                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Resumen Total ({armasSeleccionadas.length} armas)
+                  </h3>
+                  <div className="space-y-2">
+                    {armasSeleccionadas.map((arma, index) => {
+                      const precioArma = getWeaponPriceForClient(arma.id, currentClientId) || 0;
+                      const precioEnEdicion = preciosEnEdicion[arma.id];
+                      const precioFinal = precioEnEdicion !== undefined 
+                        ? (parseFloat(precioEnEdicion) || 0)
+                        : precioArma;
+                      const subtotal = precioFinal;
+                      const ivaArma = subtotal * ivaDecimal;
+                      const totalArma = subtotal + ivaArma;
+                      
+                      return (
+                        <div key={arma.id} className="flex justify-between items-center bg-white rounded-lg p-3 border border-blue-200">
+                          <div>
+                            <span className="text-sm font-medium text-gray-700">Arma {index + 1}:</span>
+                            <span className="text-sm text-gray-600 ml-2">{arma.nombre}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-bold text-blue-600">${totalArma.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="pt-3 border-t-2 border-blue-300 mt-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold text-blue-800">TOTAL GENERAL:</span>
+                        <span className="text-2xl font-bold text-green-600">
+                          ${armasSeleccionadas.reduce((sum, arma) => {
+                            const precioArma = getWeaponPriceForClient(arma.id, currentClientId) || 0;
+                            const precioEnEdicion = preciosEnEdicion[arma.id];
+                            const precioFinal = precioEnEdicion !== undefined 
+                              ? (parseFloat(preciosEnEdicion[arma.id]) || 0)
+                              : precioArma;
+                            const subtotal = precioFinal;
+                            const ivaArma = subtotal * ivaDecimal;
+                            return sum + subtotal + ivaArma;
+                          }, 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Botón Confirmar */}
               {(clienteParaResumen || (!currentClient && !reservaParaCliente)) && (() => {
                 // Para Cliente Civil: validar múltiples armas
@@ -686,13 +818,21 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                 
                 let precioValido = true;
                 let mensajeDeshabilitado = esCivil() 
-                  ? `Selecciona ${cantidadArmasACeleccionar === 1 ? '1 arma' : '2 armas'} para continuar`
+                  ? `Selecciona ${limiteMaximoArmas === 1 ? '1 arma' : '1 o 2 armas'} para continuar`
                   : 'Selecciona un arma para continuar';
                 
-                // Si es Civil, verificar que se haya seleccionado la cantidad requerida
-                if (esCivil() && armasSeleccionadas.length !== cantidadArmasACeleccionar) {
-                  precioValido = false;
-                  mensajeDeshabilitado = `Debes seleccionar ${cantidadArmasACeleccionar} ${cantidadArmasACeleccionar === 1 ? 'arma' : 'armas'}. Actualmente seleccionadas: ${armasSeleccionadas.length}`;
+                // Si es Civil, verificar límite máximo (debe haber al menos 1 arma si el límite > 0)
+                if (esCivil()) {
+                  if (limiteMaximoArmas === 0) {
+                    precioValido = false;
+                    mensajeDeshabilitado = 'El cliente ya tiene el máximo de armas permitidas (2). No se pueden seleccionar más.';
+                  } else if (armasSeleccionadas.length === 0) {
+                    precioValido = false;
+                    mensajeDeshabilitado = `Debes seleccionar al menos 1 arma (máximo ${limiteMaximoArmas}).`;
+                  } else if (armasSeleccionadas.length > limiteMaximoArmas) {
+                    precioValido = false;
+                    mensajeDeshabilitado = `Has seleccionado ${armasSeleccionadas.length} armas, pero el límite máximo es ${limiteMaximoArmas}.`;
+                  }
                 } else if (armasParaValidar.length === 0) {
                   precioValido = false;
                 } else {

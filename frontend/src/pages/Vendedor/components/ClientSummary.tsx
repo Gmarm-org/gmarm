@@ -303,7 +303,14 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
           <h3>Arma Seleccionada</h3>
           {armaSeleccionada && (
             <div className="weapon-summary">
-              <img src={getWeaponImageUrlWithCacheBusting(armaSeleccionada.urlImagen)} alt={armaSeleccionada.nombre} />
+              <img 
+                src={getWeaponImageUrlWithCacheBusting(armaSeleccionada.urlImagen)} 
+                alt={armaSeleccionada.nombre}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
               <div className="weapon-details">
                 <p style={{ 
                   margin: '0.2rem 0', 
