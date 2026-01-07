@@ -356,56 +356,148 @@ const PagosFinanzas: React.FC = () => {
   };
 
   // Función para exportar a Excel
-  const exportarPagosAExcel = useCallback(() => {
+  const exportarPagosAExcel = useCallback(async () => {
     try {
       console.log('📊 Iniciando exportación de pagos a Excel...');
       
-      const datosExportacion = pagosFiltrados.map((pago) => {
+      const workbook = XLSX.utils.book_new();
+      
+      // Para cada pago, crear una hoja con datos de factura y pagos
+      for (let i = 0; i < pagosFiltrados.length; i++) {
+        const pago = pagosFiltrados[i];
         const clienteNombre = pago.cliente 
           ? `${pago.cliente.nombres} ${pago.cliente.apellidos}`.trim()
           : 'N/A';
         const clienteCedula = pago.cliente?.numeroIdentificacion || 'N/A';
+        
+        // Obtener información del arma
+        let descripcionArma = 'N/A';
+        try {
+          if (pago.cliente) {
+            const armasResponse = await apiService.getArmasCliente(parseInt(pago.cliente.id));
+            if (armasResponse && armasResponse.length > 0) {
+              const arma = armasResponse[0];
+              const tipoArma = (arma.armaCategoriaNombre?.toUpperCase() || 'PISTOLA');
+              const marca = arma.armaNombre?.substring(0, 2).toUpperCase() || 'CZ';
+              const modelo = arma.armaNombre || 'N/A';
+              const calibre = arma.armaCalibre || 'N/A';
+              const serie = arma.numeroSerie || 'N/A';
+              descripcionArma = `${tipoArma} MARCA ${marca}, MODELO ${modelo}, CALIBRE ${calibre} SERIE: ${serie}`;
+            }
+          }
+        } catch (error) {
+          console.warn(`No se pudieron cargar las armas para el cliente ${clienteNombre}:`, error);
+        }
+        
+        // Calcular montos
         const montoPagado = pago.montoTotal - (pago.saldoPendiente || 0);
         const saldoPendiente = pago.saldoPendiente || 0;
+        const ivaPorcentaje = ivaPercent || 15;
+        const montoAntesIva = pago.montoTotal / (1 + (ivaPorcentaje / 100));
+        const montoIva = pago.montoTotal - montoAntesIva;
         
-        return {
-          'ID': pago.id,
-          'Cliente': clienteNombre,
-          'CI/RUC': clienteCedula,
-          'Monto Total': pago.montoTotal,
-          'Tipo Pago': pago.tipoPago,
-          'Estado': pago.estado,
-          'Monto Pagado': montoPagado,
-          'Saldo Pendiente': saldoPendiente,
-          'Grupo Importación': pago.grupoImportacion || 'N/A',
-          'Fecha Creación': new Date(pago.fechaCreacion).toLocaleDateString('es-EC'),
-          'Número Cuotas': pago.cuotas?.length || 0,
-          'Cuotas Pagadas': pago.cuotas?.filter(c => c.estado === 'PAGADA').length || 0,
-          'Observaciones': pago.observaciones || '',
-        };
-      });
-
-      const worksheet = XLSX.utils.json_to_sheet(datosExportacion);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Pagos');
-
-      // Ajustar ancho de columnas
-      const columnWidths = [];
-      const maxCol = XLSX.utils.decode_range(worksheet['!ref'] || 'A1').e.c;
-      for (let col = 0; col <= maxCol; col++) {
-        const colLetter = XLSX.utils.encode_col(col);
-        let maxWidth = 10;
-        for (let row = 1; row <= datosExportacion.length; row++) {
-          const cellAddress = colLetter + row;
-          const cell = worksheet[cellAddress];
-          if (cell && cell.v) {
-            const cellValue = String(cell.v);
-            maxWidth = Math.max(maxWidth, Math.min(cellValue.length, 50));
-          }
+        // Datos de la factura/recibo
+        const datosFactura = [
+          ['════════════════════════════════════════════════════════════'],
+          ['                    DATOS DE LA FACTURA                      '],
+          ['════════════════════════════════════════════════════════════'],
+          [''],
+          ['Cliente:', clienteNombre],
+          ['CI/RUC:', clienteCedula],
+          ['Email:', pago.cliente?.email || 'N/A'],
+          ['Teléfono:', pago.cliente?.telefonoPrincipal || 'N/A'],
+          ['Dirección:', pago.cliente?.direccion || 'N/A'],
+          [''],
+          ['Arma:', descripcionArma],
+          [''],
+          ['════════════════════════════════════════════════════════════'],
+          ['                    INFORMACIÓN FINANCIERA                   '],
+          ['════════════════════════════════════════════════════════════'],
+          [''],
+          ['Monto antes de IVA:', montoAntesIva.toFixed(2)],
+          ['IVA (' + ivaPorcentaje + '%):', montoIva.toFixed(2)],
+          ['Monto Total:', pago.montoTotal.toFixed(2)],
+          ['Monto Pagado:', montoPagado.toFixed(2)],
+          ['Saldo Pendiente:', saldoPendiente.toFixed(2)],
+          [''],
+          ['Tipo de Pago:', pago.tipoPago],
+          ['Estado:', pago.estado],
+          ['Grupo de Importación:', pago.grupoImportacion || 'N/A'],
+          ['Fecha Creación:', new Date(pago.fechaCreacion).toLocaleDateString('es-EC')],
+          [''],
+          ['════════════════════════════════════════════════════════════'],
+          ['                    DETALLE DE CUOTAS                        '],
+          ['════════════════════════════════════════════════════════════'],
+          [''],
+        ];
+        
+        // Agregar encabezados de cuotas
+        const encabezadosCuotas = [
+          ['N° Cuota', 'Monto', 'Fecha Vencimiento', 'Estado', 'Fecha Pago', 'Referencia Pago', 'N° Recibo', 'Observaciones']
+        ];
+        
+        // Datos de las cuotas
+        const datosCuotas = pago.cuotas?.map((cuota) => [
+          cuota.numeroCuota,
+          cuota.monto.toFixed(2),
+          cuota.fechaVencimiento ? new Date(cuota.fechaVencimiento).toLocaleDateString('es-EC') : 'N/A',
+          cuota.estado,
+          cuota.fechaPago ? new Date(cuota.fechaPago).toLocaleDateString('es-EC') : 'N/A',
+          cuota.referenciaPago || 'N/A',
+          cuota.numeroRecibo || 'N/A',
+          cuota.observaciones || ''
+        ]) || [];
+        
+        // Combinar todos los datos
+        const todosLosDatos = [
+          ...datosFactura,
+          ...encabezadosCuotas,
+          ...datosCuotas,
+          [''],
+          ['════════════════════════════════════════════════════════════'],
+          ['                    DATOS DE PAGOS                           '],
+          ['════════════════════════════════════════════════════════════'],
+          [''],
+          ['ID Pago', 'Cliente', 'CI/RUC', 'Monto Total', 'Tipo Pago', 'Estado', 'Monto Pagado', 'Saldo Pendiente', 'Grupo Importación', 'Fecha Creación', 'N° Cuotas', 'Cuotas Pagadas', 'Observaciones'],
+          [
+            pago.id,
+            clienteNombre,
+            clienteCedula,
+            pago.montoTotal.toFixed(2),
+            pago.tipoPago,
+            pago.estado,
+            montoPagado.toFixed(2),
+            saldoPendiente.toFixed(2),
+            pago.grupoImportacion || 'N/A',
+            new Date(pago.fechaCreacion).toLocaleDateString('es-EC'),
+            pago.cuotas?.length || 0,
+            pago.cuotas?.filter(c => c.estado === 'PAGADA').length || 0,
+            pago.observaciones || ''
+          ]
+        ];
+        
+        // Crear hoja de cálculo
+        const worksheet = XLSX.utils.aoa_to_sheet(todosLosDatos);
+        
+        // Ajustar ancho de columnas
+        const columnWidths = [];
+        const maxCol = XLSX.utils.decode_range(worksheet['!ref'] || 'A1').e.c;
+        for (let col = 0; col <= maxCol; col++) {
+          let maxWidth = 15;
+          // Ajustar según la columna
+          if (col === 0) maxWidth = 12; // Primera columna más estrecha
+          else if (col === 1) maxWidth = 30; // Segunda columna más ancha (nombres)
+          else if (col === 2) maxWidth = 15; // CI/RUC
+          else if (col === 3) maxWidth = 15; // Montos
+          else maxWidth = 20;
+          columnWidths.push({ wch: maxWidth });
         }
-        columnWidths.push({ wch: maxWidth });
+        worksheet['!cols'] = columnWidths;
+        
+        // Nombre de la hoja (limitado a 31 caracteres)
+        const nombreHoja = `${clienteNombre.substring(0, 20)}_${pago.id}`.substring(0, 31);
+        XLSX.utils.book_append_sheet(workbook, worksheet, nombreHoja);
       }
-      worksheet['!cols'] = columnWidths;
 
       const fecha = new Date().toISOString().split('T')[0];
       const nombreArchivo = `Pagos_${fecha}.xlsx`;
@@ -413,12 +505,12 @@ const PagosFinanzas: React.FC = () => {
       XLSX.writeFile(workbook, nombreArchivo);
       
       console.log(`✅ Exportación completada: ${nombreArchivo}`);
-      alert(`✅ Exportación completada exitosamente!\n\nArchivo: ${nombreArchivo}\nTotal de pagos: ${datosExportacion.length}`);
+      alert(`✅ Exportación completada exitosamente!\n\nArchivo: ${nombreArchivo}\nTotal de pagos: ${pagosFiltrados.length}`);
     } catch (error) {
       console.error('❌ Error al exportar a Excel:', error);
       alert(`❌ Error al exportar a Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-  }, [pagosFiltrados]);
+  }, [pagosFiltrados, ivaPercent]);
 
   if (loading) {
     return (

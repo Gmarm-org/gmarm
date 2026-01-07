@@ -2,195 +2,368 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Recibo de Pago - GMARM</title>
+    <title>RECIBO DE RESERVA - GMARM</title>
     <style>
+        @page {
+            margin: 2cm;
+            size: A4;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .recibo-container {
-            max-width: 800px;
-            margin: 0 auto;
+            padding: 0;
             background-color: white;
-            padding: 40px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: #1F2937;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            position: relative;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            color: #E5E7EB;
+            opacity: 0.1;
+            z-index: 0;
+            font-weight: bold;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
         }
         .header {
-            text-align: center;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #2563eb;
-            margin: 0;
-            font-size: 28px;
-        }
-        .header p {
-            color: #666;
-            margin: 5px 0;
-        }
-        .recibo-info {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #E5E7EB;
         }
-        .info-section {
+        .logo-section {
             flex: 1;
         }
-        .info-section h3 {
-            color: #333;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .info-row {
-            margin: 10px 0;
-        }
-        .info-label {
+        .logo {
+            font-size: 32px;
             font-weight: bold;
-            color: #666;
-            display: inline-block;
-            width: 150px;
+            color: #1F2937;
+            margin-bottom: 5px;
         }
-        .info-value {
-            color: #333;
+        .logo-tagline {
+            font-size: 11px;
+            color: #6B7280;
+            font-style: italic;
         }
-        .detalle-pago {
-            background-color: #f9fafb;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
+        .social-section {
+            flex: 1;
+            text-align: right;
+            font-size: 10px;
+            color: #6B7280;
         }
-        .detalle-pago h3 {
-            color: #2563eb;
-            margin-top: 0;
+        .social-section a {
+            color: #6B7280;
+            text-decoration: none;
+            margin-left: 8px;
         }
-        .pago-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .pago-row:last-child {
-            border-bottom: none;
-        }
-        .pago-label {
-            font-weight: bold;
-            color: #666;
-        }
-        .pago-value {
-            color: #333;
-            font-size: 18px;
-        }
-        .total-row {
-            background-color: #2563eb;
-            color: white;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-        .total-row .pago-label {
-            color: white;
-        }
-        .total-row .pago-value {
-            color: white;
+        .title {
+            text-align: center;
             font-size: 24px;
             font-weight: bold;
+            margin: 25px 0;
+            color: #1F2937;
+            letter-spacing: 1px;
         }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #e5e7eb;
-            color: #666;
+        .date-location {
+            text-align: left;
+            margin-bottom: 20px;
             font-size: 12px;
         }
-        .observaciones {
-            margin-top: 20px;
+        .main-content {
+            margin: 25px 0;
+            text-align: justify;
+        }
+        .main-content p {
+            margin: 10px 0;
+            line-height: 1.8;
+        }
+        .personal-data {
+            background-color: #F9FAFB;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .personal-data h3 {
+            color: #1F2937;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4F46E5;
+            padding-bottom: 10px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table td {
+            padding: 8px 0;
+            vertical-align: top;
+        }
+        .data-label {
+            color: #6B7280;
+            font-weight: bold;
+            width: 40%;
+        }
+        .data-value {
+            color: #1F2937;
+        }
+        .declaration {
+            background-color: #FEF3C7;
+            border-left: 4px solid #F59E0B;
             padding: 15px;
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #92400E;
+        }
+        .delivery-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #EFF6FF;
+            border-left: 4px solid #3B82F6;
             border-radius: 4px;
         }
-        .observaciones h4 {
+        .clarification {
+            margin: 25px 0;
+            padding: 15px;
+            background-color: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 4px;
+        }
+        .clarification h4 {
+            color: #1F2937;
+            font-size: 14px;
+            font-weight: bold;
             margin-top: 0;
-            color: #92400e;
+            margin-bottom: 10px;
+        }
+        .clarification ul {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        .clarification li {
+            margin: 8px 0;
+        }
+        .signature {
+            margin-top: 40px;
+            text-align: left;
+        }
+        .signature p {
+            margin: 5px 0;
+        }
+        .signature-name {
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E7EB;
+            text-align: center;
+            color: #6B7280;
+            font-size: 10px;
+        }
+        .amount-highlight {
+            font-weight: bold;
+            font-size: 14px;
+            color: #1F2937;
+        }
+        .weapon-info {
+            background-color: #F0F9FF;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 3px solid #3B82F6;
         }
     </style>
 </head>
 <body>
-    <div class="recibo-container">
-        <div class="header">
-            <h1>🔫 GMARM</h1>
-            <p>RECIBO DE PAGO</p>
-            <p style="font-size: 14px; color: #999;">Número de Recibo: <span th:text="${numeroRecibo}">REC-XXX</span></p>
-        </div>
+    <div class="container">
+        <div class="watermark">GMARM</div>
+        <div class="content">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-section">
+                    <div class="logo">GMARM</div>
+                    <div class="logo-tagline">Sistema de Gestión de Armas</div>
+                </div>
+                <div class="social-section">
+                    <div>www.gmarm.com</div>
+                </div>
+            </div>
 
-        <div class="recibo-info">
-            <div class="info-section">
-                <h3>Información del Cliente</h3>
-                <div class="info-row">
-                    <span class="info-label">Nombre:</span>
-                    <span class="info-value" th:text="${clienteNombre}">Nombre Cliente</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Cédula/RUC:</span>
-                    <span class="info-value" th:text="${clienteCedula}">XXXXXXXXX</span>
-                </div>
-            </div>
-            <div class="info-section">
-                <h3>Información del Recibo</h3>
-                <div class="info-row">
-                    <span class="info-label">Fecha de Pago:</span>
-                    <span class="info-value" th:text="${fechaPago}">DD/MM/YYYY</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Cuota #:</span>
-                    <span class="info-value" th:text="${numeroCuota}">X</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Referencia:</span>
-                    <span class="info-value" th:text="${referenciaPago}">N/A</span>
-                </div>
-            </div>
-        </div>
+            <!-- Title -->
+            <div class="title">RECIBO DE RESERVA</div>
 
-        <div class="detalle-pago">
-            <h3>Detalle de Pago</h3>
-            <div class="pago-row">
-                <span class="pago-label">Monto de la Cuota:</span>
-                <span class="pago-value" th:text="${montoFormateado}">$0.00</span>
+            <!-- Date and Location -->
+            <div class="date-location">
+                <strong>Quito, <span th:text="${fechaDocumento}">DD de MMMM YYYY</span></strong>
             </div>
-            <div class="pago-row">
-                <span class="pago-label">Monto Total del Pago:</span>
-                <span class="pago-value" th:text="${montoTotalPagoFormateado}">$0.00</span>
-            </div>
-            <div class="pago-row">
-                <span class="pago-label">Saldo Pendiente:</span>
-                <span class="pago-value" th:text="${saldoPendienteFormateado}">$0.00</span>
-            </div>
-            <div class="total-row">
-                <div class="pago-row">
-                    <span class="pago-label">Monto Pagado:</span>
-                    <span class="pago-value" th:text="${montoFormateado}">$0.00</span>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <p>
+                    Hemos recibido del <strong>SR./SRA. <span th:text="${clienteNombre}">NOMBRE CLIENTE</span></strong>, 
+                    con C.I./RUC <strong><span th:text="${clienteCedula}">XXXXXXXXX</span></strong>, 
+                    con fecha <strong><span th:text="${fechaPago}">DD-MM-YYYY</span></strong>, 
+                    <span th:if="${referenciaPago != 'N/A' and referenciaPago != null}">
+                        una transferencia Bancaria número <strong><span th:text="${referenciaPago}">XXXXX</span></strong>
+                    </span>
+                    <span th:unless="${referenciaPago != 'N/A' and referenciaPago != null}">
+                        un pago
+                    </span>
+                    por <strong class="amount-highlight">$ <span th:text="${montoFormateado}">0.00</span></strong> 
+                    (<span th:text="${montoEnLetras}">CERO CON 00/100</span> DÓLARES AMERICANOS), 
+                    por concepto del pago <span th:if="${numeroCuota != null}">de la cuota <strong th:text="${numeroCuota}">X</strong></span> 
+                    antes de IVA, correspondiente a la reserva, para la importación de
+                </p>
+
+                <!-- Weapon Information -->
+                <div class="weapon-info" th:if="${armaNombre != null and armaNombre != 'N/A'}">
+                    <strong>
+                        <span th:if="${cantidadArmas == 1}">UNA</span>
+                        <span th:if="${cantidadArmas > 1}" th:text="${cantidadArmas}">X</span>
+                        <span th:text="${armaNombre}">MODELO ARMA</span>
+                        <span th:if="${armaModelo != null and !armaModelo.isEmpty()}"> modelo <span th:text="${armaModelo}">MODELO</span></span>
+                        <span th:if="${armaCalibre != null and !armaCalibre.isEmpty()}"> (calibre <span th:text="${armaCalibre}">CALIBRE</span>)</span>
+                    </strong>
+                    cuyo valor es de <strong>(USD <span th:text="${montoTotalPagoFormateado}">$0.00</span> 
+                    UN MIL SEISCIENTOS CINCUENTA CON 00/100 DÓLARES AMERICANOS)</strong> más IVA.
+                </div>
+
+                <!-- Personal Data Section -->
+                <div class="personal-data">
+                    <h3>📋 Datos Personales</h3>
+                    <table class="data-table">
+                        <tr>
+                            <td class="data-label">Nombres:</td>
+                            <td class="data-value"><strong th:text="${clienteNombre}">-</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="data-label">Cédula/RUC:</td>
+                            <td class="data-value"><strong th:text="${clienteCedula}">-</strong></td>
+                        </tr>
+                        <tr th:if="${clienteEmail != null and !clienteEmail.isEmpty()}">
+                            <td class="data-label">Correo Electrónico:</td>
+                            <td class="data-value"><strong th:text="${clienteEmail}">-</strong></td>
+                        </tr>
+                        <tr th:if="${clienteDireccion != null and !clienteDireccion.isEmpty()}">
+                            <td class="data-label">Dirección:</td>
+                            <td class="data-value" th:text="${clienteDireccion}">-</td>
+                        </tr>
+                        <tr th:if="${clienteTelefono != null and !clienteTelefono.isEmpty()}">
+                            <td class="data-label">Teléfono:</td>
+                            <td class="data-value" th:text="${clienteTelefono}">-</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <p th:if="${clienteDireccion != null and !clienteDireccion.isEmpty()}">
+                    El SR./SRA. <strong><span th:text="${clienteNombre}">NOMBRE CLIENTE</span></strong>, 
+                    se encuentra domiciliado en: <strong><span th:text="${clienteDireccion}">DIRECCIÓN</span></strong>
+                    <span th:if="${clienteTelefono != null and !clienteTelefono.isEmpty()}">
+                        con teléfono <strong><span th:text="${clienteTelefono}">TELEFONO</span></strong>
+                    </span>
+                    <span th:if="${clienteEmail != null and !clienteEmail.isEmpty()}">
+                        y correo electrónico: <strong><span th:text="${clienteEmail}">EMAIL</span></strong>
+                    </span>.
+                </p>
+
+                <!-- Declaration -->
+                <div class="declaration">
+                    <p>
+                        <strong>DECLARACIÓN JURADA:</strong> El comprador declara bajo juramento que los pagos 
+                        para la compra del arma se realizarán a través del Sistema Financiero Ecuatoriano, 
+                        con fondos de lícita procedencia. El comprador se compromete a pagar como se describe 
+                        y autoriza al importador a verificar y revisar sus datos en las plataformas que considere 
+                        apropiadas, incluyendo el buró de crédito.
+                    </p>
+                </div>
+
+                <!-- Delivery Information -->
+                <div class="delivery-info">
+                    <p>
+                        <strong>Tiempo estimado de entrega:</strong> El tiempo estimado de entrega será de 
+                        <strong>doscientos días aproximadamente</strong> desde la firma del presente instrumento. 
+                        En virtud de que al ser productos de fabricación Europea y por la naturaleza de estos, 
+                        requieren permisos especiales tanto para su importación como para su exportación desde el 
+                        lugar de origen, el tiempo estimado de entrega podría variar, hecho que las partes lo 
+                        reconocen, sin que esto resulte en algún perjuicio para las mismas.
+                    </p>
+                </div>
+
+                <!-- Clarification Section -->
+                <div class="clarification">
+                    <h4>ACLARACIÓN</h4>
+                    <p>
+                        En caso de incremento en tributos como: ICE, sobre el 30% establecido en la actualidad 
+                        para productos especiales y/o IVA, que al momento se encuentra en <strong><span th:text="${ivaPorcentaje}">15</span>%</strong>, 
+                        las partes de común acuerdo, establecemos que:
+                    </p>
+                    <ul>
+                        <li>
+                            De existir por este motivo una variación en el precio final de las armas, este se 
+                            discutirá con el comprador, de no aceptarse el incremento que se generaría, en caso 
+                            de existir variación en los tributos, la venta quedará insubsistente, sin que las 
+                            partes deban pagar multa alguna o reclamar por la vía judicial o arbitral. 
+                            Devolviéndose el dinero que haya sido pagado hasta la fecha.
+                        </li>
+                        <li>
+                            De igual manera en caso de cambio en el IVA, se procederá a hacer la reliquidación respectiva.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Payment Details -->
+                <div style="margin: 20px 0; padding: 15px; background-color: #F0FDF4; border-left: 4px solid #22C55E; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #15803D;">Detalle del Pago</h4>
+                    <table class="data-table">
+                        <tr>
+                            <td class="data-label">Monto de la Cuota:</td>
+                            <td class="data-value"><strong th:text="${montoFormateado}">$0.00</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="data-label">Monto Total del Pago:</td>
+                            <td class="data-value"><strong th:text="${montoTotalPagoFormateado}">$0.00</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="data-label">Saldo Pendiente:</td>
+                            <td class="data-value"><strong th:text="${saldoPendienteFormateado}">$0.00</strong></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Signature -->
+                <div class="signature">
+                    <p>Atentamente,</p>
+                    <p class="signature-name">GMARM</p>
+                    <p style="font-size: 11px; color: #6B7280;">Sistema de Gestión de Armas</p>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                    <p><strong>Este documento es válido como comprobante de pago</strong></p>
+                    <p>© 2025 GMARM - Todos los derechos reservados</p>
+                    <p>Este es un documento generado automáticamente</p>
                 </div>
             </div>
-        </div>
-
-        <div th:if="${observaciones != null and !observaciones.isEmpty()}" class="observaciones">
-            <h4>Observaciones:</h4>
-            <p th:text="${observaciones}">Sin observaciones</p>
-        </div>
-
-        <div class="footer">
-            <p><strong>Este documento es válido como comprobante de pago</strong></p>
-            <p>© 2025 GMARM - Todos los derechos reservados</p>
-            <p>Este es un documento generado automáticamente</p>
         </div>
     </div>
 </body>
 </html>
-

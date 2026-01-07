@@ -33,6 +33,7 @@ public class PagoService {
     private final CuotaPagoRepository cuotaPagoRepository;
     private final ClienteRepository clienteRepository;
     private final com.armasimportacion.service.helper.GestionDocumentosServiceHelper gestionDocumentosServiceHelper;
+    private final com.armasimportacion.service.EmailService emailService;
 
     public Pago crearPago(Pago pago) {
         log.info("Creando pago para cliente: {}", pago.getClienteId());
@@ -133,8 +134,10 @@ public class PagoService {
         
         // Actualizar monto si se proporciona uno nuevo
         BigDecimal montoAPagar = monto != null ? monto : cuota.getMonto();
-        cuota.setMonto(montoAPagar);
+        BigDecimal montoAnteriorCuota = cuota.getMonto();
+        boolean montoCambio = montoAPagar.compareTo(montoAnteriorCuota) != 0;
         
+        cuota.setMonto(montoAPagar);
         cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PAGADA);
         cuota.setFechaPago(LocalDateTime.now());
         cuota.setReferenciaPago(referenciaPago);
@@ -149,8 +152,13 @@ public class PagoService {
         }
         
         // Actualizar el pago principal con el nuevo monto
-        pago.setMontoPagado(pago.getMontoPagado().add(montoAPagar));
-        pago.setMontoPendiente(pago.getMontoPendiente().subtract(montoAPagar));
+        pago.setMontoPagado(pago.getMontoPagado().subtract(montoAnterior).add(montoAPagar));
+        pago.setMontoPendiente(pago.getMontoPendiente().add(montoAnterior).subtract(montoAPagar));
+        
+        // Si el monto cambió, RECALCULAR las cuotas pendientes restantes
+        if (montoCambio || montoAnterior.compareTo(BigDecimal.ZERO) > 0) {
+            recalcularCuotasPendientes(pago);
+        }
         
         // Verificar si el pago está completo
         if (pago.getMontoPendiente().compareTo(BigDecimal.ZERO) <= 0) {
@@ -160,7 +168,25 @@ public class PagoService {
         }
         
         pagoRepository.save(pago);
-        return cuotaPagoRepository.save(cuota);
+        CuotaPago cuotaGuardada = cuotaPagoRepository.save(cuota);
+        
+        // Generar y enviar recibo automáticamente al cliente
+        try {
+            Cliente cliente = clienteRepository.findById(pago.getClienteId())
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+            
+            DocumentoGenerado recibo = generarRecibo(cuotaId);
+            log.info("✅ Recibo generado automáticamente para cuota ID: {}", cuotaId);
+            
+            // Enviar recibo por correo al cliente
+            enviarReciboACliente(cliente, recibo, cuotaGuardada);
+            
+        } catch (Exception e) {
+            log.error("⚠️ Error generando/enviando recibo (no crítico): {}", e.getMessage(), e);
+            // No fallar el proceso de pago si falla el envío del recibo
+        }
+        
+        return cuotaGuardada;
     }
 
     private void crearCuotasAutomaticamente(Pago pago) {
@@ -228,11 +254,20 @@ public class PagoService {
                 .max()
                 .orElse(0) + 1;
 
-        // Crear nueva cuota
+        // VALIDAR: El monto especificado no debe exceder el saldo pendiente
+        BigDecimal montoCuotaNueva = dto.getMonto();
+        if (montoCuotaNueva.compareTo(saldoPendiente) > 0) {
+            throw new IllegalArgumentException(
+                String.format("El monto de la cuota (%.2f) no puede ser mayor al saldo pendiente (%.2f)", 
+                    montoCuotaNueva, saldoPendiente));
+        }
+        
+        // Crear nueva cuota con el monto especificado por el usuario
         CuotaPago cuota = new CuotaPago();
         cuota.setPago(pago);
         cuota.setNumeroCuota(dto.getNumeroCuota() != null ? dto.getNumeroCuota() : siguienteNumeroCuota);
         cuota.setFechaVencimiento(dto.getFechaVencimiento());
+        cuota.setMonto(montoCuotaNueva); // RESPETAR el monto especificado
         cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PENDIENTE);
         cuota.setReferenciaPago(dto.getReferenciaPago());
         
@@ -243,26 +278,38 @@ public class PagoService {
             cuota.setUsuarioConfirmador(usuario);
         }
 
-        // RECALCULAR: Dividir saldo pendiente entre todas las cuotas pendientes (existentes + nueva)
-        int totalCuotasPendientes = cuotasPendientes.size() + 1;
-        BigDecimal montoPorCuota = saldoPendiente.divide(
-            BigDecimal.valueOf(totalCuotasPendientes), 
-            2, 
-            java.math.RoundingMode.HALF_UP
-        );
+        // RECALCULAR: Dividir el saldo RESTANTE (después de restar esta cuota) solo entre las cuotas pendientes EXISTENTES
+        BigDecimal saldoRestante = saldoPendiente.subtract(montoCuotaNueva);
         
-        // Actualizar montos de cuotas pendientes existentes
-        BigDecimal totalRedistribuido = BigDecimal.ZERO;
-        for (int i = 0; i < cuotasPendientes.size(); i++) {
-            CuotaPago cuotaExistente = cuotasPendientes.get(i);
-            cuotaExistente.setMonto(montoPorCuota);
-            totalRedistribuido = totalRedistribuido.add(montoPorCuota);
-            cuotaPagoRepository.save(cuotaExistente);
+        if (!cuotasPendientes.isEmpty() && saldoRestante.compareTo(BigDecimal.ZERO) > 0) {
+            // Dividir saldo restante entre las cuotas pendientes existentes
+            int numeroCuotasPendientes = cuotasPendientes.size();
+            BigDecimal montoPorCuota = saldoRestante.divide(
+                BigDecimal.valueOf(numeroCuotasPendientes), 
+                2, 
+                java.math.RoundingMode.HALF_UP
+            );
+            
+            // Actualizar montos de cuotas pendientes existentes
+            BigDecimal totalRedistribuido = BigDecimal.ZERO;
+            for (int i = 0; i < cuotasPendientes.size(); i++) {
+                CuotaPago cuotaExistente = cuotasPendientes.get(i);
+                // Para la última cuota, asignar lo que sobra para compensar redondeos
+                if (i == cuotasPendientes.size() - 1) {
+                    BigDecimal montoUltimaCuota = saldoRestante.subtract(totalRedistribuido);
+                    cuotaExistente.setMonto(montoUltimaCuota);
+                } else {
+                    cuotaExistente.setMonto(montoPorCuota);
+                    totalRedistribuido = totalRedistribuido.add(montoPorCuota);
+                }
+                cuotaPagoRepository.save(cuotaExistente);
+            }
+            
+            log.info("✅ Cuotas pendientes recalculadas. Saldo restante: {} distribuido en {} cuotas", 
+                saldoRestante, numeroCuotasPendientes);
+        } else if (!cuotasPendientes.isEmpty()) {
+            log.warn("⚠️ Saldo restante es 0 o negativo. Las cuotas pendientes mantienen su monto original.");
         }
-        
-        // Establecer monto de la nueva cuota (lo que sobra después de redistribuir para compensar redondeos)
-        BigDecimal montoNuevaCuota = saldoPendiente.subtract(totalRedistribuido);
-        cuota.setMonto(montoNuevaCuota);
         
         // Guardar nueva cuota
         CuotaPago cuotaGuardada = cuotaPagoRepository.save(cuota);
@@ -272,10 +319,110 @@ public class PagoService {
         pago.setMontoPendiente(saldoPendiente);
         pagoRepository.save(pago);
         
-        log.info("✅ Nueva cuota creada y cuotas recalculadas. Saldo pendiente: {} distribuido en {} cuotas", 
-            saldoPendiente, totalCuotasPendientes);
+        log.info("✅ Nueva cuota creada con monto {} y cuotas pendientes recalculadas. Saldo restante: {}", 
+            montoCuotaNueva, saldoRestante);
 
         return cuotaGuardada;
+    }
+
+    /**
+     * Recalcula las cuotas pendientes después de registrar un pago con monto variable
+     * Divide el saldo pendiente restante entre las cuotas pendientes
+     */
+    private void recalcularCuotasPendientes(Pago pago) {
+        log.info("🔄 Recalculando cuotas pendientes para pago ID: {}", pago.getId());
+        
+        // Obtener todas las cuotas del pago
+        List<CuotaPago> todasLasCuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
+        
+        // Separar cuotas pagadas de pendientes
+        List<CuotaPago> cuotasPagadas = todasLasCuotas.stream()
+            .filter(c -> c.getEstado() == com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .collect(java.util.stream.Collectors.toList());
+        
+        List<CuotaPago> cuotasPendientes = todasLasCuotas.stream()
+            .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .collect(java.util.stream.Collectors.toList());
+        
+        if (cuotasPendientes.isEmpty()) {
+            log.info("ℹ️ No hay cuotas pendientes para recalcular");
+            return;
+        }
+        
+        // Calcular monto ya pagado (suma de todas las cuotas pagadas)
+        BigDecimal montoPagado = cuotasPagadas.stream()
+            .map(CuotaPago::getMonto)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // El saldo pendiente ya está actualizado en el pago
+        BigDecimal saldoPendiente = pago.getMontoPendiente();
+        
+        if (saldoPendiente.compareTo(BigDecimal.ZERO) <= 0) {
+            log.info("ℹ️ Saldo pendiente es 0 o negativo. No hay nada que recalcular.");
+            return;
+        }
+        
+        // Dividir saldo pendiente entre las cuotas pendientes
+        int numeroCuotasPendientes = cuotasPendientes.size();
+        BigDecimal montoPorCuota = saldoPendiente.divide(
+            BigDecimal.valueOf(numeroCuotasPendientes), 
+            2, 
+            java.math.RoundingMode.HALF_UP
+        );
+        
+        // Actualizar montos de cuotas pendientes
+        BigDecimal totalRedistribuido = BigDecimal.ZERO;
+        for (int i = 0; i < cuotasPendientes.size(); i++) {
+            CuotaPago cuotaPendiente = cuotasPendientes.get(i);
+            // Para la última cuota, asignar lo que sobra para compensar redondeos
+            if (i == cuotasPendientes.size() - 1) {
+                BigDecimal montoUltimaCuota = saldoPendiente.subtract(totalRedistribuido);
+                cuotaPendiente.setMonto(montoUltimaCuota);
+            } else {
+                cuotaPendiente.setMonto(montoPorCuota);
+                totalRedistribuido = totalRedistribuido.add(montoPorCuota);
+            }
+            cuotaPagoRepository.save(cuotaPendiente);
+        }
+        
+        log.info("✅ Cuotas pendientes recalculadas. Saldo pendiente: {} distribuido en {} cuotas", 
+            saldoPendiente, numeroCuotasPendientes);
+    }
+
+    /**
+     * Envía el recibo de pago automáticamente al cliente por correo
+     */
+    private void enviarReciboACliente(Cliente cliente, DocumentoGenerado recibo, CuotaPago cuota) {
+        try {
+            log.info("📧 Enviando recibo automáticamente al cliente: {}", cliente.getEmail());
+            
+            if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
+                log.warn("⚠️ Cliente no tiene email configurado. No se puede enviar recibo.");
+                return;
+            }
+            
+            // Leer archivo PDF
+            String rutaCompleta = "/app/documentacion/" + recibo.getRutaArchivo();
+            if (!rutaCompleta.endsWith(recibo.getNombreArchivo())) {
+                rutaCompleta = rutaCompleta + "/" + recibo.getNombreArchivo();
+            }
+            
+            byte[] pdfBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(rutaCompleta));
+            
+            // Enviar recibo por correo
+            List<String> emails = java.util.Arrays.asList(cliente.getEmail());
+            String numeroRecibo = cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId();
+            String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
+            
+            emailService.enviarReciboPorCorreo(emails, nombreCompleto, pdfBytes, 
+                recibo.getNombreArchivo(), numeroRecibo, cuota.getMonto());
+            
+            log.info("✅ Recibo enviado exitosamente al cliente: {}", cliente.getEmail());
+            
+        } catch (Exception e) {
+            log.error("❌ Error enviando recibo al cliente: {}", e.getMessage(), e);
+            // No lanzar excepción para no interrumpir el proceso de pago
+        }
     }
 
     public DocumentoGenerado generarRecibo(Long cuotaId) {

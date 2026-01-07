@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/api';
 import type { Client } from '../Vendedor/types';
 import Header from '../../components/Header';
@@ -8,6 +8,9 @@ import { useJefeVentasExport } from './hooks/useJefeVentasExport';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import ImportGroupManagement from './components/ImportGroupManagement';
+import ClientForm from '../Vendedor/components/ClientForm';
+import { useTiposClienteConfig } from '../../contexts/TiposClienteContext';
+import { mapTipoIdentificacionToCode } from '../../utils/typeMappers';
 
 interface StockArma {
   armaId: number;
@@ -80,9 +83,13 @@ const JefeVentas: React.FC = () => {
   const [archivoFirmado, setArchivoFirmado] = useState<File | null>(null);
   const [cargandoFirmado, setCargandoFirmado] = useState(false);
 
-  // Estados para editar cliente
-  const [clienteAEditar, setClienteAEditar] = useState<ClienteConVendedor | null>(null);
-  const [mostrarFormEditar, setMostrarFormEditar] = useState(false);
+  // Estados para editar cliente (replicados del módulo Vendedor)
+  const [currentPage, setCurrentPage] = useState<string>('clientes');
+  const [selectedClient, setSelectedClient] = useState<ClienteConVendedor | null>(null);
+  const [clientFormMode, setClientFormMode] = useState<'create' | 'edit' | 'view'>('view');
+  const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null);
+  const [precioModificado, setPrecioModificado] = useState<number>(0);
+  const [cantidad, setCantidad] = useState<number>(1);
 
   // Estados para reasignar arma
   const [modalReasignarArma, setModalReasignarArma] = useState<{ isOpen: boolean; cliente: ClienteConVendedor | null; isLoading: boolean }>({
@@ -367,19 +374,137 @@ const JefeVentas: React.FC = () => {
     setPagosCliente([]);
   };
 
-  // Handler para editar cliente
-  const handleEditarCliente = (cliente: ClienteConVendedor) => {
-    setClienteAEditar(cliente);
-    setMostrarFormEditar(true);
+  // Handler para editar cliente (similar al de Vendedor)
+  const handleEditarCliente = async (cliente: ClienteConVendedor) => {
+    try {
+      const clienteCompleto = await apiService.getCliente(parseInt(cliente.id));
+      console.log('🔍 Cliente completo obtenido del backend:', clienteCompleto);
+      
+      // Obtener tipos de cliente para el mapeo
+      const tiposClienteCompletos = await apiService.getClientTypes();
+      
+      // Mapear provincia: el backend devuelve código
+      let provinciaMapeada = (clienteCompleto as any).provincia || '';
+      // Si no es código, buscar en catálogo (lógica simplificada)
+      if (provinciaMapeada && !provinciaMapeada.match(/^[0-9]+$/)) {
+        // Es nombre, buscar código (en producción debería usar el catálogo completo)
+        console.log('⚠️ Provincia recibida como nombre:', provinciaMapeada);
+      }
+      
+      // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select
+      let tipoClienteNombre = (clienteCompleto as any).tipoClienteNombre || '';
+      if (!tipoClienteNombre && (clienteCompleto as any).tipoClienteCodigo) {
+        const tipoClienteEncontrado = tiposClienteCompletos.find((tc: any) => tc.codigo === (clienteCompleto as any).tipoClienteCodigo);
+        if (tipoClienteEncontrado) {
+          tipoClienteNombre = tipoClienteEncontrado.nombre;
+        }
+      }
+      
+      const clienteParaMostrar = {
+        ...clienteCompleto,
+        tipoCliente: tipoClienteNombre,
+        tipoClienteNombre: tipoClienteNombre,
+        provincia: provinciaMapeada,
+        canton: (clienteCompleto as any).canton || ''
+      };
+      
+      // Cargar arma asignada si existe
+      const assignment = clientWeaponAssignments[cliente.id];
+      if (assignment) {
+        setSelectedWeapon(assignment.weapon);
+        setPrecioModificado(assignment.precio);
+        setCantidad(assignment.cantidad);
+      } else {
+        setSelectedWeapon(null);
+        setPrecioModificado(0);
+        setCantidad(1);
+      }
+      
+      setSelectedClient(clienteParaMostrar as any);
+      setClientFormMode('edit');
+      setCurrentPage('clientForm');
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo cliente completo:', error);
+      alert('Error al cargar los datos del cliente para editar');
+    }
+  };
+
+  // Handler para guardar cliente editado
+  const handleClientSaved = async (client: Client) => {
+    try {
+      await cargarClientes();
+      if (vistaActual === 'clientes-asignados') {
+        await cargarClientesAsignados();
+      }
+      setCurrentPage('clientes');
+      setSelectedClient(null);
+      setClientFormMode('view');
+      alert('Cliente actualizado exitosamente');
+    } catch (error) {
+      console.error('Error recargando clientes después de editar:', error);
+    }
   };
 
   // Handler para cerrar formulario de edición
-  const handleCerrarFormEditar = () => {
-    setClienteAEditar(null);
-    setMostrarFormEditar(false);
-    // Recargar clientes después de editar
-    cargarClientes();
+  const handleCloseForm = () => {
+    setCurrentPage('clientes');
+    setSelectedClient(null);
+    setClientFormMode('view');
+    setSelectedWeapon(null);
+    setPrecioModificado(0);
+    setCantidad(1);
   };
+
+  // Handler para cambio de precio (wrapper para ClientForm)
+  const handlePriceChangeWrapper = useCallback((price: number) => {
+    setPrecioModificado(price);
+    if (selectedClient && selectedWeapon) {
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [selectedClient.id]: {
+          weapon: selectedWeapon,
+          precio: price,
+          cantidad: cantidad
+        }
+      }));
+    }
+  }, [selectedClient, selectedWeapon, cantidad]);
+
+  // Handler para cambio de cantidad (wrapper para ClientForm)
+  const handleQuantityChangeWrapper = useCallback((quantity: number) => {
+    setCantidad(quantity);
+    if (selectedClient && selectedWeapon) {
+      setClientWeaponAssignments(prev => ({
+        ...prev,
+        [selectedClient.id]: {
+          weapon: selectedWeapon,
+          precio: precioModificado,
+          cantidad: quantity
+        }
+      }));
+    }
+  }, [selectedClient, selectedWeapon, precioModificado]);
+
+  // Handler para navegar a selección de armas (no se usa en edición, pero necesario para ClientForm)
+  const handleNavigateToWeaponSelection = useCallback(() => {
+    // En modo edición, no navegamos a selección de armas
+    console.log('Navegación a selección de armas (no implementado en modo edición)');
+  }, []);
+
+  // Handler para confirmar datos del cliente (no se usa en edición, pero necesario para ClientForm)
+  const handleClientDataConfirm = useCallback((formData: any) => {
+    // En modo edición, no se usa este handler
+    console.log('Confirmación de datos (no implementado en modo edición)');
+  }, []);
+
+  // Handler para cliente bloqueado (no se usa en edición, pero necesario para ClientForm)
+  const handleClienteBloqueado = useCallback((clientId: string, bloqueado: boolean, motivo: string) => {
+    console.log('Cliente bloqueado:', { clientId, bloqueado, motivo });
+    if (bloqueado && currentPage === 'clientForm') {
+      handleCloseForm();
+    }
+  }, [currentPage]);
 
   // Handler para abrir modal de reasignar arma
   const handleAbrirModalReasignarArma = (cliente: ClienteConVendedor) => {
@@ -2006,24 +2131,24 @@ const JefeVentas: React.FC = () => {
           <AsignacionSeries />
         )}
 
-        {/* Modal de Editar Cliente */}
-        {mostrarFormEditar && clienteAEditar && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Editar Cliente</h2>
-                <button
-                  onClick={handleCerrarFormEditar}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              {/* Aquí se puede integrar el ClientForm del módulo Vendedor */}
-              <p className="text-gray-600">Funcionalidad de edición en desarrollo. Por favor, use el módulo de Vendedor para editar clientes.</p>
-            </div>
+        {/* Formulario de Edición de Cliente (usando ClientForm del módulo Vendedor) */}
+        {currentPage === 'clientForm' && selectedClient && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <ClientForm
+              mode={clientFormMode}
+              client={selectedClient as any}
+              onSave={handleClientSaved as any}
+              onCancel={handleCloseForm}
+              onEdit={() => selectedClient && handleEditarCliente(selectedClient as ClienteConVendedor)}
+              selectedWeapon={selectedWeapon}
+              precioModificado={precioModificado}
+              cantidad={cantidad}
+              onPriceChange={handlePriceChangeWrapper}
+              onQuantityChange={handleQuantityChangeWrapper}
+              onNavigateToWeaponSelection={handleNavigateToWeaponSelection}
+              onConfirmData={handleClientDataConfirm}
+              onClienteBloqueado={handleClienteBloqueado}
+            />
           </div>
         )}
 

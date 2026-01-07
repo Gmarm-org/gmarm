@@ -449,6 +449,24 @@ El módulo de operaciones permite gestionar el flujo completo de importación de
     - [ ] Revisar patrones repetitivos que puedan ser extraídos a helpers/services comunes
     - Nota: Se ha comenzado con `typeMappers.ts` y funciones helper en `ClientForm.tsx`, pero se requiere una revisión completa del proyecto
 
+11. ⏳ **PENDIENTE - ALTA PRIORIDAD** - Refactorizar componentes principales de roles (Frontend):
+    - [ ] **JefeVentas.tsx**: Actualmente tiene más de 2,400 líneas de código, lo cual lo hace ilegible y difícil de mantener
+    - [ ] **Vendedor.tsx**: Revisar si también excede el límite recomendado (~700 líneas)
+    - [ ] **Finanzas/PagosFinanzas.tsx**: Revisar tamaño y estructura
+    - [ ] **Otros roles**: Revisar todos los componentes principales de roles
+    - **Objetivo**: 
+      - Mantener cada componente principal alrededor de **700 líneas máximo**
+      - Segregar correctamente la lógica en hooks personalizados, componentes hijos, y utilidades
+      - Evitar código espaguetti mediante separación de responsabilidades
+      - Aplicar principios SOLID y mantener código limpio y legible
+    - **Estrategia sugerida**:
+      - Extraer lógica de estado a hooks personalizados (similar a `useVendedorLogic`, `useVendedorHandlers`, etc.)
+      - Dividir componentes grandes en subcomponentes más pequeños y reutilizables
+      - Mover handlers complejos a archivos separados
+      - Extraer constantes, tipos y utilidades a archivos compartidos
+      - Aplicar patrón de composición de componentes
+    - **Nota**: Esta refactorización puede realizarse al final cuando se tenga tiempo disponible, pero es importante para la mantenibilidad a largo plazo del proyecto
+
 ---
 
 **Última actualización:** 2024-12-24 - Implementación de mejoras en módulo de Finanzas:

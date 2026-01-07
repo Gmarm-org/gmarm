@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import com.armasimportacion.service.FlyingSaucerPdfService;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -950,28 +951,96 @@ public class GestionDocumentosServiceHelper {
         log.info("🔧 Generando PDF de recibo con Flying Saucer para cuota: {}", cuota.getNumeroCuota());
         
         try {
+            // Obtener información del arma asignada al cliente
+            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            ClienteArma clienteArma = armasCliente != null && !armasCliente.isEmpty() ? armasCliente.get(0) : null;
+            
             // Obtener IVA dinámicamente desde configuración del sistema
             String ivaValor = configuracionService.getValorConfiguracion("IVA");
             double ivaPorcentaje = Double.parseDouble(ivaValor);
             double ivaDecimal = ivaPorcentaje / 100.0;
             
+            // Calcular monto antes de IVA y monto con IVA
+            BigDecimal montoAntesIva = cuota.getMonto();
+            BigDecimal montoConIva = montoAntesIva.multiply(BigDecimal.valueOf(1 + ivaDecimal));
+            
+            // Fecha del documento (fecha actual) - formato simplificado
+            java.time.LocalDate fechaActual = java.time.LocalDate.now();
+            String fechaDocumento;
+            try {
+                // Intentar con locale español
+                fechaDocumento = fechaActual.format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd 'de' MMMM yyyy", 
+                        java.util.Locale.forLanguageTag("es")));
+            } catch (Exception e) {
+                // Si falla, usar formato simple
+                log.warn("⚠️ Error formateando fecha con locale español, usando formato simple: {}", e.getMessage());
+                fechaDocumento = fechaActual.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            }
+            
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
             variables.put("numeroRecibo", cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId());
-            variables.put("fechaPago", cuota.getFechaPago() != null ? 
-                cuota.getFechaPago().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : 
-                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            
+            // Fecha de pago
+            String fechaPagoStr;
+            if (cuota.getFechaPago() != null) {
+                try {
+                    fechaPagoStr = cuota.getFechaPago().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                } catch (Exception e) {
+                    fechaPagoStr = fechaActual.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                }
+            } else {
+                fechaPagoStr = fechaActual.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            }
+            variables.put("fechaPago", fechaPagoStr);
+            variables.put("fechaDocumento", fechaDocumento);
             variables.put("clienteNombre", cliente.getNombres() + " " + cliente.getApellidos());
             variables.put("clienteCedula", cliente.getNumeroIdentificacion());
+            variables.put("clienteDireccion", cliente.getDireccion() != null ? cliente.getDireccion() : "");
+            variables.put("clienteTelefono", cliente.getTelefonoPrincipal() != null ? cliente.getTelefonoPrincipal() : "");
+            variables.put("clienteEmail", cliente.getEmail() != null ? cliente.getEmail() : "");
             variables.put("numeroCuota", cuota.getNumeroCuota());
             variables.put("monto", cuota.getMonto());
             variables.put("montoFormateado", formatCurrency(cuota.getMonto()));
+            variables.put("montoAntesIva", montoAntesIva);
+            variables.put("montoAntesIvaFormateado", formatCurrency(montoAntesIva));
+            variables.put("montoConIva", montoConIva);
+            variables.put("montoConIvaFormateado", formatCurrency(montoConIva));
             variables.put("referenciaPago", cuota.getReferenciaPago() != null ? cuota.getReferenciaPago() : "N/A");
             variables.put("observaciones", cuota.getObservaciones() != null ? cuota.getObservaciones() : "");
             variables.put("montoTotalPago", pago.getMontoTotal());
             variables.put("montoTotalPagoFormateado", formatCurrency(pago.getMontoTotal()));
             variables.put("saldoPendiente", pago.getMontoPendiente());
             variables.put("saldoPendienteFormateado", formatCurrency(pago.getMontoPendiente()));
+            variables.put("ivaPorcentaje", ivaPorcentaje);
+            
+            // Información del arma
+            if (clienteArma != null && clienteArma.getArma() != null) {
+                com.armasimportacion.model.Arma arma = clienteArma.getArma();
+                variables.put("armaNombre", arma.getNombre() != null ? arma.getNombre() : "N/A");
+                // La clase Arma no tiene campo modelo, usar nombre como modelo
+                variables.put("armaModelo", arma.getNombre() != null ? arma.getNombre() : "");
+                variables.put("armaCalibre", arma.getCalibre() != null ? arma.getCalibre() : "");
+                variables.put("cantidadArmas", clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1);
+            } else {
+                variables.put("armaNombre", "N/A");
+                variables.put("armaModelo", "");
+                variables.put("armaCalibre", "");
+                variables.put("cantidadArmas", 1);
+            }
+            
+            // Convertir número a texto para el monto
+            if (numberToTextService != null) {
+                try {
+                    variables.put("montoEnLetras", numberToTextService.convertToText(cuota.getMonto()));
+                } catch (Exception e) {
+                    log.warn("⚠️ Error convirtiendo número a texto: {}", e.getMessage());
+                    variables.put("montoEnLetras", "");
+                }
+            } else {
+                variables.put("montoEnLetras", "");
+            }
             
             // Generar PDF usando Flying Saucer con template de recibo
             byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("recibo-cuota-pago", variables);
