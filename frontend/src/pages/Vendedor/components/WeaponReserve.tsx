@@ -98,18 +98,16 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
   }, [obtenerRespuestaArmasRegistradas]);
 
   // Estado para cantidad de armas a seleccionar (solo para Cliente Civil: 1 o 2)
-  const [cantidadArmasACeleccionar, setCantidadArmasACeleccionar] = React.useState<number>(() => {
-    // Inicializar según el límite máximo
-    return limiteMaximoArmas >= 2 ? 2 : (limiteMaximoArmas >= 1 ? 1 : 0);
-  });
+  // Inicializar con un valor por defecto (se actualizará en useEffect)
+  const [cantidadArmasACeleccionar, setCantidadArmasACeleccionar] = React.useState<number>(2);
 
-  // Actualizar cantidad cuando cambia el límite
+  // Actualizar cantidad cuando cambia el límite (esto se ejecuta después de que limiteMaximoArmas esté disponible)
   React.useEffect(() => {
     if (limiteMaximoArmas === 0) {
       setCantidadArmasACeleccionar(0);
     } else if (limiteMaximoArmas === 1) {
       setCantidadArmasACeleccionar(1);
-    } else {
+    } else if (limiteMaximoArmas >= 2) {
       setCantidadArmasACeleccionar(2);
     }
   }, [limiteMaximoArmas]);
