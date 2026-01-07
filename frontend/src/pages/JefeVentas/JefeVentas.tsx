@@ -9,8 +9,6 @@ import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import ImportGroupManagement from './components/ImportGroupManagement';
 import ClientForm from '../Vendedor/components/ClientForm';
-import { useTiposClienteConfig } from '../../contexts/TiposClienteContext';
-import { mapTipoIdentificacionToCode } from '../../utils/typeMappers';
 
 interface StockArma {
   armaId: number;
@@ -431,7 +429,7 @@ const JefeVentas: React.FC = () => {
   };
 
   // Handler para guardar cliente editado
-  const handleClientSaved = async (client: Client) => {
+  const handleClientSaved = async (_client: Client) => {
     try {
       await cargarClientes();
       if (vistaActual === 'clientes-asignados') {
@@ -493,7 +491,7 @@ const JefeVentas: React.FC = () => {
   }, []);
 
   // Handler para confirmar datos del cliente (no se usa en edición, pero necesario para ClientForm)
-  const handleClientDataConfirm = useCallback((formData: any) => {
+  const handleClientDataConfirm = useCallback((_formData: any) => {
     // En modo edición, no se usa este handler
     console.log('Confirmación de datos (no implementado en modo edición)');
   }, []);
