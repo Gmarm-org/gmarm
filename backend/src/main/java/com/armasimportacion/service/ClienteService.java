@@ -869,20 +869,19 @@ public class ClienteService {
             clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
             
             // Generar número de identificación único (máximo 20 caracteres)
-            // Formato: VEND-{usuarioId}-{timestamp corto}
-            // Ejemplo: VEND-2-1704567890 (total: ~18 caracteres)
-            long timestamp = System.currentTimeMillis() / 1000; // Segundos en lugar de milisegundos para acortar
-            String numeroIdentificacion = String.format("VEND-%d-%d", usuarioId, timestamp);
-            // Asegurar que no exceda 20 caracteres
+            // Formato: V{usuarioId}-{últimos 8 dígitos hexadecimales del timestamp}
+            // Ejemplo: V2-1A3B4C5D (total: máximo 11 caracteres)
+            long timestamp = System.currentTimeMillis();
+            String hashTimestamp = Long.toHexString(timestamp).toUpperCase();
+            // Tomar últimos 8 caracteres del hash (suficiente para unicidad)
+            if (hashTimestamp.length() > 8) {
+                hashTimestamp = hashTimestamp.substring(hashTimestamp.length() - 8);
+            }
+            // Formato: V{usuarioId}-{hash}
+            String numeroIdentificacion = String.format("V%d-%s", usuarioId, hashTimestamp);
+            // Validación final de seguridad (nunca debería exceder, pero por seguridad)
             if (numeroIdentificacion.length() > 20) {
-                // Si aún es muy largo, usar solo los últimos dígitos del timestamp
-                String base = "VEND-" + usuarioId + "-";
-                int maxTimestampLength = 20 - base.length();
-                String timestampStr = String.valueOf(timestamp);
-                if (timestampStr.length() > maxTimestampLength) {
-                    timestampStr = timestampStr.substring(timestampStr.length() - maxTimestampLength);
-                }
-                numeroIdentificacion = base + timestampStr;
+                numeroIdentificacion = numeroIdentificacion.substring(0, 20);
             }
             clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
             clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
