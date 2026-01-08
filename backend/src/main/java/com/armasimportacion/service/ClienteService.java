@@ -869,20 +869,35 @@ public class ClienteService {
             clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
             
             // Generar número de identificación único (máximo 20 caracteres)
-            // Formato: V{usuarioId}-{últimos 8 dígitos hexadecimales del timestamp}
-            // Ejemplo: V2-1A3B4C5D (total: máximo 11 caracteres)
+            // Formato: V{usuarioId}-{hash corto}
+            // Ejemplo: V2-1A3B4C5D (total: máximo 11 caracteres para usuarioId < 1000)
             long timestamp = System.currentTimeMillis();
             String hashTimestamp = Long.toHexString(timestamp).toUpperCase();
-            // Tomar últimos 8 caracteres del hash (suficiente para unicidad)
-            if (hashTimestamp.length() > 8) {
-                hashTimestamp = hashTimestamp.substring(hashTimestamp.length() - 8);
+            
+            // Calcular espacio disponible: "V" + usuarioId + "-" + hash
+            String usuarioIdStr = String.valueOf(usuarioId);
+            int espacioBase = 1 + usuarioIdStr.length() + 1; // "V" + usuarioId + "-"
+            int espacioDisponibleParaHash = 20 - espacioBase;
+            
+            // Tomar solo los caracteres que quepan (mínimo 1)
+            int hashLength = Math.max(1, Math.min(8, espacioDisponibleParaHash));
+            if (hashTimestamp.length() > hashLength) {
+                hashTimestamp = hashTimestamp.substring(hashTimestamp.length() - hashLength);
             }
+            
             // Formato: V{usuarioId}-{hash}
-            String numeroIdentificacion = String.format("V%d-%s", usuarioId, hashTimestamp);
-            // Validación final de seguridad (nunca debería exceder, pero por seguridad)
+            String numeroIdentificacion = String.format("V%s-%s", usuarioIdStr, hashTimestamp);
+            
+            // Validación final de seguridad - TRUNCAR si excede (nunca debería pasar, pero por seguridad)
             if (numeroIdentificacion.length() > 20) {
+                log.warn("⚠️ numero_identificacion excede 20 caracteres: {} ({} caracteres). Truncando...", 
+                    numeroIdentificacion, numeroIdentificacion.length());
                 numeroIdentificacion = numeroIdentificacion.substring(0, 20);
             }
+            
+            log.info("📝 Generando numero_identificacion para cliente fantasma: {} ({} caracteres)", 
+                numeroIdentificacion, numeroIdentificacion.length());
+            
             clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
             clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
             clienteFantasma.setTipoCliente(tipoClienteCivil);
