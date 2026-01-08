@@ -868,8 +868,22 @@ public class ClienteService {
             clienteFantasma.setNombres(usuario.getNombres() != null ? usuario.getNombres() : "Vendedor");
             clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
             
-            // Generar número de identificación único
-            String numeroIdentificacion = "VEND-" + usuarioId + "-" + System.currentTimeMillis();
+            // Generar número de identificación único (máximo 20 caracteres)
+            // Formato: VEND-{usuarioId}-{timestamp corto}
+            // Ejemplo: VEND-2-1704567890 (total: ~18 caracteres)
+            long timestamp = System.currentTimeMillis() / 1000; // Segundos en lugar de milisegundos para acortar
+            String numeroIdentificacion = String.format("VEND-%d-%d", usuarioId, timestamp);
+            // Asegurar que no exceda 20 caracteres
+            if (numeroIdentificacion.length() > 20) {
+                // Si aún es muy largo, usar solo los últimos dígitos del timestamp
+                String base = "VEND-" + usuarioId + "-";
+                int maxTimestampLength = 20 - base.length();
+                String timestampStr = String.valueOf(timestamp);
+                if (timestampStr.length() > maxTimestampLength) {
+                    timestampStr = timestampStr.substring(timestampStr.length() - maxTimestampLength);
+                }
+                numeroIdentificacion = base + timestampStr;
+            }
             clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
             clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
             clienteFantasma.setTipoCliente(tipoClienteCivil);
