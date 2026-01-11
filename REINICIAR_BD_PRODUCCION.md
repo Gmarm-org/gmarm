@@ -22,11 +22,14 @@ docker-compose -f docker-compose.prod.yml down
 
 # 4. Verificar nombre exacto del volumen
 docker volume ls | grep postgres
-# Deberías ver: prod_postgres_data_prod
-# Si ves prod_postgres_data_dev, es un volumen residual que puedes eliminar también
+# Deberías ver: <nombre_proyecto>_postgres_data_prod
+# Ejemplo: gmarm_postgres_data_prod o prod_postgres_data_prod (depende del nombre del directorio)
+# Si ves <nombre_proyecto>_postgres_data_dev, es un volumen residual que puedes eliminar también
 
 # 5. Eliminar volumen de PostgreSQL PRODUCCIÓN (ESTO BORRA TODOS LOS DATOS)
-docker volume rm prod_postgres_data_prod
+# Usa el nombre exacto que apareció en el paso 4
+docker volume rm <nombre_proyecto>_postgres_data_prod
+# Ejemplo: docker volume rm gmarm_postgres_data_prod
 
 # 5.1. (Opcional) Si existe el volumen de DEV, también puedes eliminarlo
 # docker volume rm prod_postgres_data_dev
@@ -197,8 +200,9 @@ chmod +r datos/00_gmarm_completo.sql
 # 1. Detener servicios
 docker-compose -f docker-compose.prod.yml down
 
-# 2. Eliminar volumen
-docker volume rm gmarm_postgres_data_prod
+# 2. Eliminar volumen (usar el nombre exacto del volumen según docker volume ls)
+docker volume rm <nombre_proyecto>_postgres_data_prod
+# Ejemplo: docker volume rm gmarm_postgres_data_prod
 
 # 3. Levantar PostgreSQL solo
 docker-compose -f docker-compose.prod.yml up -d postgres_prod
