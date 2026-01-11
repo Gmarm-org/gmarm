@@ -9,10 +9,15 @@ import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import ImportGroupManagement from './components/ImportGroupManagement';
 import ClientForm from '../Vendedor/components/ClientForm';
+import WeaponListContent from '../Admin/WeaponManagement/WeaponListContent';
+import WeaponCategoryList from '../Admin/WeaponManagement/WeaponCategoryList';
 
 interface StockArma {
   armaId: number;
-  armaNombre: string;
+  armaNombre?: string; // Deprecated - usar armaModelo
+  armaModelo?: string; // Nuevo campo (cambiado de nombre a modelo)
+  armaMarca?: string; // Nuevo campo
+  armaAlimentadora?: string; // Nuevo campo
   armaCodigo: string;
   armaCalibre: string;
   cantidadTotal: number;
@@ -34,7 +39,7 @@ interface ClienteConVendedor extends Client {
 
 const JefeVentas: React.FC = () => {
   const { user } = useAuth();
-  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'series' | 'reasignar-armas'>('clientes');
+  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'series' | 'reasignar-armas' | 'armas' | 'categorias'>('clientes');
   
   // Hook para exportación a Excel
   const { exportarClientesAExcel } = useJefeVentasExport();
@@ -53,7 +58,6 @@ const JefeVentas: React.FC = () => {
   // Estados para Stock de Armas
   const [stockArmas, setStockArmas] = useState<StockArma[]>([]);
   const [loadingStock, setLoadingStock] = useState(false);
-  const [expoferiaActiva, setExpoferiaActiva] = useState(false);
   
   // Estados para Clientes
   const [clientes, setClientes] = useState<ClienteConVendedor[]>([]);
@@ -188,19 +192,6 @@ const JefeVentas: React.FC = () => {
     clearFilters: clearFiltersAsignados,
   } = useTableFilters<ClienteConVendedor>(clientesAsignados);
 
-  // Cargar estado de expoferia al inicio
-  useEffect(() => {
-    const cargarExpoferia = async () => {
-      try {
-        const activa = await apiService.getExpoferiaEstado();
-        setExpoferiaActiva(activa);
-      } catch (error) {
-        console.error('Error cargando estado de expoferia:', error);
-      }
-    };
-    cargarExpoferia();
-  }, []);
-
   // Cargar datos según la vista actual
   useEffect(() => {
     console.log('🔄 JefeVentas - useEffect ejecutándose, vistaActual:', vistaActual);
@@ -275,8 +266,11 @@ const JefeVentas: React.FC = () => {
             weaponAssignments[client.id] = {
               weapon: {
                 id: arma.armaId,
-                nombre: arma.armaNombre,
-                calibre: arma.armaModelo || 'N/A',
+                nombre: arma.armaModelo || arma.armaNombre, // Usar modelo si está disponible
+                modelo: arma.armaModelo || arma.armaNombre, // Nuevo campo
+                marca: arma.armaMarca, // Nuevo campo
+                alimentadora: arma.armaAlimentadora, // Nuevo campo
+                calibre: arma.armaCalibre || 'N/A', // Corregido: usar armaCalibre, no armaModelo
                 codigo: arma.armaCodigo,
                 urlImagen: arma.armaImagen,
                 precioReferencia: parseFloat(arma.precioUnitario) || 0
@@ -789,20 +783,6 @@ const JefeVentas: React.FC = () => {
             ✅ Clientes con Serie Asignada
           </button>
           
-          {/* Pestaña de Stock: solo visible si expoferia está activa */}
-          {expoferiaActiva && (
-            <button
-              onClick={() => setVistaActual('stock')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                vistaActual === 'stock'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              📦 Stock de Armas (Expoferia)
-            </button>
-          )}
-          
           <button
             onClick={() => setVistaActual('importaciones')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -839,6 +819,30 @@ const JefeVentas: React.FC = () => {
               🔢 Asignación de Series
             </button>
           )}
+          
+          {/* Pestaña de Armas - Para Jefe de Ventas */}
+          <button
+            onClick={() => setVistaActual('armas')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'armas'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            🔫 Armas
+          </button>
+          
+          {/* Pestaña de Categorías - Para Jefe de Ventas */}
+          <button
+            onClick={() => setVistaActual('categorias')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'categorias'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            🏷️ Categorías
+          </button>
         </div>
 
         {/* Contenido: Stock de Armas */}
@@ -887,7 +891,7 @@ const JefeVentas: React.FC = () => {
                         
                         return (
                           <tr key={stock.armaId} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium">{stock.armaNombre}</td>
+                            <td className="px-4 py-3 text-sm font-medium">{stock.armaModelo || stock.armaNombre || 'Sin modelo'}</td>
                             <td className="px-4 py-3 text-sm">{stock.armaCalibre}</td>
                             <td className="px-4 py-3 text-center">
                               <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-bold rounded-full">
@@ -1345,7 +1349,6 @@ const JefeVentas: React.FC = () => {
                             <td className="px-4 py-3 text-sm">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Militar Expoferia' ? 'bg-purple-100 text-purple-800' :
                                 (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
                                 (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
                                 'bg-gray-100 text-gray-800'
@@ -1356,7 +1359,7 @@ const JefeVentas: React.FC = () => {
                             <td className="px-4 py-3 text-sm">
                               {weaponAssignment ? (
                                 <div>
-                                  <div className="font-medium">{weaponAssignment.weapon.nombre}</div>
+                                  <div className="font-medium">{weaponAssignment.weapon.modelo || weaponAssignment.weapon.nombre || 'N/A'}</div>
                                   <div className="text-xs text-gray-500">{weaponAssignment.weapon.calibre}</div>
                                 </div>
                               ) : (
@@ -1537,7 +1540,7 @@ const JefeVentas: React.FC = () => {
                               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                                 <div>
                                   <p className="text-sm text-gray-600">Arma</p>
-                                  <p className="font-semibold text-blue-600">{arma.armaNombre || 'N/A'}</p>
+                                  <p className="font-semibold text-blue-600">{arma.armaModelo || arma.armaNombre || 'N/A'}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-600">Número de Serie</p>
@@ -1958,7 +1961,7 @@ const JefeVentas: React.FC = () => {
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           {modalGenerarContrato.datosContrato.armas.map((arma: any, index: number) => (
                             <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                              <p className="font-medium">{arma.nombre || 'N/A'}</p>
+                              <p className="font-medium">{arma.modelo || arma.nombre || 'N/A'}</p>
                               <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                                 <div>
                                   <span className="text-gray-600">Cantidad:</span> {arma.cantidad || 1}
@@ -2120,7 +2123,7 @@ const JefeVentas: React.FC = () => {
                         <tr key={arma.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm">
                             <div>
-                              <div className="font-medium">{arma.armaNombre}</div>
+                              <div className="font-medium">{arma.armaModelo || arma.armaNombre || 'N/A'}</div>
                               {arma.armaCalibre && (
                                 <div className="text-xs text-gray-500">Calibre: {arma.armaCalibre}</div>
                               )}
@@ -2157,6 +2160,20 @@ const JefeVentas: React.FC = () => {
         {/* Contenido: Asignación de Series */}
         {vistaActual === 'series' && (
           <AsignacionSeries />
+        )}
+
+        {/* Contenido: Gestión de Armas - Para Jefe de Ventas */}
+        {vistaActual === 'armas' && (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <WeaponListContent />
+          </div>
+        )}
+
+        {/* Contenido: Gestión de Categorías - Para Jefe de Ventas */}
+        {vistaActual === 'categorias' && (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <WeaponCategoryList />
+          </div>
         )}
           </>
         )}
@@ -2219,7 +2236,7 @@ const JefeVentas: React.FC = () => {
               
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Arma Actual</p>
-                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaNombre || 'N/A'}</p>
+                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaModelo || modalEditarArma.clienteArma.armaNombre || 'N/A'}</p>
                 <p className="text-sm text-gray-600 mt-2">Precio Actual</p>
                 <p className="font-medium">${modalEditarArma.clienteArma.precioUnitario?.toFixed(2) || '0.00'}</p>
               </div>
@@ -2245,7 +2262,7 @@ const JefeVentas: React.FC = () => {
                   <option value="">Selecciona una arma...</option>
                   {modalEditarArma.armasDisponibles.map((arma: any) => (
                     <option key={arma.id} value={arma.id}>
-                      {arma.nombre} - ${arma.precioReferencia?.toFixed(2) || '0.00'}
+                      {arma.modelo || arma.nombre || 'N/A'} - ${arma.precioReferencia?.toFixed(2) || '0.00'}
                     </option>
                   ))}
                 </select>
@@ -2366,7 +2383,7 @@ const JefeVentas: React.FC = () => {
               
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold text-gray-800 mb-2">Información del Arma</h3>
-                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaNombre}</p>
+                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaModelo || modalClienteReasignado.arma.armaNombre || 'N/A'}</p>
                 {modalClienteReasignado.arma.armaCalibre && (
                   <p className="text-sm text-gray-600"><strong>Calibre:</strong> {modalClienteReasignado.arma.armaCalibre}</p>
                 )}

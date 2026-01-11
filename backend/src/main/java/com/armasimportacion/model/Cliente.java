@@ -29,7 +29,7 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "numero_identificacion", nullable = false, length = 20)
+    @Column(name = "numero_identificacion", nullable = false, length = 50)
     private String numeroIdentificacion;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -133,7 +133,10 @@ public class Cliente {
     private EstadoMilitar estadoMilitar;
 
     @Column(name = "codigo_issfa", length = 50)
-    private String codigoIssfa;
+    private String codigoIssfa; // Para militares
+
+    @Column(name = "codigo_isspol", length = 50)
+    private String codigoIsspol; // Para policías
 
     @Column(name = "rango", length = 100)
     private String rango;

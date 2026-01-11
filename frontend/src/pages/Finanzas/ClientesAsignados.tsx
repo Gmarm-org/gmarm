@@ -34,7 +34,6 @@ const ClientesAsignados: React.FC = () => {
   const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, WeaponAssignment>>({});
   const [autorizaciones, setAutorizaciones] = useState<Record<string, any[]>>({});
   const [loadingClientes, setLoadingClientes] = useState(false);
-  const [expoferiaActiva, setExpoferiaActiva] = useState(false);
   
   // Estados para modal de generar solicitud
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -55,19 +54,6 @@ const ClientesAsignados: React.FC = () => {
     setFilter,
     clearFilters,
   } = useTableFilters<ClienteConVendedor>(clientesAsignados);
-
-  // Cargar estado de expoferia al inicio
-  useEffect(() => {
-    const cargarExpoferia = async () => {
-      try {
-        const activa = await apiService.getExpoferiaEstado();
-        setExpoferiaActiva(activa);
-      } catch (error) {
-        console.error('Error cargando estado de expoferia:', error);
-      }
-    };
-    cargarExpoferia();
-  }, []);
 
   // Cargar clientes asignados al montar
   useEffect(() => {
@@ -138,12 +124,7 @@ const ClientesAsignados: React.FC = () => {
 
   const handleGenerarSolicitud = (cliente: ClienteConVendedor) => {
     setClienteSeleccionado(cliente);
-    // Establecer tramite por defecto según expoferia
-    if (expoferiaActiva) {
-      setTramite('TRA-0002017613');
-    } else {
-      setTramite('');
-    }
+    setTramite('');
     setNumeroFactura('');
     setMostrarModal(true);
   };
@@ -350,7 +331,6 @@ const ClientesAsignados: React.FC = () => {
                       <td className="px-4 py-3 text-sm">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                          (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Militar Expoferia' ? 'bg-purple-100 text-purple-800' :
                           (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
                           (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
                           'bg-gray-100 text-gray-800'
@@ -531,12 +511,9 @@ const ClientesAsignados: React.FC = () => {
                       type="text"
                       value={tramite}
                       onChange={(e) => setTramite(e.target.value)}
-                      placeholder={expoferiaActiva ? 'TRA-0002017613' : 'TRA-XXXXXX'}
+                      placeholder="TRA-XXXXXX"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
-                    {expoferiaActiva && (
-                      <p className="text-xs text-gray-500 mt-1">Valor por defecto para Expoferia</p>
-                    )}
                   </div>
                 </div>
 

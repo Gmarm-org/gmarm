@@ -43,7 +43,8 @@ public class ClienteDTO {
     
     // Información militar (solo para uniformados)
     private EstadoMilitar estadoMilitar;
-    private String codigoIssfa;
+    private String codigoIssfa; // Para militares
+    private String codigoIsspol; // Para policías
     private String rango;
     
     // Auditoría

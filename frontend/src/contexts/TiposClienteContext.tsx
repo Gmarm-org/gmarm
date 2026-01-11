@@ -92,7 +92,6 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
       'Militar Fuerza Terrestre': 'MIL',
       'Militar Fuerza Naval': 'NAV',
       'Militar Fuerza Aérea': 'AER',
-      'Militar Expoferia': 'EXP',
       'Uniformado Policial': 'POL',
       'Compañía de Seguridad': 'EMP',
       'Deportista': 'DEP'

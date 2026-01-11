@@ -140,10 +140,16 @@ public class ClienteArmaService {
         log.info("📋 Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
         
         // Validar que el cliente tenga todos sus documentos obligatorios completos y aprobados
-        boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(clienteId);
-        if (!documentosCompletos) {
-            throw new BadRequestException("El cliente no tiene todos sus documentos obligatorios completos. " +
-                    "Debe cargar y aprobar todos los documentos requeridos antes de seleccionar un arma.");
+        // EXCEPCIÓN: Los clientes fantasma (PENDIENTE_ASIGNACION_CLIENTE) no requieren documentos
+        // ya que son temporales y solo sirven para almacenar armas del vendedor
+        if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(clienteId);
+            if (!documentosCompletos) {
+                throw new BadRequestException("El cliente no tiene todos sus documentos obligatorios completos. " +
+                        "Debe cargar y aprobar todos los documentos requeridos antes de seleccionar un arma.");
+            }
+        } else {
+            log.info("⚠️ Cliente fantasma detectado - omitiendo validación de documentos obligatorios");
         }
         
         // Crear la reserva
@@ -476,8 +482,8 @@ public class ClienteArmaService {
         
         // Guardar referencia al arma anterior para logging
         Long armaAnteriorId = clienteArma.getArma().getId();
-        String nombreArmaAnterior = clienteArma.getArma().getNombre();
-        String nombreNuevaArma = nuevaArma.getNombre();
+        String nombreArmaAnterior = clienteArma.getArma().getModelo();
+        String nombreNuevaArma = nuevaArma.getModelo();
         
         // Actualizar el arma
         clienteArma.setArma(nuevaArma);
@@ -583,7 +589,7 @@ public class ClienteArmaService {
         dto.setClienteId(clienteArma.getCliente().getId());
         dto.setClienteNombre(clienteArma.getCliente().getNombreCompleto());
         dto.setArmaId(clienteArma.getArma().getId());
-        dto.setArmaNombre(clienteArma.getArma().getNombre());
+        dto.setArmaNombre(clienteArma.getArma().getModelo());
         dto.setArmaCodigo(clienteArma.getArma().getCodigo());
         dto.setArmaCalibre(clienteArma.getArma().getCalibre());
         dto.setArmaCategoriaNombre(clienteArma.getArma().getCategoria() != null ? clienteArma.getArma().getCategoria().getNombre() : null);

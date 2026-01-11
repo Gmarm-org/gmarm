@@ -17,7 +17,10 @@ import java.math.BigDecimal;
 public class ArmaStockDTO {
     
     private Long armaId;
-    private String armaNombre;
+    private String armaNombre; // Deprecated - usar armaModelo
+    private String armaModelo; // Nuevo campo (cambiado de nombre a modelo)
+    private String armaMarca; // Nuevo campo
+    private String armaAlimentadora; // Nuevo campo
     private String armaCodigo;
     private String armaCalibre;
     private Integer cantidadTotal;

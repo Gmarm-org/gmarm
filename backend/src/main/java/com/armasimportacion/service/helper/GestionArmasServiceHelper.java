@@ -57,7 +57,7 @@ public class GestionArmasServiceHelper {
             
             Arma arma = armaOpt.get();
             
-            // Extraer número de serie si existe (para expoferia)
+            // Extraer número de serie si existe
             log.info("🔍 DEBUG - armaData completo recibido: {}", armaData);
             String numeroSerie = extraerNumeroSerie(armaData);
             log.info("🔢 Número de serie extraído: {}", numeroSerie);
@@ -80,7 +80,7 @@ public class GestionArmasServiceHelper {
             }
             
             log.info("✅ Arma asignada exitosamente: cliente={}, arma={}, precio={}, cantidad={}", 
-                cliente.getId(), arma.getNombre(), clienteArmaGuardado.getPrecioUnitario(), 
+                cliente.getId(), arma.getModelo(), clienteArmaGuardado.getPrecioUnitario(), 
                 clienteArmaGuardado.getCantidad());
             
             // NOTA: El contrato se genera en ClienteCompletoService, no aquí
@@ -234,7 +234,7 @@ public class GestionArmasServiceHelper {
             }
         });
         
-        log.info("💰 Precio calculado para arma '{}': {}", arma.getNombre(), precioFinal);
+        log.info("💰 Precio calculado para arma '{}': {}", arma.getModelo(), precioFinal);
         return precioFinal;
     }
 
@@ -276,7 +276,7 @@ public class GestionArmasServiceHelper {
             return false;
         }
         
-        log.info("✅ Datos de arma validados correctamente: arma={}", armaOpt.get().getNombre());
+        log.info("✅ Datos de arma validados correctamente: arma={}", armaOpt.get().getModelo());
         return true;
     }
 

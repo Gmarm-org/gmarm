@@ -14,13 +14,14 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ArmaCreateDTO {
 
-    private String nombre;
+    private String modelo; // Cambiado de nombre a modelo
+    private String marca; // Nuevo campo
+    private String alimentadora; // Nuevo campo
     private String calibre;
     private Integer capacidad;
     private BigDecimal precioReferencia;
     private Long categoriaId;
     private Boolean estado;
-    private Boolean expoferia;  // Indica si el arma es para Expoferia
     private String codigo;
     private String urlProducto;
 

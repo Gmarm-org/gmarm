@@ -19,6 +19,7 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
   const [formData, setFormData] = useState<Partial<License>>({
     numero: '',
     nombre: '',
+    titulo: '', // Nuevo campo
     ruc: '',
     email: '',
     telefono: '',
@@ -44,6 +45,7 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
       setFormData({
         numero: '',
         nombre: '',
+        titulo: '', // Nuevo campo
         ruc: '',
         email: '',
         telefono: '',
@@ -123,6 +125,10 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre/Razón Social *</label>
                 <input type="text" value={formData.nombre || ''} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" required disabled={isReadOnly} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+                <input type="text" value={formData.titulo || ''} onChange={(e) => setFormData({ ...formData, titulo: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" disabled={isReadOnly} placeholder="Título de la licencia" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">RUC (máx. 13 dígitos)</label>

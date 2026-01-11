@@ -494,7 +494,6 @@ public class GestionDocumentosServiceHelper {
             case "Uniformado Policial" -> "contratos/contrato_policial";
             case "Compañía de Seguridad" -> "contratos/contrato_compania_seguridad";
             case "Deportista" -> "contratos/contrato_deportista";
-            case "Militar Expoferia" -> "contratos/contrato_militar_expoferia";
             default -> {
                 log.warn("⚠️ Tipo de cliente desconocido: {}, usando template por defecto", nombreTipoCliente);
                 yield "contratos/contrato_civil";
@@ -520,7 +519,7 @@ public class GestionDocumentosServiceHelper {
                 throw new RuntimeException("No se encontró arma asignada al cliente");
             }
             
-            log.info("✅ Arma encontrada: {}", clienteArma.getArma().getNombre());
+            log.info("✅ Arma encontrada: {}", clienteArma.getArma().getModelo());
             
             // Obtener IVA dinámicamente desde configuración del sistema
             String ivaValor = configuracionService.getValorConfiguracion("IVA");
@@ -599,7 +598,7 @@ public class GestionDocumentosServiceHelper {
             log.info("🔧 Variables preparadas para template: cliente={}, pago={}, arma={}, IVA={}%, numeroCuotas={}", 
                 cliente.getNombres(), 
                 pago != null ? pago.getMontoTotal() : "N/A", 
-                clienteArma.getArma().getNombre(), 
+                clienteArma.getArma().getModelo(), 
                 ivaPorcentaje, 
                 pago != null ? pago.getNumeroCuotas() : 0);
             
@@ -726,15 +725,14 @@ public class GestionDocumentosServiceHelper {
             // Obtener año actual
             String anioActual = String.valueOf(java.time.LocalDate.now().getYear());
             
-            // Obtener información de la licencia (por defecto para expoferia)
-            String licenciaIniciales = "JL"; // Por defecto para Expoferia
+            // Obtener información de la licencia
+            String licenciaIniciales = "JL";
             String licenciaRepresentante = "Dr. José Luis Guerrero";
             String licenciaRUC = "1707815922001";
             String licenciaTelefono = "0984167983";
             String licenciaEmail = "joseluis@guerreromartinez.com";
             
             // TODO: Obtener dinámicamente desde configuración del sistema o licencia activa
-            // Por ahora se usa la configuración por defecto para expoferia
             
             // Obtener información del coordinador desde configuración (con fallback)
             String coordinadorNombre = "TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA";
@@ -786,7 +784,7 @@ public class GestionDocumentosServiceHelper {
             variables.put("watermarkImageUrl", "../../../static/images/logos/cz-watermark.png");
             
             log.info("🔧 Variables preparadas para template de autorización: cliente={}, arma={}, factura={}, tramite={}", 
-                cliente.getNombres(), clienteArma.getArma().getNombre(), numeroFactura, tramite);
+                cliente.getNombres(), clienteArma.getArma().getModelo(), numeroFactura, tramite);
             
             // Generar PDF usando Flying Saucer con template de autorización
             byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("autorizaciones/autorizacion_venta", variables);
@@ -1018,14 +1016,17 @@ public class GestionDocumentosServiceHelper {
             // Información del arma
             if (clienteArma != null && clienteArma.getArma() != null) {
                 com.armasimportacion.model.Arma arma = clienteArma.getArma();
-                variables.put("armaNombre", arma.getNombre() != null ? arma.getNombre() : "N/A");
-                // La clase Arma no tiene campo modelo, usar nombre como modelo
-                variables.put("armaModelo", arma.getNombre() != null ? arma.getNombre() : "");
+                variables.put("armaNombre", arma.getModelo() != null ? arma.getModelo() : "N/A"); // Cambiado de nombre a modelo
+                variables.put("armaModelo", arma.getModelo() != null ? arma.getModelo() : ""); // Cambiado de nombre a modelo
+                variables.put("armaMarca", arma.getMarca() != null ? arma.getMarca() : ""); // Nuevo campo
+                variables.put("armaAlimentadora", arma.getAlimentadora() != null ? arma.getAlimentadora() : ""); // Nuevo campo
                 variables.put("armaCalibre", arma.getCalibre() != null ? arma.getCalibre() : "");
                 variables.put("cantidadArmas", clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1);
             } else {
                 variables.put("armaNombre", "N/A");
                 variables.put("armaModelo", "");
+                variables.put("armaMarca", "");
+                variables.put("armaAlimentadora", "");
                 variables.put("armaCalibre", "");
                 variables.put("cantidadArmas", 1);
             }

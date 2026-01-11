@@ -26,7 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,6 +41,9 @@ import java.util.Map;
 @Slf4j
 public class ClienteService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+    
     private final ClienteRepository clienteRepository;
     private final ClienteMapper clienteMapper;
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
@@ -513,25 +519,37 @@ public class ClienteService {
     }
 
     private void validateCamposEspecificos(Cliente cliente) {
-        // Validar código ISSFA para tipos militares y policías
+        // Validar códigos ISSFA/ISSPOL según tipo de cliente
         if (cliente.getTipoCliente() != null) {
-            boolean requiereIssfa = cliente.getTipoCliente().getRequiereIssfa();
-            
-            if (requiereIssfa) {
-                // El código ISSFA es obligatorio
+            // Para militares: validar código ISSFA
+            if (cliente.getTipoCliente().esMilitar()) {
                 if (cliente.getCodigoIssfa() == null || cliente.getCodigoIssfa().trim().isEmpty()) {
-                    throw new BadRequestException("El código ISSFA es obligatorio para el tipo de cliente seleccionado");
+                    throw new BadRequestException("El código ISSFA es obligatorio para militares");
                 }
                 
-                // Validar longitud de 10 dígitos
+                // Validar longitud y formato
                 String codigoIssfa = cliente.getCodigoIssfa().trim();
                 if (codigoIssfa.length() != 10) {
                     throw new BadRequestException("El código ISSFA debe tener exactamente 10 dígitos");
                 }
-                
-                // Validar que sea solo números
                 if (!codigoIssfa.matches("\\d{10}")) {
                     throw new BadRequestException("El código ISSFA debe contener solo números (10 dígitos)");
+                }
+            }
+            
+            // Para policías: validar código ISSPOL
+            if (cliente.getTipoCliente().esPolicia()) {
+                if (cliente.getCodigoIsspol() == null || cliente.getCodigoIsspol().trim().isEmpty()) {
+                    throw new BadRequestException("El código ISSPOL es obligatorio para policías");
+                }
+                
+                // Validar longitud y formato
+                String codigoIsspol = cliente.getCodigoIsspol().trim();
+                if (codigoIsspol.length() != 10) {
+                    throw new BadRequestException("El código ISSPOL debe tener exactamente 10 dígitos");
+                }
+                if (!codigoIsspol.matches("\\d{10}")) {
+                    throw new BadRequestException("El código ISSPOL debe contener solo números (10 dígitos)");
                 }
             }
         }
@@ -549,7 +567,8 @@ public class ClienteService {
         cliente.setTelefonoSecundario(clienteUpdate.getTelefonoSecundario());
         cliente.setRepresentanteLegal(clienteUpdate.getRepresentanteLegal());
         cliente.setEstadoMilitar(clienteUpdate.getEstadoMilitar());
-        cliente.setCodigoIssfa(clienteUpdate.getCodigoIssfa()); // Actualizar código ISSFA
+        cliente.setCodigoIssfa(clienteUpdate.getCodigoIssfa()); // Actualizar código ISSFA (para militares)
+        cliente.setCodigoIsspol(clienteUpdate.getCodigoIsspol()); // Actualizar código ISSPOL (para policías)
         cliente.setRango(clienteUpdate.getRango()); // Actualizar rango
 
         // Campos de empresa
@@ -601,7 +620,8 @@ public class ClienteService {
                 throw new BadRequestException("Estado militar inválido: " + dto.getEstadoMilitar());
             }
         }
-        cliente.setCodigoIssfa(dto.getCodigoIssfa());
+        cliente.setCodigoIssfa(dto.getCodigoIssfa()); // Para militares
+        cliente.setCodigoIsspol(dto.getCodigoIsspol()); // Para policías
         cliente.setRango(dto.getRango());
 
         // Campos de empresa
@@ -612,7 +632,7 @@ public class ClienteService {
         cliente.setCorreoEmpresa(dto.getCorreoEmpresa());
         cliente.setProvinciaEmpresa(dto.getProvinciaEmpresa());
         cliente.setCantonEmpresa(dto.getCantonEmpresa());
-
+        
         // Establecer relaciones - CONSULTAR POR CÓDIGO EN BD
         // El frontend SIEMPRE debe enviar estos datos desde los dropdowns
         if (dto.getTipoIdentificacionCodigo() == null || dto.getTipoIdentificacionCodigo().trim().isEmpty()) {
@@ -710,7 +730,8 @@ public class ClienteService {
                 throw new BadRequestException("Estado militar inválido: " + dto.getEstadoMilitar());
             }
         }
-        cliente.setCodigoIssfa(dto.getCodigoIssfa());
+        cliente.setCodigoIssfa(dto.getCodigoIssfa()); // Para militares
+        cliente.setCodigoIsspol(dto.getCodigoIsspol()); // Para policías (nuevo campo)
         cliente.setRango(dto.getRango());
 
         // Campos de empresa
@@ -868,32 +889,12 @@ public class ClienteService {
             clienteFantasma.setNombres(usuario.getNombres() != null ? usuario.getNombres() : "Vendedor");
             clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
             
-            // Generar número de identificación único (máximo 20 caracteres)
+            // Generar número de identificación único (máximo 50 caracteres en BD, pero generamos <= 20 para compatibilidad)
             // Formato: V{usuarioId}-{hash corto}
-            // Ejemplo: V2-1A3B4C5D (total: máximo 11 caracteres para usuarioId < 1000)
-            long timestamp = System.currentTimeMillis();
-            String hashTimestamp = Long.toHexString(timestamp).toUpperCase();
-            
-            // Calcular espacio disponible: "V" + usuarioId + "-" + hash
-            String usuarioIdStr = String.valueOf(usuarioId);
-            int espacioBase = 1 + usuarioIdStr.length() + 1; // "V" + usuarioId + "-"
-            int espacioDisponibleParaHash = 20 - espacioBase;
-            
-            // Tomar solo los caracteres que quepan (mínimo 1)
-            int hashLength = Math.max(1, Math.min(8, espacioDisponibleParaHash));
-            if (hashTimestamp.length() > hashLength) {
-                hashTimestamp = hashTimestamp.substring(hashTimestamp.length() - hashLength);
-            }
-            
-            // Formato: V{usuarioId}-{hash}
-            String numeroIdentificacion = String.format("V%s-%s", usuarioIdStr, hashTimestamp);
-            
-            // Validación final de seguridad - TRUNCAR si excede (nunca debería pasar, pero por seguridad)
-            if (numeroIdentificacion.length() > 20) {
-                log.warn("⚠️ numero_identificacion excede 20 caracteres: {} ({} caracteres). Truncando...", 
-                    numeroIdentificacion, numeroIdentificacion.length());
-                numeroIdentificacion = numeroIdentificacion.substring(0, 20);
-            }
+            // Usar simplemente "V{usuarioId}" como numero_identificacion
+            // Esto garantiza unicidad porque cada usuario tiene un ID único
+            // Ejemplo: V2, V10, V123 (máximo ~10 caracteres, muy por debajo del límite de 50)
+            String numeroIdentificacion = "V" + usuarioId;
             
             log.info("📝 Generando numero_identificacion para cliente fantasma: {} ({} caracteres)", 
                 numeroIdentificacion, numeroIdentificacion.length());
@@ -901,10 +902,21 @@ public class ClienteService {
             clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
             clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
             clienteFantasma.setTipoCliente(tipoClienteCivil);
+            // Cliente fantasma es tipo Civil, por lo que su tipoProceso se obtiene automáticamente
+            // desde tipoCliente.getTipoProcesoId() (debería ser 1L = CUPO_CIVIL)
             clienteFantasma.setEstado(EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE);
-            clienteFantasma.setEmail(usuario.getEmail());
+            // Validar y truncar email si es muy largo (máximo 255 caracteres en BD, pero por seguridad truncar a 200)
+            String email = usuario.getEmail();
+            if (email != null && email.length() > 200) {
+                log.warn("⚠️ Email del usuario muy largo ({} caracteres), truncando a 200", email.length());
+                email = email.substring(0, 200);
+            }
+            clienteFantasma.setEmail(email);
             clienteFantasma.setUsuarioCreador(usuario);
             clienteFantasma.setFechaCreacion(java.time.LocalDateTime.now());
+            
+            // Validación: "V{usuarioId}" siempre será <= 50 caracteres (máximo ~10 caracteres)
+            // No necesita validación adicional
             
             // Guardar cliente fantasma
             Cliente clienteGuardado = clienteRepository.save(clienteFantasma);
@@ -914,19 +926,146 @@ public class ClienteService {
             return clienteGuardado;
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             log.error("❌ Error de integridad al crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
-            // Si falla por duplicado, intentar buscar nuevamente
-            List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
-                usuarioId, 
-                EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
-            );
-            if (!clientesFantasma.isEmpty()) {
-                log.info("✅ Cliente fantasma encontrado después de error de integridad: ID={}", clientesFantasma.get(0).getId());
-                return clientesFantasma.get(0);
+            
+            // Verificar si el error es por duplicado (unique constraint violation)
+            // Si es duplicado, significa que otro proceso ya creó el cliente, entonces buscarlo
+            String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            boolean esDuplicado = errorMessage.contains("duplicate key") || 
+                                 errorMessage.contains("unique constraint") ||
+                                 errorMessage.contains("already exists");
+            
+            if (esDuplicado) {
+                log.info("🔄 Error por duplicado detectado, buscando cliente fantasma existente...");
+                // Limpiar la sesión de Hibernate antes de buscar
+                entityManager.clear();
+                try {
+                    return buscarClienteFantasmaExistente(usuarioId, e.getMessage());
+                } catch (Exception buscarError) {
+                    log.error("❌ Error al buscar cliente fantasma existente: {}", buscarError.getMessage(), buscarError);
+                    // Si no se encuentra, reintentar la creación con un nuevo numero_identificacion
+                    log.info("🔄 Reintentando creación con nuevo numero_identificacion...");
+                    return reintentarCreacionClienteFantasma(usuarioId);
+                }
+            } else {
+                // Si no es duplicado, reintentar la creación con un nuevo numero_identificacion
+                log.info("🔄 Error no es por duplicado, reintentando creación con nuevo numero_identificacion...");
+                entityManager.clear(); // Limpiar sesión antes de reintentar
+                return reintentarCreacionClienteFantasma(usuarioId);
             }
-            throw new BadRequestException("Error al crear cliente fantasma: " + e.getMessage());
         } catch (Exception e) {
             log.error("❌ Error inesperado al buscar/crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
             throw new RuntimeException("Error al buscar/crear cliente fantasma: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Genera un número de identificación único para cliente fantasma
+     * Formato simple: V{usuarioId}
+     * Esto garantiza unicidad porque cada usuario tiene un ID único
+     */
+    private String generarNumeroIdentificacionUnico(Long usuarioId) {
+        return "V" + usuarioId;
+    }
+    
+    /**
+     * Método auxiliar para buscar cliente fantasma existente en una nueva transacción
+     * Se usa después de un error de integridad por duplicado para buscar el cliente que ya existe
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Cliente buscarClienteFantasmaExistente(Long usuarioId, String mensajeError) {
+        log.info("🔍 Buscando cliente fantasma existente en nueva transacción para vendedor ID: {}", usuarioId);
+        
+        // Limpiar la sesión de Hibernate para evitar problemas con objetos inconsistentes
+        entityManager.clear();
+        
+        List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
+            usuarioId, 
+            EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+        );
+        if (!clientesFantasma.isEmpty()) {
+            log.info("✅ Cliente fantasma encontrado después de error de integridad: ID={}", clientesFantasma.get(0).getId());
+            return clientesFantasma.get(0);
+        }
+        throw new BadRequestException("Error al crear cliente fantasma: " + mensajeError);
+    }
+    
+    /**
+     * Reintenta la creación del cliente fantasma con un nuevo numero_identificacion
+     * Se usa cuando falla la creación por un error que no es duplicado
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private Cliente reintentarCreacionClienteFantasma(Long usuarioId) {
+        log.info("🔄 Reintentando creación de cliente fantasma para vendedor ID: {}", usuarioId);
+        
+        // Limpiar la sesión de Hibernate
+        entityManager.clear();
+        
+        // Primero, verificar si ya existe un cliente fantasma (por si acaso otro proceso lo creó)
+        List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
+            usuarioId, 
+            EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+        );
+        if (!clientesFantasma.isEmpty()) {
+            log.info("✅ Cliente fantasma encontrado durante reintento: ID={}", clientesFantasma.get(0).getId());
+            return clientesFantasma.get(0);
+        }
+        
+        // Obtener datos necesarios
+        var usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + usuarioId));
+        
+        TipoCliente tipoClienteCivil = tipoClienteRepository.findByCodigo("CIV")
+            .orElseThrow(() -> new BadRequestException("Tipo de cliente 'Civil' no encontrado. Contacte al administrador."));
+        
+        TipoIdentificacion tipoIdentificacionCedula = tipoIdentificacionRepository.findByCodigo("CED")
+            .orElseThrow(() -> new BadRequestException("Tipo de identificación 'Cédula' no encontrado. Contacte al administrador."));
+        
+        // Si no existe, crear uno nuevo con un nuevo numero_identificacion
+        Cliente clienteFantasma = new Cliente();
+        clienteFantasma.setNombres(usuario.getNombres() != null ? usuario.getNombres() : "Vendedor");
+        clienteFantasma.setApellidos(usuario.getApellidos() != null ? usuario.getApellidos() : "Sin Apellido");
+        
+        // Usar simplemente "V{usuarioId}" como numero_identificacion
+        String numeroIdentificacion = generarNumeroIdentificacionUnico(usuarioId);
+        
+        log.info("📝 Reintentando con numero_identificacion: {} ({} caracteres)", 
+            numeroIdentificacion, numeroIdentificacion.length());
+        
+        clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
+        clienteFantasma.setTipoIdentificacion(tipoIdentificacionCedula);
+        clienteFantasma.setTipoCliente(tipoClienteCivil);
+        clienteFantasma.setEstado(EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE);
+        
+        String email = usuario.getEmail();
+        if (email != null && email.length() > 200) {
+            email = email.substring(0, 200);
+        }
+        clienteFantasma.setEmail(email);
+        clienteFantasma.setUsuarioCreador(usuario);
+        clienteFantasma.setFechaCreacion(java.time.LocalDateTime.now());
+        
+        try {
+            Cliente clienteGuardado = clienteRepository.save(clienteFantasma);
+            log.info("✅ Cliente fantasma creado exitosamente en reintento: ID={}, numeroIdentificacion={}", 
+                clienteGuardado.getId(), clienteGuardado.getNumeroIdentificacion());
+            
+            return clienteGuardado;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("❌ Error de integridad en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
+            // Si falla nuevamente, buscar si ya existe
+            entityManager.clear();
+            List<Cliente> clientesExistentes = clienteRepository.findByUsuarioCreadorIdAndEstado(
+                usuarioId, 
+                EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+            );
+            if (!clientesExistentes.isEmpty()) {
+                log.info("✅ Cliente fantasma encontrado después de error en reintento: ID={}", clientesExistentes.get(0).getId());
+                return clientesExistentes.get(0);
+            }
+            throw new BadRequestException("No se pudo crear el cliente fantasma después de múltiples intentos: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Error inesperado en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al reintentar creación de cliente fantasma: " + e.getMessage(), e);
         }
     }
     

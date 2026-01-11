@@ -14,7 +14,8 @@ export interface RespuestaFormulario {
 // Tipo extendido para el formulario que incluye respuestas del formulario
 export interface ClientFormData extends Omit<Client, 'respuestas'> {
   respuestas: RespuestaFormulario[];
-  codigoIssfa?: string;
+  codigoIssfa?: string; // Para militares
+  codigoIsspol?: string; // Para policías (nuevo campo)
   rango?: string;
 }
 
@@ -41,7 +42,8 @@ const initialFormData: ClientFormData = {
   provinciaEmpresa: '',
   cantonEmpresa: '',
   estadoMilitar: undefined,
-  codigoIssfa: '',
+  codigoIssfa: '', // Para militares
+  codigoIsspol: '', // Para policías (nuevo campo)
   rango: '',
   documentos: [],
   respuestas: []
@@ -95,6 +97,11 @@ export const useClientFormData = () => {
       // Para RUC, limitar a 13 dígitos
       if (field === 'ruc') {
         numericValue = numericValue.slice(0, 13);
+      }
+      
+      // Para códigos ISSFA e ISSPOL, limitar a 10 dígitos
+      if (field === 'codigoIssfa' || field === 'codigoIsspol') {
+        numericValue = numericValue.slice(0, 10);
       }
       
       processedValue = numericValue;

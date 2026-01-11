@@ -125,8 +125,6 @@ const Vendedor: React.FC = React.memo(() => {
     handleSerieSelected,
     handleBackToWeaponSelection,
     selectedSerieNumero,
-    expoferiaActiva,
-
     getClientCountByType,
     exportarClientesAExcel,
   } = useVendedorLogic();
@@ -542,7 +540,6 @@ const Vendedor: React.FC = React.memo(() => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Militar Expoferia' ? 'bg-purple-100 text-purple-800' :
                               (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
                               (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
                               (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Cupo Deportista' ? 'bg-red-100 text-red-800' :
@@ -837,9 +834,9 @@ const Vendedor: React.FC = React.memo(() => {
         );
 
       case 'seriesAssignment':
-        // Solo mostrar si expoferia está activa y hay un arma seleccionada
-        if (!expoferiaActiva || !selectedWeapon) {
-          console.error('❌ No se puede mostrar asignación de series sin expoferia activa o arma seleccionada');
+        // Solo mostrar si hay un arma seleccionada
+        if (!selectedWeapon) {
+          console.error('❌ No se puede mostrar asignación de series sin arma seleccionada');
           setCurrentPage('dashboard');
           return null;
         }
@@ -889,11 +886,10 @@ const Vendedor: React.FC = React.memo(() => {
               cantidad={cantidad}
               selectedSerieNumero={selectedSerieNumero}
               onBack={() => {
-                // Si hay una serie seleccionada y expoferia activa, volver a seriesAssignment
-                if (selectedSerieNumero && expoferiaActiva) {
+                // Si hay una serie seleccionada, volver a seriesAssignment, sino a weaponSelection
+                if (selectedSerieNumero) {
                   setCurrentPage('seriesAssignment');
                 } else {
-                  // Si no, volver a weaponSelection
                   setCurrentPage('weaponSelection');
                 }
               }}

@@ -72,7 +72,7 @@ public class ArmaSerieDTO {
         // Información del arma
         if (entity.getArma() != null) {
             dto.setArmaId(entity.getArma().getId());
-            dto.setArmaNombre(entity.getArma().getNombre());
+            dto.setArmaNombre(entity.getArma().getModelo()); // Cambiado de nombre a modelo
             dto.setArmaCodigo(entity.getArma().getCodigo());
             dto.setArmaCalibre(entity.getArma().getCalibre());
         }

@@ -68,28 +68,6 @@ public class InventarioController {
     }
 
     /**
-     * Activar/desactivar expoferia
-     */
-    @PostMapping("/expoferia/{activa}")
-    public ResponseEntity<String> setExpoferiaActiva(@PathVariable boolean activa) {
-        log.info("POST /api/inventario/expoferia/{} - Configurando expoferia", activa);
-        
-        inventarioService.setExpoferiaActiva(activa);
-        return ResponseEntity.ok("Expoferia " + (activa ? "activada" : "desactivada") + " exitosamente");
-    }
-
-    /**
-     * Obtener estado de la expoferia
-     */
-    @GetMapping("/expoferia/estado")
-    public ResponseEntity<Boolean> getExpoferiaEstado() {
-        log.info("GET /api/inventario/expoferia/estado - Verificando estado de expoferia");
-        
-        boolean activa = inventarioService.isExpoferiaActiva();
-        return ResponseEntity.ok(activa);
-    }
-
-    /**
      * Obtener stock de todas las armas (para panel de jefe de ventas)
      */
     @GetMapping("/stock/todas")

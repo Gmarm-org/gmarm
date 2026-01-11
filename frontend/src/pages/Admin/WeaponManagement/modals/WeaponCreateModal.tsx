@@ -9,13 +9,14 @@ interface WeaponCreateModalProps {
 }
 
 interface CreateFormData {
-  nombre: string;
+  modelo: string; // Cambiado de nombre a modelo
+  marca: string; // Nuevo campo
+  alimentadora: string; // Nuevo campo
   calibre: string;
   capacidad: number;
   precioReferencia: number;
   categoriaId: number;
   estado: boolean;
-  expoferia: boolean;
   codigo: string;
   urlProducto: string;
 }
@@ -27,13 +28,14 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
   onSave
 }) => {
   const [createForm, setCreateForm] = useState<CreateFormData>({
-    nombre: '',
+    modelo: '', // Cambiado de nombre a modelo
+    marca: '', // Nuevo campo
+    alimentadora: '', // Nuevo campo
     calibre: '',
     capacidad: 0,
     precioReferencia: 0,
     categoriaId: categories.length > 0 ? categories[0].id : 1,
     estado: true,
-    expoferia: false,
     codigo: '',
     urlProducto: ''
   });
@@ -82,8 +84,8 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
 
   const handleSave = async () => {
     // Validaciones básicas
-    if (!createForm.nombre.trim()) {
-      alert('El nombre de la arma es obligatorio');
+    if (!createForm.modelo.trim()) {
+      alert('El modelo de la arma es obligatorio');
       return;
     }
     if (!createForm.calibre.trim()) {
@@ -103,13 +105,18 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       setIsSaving(true);
       
       const formData = new FormData();
-      formData.append('nombre', createForm.nombre);
+      formData.append('modelo', createForm.modelo); // Cambiado de nombre a modelo
+      if (createForm.marca) {
+        formData.append('marca', createForm.marca); // Nuevo campo
+      }
+      if (createForm.alimentadora) {
+        formData.append('alimentadora', createForm.alimentadora); // Nuevo campo
+      }
       formData.append('calibre', createForm.calibre);
       formData.append('capacidad', createForm.capacidad.toString());
       formData.append('precioReferencia', createForm.precioReferencia.toString());
       formData.append('categoriaId', createForm.categoriaId.toString());
       formData.append('estado', createForm.estado.toString());
-      formData.append('expoferia', createForm.expoferia.toString());
       formData.append('codigo', createForm.codigo);
       formData.append('urlProducto', createForm.urlProducto);
       
@@ -132,13 +139,14 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       
       // Resetear el formulario
       setCreateForm({
-        nombre: '',
+        modelo: '', // Cambiado de nombre a modelo
+        marca: '', // Nuevo campo
+        alimentadora: '', // Nuevo campo
         calibre: '',
         capacidad: 0,
         precioReferencia: 0,
         categoriaId: categories.length > 0 ? categories[0].id : 1,
         estado: true,
-        expoferia: false,
         codigo: '',
         urlProducto: ''
       });
@@ -155,13 +163,14 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
   const handleClose = () => {
     // Resetear el formulario al cerrar
     setCreateForm({
-      nombre: '',
+      modelo: '', // Cambiado de nombre a modelo
+      marca: '', // Nuevo campo
+      alimentadora: '', // Nuevo campo
       calibre: '',
       capacidad: 0,
       precioReferencia: 0,
       categoriaId: categories.length > 0 ? categories[0].id : 1,
       estado: true,
-      expoferia: false,
       codigo: '',
       urlProducto: ''
     });
@@ -187,13 +196,35 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
           {/* Columna Izquierda - Información Básica */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de la Arma *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Modelo de la Arma *</label>
               <input
                 type="text"
-                value={createForm.nombre}
-                onChange={(e) => handleInputChange('nombre', e.target.value)}
+                value={createForm.modelo}
+                onChange={(e) => handleInputChange('modelo', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: CZ 75 B"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+              <input
+                type="text"
+                value={createForm.marca}
+                onChange={(e) => handleInputChange('marca', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: CZ"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Alimentadora</label>
+              <input
+                type="text"
+                value={createForm.alimentadora}
+                onChange={(e) => handleInputChange('alimentadora', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: Semiautomática"
               />
             </div>
             
@@ -288,24 +319,6 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
                   <span className="text-sm text-gray-700">Inactivo</span>
                 </label>
               </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Expoferia</label>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={createForm.expoferia}
-                  onChange={(e) => handleInputChange('expoferia', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Arma disponible para Expoferia
-                </label>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Marque esta opción si el arma está disponible para venta en eventos de Expoferia
-              </p>
             </div>
             
             <div>

@@ -3,7 +3,7 @@ services:
     image: postgres:15
     container_name: gmarm-postgres-local
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gmarm_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-gmarm_local}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       # Configuración para inicialización limpia
@@ -19,7 +19,7 @@ services:
       - gmarm_local_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gmarm_dev}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gmarm_local}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
     environment:
       SPRING_PROFILES_ACTIVE: local
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres_local:5432/${POSTGRES_DB:-gmarm_dev}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres_local:5432/${POSTGRES_DB:-gmarm_local}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       # Configuración de CORS para desarrollo local

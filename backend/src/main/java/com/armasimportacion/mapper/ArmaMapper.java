@@ -39,7 +39,9 @@ public class ArmaMapper {
         return ArmaDTO.builder()
                 .id(arma.getId())
                 .codigo(arma.getCodigo())
-                .nombre(arma.getNombre())
+                .modelo(arma.getModelo()) // Cambiado de nombre a modelo
+                .marca(arma.getMarca()) // Nuevo campo
+                .alimentadora(arma.getAlimentadora()) // Nuevo campo
                 .calibre(arma.getCalibre())
                 .capacidad(arma.getCapacidad())
                 .precioReferencia(arma.getPrecioReferencia())
@@ -49,7 +51,6 @@ public class ArmaMapper {
                 .urlImagen(arma.getUrlImagen())
                 .urlProducto(arma.getUrlProducto())
                 .estado(arma.getEstado())
-                .expoferia(arma.getExpoferia())
                 .fechaCreacion(arma.getFechaCreacion())
                 .fechaActualizacion(arma.getFechaActualizacion())
                 // Mapear imágenes

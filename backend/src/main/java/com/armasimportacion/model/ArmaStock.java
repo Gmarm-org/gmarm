@@ -31,6 +31,16 @@ public class ArmaStock {
     @JoinColumn(name = "arma_id", nullable = false)
     private Arma arma;
 
+    // Campos denormalizados para facilitar consultas (sincronizados con arma)
+    @Column(name = "modelo", length = 100)
+    private String modelo; // Sincronizado con arma.modelo
+
+    @Column(name = "marca", length = 100)
+    private String marca; // Sincronizado con arma.marca
+
+    @Column(name = "alimentadora", length = 50)
+    private String alimentadora; // Sincronizado con arma.alimentadora
+
     @Column(name = "cantidad_total", nullable = false)
     private Integer cantidadTotal = 0;
 

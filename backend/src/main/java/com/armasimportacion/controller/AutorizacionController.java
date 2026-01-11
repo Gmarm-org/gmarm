@@ -63,7 +63,7 @@ public class AutorizacionController {
             ClienteArma clienteArma = armas.get(0);
             
             log.info("✅ Cliente encontrado: ID={}, Nombre={}", cliente.getId(), cliente.getNombres());
-            log.info("✅ Arma encontrada: ID={}, Nombre={}", clienteArma.getArma().getId(), clienteArma.getArma().getNombre());
+            log.info("✅ Arma encontrada: ID={}, Modelo={}", clienteArma.getArma().getId(), clienteArma.getArma().getModelo());
             
             // Generar autorización
             DocumentoGenerado documento = documentosHelper.generarYGuardarAutorizacion(

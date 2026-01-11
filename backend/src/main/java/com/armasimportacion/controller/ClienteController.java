@@ -28,7 +28,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -536,7 +535,7 @@ public class ClienteController {
     @PostMapping("/fantasma-vendedor")
     @Operation(summary = "Buscar o crear cliente fantasma del vendedor", 
                description = "Busca o crea un cliente fantasma para el vendedor actual para almacenar armas sin cliente")
-    public ResponseEntity<ClienteDTO> buscarOCrearClienteFantasmaVendedor(
+    public ResponseEntity<?> buscarOCrearClienteFantasmaVendedor(
             @RequestHeader("Authorization") String authHeader) {
         try {
             // Obtener usuario actual desde JWT
@@ -558,7 +557,15 @@ public class ClienteController {
             return ResponseEntity.ok(clienteService.findByIdAsDTO(clienteFantasma.getId()));
         } catch (Exception e) {
             log.error("❌ Error buscando/creando cliente fantasma: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            log.error("❌ Stack trace completo:", e);
+            // Retornar mensaje de error para debugging
+            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Error al buscar/crear cliente fantasma: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            if (e.getCause() != null) {
+                errorResponse.put("cause", e.getCause().getMessage());
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -618,7 +625,7 @@ public class ClienteController {
             List<DatosContratoDTO.ArmaDTO> armasDTO = armas.stream()
                 .map(arma -> DatosContratoDTO.ArmaDTO.builder()
                     .id(arma.getId())
-                    .nombre(arma.getArma() != null ? arma.getArma().getNombre() : "N/A")
+                    .nombre(arma.getArma() != null ? arma.getArma().getModelo() : "N/A")
                     .precioUnitario(arma.getPrecioUnitario())
                     .cantidad(arma.getCantidad())
                     .build())

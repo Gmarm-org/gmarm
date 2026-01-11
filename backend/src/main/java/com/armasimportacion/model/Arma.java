@@ -25,8 +25,14 @@ public class Arma {
     @Column(name = "codigo", length = 50, unique = true, nullable = false)
     private String codigo;
     
-    @Column(name = "nombre", length = 100, nullable = false)
-    private String nombre;
+    @Column(name = "modelo", length = 100, nullable = false)
+    private String modelo; // Cambiado de nombre a modelo
+    
+    @Column(name = "marca", length = 100)
+    private String marca; // Nuevo campo
+    
+    @Column(name = "alimentadora", length = 50)
+    private String alimentadora; // Nuevo campo
     
     @Column(name = "calibre", length = 20)
     private String calibre;
@@ -49,9 +55,6 @@ public class Arma {
     
     @Column(name = "estado", nullable = false)
     private Boolean estado;
-    
-    @Column(name = "expoferia")
-    private Boolean expoferia; // true = es de expoferia, false/null = no es de expoferia
     
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;

@@ -34,8 +34,7 @@ export const useVendedorState = () => {
   // Estados de bloqueo
   const [clientesBloqueados, setClientesBloqueados] = useState<Record<string, { bloqueado: boolean; motivo: string }>>({});
   
-  // Estados de expoferia y series
-  const [expoferiaActiva, setExpoferiaActiva] = useState<boolean>(false);
+  // Estados de series
   const [selectedSerieId, setSelectedSerieId] = useState<number | null>(null);
   const [selectedSerieNumero, setSelectedSerieNumero] = useState<string | null>(null);
   
@@ -93,9 +92,7 @@ export const useVendedorState = () => {
     clientesBloqueados,
     setClientesBloqueados,
     
-    // Estados de expoferia y series
-    expoferiaActiva,
-    setExpoferiaActiva,
+    // Estados de series
     selectedSerieId,
     setSelectedSerieId,
     selectedSerieNumero,

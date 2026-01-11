@@ -84,11 +84,11 @@ public interface ArmaSerieRepository extends JpaRepository<ArmaSerie, Long> {
     /**
      * Obtiene estadísticas de series por arma
      */
-    @Query("SELECT s.arma.id, s.arma.nombre, COUNT(s), " +
+    @Query("SELECT s.arma.id, s.arma.modelo, COUNT(s), " +
            "SUM(CASE WHEN s.estado = 'DISPONIBLE' THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN s.estado = 'ASIGNADO' THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN s.estado = 'VENDIDO' THEN 1 ELSE 0 END) " +
-           "FROM ArmaSerie s GROUP BY s.arma.id, s.arma.nombre")
+           "FROM ArmaSerie s GROUP BY s.arma.id, s.arma.modelo")
     List<Object[]> getEstadisticasPorArma();
 
     /**

@@ -54,6 +54,9 @@ public class Licencia {
     @Column(name = "nombre", nullable = false, length = 255)
     private String nombre;
 
+    @Column(name = "titulo", length = 200)
+    private String titulo; // Nuevo campo
+
     @Column(name = "ruc", length = 20)
     private String ruc;
 

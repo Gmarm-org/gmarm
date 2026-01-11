@@ -2,7 +2,7 @@
 -- GMARM - SCRIPT MAESTRO COMPLETO
 -- =====================================================
 -- Este script contiene TODO: esquema, datos y configuraciones
--- Es IDEMPOTENTE: se puede ejecutar mÃºltiples veces sin errores
+-- Es IDEMPOTENTE: se puede ejecutar múltiples veces sin errores
 -- Reemplaza todos los scripts individuales anteriores
 -- =====================================================
 
@@ -21,7 +21,7 @@ DROP TABLE IF EXISTS tipo_cliente_tipo_importacion CASCADE;
 DROP TABLE IF EXISTS tipo_cliente_importacion CASCADE;
 
 -- =====================================================
--- 1. CREACIÓN DE TABLAS (si no existen)
+-- 1. CREACión DE TABLAS (si no existen)
 -- =====================================================
 
 -- Tabla de roles
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS tipo_cliente_importacion (
 -- Tabla de clientes
 CREATE TABLE IF NOT EXISTS cliente (
     id BIGSERIAL PRIMARY KEY,
-    numero_identificacion VARCHAR(20) NOT NULL UNIQUE,
+    numero_identificacion VARCHAR(50) NOT NULL UNIQUE,
     tipo_identificacion_id BIGINT NOT NULL REFERENCES tipo_identificacion(id),
     nombres VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
@@ -180,7 +180,8 @@ CREATE TABLE IF NOT EXISTS cliente (
     canton_empresa VARCHAR(100),
     -- Información militar (solo para uniformados - militares y policías, NULL para otros tipos)
     estado_militar VARCHAR(20) DEFAULT NULL,
-    codigo_issfa VARCHAR(50) DEFAULT NULL,
+    codigo_issfa VARCHAR(50) DEFAULT NULL, -- Para militares
+    codigo_isspol VARCHAR(50) DEFAULT NULL, -- Para policías
     rango VARCHAR(100) DEFAULT NULL, -- Rango militar/policial (opcional)
     -- verificación de correo electrónico
     email_verificado BOOLEAN DEFAULT NULL
@@ -271,7 +272,9 @@ CREATE TABLE IF NOT EXISTS categoria_arma (
 CREATE TABLE IF NOT EXISTS arma (
     id BIGSERIAL PRIMARY KEY,
     codigo VARCHAR(50) UNIQUE NOT NULL,
-    nombre VARCHAR(100) NOT NULL,
+    modelo VARCHAR(100) NOT NULL, -- Cambiado de nombre a modelo
+    marca VARCHAR(100), -- Nuevo campo
+    alimentadora VARCHAR(50), -- Nuevo campo
     calibre VARCHAR(20),
     capacidad BIGINT,
     precio_referencia DECIMAL(10,2),
@@ -279,13 +282,11 @@ CREATE TABLE IF NOT EXISTS arma (
     url_imagen VARCHAR(500),
     url_producto VARCHAR(500),
     estado BOOLEAN DEFAULT true,
-    -- Campo para identificar armas de expoferia plan piloto (true = es de expoferia, false/null = no es de expoferia)
-    expoferia BOOLEAN DEFAULT false,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de imÃ¡genes de armas (mÃºltiples imÃ¡genes por arma)
+-- Tabla de imágenes de armas (múltiples imágenes por arma)
 CREATE TABLE IF NOT EXISTS arma_imagen (
     id BIGSERIAL PRIMARY KEY,
     arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,
@@ -297,7 +298,7 @@ CREATE TABLE IF NOT EXISTS arma_imagen (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- эÍndice para mejorar consultas de imÃ¡genes por arma
+-- índice para mejorar consultas de imágenes por arma
 CREATE INDEX IF NOT EXISTS idx_arma_imagen_arma_id ON arma_imagen(arma_id);
 CREATE INDEX IF NOT EXISTS idx_arma_imagen_orden ON arma_imagen(arma_id, orden);
 
@@ -305,6 +306,9 @@ CREATE INDEX IF NOT EXISTS idx_arma_imagen_orden ON arma_imagen(arma_id, orden);
 CREATE TABLE IF NOT EXISTS arma_stock (
     id BIGSERIAL PRIMARY KEY,
     arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,
+    modelo VARCHAR(100), -- Sincronizado con arma.modelo para facilitar consultas
+    marca VARCHAR(100), -- Sincronizado con arma.marca para facilitar consultas
+    alimentadora VARCHAR(50), -- Sincronizado con arma.alimentadora para facilitar consultas
     cantidad_total INTEGER NOT NULL DEFAULT 0,
     cantidad_disponible INTEGER NOT NULL DEFAULT 0,
     precio_venta DECIMAL(10,2) NOT NULL,
@@ -320,21 +324,21 @@ CREATE TABLE IF NOT EXISTS arma_stock (
 );
 
 -- Tabla de Números de serie de armas
--- Esta tabla almacena todos los Números de serie �únicos de armas f�sicas
--- Se carga desde Excel y se asigna a clientes a trav�s de cliente_arma
--- NOTA: La foreign key a cliente_arma se agrega después de crear esa tabla
+-- Esta tabla almacena todos los Números de serie únicos de armas f?sicas
+-- Se carga desde Excel y se asigna a clientes a trav?s de cliente_arma
+-- NOTA: La foreign key a cliente_arma se agrega despu�s de crear esa tabla
 CREATE TABLE IF NOT EXISTS arma_serie (
     id BIGSERIAL PRIMARY KEY,
-    numero_serie VARCHAR(100) UNIQUE NOT NULL,  -- Número de serie �nico del arma f�sica
-    arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,  -- Arma del cat�logo
+    numero_serie VARCHAR(100) UNIQUE NOT NULL,  -- número de serie ?nico del arma f?sica
+    arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,  -- Arma del CatÃ¡logo
     estado VARCHAR(20) DEFAULT 'DISPONIBLE',  -- DISPONIBLE, ASIGNADO, VENDIDO, BAJA
-    fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Cu�ndo se carg� desde Excel
-    fecha_asignacion TIMESTAMP,  -- Cu�ndo se asign� a un cliente
-    cliente_arma_id BIGINT,  -- relación con la reserva del cliente (FK se agrega después)
-    usuario_asignador_id BIGINT REFERENCES usuario(id),  -- Usuario que asign� la serie
+    fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Cu?ndo se carg? desde Excel
+    fecha_asignacion TIMESTAMP,  -- Cu?ndo se asign? a un cliente
+    cliente_arma_id BIGINT,  -- relación con la reserva del cliente (FK se agrega despu�s)
+    usuario_asignador_id BIGINT REFERENCES usuario(id),  -- Usuario que asign? la serie
     lote VARCHAR(50),  -- Lote o grupo de importación (opcional, deprecated - usar grupo_importacion_id)
-    grupo_importacion_id BIGINT,  -- Grupo de importación al que pertenece esta serie (FK se agrega después)
-    licencia_id BIGINT,  -- Licencia asociada al grupo de importación (FK se agrega después)
+    grupo_importacion_id BIGINT,  -- Grupo de importación al que pertenece esta serie (FK se agrega despu�s)
+    licencia_id BIGINT,  -- Licencia asociada al grupo de importación (FK se agrega despu�s)
     observaciones TEXT,  -- Observaciones adicionales
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -343,11 +347,11 @@ CREATE TABLE IF NOT EXISTS arma_serie (
     CONSTRAINT chk_arma_serie_estado CHECK (estado IN ('DISPONIBLE', 'ASIGNADO', 'VENDIDO', 'BAJA'))
 );
 
--- эÍndices para optimizar bÃºsquedas (sin cliente_arma_id por ahora)
+-- índices para optimizar búsquedas (sin cliente_arma_id por ahora)
 CREATE INDEX IF NOT EXISTS idx_arma_serie_arma_id ON arma_serie(arma_id);
 CREATE INDEX IF NOT EXISTS idx_arma_serie_estado ON arma_serie(estado);
 
--- Tabla de armas f�sicas (referencia a arma simplificada)
+-- Tabla de armas f?sicas (referencia a arma simplificada)
 CREATE TABLE IF NOT EXISTS arma_fisica (
     id BIGSERIAL PRIMARY KEY,
     numero_serie VARCHAR(100) UNIQUE NOT NULL,
@@ -374,7 +378,7 @@ CREATE TABLE IF NOT EXISTS accesorio (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de accesorios f�sicos
+-- Tabla de accesorios f?sicos
 CREATE TABLE IF NOT EXISTS accesorio_fisico (
     id BIGSERIAL PRIMARY KEY,
     numero_serie VARCHAR(100) UNIQUE NOT NULL,
@@ -403,7 +407,7 @@ CREATE TABLE IF NOT EXISTS cliente_arma (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    -- Constraint para estados v�lidos
+    -- Constraint para estados v?lidos
     CONSTRAINT chk_cliente_arma_estado CHECK (estado IN ('DISPONIBLE', 'RESERVADA', 'ASIGNADA', 'CANCELADA', 'COMPLETADA', 'REASIGNADO'))
 );
 
@@ -452,7 +456,7 @@ CREATE TABLE IF NOT EXISTS cuota_pago (
     estado VARCHAR(20) DEFAULT 'PENDIENTE',
     fecha_pago TIMESTAMP,
     referencia_pago VARCHAR(100),
-    numero_recibo VARCHAR(100), -- Número de recibo (reemplaza "Número de Comprobante")
+    numero_recibo VARCHAR(100), -- número de recibo (reemplaza "número de Comprobante")
     comprobante_archivo VARCHAR(500), -- Ruta del archivo PDF/foto del comprobante
     observaciones TEXT, -- Observaciones adicionales
     usuario_confirmador_id BIGINT REFERENCES usuario(id),
@@ -465,6 +469,7 @@ CREATE TABLE IF NOT EXISTS licencia (
     id BIGSERIAL PRIMARY KEY,
     numero VARCHAR(50) UNIQUE NOT NULL,
     nombre VARCHAR(200) NOT NULL,
+    titulo VARCHAR(200), -- Nuevo campo
     ruc VARCHAR(20),
     cuenta_bancaria VARCHAR(50),
     nombre_banco VARCHAR(100),
@@ -508,7 +513,7 @@ CREATE TABLE IF NOT EXISTS notificacion (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de configuraci�n del sistema
+-- Tabla de configuraci?n del sistema
 CREATE TABLE IF NOT EXISTS configuracion_sistema (
     id BIGSERIAL PRIMARY KEY,
     clave VARCHAR(100) UNIQUE NOT NULL,
@@ -552,7 +557,7 @@ CREATE TABLE IF NOT EXISTS grupo_importacion (
     codigo VARCHAR(20) UNIQUE,
     fecha_estimada_llegada DATE,
     costo_total DECIMAL(10,2),
-    numero_previa_importacion VARCHAR(100), -- Número de previa importación
+    numero_previa_importacion VARCHAR(100), -- número de previa importación
     observaciones TEXT,
     usuario_actualizador_id BIGINT REFERENCES usuario(id),
     estado VARCHAR(30) DEFAULT 'EN_PREPARACION',
@@ -565,7 +570,7 @@ CREATE TABLE IF NOT EXISTS grupo_importacion (
 COMMENT ON COLUMN grupo_importacion.tipo_proceso_id IS 
     'Tipo de proceso (opcional). Los grupos pueden tener cualquier tipo de cliente';
 COMMENT ON COLUMN grupo_importacion.numero_previa_importacion IS 
-    'Número de previa importación';
+    'número de previa importación';
 
 -- Tabla de relación cliente-grupo de importación
 CREATE TABLE IF NOT EXISTS cliente_grupo_importacion (
@@ -585,8 +590,8 @@ CREATE TABLE IF NOT EXISTS grupo_importacion_cupo (
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
     licencia_id BIGINT NOT NULL REFERENCES licencia(id),
     tipo_cliente VARCHAR(20) NOT NULL, -- CIVIL, MILITAR, EMPRESA, DEPORTISTA
-    cupo_consumido INTEGER NOT NULL, -- CuÃ¡nto consume este grupo (25 civiles, 28 uniformados, etc.)
-    cupo_disponible_licencia INTEGER NOT NULL, -- CuÃ¡nto queda disponible en la licencia
+    cupo_consumido INTEGER NOT NULL, -- Cuánto consume este grupo (25 civiles, 28 uniformados, etc.)
+    cupo_disponible_licencia INTEGER NOT NULL, -- Cuánto queda disponible en la licencia
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -596,17 +601,17 @@ CREATE TABLE IF NOT EXISTS grupo_importacion_vendedor (
     id BIGSERIAL PRIMARY KEY,
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
     vendedor_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
-    limite_armas INTEGER DEFAULT 0, -- LÃ­mite de armas por vendedor en este grupo
+    limite_armas INTEGER DEFAULT 0, -- Límite de armas por vendedor en este grupo
     fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(grupo_importacion_id, vendedor_id)
 );
 
--- Tabla de LÃ­mites por categor�a para grupos de tipo CUPO
+-- Tabla de Límites por categor?a para grupos de tipo CUPO
 CREATE TABLE IF NOT EXISTS grupo_importacion_limite_categoria (
     id BIGSERIAL PRIMARY KEY,
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
     categoria_arma_id BIGINT NOT NULL REFERENCES categoria_arma(id) ON DELETE CASCADE,
-    limite_maximo INTEGER NOT NULL DEFAULT 0, -- LÃ­mite máximo de armas de esta categor�a
+    limite_maximo INTEGER NOT NULL DEFAULT 0, -- Límite máximo de armas de esta categor?a
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(grupo_importacion_id, categoria_arma_id)
@@ -690,10 +695,10 @@ CREATE TABLE IF NOT EXISTS documento_generado (
 );
 
 -- =====================================================
--- 2. CREACIѓN DE эNDICES
+-- 2. CREACI?N DE ?NDICES
 -- =====================================================
 
--- эÍndices para mejorar rendimiento
+-- índices para mejorar rendimiento
 CREATE INDEX IF NOT EXISTS idx_usuario_username ON usuario(username);
 CREATE INDEX IF NOT EXISTS idx_usuario_email ON usuario(email);
 CREATE INDEX IF NOT EXISTS idx_cliente_identificacion ON cliente(numero_identificacion);
@@ -705,17 +710,17 @@ CREATE INDEX IF NOT EXISTS idx_cliente_arma_cliente ON cliente_arma(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_documento_grupo_importacion_grupo ON documento_grupo_importacion(grupo_importacion_id);
 CREATE INDEX IF NOT EXISTS idx_documento_grupo_importacion_tipo_documento ON documento_grupo_importacion(tipo_documento_id);
 
--- �Índice �nico para evitar que un cliente esté� en mÃºltiples grupos activos
+-- índice ?nico para evitar que un cliente est�? en múltiples grupos activos
 CREATE UNIQUE INDEX IF NOT EXISTS uk_cliente_grupo_importacion_activo
 ON cliente_grupo_importacion (cliente_id)
 WHERE estado NOT IN ('COMPLETADO', 'CANCELADO');
 
 COMMENT ON INDEX uk_cliente_grupo_importacion_activo IS 
-    'Evita que un cliente esté asignado a múltiples grupos activos simultáneamente';
+    'Evita que un cliente est� asignado a m�ltiples grupos activos simult�neamente';
 CREATE INDEX IF NOT EXISTS idx_arma_fisica_numero_serie ON arma_fisica(numero_serie);
 CREATE INDEX IF NOT EXISTS idx_arma_fisica_estado ON arma_fisica(estado);
 
--- эÍndices para sistema de pagos
+-- índices para sistema de pagos
 CREATE INDEX IF NOT EXISTS idx_pago_cliente ON pago(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_pago_estado ON pago(estado);
 CREATE INDEX IF NOT EXISTS idx_pago_tipo ON pago(tipo_pago);
@@ -728,10 +733,10 @@ CREATE INDEX IF NOT EXISTS idx_canton_provincia ON canton(provincia_id);
 CREATE INDEX IF NOT EXISTS idx_canton_codigo ON canton(codigo);
 
 -- =====================================================
--- 2. CONSTRAINTS ADICIONALES (después de crear todas las tablas)
+-- 2. CONSTRAINTS ADICIONALES (despu�s de crear todas las tablas)
 -- =====================================================
 
--- Agregar foreign keys de arma_serie después de crear las tablas relacionadas
+-- Agregar foreign keys de arma_serie despu�s de crear las tablas relacionadas
 DO $$ 
 BEGIN
     -- FK a cliente_arma
@@ -786,11 +791,11 @@ ON CONFLICT (codigo) DO NOTHING;
 -- Insertar tipos de cliente
 INSERT INTO tipo_cliente (nombre, codigo, descripcion, estado, es_militar, es_policia, es_empresa, es_deportista, es_civil, requiere_issfa, tipo_proceso_id) VALUES
 ('Civil', 'CIV', 'Persona natural civil', true, false, false, false, false, true, false, 1),
-('Militar Fuerza Terrestére', 'MIL', 'Personal activo de fuerzas armadas terrestre', true, true, false, false, false, false, true, 2),
+('Militar Fuerza Terrestre', 'MIL', 'Personal activo de fuerzas armadas terrestre', true, true, false, false, false, false, true, 2),
 ('Militar Fuerza Naval', 'NAV', 'Personal activo de fuerzas armadas naval', true, true, false, false, false, false, true, 2),
 ('Militar Fuerza Aérea', 'AER', 'Personal activo de fuerzas armadas aéreas', true, true, false, false, false, false, true, 2),
 ('Uniformado Policial', 'POL', 'Personal activo de fuerza policial', true, false, true, false, false, false, false, 2),
-('Compañía de Seguridad', 'EMP', 'Compañía de seguridad privada', true, false, false, true, false, false, false, 3),
+('compañía de Seguridad', 'EMP', 'compañía de seguridad privada', true, false, false, true, false, false, false, 3),
 ('Deportista', 'DEP', 'Deportista', true, false, false, false, true, false, false, 4)
 ON CONFLICT (codigo) DO NOTHING;
 
@@ -839,7 +844,7 @@ BEGIN
         -- Documentos para Extracupo Uniformado
         ('Credencial militar/policial', 'Credencial vigente de institución armada o policial', true, 2, true, NULL, false),
         ('Certificado de servicio activo', 'Certificado de servicio activo vigente', true, 2, true, NULL, false),
-        ('Copia de cédula', 'Copia legible de la cédula de identidad', true, 2, true, NULL, false),
+        ('Copia de Cédula', 'Copia legible de la Cédula de identidad', true, 2, true, NULL, false),
         -- Documentos universales para Extracupo Uniformado
         ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 2, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/', false),
         ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 2, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/', false),
@@ -849,9 +854,9 @@ BEGIN
     
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 3) THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento, grupos_importacion) VALUES
-        -- Documentos para Extracupo Empresa (solo espec�ficos, no universales)
+        -- Documentos para Extracupo Empresa (solo espec?ficos, no universales)
         ('Cédula del representante legal', 'Cédula del representante legal', true, 3, true, NULL, false),
-        ('Nombramiento representante legal', 'Documento que acredita representaci�n legal', true, 3, true, NULL, false),
+        ('Nombramiento representante legal', 'Documento que acredita representaci?n legal', true, 3, true, NULL, false),
         ('Permiso de funcionamiento', 'Permiso de funcionamiento vigente', true, 3, true, NULL, false),
         ('RUC de la empresa', 'RUC activo de la empresa', true, 3, true, NULL, false);
     END IF;
@@ -861,7 +866,7 @@ BEGIN
         -- Documentos para Cupo Deportista
         ('Cédula en PDF y papeleta de votación', 'Cédula de identidad en formato PDF y papeleta de votación', true, 4, true, NULL, false),
         ('Permiso de Deportista otorgado por CCFFAA', 'Permiso de deportista otorgado por las Comandancias Conjuntas de las Fuerzas Armadas (CCFFAA)', true, 4, true, NULL, false),
-        ('Documento del Club de Tiro que certifique estar al día en sus cuotas y afiliado al mismo', 'Documento del Club de Tiro que certifique que el deportista esté al día en sus cuotas y afiliado al mismo', true, 4, true, NULL, false),
+        ('Documento del Club de Tiro que certifique estar al día en sus cuotas y afiliado al mismo', 'Documento del Club de Tiro que certifique que el deportista est� al día en sus cuotas y afiliado al mismo', true, 4, true, NULL, false),
         -- Documentos universales para Cupo Deportista
         ('SATJE', 'Certificado de procesos judiciales', true, 4, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros', false),
         ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 4, true, 'https://www.fiscalia.gob.ec/accesibilidad/consulta-de-noticias-del-delito/', false),
@@ -885,7 +890,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE nombre = 'Resolución para migrar serie al cliente') THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, estado, grupos_importacion, tipo_proceso_id) VALUES
         ('Resolución para migrar serie al cliente', 
-         'Resolución que autoriza la migración del Número de serie del arma al cliente. Documento requerido antes de la entrega.', 
+         'Resolución que autoriza la migración del número de serie del arma al cliente. Documento requerido antes de la entrega.', 
          true, 
          true, 
          false,  -- Es para clientes, NO para grupos de importación
@@ -912,103 +917,48 @@ ON CONFLICT (codigo) DO NOTHING;
 -- Eliminar categorías duplicadas en plural si existen
 DELETE FROM categoria_arma WHERE codigo IN ('PISTOLAS', 'ESCOPETAS');
 
--- Insertar armas (Cat�logo CZ real - basado en archivos existentes)
-INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado) VALUES
+-- Insertar armas (CatÃ¡logo CZ real - basado en archivos existentes)
+INSERT INTO arma (codigo, modelo, marca, alimentadora, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado) VALUES
 -- Pistolas CZ P09 (basadas en archivos reales)
-('CZ-P09-C-NOCTURNE', 'CZ P09 C NOCTURNE', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
-('CZ-P09-F-NOCTURNE', 'CZ P09 F NOCTURNE', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-F-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
-('CZ-P09-F-FDE', 'CZ P09 F FDE', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-FDE.png', 'https://czfirearms.com/pistols/p09-fde', true),
-('CZ-P09-C-FDE', 'CZ P09 C FDE', '9MM', 12, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-FDE.webp', 'https://czfirearms.com/pistols/p09-fde', true),
-('CZ-P09-F-OD-VERDE', 'CZ P09 F OD Verde', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-OD-Verde.webp', 'https://czfirearms.com/pistols/p09-od-verde', true),
-('CZ-P09-C-FRANCOTIRADOR-GRIS', 'CZ P09 C Francotirador Gris', '9MM', 12, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-Francotirador-Gris.webp', 'https://czfirearms.com/pistols/p09-francotirador', true),
+('CZ-P09-C-NOCTURNE', 'CZ P09 C NOCTURNE', 'CZ', '2 (DOS)', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
+('CZ-P09-F-NOCTURNE', 'CZ P09 F NOCTURNE', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-F-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
+('CZ-P09-F-FDE', 'CZ P09 F FDE', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-FDE.png', 'https://czfirearms.com/pistols/p09-fde', true),
+('CZ-P09-C-FDE', 'CZ P09 C FDE', 'CZ', '2 (DOS)', '9MM', 12, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-FDE.webp', 'https://czfirearms.com/pistols/p09-fde', true),
+('CZ-P09-F-OD-VERDE', 'CZ P09 F OD Verde', 'CZ', '2 (DOS)', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-OD-Verde.webp', 'https://czfirearms.com/pistols/p09-od-verde', true),
+('CZ-P09-C-FRANCOTIRADOR-GRIS', 'CZ P09 C Francotirador Gris', 'CZ', '2 (DOS)', '9MM', 12, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-Francotirador-Gris.webp', 'https://czfirearms.com/pistols/p09-francotirador', true),
 
 -- Pistolas CZ P10 (basadas en archivos reales)
-('CZ-P10-M', 'CZ P10 M', '9MM', 7, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-M.webp', 'https://czfirearms.com/pistols/p10-m', true),
-('CZ-P10-C', 'CZ P10 C', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true),
-('CZ-P10-C-OR', 'CZ P10 C OR', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true),
-('CZ-P10-C-FDE-OR', 'CZ P10 C FDE OR', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-FDE-OR.png', 'https://czfirearms.com/pistols/p10-c-fde-or', true),
-('CZ-P10-F', 'CZ P10 F', '9MM', 19, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true),
-('CZ-P10-F-OR', 'CZ P10 F OR', '9MM', 19, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true),
-('CZ-P10-F-MIRAS-TRITIO', 'CZ P10 F Miras Tritio', '9MM', 19, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true),
-('CZ-P10-S', 'CZ P10 S', '9MM', 12, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true),
-('CZ-P10-S-OR', 'CZ P10 S OR', '9MM', 12, 1150.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P-10-S-OR.png', 'https://czfirearms.com/pistols/p10-s-or', true),
-('P10-C-OR-PORTADO', 'P10 C OR Portado', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-C-OR-Portado.png', 'https://czfirearms.com/pistols/p10-c-or-portado', true),
+('CZ-P10-M', 'CZ P10 M', 'CZ', '2 (DOS)', '9MM', 7, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-M.webp', 'https://czfirearms.com/pistols/p10-m', true),
+('CZ-P10-C', 'CZ P10 C', 'CZ', '2 (DOS)', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true),
+('CZ-P10-C-OR', 'CZ P10 C OR', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true),
+('CZ-P10-C-FDE-OR', 'CZ P10 C FDE OR', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-FDE-OR.png', 'https://czfirearms.com/pistols/p10-c-fde-or', true),
+('CZ-P10-F', 'CZ P10 F', 'CZ', '2 (DOS)', '9MM', 19, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true),
+('CZ-P10-F-OR', 'CZ P10 F OR', 'CZ', '2 (DOS)', '9MM', 19, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true),
+('CZ-P10-F-MIRAS-TRITIO', 'CZ P10 F Miras Tritio', 'CZ', '2 (DOS)', '9MM', 19, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true),
+('CZ-P10-S', 'CZ P10 S', 'CZ', '2 (DOS)', '9MM', 12, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true),
+('CZ-P10-S-OR', 'CZ P10 S OR', 'CZ', '2 (DOS)', '9MM', 12, 1150.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P-10-S-OR.png', 'https://czfirearms.com/pistols/p10-s-or', true),
+('P10-C-OR-PORTADO', 'P10 C OR Portado', 'CZ', '2 (DOS)', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-C-OR-Portado.png', 'https://czfirearms.com/pistols/p10-c-or-portado', true),
 
 -- Pistolas CZ SHADOW 2 (basadas en archivos reales)
-('CZ-SHADOW-2', 'CZ SHADOW 2', '9MM', 19, 1500.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2.png', 'https://czfirearms.com/pistols/shadow-2', true),
-('CZ-SHADOW-2-URBAN-GREY', 'CZ SHADOW 2 URBAN GREY', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-URBAN-GREY.png', 'https://czfirearms.com/pistols/shadow-2-urban', true),
-('CZ-SHADOW-2-COMPACT-OR', 'CZ SHADOW 2 COMPACT OR', '9MM', 16, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true),
-('CZ-SHADOW-2-ORANGE-OR', 'CZ SHADOW 2 ORANGE OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-ORANGE-OR.png', 'https://czfirearms.com/pistols/shadow-2-orange-or', true),
-('CZ-SHADOW-2-TARGET-5', 'CZ SHADOW 2 TARGET 5', '9MM', 19, 1650.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-5.png', 'https://czfirearms.com/pistols/shadow-2-target-5', true),
-('CZ-SHADOW-2-TARGET-6', 'CZ SHADOW 2 TARGET 6', '9MM', 19, 1700.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-6.png', 'https://czfirearms.com/pistols/shadow-2-target-6', true),
-('CZ-SHADOW-2-SA', 'CZ SHADOW 2 SA', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-SA.png', 'https://czfirearms.com/pistols/shadow-2-sa', true),
+('CZ-SHADOW-2', 'CZ SHADOW 2', 'CZ', '2 (DOS)', '9MM', 19, 1500.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2.png', 'https://czfirearms.com/pistols/shadow-2', true),
+('CZ-SHADOW-2-URBAN-GREY', 'CZ SHADOW 2 URBAN GREY', 'CZ', '2 (DOS)', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-URBAN-GREY.png', 'https://czfirearms.com/pistols/shadow-2-urban', true),
+('CZ-SHADOW-2-COMPACT-OR', 'CZ SHADOW 2 COMPACT OR', 'CZ', '2 (DOS)', '9MM', 16, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true),
+('CZ-SHADOW-2-ORANGE-OR', 'CZ SHADOW 2 ORANGE OR', 'CZ', '2 (DOS)', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-ORANGE-OR.png', 'https://czfirearms.com/pistols/shadow-2-orange-or', true),
+('CZ-SHADOW-2-TARGET-5', 'CZ SHADOW 2 TARGET 5', 'CZ', '2 (DOS)', '9MM', 19, 1650.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-5.png', 'https://czfirearms.com/pistols/shadow-2-target-5', true),
+('CZ-SHADOW-2-TARGET-6', 'CZ SHADOW 2 TARGET 6', 'CZ', '2 (DOS)', '9MM', 19, 1700.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-6.png', 'https://czfirearms.com/pistols/shadow-2-target-6', true),
+('CZ-SHADOW-2-SA', 'CZ SHADOW 2 SA', 'CZ', '2 (DOS)', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-SA.png', 'https://czfirearms.com/pistols/shadow-2-sa', true),
 
 -- Pistolas CZ 75 (basadas en archivos reales)
-('CZ-75-B', 'CZ 75 B', '9MM', 16, 1400.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-B.jpg', 'https://czfirearms.com/pistols/75-b', true),
-('CZ-75-COMPACT', 'CZ 75 COMPACT', '9MM', 14, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-COMPACT.jpg', 'https://czfirearms.com/pistols/75-compact', true),
-('CZ-75-SP-01-SHADOW', 'CZ 75 SP-01 SHADOW', '9MM', 18, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-SP-01-SHADOW.jpg', 'https://czfirearms.com/pistols/75-sp-01-shadow', true),
+('CZ-75-B', 'CZ 75 B', 'CZ', '2 (DOS)', '9MM', 16, 1400.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-B.jpg', 'https://czfirearms.com/pistols/75-b', true),
+('CZ-75-COMPACT', 'CZ 75 COMPACT', 'CZ', '2 (DOS)', '9MM', 14, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-COMPACT.jpg', 'https://czfirearms.com/pistols/75-compact', true),
+('CZ-75-SP-01-SHADOW', 'CZ 75 SP-01 SHADOW', 'CZ', '2 (DOS)', '9MM', 18, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-SP-01-SHADOW.jpg', 'https://czfirearms.com/pistols/75-sp-01-shadow', true),
 
 -- Pistolas CZ TS2 (basadas en archivos reales)
-('CZ-TS2', 'CZ TS2', '9MM', 20, 1800.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2.png', 'https://czfirearms.com/pistols/ts2', true),
-('CZ-TS2-RACING-GREEN', 'CZ TS2 RACING GREEN', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2-RACING-GREEN.png', 'https://czfirearms.com/pistols/ts2-racing-green', true),
-('CZ-TS-2-ORANGE-BULL', 'CZ TS-2 ORANGE BULL', '9MM', 20, 1900.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-ORANGE-BULL.png', 'https://czfirearms.com/pistols/ts-2-orange-bull', true),
-('CZ-TS-2-BRONZE', 'CZ TS-2 BRONZE', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-BRONZE.png', 'https://czfirearms.com/pistols/ts-2-bronze', true)
+('CZ-TS2', 'CZ TS2', 'CZ', '2 (DOS)', '9MM', 20, 1800.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2.png', 'https://czfirearms.com/pistols/ts2', true),
+('CZ-TS2-RACING-GREEN', 'CZ TS2 RACING GREEN', 'CZ', '2 (DOS)', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2-RACING-GREEN.png', 'https://czfirearms.com/pistols/ts2-racing-green', true),
+('CZ-TS-2-ORANGE-BULL', 'CZ TS-2 ORANGE BULL', 'CZ', '2 (DOS)', '9MM', 20, 1900.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-ORANGE-BULL.png', 'https://czfirearms.com/pistols/ts-2-orange-bull', true),
+('CZ-TS-2-BRONZE', 'CZ TS-2 BRONZE', 'CZ', '2 (DOS)', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-BRONZE.png', 'https://czfirearms.com/pistols/ts-2-bronze', true)
 ON CONFLICT (codigo) DO NOTHING;
-
--- =====================================================
--- ARMAS DEL PLAN PILOTO EXPOFERIA 2025
--- =====================================================
--- Insertar armas espec�ficas del plan piloto con campo expoferia
-INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado, expoferia) VALUES
--- Arm as CZ P-10 Serie (Plan Piloto)
-('CZ-P10-C-PLAN-PILOTO', 'CZ P-10 C', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true, true),
-('CZ-P10-SC-PLAN-PILOTO', 'CZ P-10 SC', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC.png', 'https://czfirearms.com/pistols/p10-sc', true, true),
-('CZ-P10-SC-FDE-PLAN-PILOTO', 'CZ P-10 SC FDE', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-FDE.png', 'https://czfirearms.com/pistols/p10-sc-fde', true, true),
-('CZ-P10-SC-URBAN-PLAN-PILOTO', 'CZ P-10 SC URBAN', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-URBAN.png', 'https://czfirearms.com/pistols/p10-sc-urban', true, true),
-('CZ-P10-F-PLAN-PILOTO', 'CZ P-10 F', '9MM', 19, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true, true),
-('CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO', 'CZ P-10 F MIRAS TRITIUM', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true, true),
-('CZ-P10-F-FDE-PLAN-PILOTO', 'CZ P-10 F FDE', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-FDE.png', 'https://czfirearms.com/pistols/p10-f-fde', true, true),
-('CZ-P10-S-PLAN-PILOTO', 'CZ P-10 S', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true, true),
-('CZ-P10-C-OR-PLAN-PILOTO', 'CZ P-10 C OR', '9MM', 15, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true, true),
-('CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO', 'CZ P-10 C OR FDE CERAKOTE', '9MM', 15, 1620.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR-FDE-CERAKOTE.png', 'https://czfirearms.com/pistols/p10-c-or-fde', true, true),
-('CZ-P10-F-OR-PLAN-PILOTO', 'CZ P-10 F OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true, true),
-
--- Arm as CZ P-09 Serie (Plan Piloto)
-('CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO', 'CZ P-09 F Nocturne FDE', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-FDE.png', 'https://czfirearms.com/pistols/p09-nocturne-fde', true, true),
-('CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO', 'CZ P-09 F Nocturne OD Green', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-OD-Verde.png', 'https://czfirearms.com/pistols/p09-nocturne-od', true, true),
-('CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO', 'CZ P-09 C NOCTURNE SNIPER GREY', '9MM', 12, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-NOCTURNE-Sniper-Gris.png', 'https://czfirearms.com/pistols/p09-nocturne-sniper', true, true),
-('CZ-P09-C-NOCTURNE-PLAN-PILOTO', 'CZ P-09 C NOCTURNE', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true, true),
-
--- Arm as CZ SHADOW 2 Serie (Plan Piloto)
-('CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO', 'CZ Shadow 2 Compact OR', '9MM', 16, 2600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true, true),
-('CZ-SHADOW-2-CARRY-PLAN-PILOTO', 'CZ Shadow 2 Carry', '9MM', 16, 2670.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-CARRY.png', 'https://czfirearms.com/pistols/shadow-2-carry', true, true)
-ON CONFLICT (codigo) DO NOTHING;
-
--- Insertar stock para las armas del plan piloto
-INSERT INTO arma_stock (arma_id, cantidad_total, cantidad_disponible, precio_venta, activo) VALUES
--- CZ P-10 Serie
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 125, 125, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 20, 20, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 30, 30, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 33, 33, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 57, 57, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 20, 20, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 73, 73, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 5, 5, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 5, 5, 1600.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 10, 10, 1620.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 5, 5, 1600.00, true),
-
--- CZ P-09 Serie
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 20, 20, 1450.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 30, 30, 1450.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 20, 20, 1450.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 27, 27, 1380.00, true),
-
--- CZ SHADOW 2 Serie
-((SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 10, 10, 2600.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 10, 10, 2670.00, true)
-ON CONFLICT (arma_id) DO NOTHING;
 
 -- Insertar preguntas para clientes civiles
 -- Insertar preguntas evitando duplicados con WHERE NOT EXISTS
@@ -1070,33 +1020,32 @@ INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_c
 ('LIC006', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
--- Insertar configuraci�n del sistema
+-- Insertar configuraci?n del sistema
 INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ('EMAIL_NOTIFICACIONES', 'gmarm.notificacion@gmail.com', 'Email para enviar notificaciones', true),
--- Configuraci�n SMTP para envío de emails
+-- Configuraci?n SMTP para envío de emails
 ('SMTP_HOST', 'smtp.gmail.com', 'Servidor SMTP para envío de emails', true),
 ('SMTP_PORT', '587', 'Puerto del servidor SMTP (587=TLS, 465=SSL)', true),
 ('SMTP_USERNAME', 'gmarm.notificacion@gmail.com', 'Usuario SMTP (email de la cuenta)', true),
 ('SMTP_PASSWORD', 'vxdacadmloeecjiz', 'Contraseña de aplicación SMTP (NO la Contraseña normal)', true),
 ('SMTP_AUTH', 'true', 'Requiere autenticación SMTP (true/false)', true),
 ('SMTP_STARTTLS', 'true', 'Habilitar STARTTLS (true/false)', true),
--- Correos que reciben copia de recibos de pago (adem�s del cliente)
+-- Correos que reciben copia de recibos de pago (adem?s del cliente)
 -- Formato: JSON array de strings, ej: ["email1@example.com", "email2@example.com"]
--- Tambi�n acepta separado por comas: "email1@example.com, email2@example.com"
-('CORREOS_RECIBO', '["joseluis@guerreromartinez.com", "valeria@gmarm.com"]', 'Lista de correos electróúnicos que reciben copia automÃ¡tica de los recibos de pago. Se envÃ­o�a adem�s del correo del cliente. Formato: JSON array o separado por comas. Ejemplo: ["email1@example.com", "email2@example.com"] o "email1@example.com, email2@example.com"', true),
+-- Tambi?n acepta separado por comas: "email1@example.com, email2@example.com"
+('CORREOS_RECIBO', '["joseluis@guerreromartinez.com", "valeria@gmarm.com"]', 'Lista de correos electrónicos que reciben copia automática de los recibos de pago. Se envía además del correo del cliente. Formato: JSON array o separado por comas. Ejemplo: ["email1@example.com", "email2@example.com"] o "email1@example.com, email2@example.com"', true),
 ('DIAS_VALIDEZ_DOCUMENTOS', '30', 'días de validez para documentos subidos', true),
 ('PORCENTAJE_ANTICIPO', '40', 'Porcentaje de anticipo requerido', true),
 ('IVA', '15', 'Porcentaje de IVA aplicable', true),
 ('EDAD_MINIMA_CLIENTE', '25', 'Edad mínima para clientes', true),
 ('MAX_INTENTOS_LOGIN', '3', 'máximo intentos de login antes de bloquear', true),
 ('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago válidos en el sistema', true),
-('MAX_CUOTAS_PERMITIDAS', '6', 'máximo Número de cuotas permitidas', true),
+('MAX_CUOTAS_PERMITIDAS', '6', 'máximo número de cuotas permitidas', true),
 ('MIN_MONTO_CUOTA', '100.00', 'Monto minimo por cuota', true),
-('EXPOFERIA_ACTIVA', 'false', 'Indica si la expoferia está activa y se deben mostrar solo armas de expoferia', true),
--- ('EXPOFERIA_NOMBRE', 'EXPOFERIA_2025', 'Nombre de la expoferia actual', true), -- Eliminado: no es necesario
+-- Configuración de EXPOFERIA eliminada - ya no se usa en el sistema
 ('COORDINADOR_NOMBRE', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar', true),
 ('COORDINADOR_CARGO', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar', true),
-('COORDINADOR_DIRECCION', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Direcci�n/cargo del coordinador militar', true),
+('COORDINADOR_DIRECCION', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección cargo del coordinador militar', true),
 -- Cupos por defecto de licencias de importación (valores constantes)
 ('CUPO_DEFAULT_CIVIL', '25', 'Cupo por defecto para clientes civiles en licencias de importación', false),
 ('CUPO_DEFAULT_MILITAR', '1000', 'Cupo por defecto para clientes uniformados (militares) en licencias de importación', false),
@@ -1105,32 +1054,32 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================
--- 4. inserción DE DATOS DE LOCALIZACIÓN
+-- 4. inserción DE DATOS DE LOCALIZACión
 -- =====================================================
 
 -- =====================================================
--- SISTEMA DE PAGOS - EXPLICACIѓN
+-- SISTEMA DE PAGOS - EXPLICACI?N
 -- =====================================================
 -- El sistema de pagos funciona de la siguiente manera:
 -- 
 -- 1. TABLA 'pago': Resumen del plan de pago del cliente
---    - monto_total: CuÃ¡nto debe pagar en total
+--    - monto_total: Cuánto debe pagar en total
 --    - tipo_pago: 'CONTADO' o 'CUOTAS'
---    - numero_cuotas: Cu�ntas cuotas tiene (1 para contado)
+--    - numero_cuotas: Cu?ntas cuotas tiene (1 para contado)
 --    - monto_cuota: Monto de cada cuota
---    - monto_pagado: CuÃ¡nto ya pag�
---    - monto_pendiente: CuÃ¡nto le falta (calculado automÃ¡ticamente)
---    - cuota_actual: En qu� cuota va el cliente
+--    - monto_pagado: Cuánto ya pag?
+--    - monto_pendiente: Cuánto le falta (calculado automáticamente)
+--    - cuota_actual: En qu? cuota va el cliente
 -- 
 -- 2. TABLA 'cuota_pago': Detalle de cada cuota individual
 --    - pago_id: Referencia al plan de pago
---    - numero_cuota: Número de la cuota (1, 2, 3, 4, 5, 6)
---    - monto: Monto espec�fico de esta cuota
---    - fecha_vencimiento: Cu�ndo vence
+--    - numero_cuota: número de la cuota (1, 2, 3, 4, 5, 6)
+--    - monto: Monto espec?fico de esta cuota
+--    - fecha_vencimiento: Cu?ndo vence
 --    - estado: 'PENDIENTE', 'PAGADA', 'VENCIDA'
---    - fecha_pago: Cu�ndo se pag� (NULL si no se ha pagado)
+--    - fecha_pago: Cu?ndo se pag? (NULL si no se ha pagado)
 --    - referencia_pago: Referencia del pago (transferencia, etc.)
---    - usuario_confirmador_id: Qui�n confirm� el pago
+--    - usuario_confirmador_id: Qui?n confirm? el pago
 -- 
 -- EJEMPLO DE USO:
 -- Cliente compra arma por $1200 en 3 cuotas:
@@ -1140,7 +1089,7 @@ ON CONFLICT (clave) DO NOTHING;
 -- =====================================================
 
 -- =====================================================
--- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACIѓN
+-- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACI?N
 -- =====================================================
 -- El sistema de cupos funciona de la siguiente manera:
 -- 
@@ -1153,10 +1102,10 @@ ON CONFLICT (clave) DO NOTHING;
 --    - estado_ocupacion: 'DISPONIBLE' o 'BLOQUEADA'
 -- 
 -- 2. TABLA 'grupo_importacion_cupo': Controla el consumo de cupos por grupo
---    - licencia_id: Qu� licencia se esté� usando
---    - tipo_cliente: Para qu� tipo de cliente se consume
---    - cupo_consumido: CuÃ¡nto consume este grupo espec�fico
---    - cupo_disponible_licencia: CuÃ¡nto queda disponible en la licencia
+--    - licencia_id: Qu? licencia se est�? usando
+--    - tipo_cliente: Para qu? tipo de cliente se consume
+--    - cupo_consumido: Cuánto consume este grupo espec?fico
+--    - cupo_disponible_licencia: Cuánto queda disponible en la licencia
 -- 
 -- FLUJO DE TRABAJO:
 -- 1. Se crea un grupo de importación
@@ -1196,7 +1145,7 @@ INSERT INTO provincia (nombre, codigo, estado) VALUES
 ('Pastaza', 'PAS', true),
 ('Pichincha', 'PIC', true),
 ('Santa Elena', 'SEL', true),
-('Santo Domingo de los Ts�chilas', 'SDT', true),
+('Santo Domingo de los Ts?chilas', 'SDT', true),
 ('Sucumbíos', 'SUC', true),
 ('Tungurahua', 'TUN', true),
 ('Zamora Chinchipe', 'ZCH', true)
@@ -1221,7 +1170,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Camilo Ponce Enriquez', 'CPEN', true, (SELECT id FROM provincia WHERE codigo = 'AZU'))
 ON CONFLICT DO NOTHING;
 
--- BOLэVAR
+-- BOL?VAR
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Guaranda', 'GUAR', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('Chillanes', 'CHIL', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
@@ -1232,7 +1181,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Las Naves', 'LNAV', true, (SELECT id FROM provincia WHERE codigo = 'BOL'))
 ON CONFLICT DO NOTHING;
 
--- CAёAR
+-- CA?AR
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Azogues', 'AZOG', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('Cañar', 'CAN', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
@@ -1361,7 +1310,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Celica', 'CELI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Chaguarpamba', 'CHAG', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Espíndola', 'ESPI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
-('Gonzanamá', 'GONZ', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
+('Gonzanamí', 'GONZ', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Macará', 'MACA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Paltas', 'PALT', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Puyango', 'PUYA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
@@ -1373,7 +1322,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Olmedo', 'OLME', true, (SELECT id FROM provincia WHERE codigo = 'LOJ'))
 ON CONFLICT DO NOTHING;
 
--- LOS RэOS
+-- LOS R?OS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Babahoyo', 'BABA', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Baba', 'BAB', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
@@ -1390,7 +1339,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Quinsaloma', 'QUIN', true, (SELECT id FROM provincia WHERE codigo = 'LRI'))
 ON CONFLICT DO NOTHING;
 
--- MANABэ
+-- MANAB?
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Portoviejo', 'PORTO', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Bolívar', 'BOLI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
@@ -1476,13 +1425,13 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Salinas', 'SALI', true, (SELECT id FROM provincia WHERE codigo = 'SEL'))
 ON CONFLICT DO NOTHING;
 
--- SANTO DOMINGO DE LOS TSсCHILAS
+-- SANTO DOMINGO DE LOS TS?CHILAS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Santo Domingo', 'SDOM', true, (SELECT id FROM provincia WHERE codigo = 'SDT')),
 ('La Concordia', 'LCON', true, (SELECT id FROM provincia WHERE codigo = 'SDT'))
 ON CONFLICT DO NOTHING;
 
--- SUCUMBэOS
+-- SUCUMB?OS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Nueva Loja', 'NLOJ', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
 ('Cascales', 'CASC', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
@@ -1548,7 +1497,7 @@ ON CONFLICT (usuario_id, rol_id) DO NOTHING;
 
 
 -- =====================================================
--- 5.5. MIGRACIѓN DE imÃ¡genes (url_imagen → arma_imagen)
+-- 5.5. MIGRACI?N DE imágenes (url_imagen ? arma_imagen)
 -- =====================================================
 
 -- Migrar todas las url_imagen existentes a la tabla arma_imagen
@@ -1591,7 +1540,7 @@ WHERE NOT EXISTS (
 -- =====================================================
 
 -- Mostrar resumen de lo creado
-SELECT '=== RESUMEN DE INSTALACIѓN ===' as info;
+SELECT '=== RESUMEN DE INSTALACI?N ===' as info;
 SELECT 'Usuarios creados:' as info, COUNT(*) as total FROM usuario;
 SELECT 'Roles creados:' as info, COUNT(*) as total FROM rol;
 SELECT 'Tipos de cliente:' as info, COUNT(*) as total FROM tipo_cliente;
@@ -1610,19 +1559,19 @@ SELECT 'Jefe Ventas:' as usuario, 'jefe@test.com / admin123' as credenciales;
 SELECT 'Finanzas:' as usuario, 'finanzas@test.com / admin123' as credenciales;
 SELECT 'Operaciones:' as usuario, 'operaciones@test.com / admin123' as credenciales;
 
-SELECT '=== INSTALACIѓN COMPLETADA ===' as info;
+SELECT '=== INSTALACI?N COMPLETADA ===' as info;
 SELECT 'La base de datos está lista para usar con el frontend.' as mensaje;
 
 -- ========================================
 -- DATOS ADICIONALES PARA DESARROLLO
 -- ========================================
--- Agregados automÃ¡ticamente para tener un ambiente de desarrollo completo
+-- Agregados automáticamente para tener un ambiente de desarrollo completo
 
 -- ========================================
--- VENDEDORES PILOTO
+-- VENDEDORES
 -- ========================================
 
--- 1. Karolina Pazmi�o
+-- 1. Karolina Pazmi?o
 INSERT INTO usuario (
     bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, 
     username, apellidos, email, nombres, direccion, password_hash
@@ -1644,7 +1593,7 @@ INSERT INTO usuario (
 ) ON CONFLICT (email) DO UPDATE SET 
     nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
 
--- Asignar rol VENDOR a vendedores piloto
+-- Asignar rol VENDOR a vendedores
 INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
 SELECT u.id, r.id, true, NOW()
 FROM usuario u
@@ -1683,7 +1632,7 @@ WHERE u.email = 'franklin.endara@hotmail.com' AND r.codigo IN ('FINANCE', 'SALES
 ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
 
 -- ========================================
--- migración DE imÃ¡genes A TABLA arma_imagen
+-- migración DE imágenes A TABLA arma_imagen
 -- ========================================
 
 -- Migrar url_imagen existentes a arma_imagen como imagen principal
@@ -1722,515 +1671,8 @@ LEFT JOIN rol r ON ur.rol_id = r.id
 GROUP BY u.id, u.nombres, u.apellidos, u.email
 ORDER BY u.id;
 
--- Mostrar estad�sticas
+-- Mostrar estad?sticas
 SELECT 'Total de usuarios:' as info, COUNT(*) as total FROM usuario;
--- ========================================
--- SERIES DE ARMAS (500 PLAN PILOTO)
--- ========================================
-INSERT INTO arma_serie (numero_serie, arma_id, estado, observaciones) VALUES
-('D286252', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('D286254', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197001', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197002', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197003', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197004', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197005', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197006', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197007', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197008', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197009', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197010', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197011', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197012', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197013', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197014', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197015', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197016', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197017', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197018', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197019', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G197020', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198218', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198219', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198221', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198222', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198223', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198225', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198226', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198227', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198228', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198229', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198230', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198231', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198234', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198235', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G198237', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296668', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296669', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296670', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296671', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296672', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296673', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296674', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296675', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296676', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296677', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296696', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296718', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296719', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296721', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296722', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296723', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296724', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296725', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296726', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G296727', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307046', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307047', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307048', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307049', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307050', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307051', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307052', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307053', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307054', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307055', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307056', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307057', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307058', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307059', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307060', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307061', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307062', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307063', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307064', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307065', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307066', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307067', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307070', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307071', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('G307075', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H275347', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320142', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320143', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320144', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320145', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320146', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320147', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320148', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320149', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320150', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320151', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320152', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320153', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320154', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320155', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320156', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320157', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320158', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320159', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320160', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('H320161', (SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ01654', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ01727', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ01814', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ01831', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ01908', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02016', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02020', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02022', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02042', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02044', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02048', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02071', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02074', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02146', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02183', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02234', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02259', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02265', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02268', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02296', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02310', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02352', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02400', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02416', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02505', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02519', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02526', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02530', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02534', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02537', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02545', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02554', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02558', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02568', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02579', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02581', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02587', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02589', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02601', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02602', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02624', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02625', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02646', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02648', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02739', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02801', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02808', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02810', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02814', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02819', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02832', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02834', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02842', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02861', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02886', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02887', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02895', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02900', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02901', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02905', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02906', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02910', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02915', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02919', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02922', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02925', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02933', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02934', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02940', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02954', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02956', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02959', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ02969', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ03080', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ03480', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ03521', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ03523', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ03608', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ04020', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ04709', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ04875', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ04891', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ04908', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05011', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05020', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05029', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05056', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05082', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05117', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05177', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05194', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05207', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05256', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05272', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05277', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05333', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05347', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05349', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05354', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05362', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05382', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05398', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05447', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05482', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05499', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05522', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05748', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05752', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05759', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05772', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05778', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05796', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05799', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05863', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05888', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05905', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05918', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05921', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05922', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05926', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05927', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05928', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05934', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05940', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('HJ05942', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116904', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116905', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116906', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116907', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116909', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116913', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116925', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116927', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116928', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116929', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116930', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116931', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116934', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116935', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116936', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116937', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116938', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116939', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116950', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116951', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116953', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116955', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116956', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116957', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116958', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116959', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116964', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116966', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116967', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K116969', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119966', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119967', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119968', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119969', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119973', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119974', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119975', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119976', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119977', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119978', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119985', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119987', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119988', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119989', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119990', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119992', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119993', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K119994', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120009', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120014', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120088', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120089', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120091', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120092', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120094', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120095', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120096', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120097', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120098', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120111', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120112', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120113', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120114', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120115', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120116', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120117', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120118', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120119', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K120120', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K127255', (SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140284', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140294', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140295', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140296', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140297', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140401', (SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140439', (SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140446', (SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140447', (SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K140630', (SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152510', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152512', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152513', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152514', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152521', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152522', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152523', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152525', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152534', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152536', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152537', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152538', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152539', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152540', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152543', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152544', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152545', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152546', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152547', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152548', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152549', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152550', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152551', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152552', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152553', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152555', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152560', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152561', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152564', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152566', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152567', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152568', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152569', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152570', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152571', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152572', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152573', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152574', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152575', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152577', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152583', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152584', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152585', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152586', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152587', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152588', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152589', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152592', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152593', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152594', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152595', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152596', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152601', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152603', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152604', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152605', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152606', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152607', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152608', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152610', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K152771', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154620', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154621', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154622', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154623', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154624', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154625', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154626', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154627', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154628', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154629', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154630', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K154631', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155141', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155142', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155143', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155144', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155145', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155146', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155147', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155148', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155150', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K155154', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166451', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166454', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166456', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166457', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166460', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166470', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166471', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166472', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166473', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166480', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166481', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166482', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166483', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166484', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166485', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166486', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166487', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166488', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166489', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166491', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166492', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166495', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166498', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166499', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166500', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166501', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166502', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166503', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166504', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166505', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166506', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166507', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166508', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166509', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166510', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166511', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166512', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166513', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166514', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166515', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166517', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166523', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166524', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166531', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166532', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166533', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166535', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166540', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166541', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166542', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166543', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166544', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166545', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166546', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166547', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166548', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K166549', (SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184850', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184854', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184937', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184939', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184941', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184942', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184943', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184944', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184948', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184950', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184965', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184966', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184967', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184970', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184971', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184972', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184973', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184974', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184987', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184988', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184990', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184995', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184996', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184997', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184998', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K184999', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K185000', (SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K220720', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K220722', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K220741', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K220744', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K220749', (SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231457', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231459', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231461', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231462', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231464', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231465', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231551', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231552', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231553', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K231554', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233066', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233082', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233085', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233092', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233310', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233311', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233313', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233315', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233328', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras'),
-('K233330', (SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 'DISPONIBLE', '2 alimentadoras')
-
-ON CONFLICT (numero_serie) DO NOTHING;
-
 SELECT 'Total de clientes:' as info, COUNT(*) as total FROM cliente;
 SELECT 'Total de armas:' as info, COUNT(*) as total FROM arma;
 SELECT 'Total de imagenes de armas:' as info, COUNT(*) as total FROM arma_imagen;
@@ -2242,15 +1684,15 @@ HAVING COUNT(*) > 1;
 -- ========================================
 -- RESET DE SECUENCIAS PARA IDs CONTINUOS
 -- ========================================
--- CRITICO: Sin estéo, los IDs saltan después de resets
--- Este bloque asegura que los pr�ximos IDs generados sean consecutivos
+-- CRITICO: Sin est�o, los IDs saltan despu�s de resets
+-- Este bloque asegura que los pr?ximos IDs generados sean consecutivos
 
 SELECT 'Reseteando secuencias de PostgreSQL...' as info;
 
 -- Resetear secuencias principales 
--- El tercer par�metro 'true' asegura que el pr�ximo ID ser� MAX(id) + 1 (continuaci�n)
--- GREATEST asegura que el valor m�nimo sea 1 (PostgreSQL no permite 0 en setval)
--- CR�TICO: Este bloque debe ejecutarse después de insertar todos los datos
+-- El tercer par?metro 'true' asegura que el pr?ximo ID ser? MAX(id) + 1 (continuaci?n)
+-- GREATEST asegura que el valor m?nimo sea 1 (PostgreSQL no permite 0 en setval)
+-- CR?TICO: Este bloque debe ejecutarse despu�s de insertar todos los datos
 
 -- Tablas principales
 SELECT setval('rol_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM rol), 0), 1), true);
@@ -2295,7 +1737,7 @@ SELECT setval('grupo_importacion_limite_categoria_id_seq', GREATEST(COALESCE((SE
 SELECT setval('documento_grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM documento_grupo_importacion), 0), 1), true);
 SELECT setval('documento_generado_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM documento_generado), 0), 1), true);
 
--- Tablas de localizaci�n
+-- Tablas de localizaci?n
 SELECT setval('provincia_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM provincia), 0), 1), true);
 SELECT setval('canton_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM canton), 0), 1), true);
 

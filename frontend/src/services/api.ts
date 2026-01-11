@@ -1464,25 +1464,8 @@ class ApiService {
   }
 
   // ========================================
-  // GESTIÓN DE INVENTARIO Y EXPOFERIA
+  // GESTIÓN DE INVENTARIO
   // ========================================
-
-  // Obtener estado de expoferia
-  async getExpoferiaEstado(): Promise<boolean> {
-    return this.request<boolean>('/api/inventario/expoferia/estado');
-  }
-
-  // Obtener nombre de expoferia
-  async getExpoferiaNombre(): Promise<string> {
-    return this.request<string>('/api/inventario/expoferia/nombre');
-  }
-
-  // Activar/desactivar expoferia
-  async setExpoferiaActiva(activa: boolean): Promise<string> {
-    return this.request<string>(`/api/inventario/expoferia/${activa}`, {
-      method: 'POST'
-    });
-  }
 
   // Obtener armas con stock disponible
   async getArmasConStock(): Promise<any[]> {

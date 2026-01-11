@@ -47,7 +47,9 @@ public class AuthController {
             Usuario usuario;
             try {
                 usuario = usuarioService.findByEmail(email);
+                log.debug("🔍 Usuario encontrado: ID={}, email={}, passwordHash={}", usuario.getId(), usuario.getEmail(), usuario.getPasswordHash() != null ? "***" : "NULL");
             } catch (Exception e) {
+                log.error("🔐 Error buscando usuario por email {}: {}", email, e.getMessage());
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Credenciales inválidas");
                 return ResponseEntity.badRequest().body(errorResponse);
@@ -56,12 +58,21 @@ public class AuthController {
             // Verificar password
             // Por ahora comparación directa, después se puede implementar BCrypt
             boolean passwordMatches;
+            if (usuario.getPasswordHash() == null || usuario.getPasswordHash().isEmpty()) {
+                log.error("🔐 Password hash es null o vacío para usuario: {}", email);
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Credenciales inválidas");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
             if (usuario.getPasswordHash().startsWith("$2a$") || usuario.getPasswordHash().startsWith("$2b$")) {
                 // Password hasheado con BCrypt
                 passwordMatches = passwordEncoder.matches(password, usuario.getPasswordHash());
+                log.debug("🔐 Comparando password BCrypt: matches={}", passwordMatches);
             } else {
                 // Password en texto plano (para compatibilidad temporal)
                 passwordMatches = password.equals(usuario.getPasswordHash());
+                log.debug("🔐 Comparando password texto plano: input={}, stored={}, matches={}", password, usuario.getPasswordHash(), passwordMatches);
             }
 
             if (!passwordMatches) {

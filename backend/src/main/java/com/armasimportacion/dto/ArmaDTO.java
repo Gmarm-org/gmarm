@@ -18,7 +18,9 @@ public class ArmaDTO {
 
     private Long id;
     private String codigo;
-    private String nombre;
+    private String modelo; // Cambiado de nombre a modelo
+    private String marca; // Nuevo campo
+    private String alimentadora; // Nuevo campo
     private String calibre;
     private Integer capacidad;
     private BigDecimal precioReferencia;
@@ -31,7 +33,6 @@ public class ArmaDTO {
     private String urlImagen;
     private String urlProducto;
     private Boolean estado;
-    private Boolean expoferia; // true = es de expoferia, false/null = no es de expoferia
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
     

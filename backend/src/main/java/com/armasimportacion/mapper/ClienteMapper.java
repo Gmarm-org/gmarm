@@ -70,8 +70,11 @@ public class ClienteMapper {
                 .respuestas(null)
                 .build();
         
-        // Establecer el código ISSFA usando el setter
+        // Establecer el código ISSFA (para militares) usando el setter
         dto.setCodigoIssfa(cliente.getCodigoIssfa());
+        
+        // Establecer el código ISSPOL (para policías) usando el setter
+        dto.setCodigoIsspol(cliente.getCodigoIsspol());
         
         // Establecer el rango usando el setter
         dto.setRango(cliente.getRango());

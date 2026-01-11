@@ -13,6 +13,7 @@ interface ClientPersonalDataSectionProps {
   getNombreProvincia: (codigo: string) => string;
   isUniformadoByType: boolean;
   isMilitaryType: boolean;
+  isPoliceType: boolean; // Nuevo prop para policías
   getBorderColor: (field: string, value: string) => string;
 }
 
@@ -27,6 +28,7 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
   getNombreProvincia,
   isUniformadoByType,
   isMilitaryType,
+  isPoliceType, // Nuevo prop para policías
   getBorderColor
 }) => {
   // Cálculos de edad
@@ -386,7 +388,7 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
             ) : (
               <input
                 type="text"
-                value={formData.codigoIssfa}
+                value={formData.codigoIssfa || ''}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                   handleInputChange('codigoIssfa', value);
@@ -396,6 +398,34 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
                 maxLength={10}
                 pattern="\d{10}"
                 className={`w-full px-4 py-3 border-2 ${getBorderColor('codigoIssfa', formData.codigoIssfa || '')} rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200`}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Código ISSPOL - Solo para tipos policía */}
+        {isPoliceType && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Código ISSPOL {formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO' ? '*' : ''}
+            </label>
+            {mode === 'view' ? (
+              <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
+                {formData.codigoIsspol || 'No especificado'}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={formData.codigoIsspol || ''}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  handleInputChange('codigoIsspol', value);
+                }}
+                placeholder="Ingrese código ISSPOL de 10 dígitos"
+                required={formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO'}
+                maxLength={10}
+                pattern="\d{10}"
+                className={`w-full px-4 py-3 border-2 ${getBorderColor('codigoIsspol', formData.codigoIsspol || '')} rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200`}
               />
             )}
           </div>

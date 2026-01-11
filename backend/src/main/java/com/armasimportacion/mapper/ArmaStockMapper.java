@@ -33,7 +33,10 @@ public class ArmaStockMapper {
         
         return ArmaStockDTO.builder()
             .armaId(armaStock.getArma().getId())
-            .armaNombre(armaStock.getArma().getNombre())
+            .armaNombre(armaStock.getModelo() != null ? armaStock.getModelo() : armaStock.getArma().getModelo()) // Usar campo denormalizado si existe
+            .armaModelo(armaStock.getModelo() != null ? armaStock.getModelo() : armaStock.getArma().getModelo()) // Nuevo campo
+            .armaMarca(armaStock.getMarca() != null ? armaStock.getMarca() : armaStock.getArma().getMarca()) // Nuevo campo
+            .armaAlimentadora(armaStock.getAlimentadora() != null ? armaStock.getAlimentadora() : armaStock.getArma().getAlimentadora()) // Nuevo campo
             .armaCodigo(armaStock.getArma().getCodigo())
             .armaCalibre(armaStock.getArma().getCalibre())
             .cantidadTotal(armaStock.getCantidadTotal())

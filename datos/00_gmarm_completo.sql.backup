@@ -13,7 +13,15 @@ SET client_encoding = 'UTF8';
 -- (Esto asegura que los caracteres se muestren correctamente)
 
 -- =====================================================
--- 1. CREACIÓN DE TABLAS (si no existen)
+-- 0. LIMPIEZA DE TABLAS OBSOLETAS (si existen)
+-- =====================================================
+-- Eliminar tablas que ya no se usan (de migraciones anteriores)
+
+DROP TABLE IF EXISTS tipo_cliente_tipo_importacion CASCADE;
+DROP TABLE IF EXISTS tipo_cliente_importacion CASCADE;
+
+-- =====================================================
+-- 1. CREACión DE TABLAS (si no existen)
 -- =====================================================
 
 -- Tabla de roles
@@ -40,7 +48,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     telefono_secundario VARCHAR(20),
     direccion TEXT,
     foto VARCHAR(255),
-    estado VARCHAR(20) DEFAULT 'ACTIVO',
+    estado BOOLEAN DEFAULT true, -- true = ACTIVO, false = INACTIVO
     bloqueado BOOLEAN DEFAULT false,
     intentos_login INTEGER DEFAULT 0,
     ultimo_intento TIMESTAMP,
@@ -99,9 +107,16 @@ CREATE TABLE IF NOT EXISTS tipo_proceso (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Agregar constraint de foreign key después de crear tipo_proceso
-ALTER TABLE tipo_cliente ADD CONSTRAINT fk_tipo_cliente_tipo_proceso 
-    FOREIGN KEY (tipo_proceso_id) REFERENCES tipo_proceso(id);
+-- Agregar constraint de foreign key después de crear tipo_proceso (si no existe)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_tipo_cliente_tipo_proceso'
+    ) THEN
+        ALTER TABLE tipo_cliente ADD CONSTRAINT fk_tipo_cliente_tipo_proceso 
+            FOREIGN KEY (tipo_proceso_id) REFERENCES tipo_proceso(id);
+    END IF;
+END $$;
 
 -- Tabla de tipos de importación
 CREATE TABLE IF NOT EXISTS tipo_importacion (
@@ -116,6 +131,7 @@ CREATE TABLE IF NOT EXISTS tipo_importacion (
 );
 
 -- Tabla de relación tipo_cliente-importacion
+-- NOTA: Esta tabla es necesaria para la relación @ManyToMany en TipoCliente.java
 CREATE TABLE IF NOT EXISTS tipo_cliente_importacion (
     id BIGSERIAL PRIMARY KEY,
     tipo_cliente_id BIGINT NOT NULL REFERENCES tipo_cliente(id),
@@ -126,7 +142,7 @@ CREATE TABLE IF NOT EXISTS tipo_cliente_importacion (
 -- Tabla de clientes
 CREATE TABLE IF NOT EXISTS cliente (
     id BIGSERIAL PRIMARY KEY,
-    numero_identificacion VARCHAR(20) NOT NULL UNIQUE,
+    numero_identificacion VARCHAR(50) NOT NULL UNIQUE,
     tipo_identificacion_id BIGINT NOT NULL REFERENCES tipo_identificacion(id),
     nombres VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
@@ -164,9 +180,15 @@ CREATE TABLE IF NOT EXISTS cliente (
     canton_empresa VARCHAR(100),
     -- Información militar (solo para uniformados - militares y policías, NULL para otros tipos)
     estado_militar VARCHAR(20) DEFAULT NULL,
-    codigo_issfa VARCHAR(50) DEFAULT NULL,
-    rango VARCHAR(100) DEFAULT NULL -- Rango militar/policial (opcional)
+    codigo_issfa VARCHAR(50) DEFAULT NULL, -- Para militares
+    codigo_isspol VARCHAR(50) DEFAULT NULL, -- Para policías
+    rango VARCHAR(100) DEFAULT NULL, -- Rango militar/policial (opcional)
+    -- verificación de correo electrónico
+    email_verificado BOOLEAN DEFAULT NULL
 );
+
+COMMENT ON COLUMN cliente.email_verificado IS 
+    'Indica si el correo electrónico del cliente ha sido verificado mediante el enlace enviado por email';
 
 -- Tabla de preguntas del sistema
 CREATE TABLE IF NOT EXISTS preguntas (
@@ -201,12 +223,18 @@ CREATE TABLE IF NOT EXISTS tipo_documento (
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
     obligatorio BOOLEAN DEFAULT false,
-    tipo_proceso_id BIGINT REFERENCES tipo_proceso(id),
+    tipo_proceso_id BIGINT REFERENCES tipo_proceso(id), -- NULL si es para grupos de importación
     estado BOOLEAN DEFAULT true,
     url_documento VARCHAR(500),
+    grupos_importacion BOOLEAN DEFAULT false NOT NULL, -- true si es para grupos, false si es para clientes
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+COMMENT ON COLUMN tipo_documento.grupos_importacion IS 
+    'true si es para grupos de importación (tipo_proceso_id debe ser NULL), false si es para clientes (puede tener tipo_proceso_id o NULL para todos)';
+COMMENT ON COLUMN tipo_documento.tipo_proceso_id IS 
+    'Tipo de proceso (requerido solo si grupos_importacion = false, debe ser NULL si grupos_importacion = true)';
 
 -- Tabla de documentos de clientes
 CREATE TABLE IF NOT EXISTS documento_cliente (
@@ -244,7 +272,9 @@ CREATE TABLE IF NOT EXISTS categoria_arma (
 CREATE TABLE IF NOT EXISTS arma (
     id BIGSERIAL PRIMARY KEY,
     codigo VARCHAR(50) UNIQUE NOT NULL,
-    nombre VARCHAR(100) NOT NULL,
+    modelo VARCHAR(100) NOT NULL, -- Cambiado de nombre a modelo
+    marca VARCHAR(100), -- Nuevo campo
+    alimentadora VARCHAR(50), -- Nuevo campo
     calibre VARCHAR(20),
     capacidad BIGINT,
     precio_referencia DECIMAL(10,2),
@@ -252,8 +282,6 @@ CREATE TABLE IF NOT EXISTS arma (
     url_imagen VARCHAR(500),
     url_producto VARCHAR(500),
     estado BOOLEAN DEFAULT true,
-    -- Campo para identificar armas de expoferia (reutilizable para futuras expoferias)
-    expoferia VARCHAR(50) DEFAULT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -270,7 +298,7 @@ CREATE TABLE IF NOT EXISTS arma_imagen (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índice para mejorar consultas de imágenes por arma
+-- índice para mejorar consultas de imágenes por arma
 CREATE INDEX IF NOT EXISTS idx_arma_imagen_arma_id ON arma_imagen(arma_id);
 CREATE INDEX IF NOT EXISTS idx_arma_imagen_orden ON arma_imagen(arma_id, orden);
 
@@ -278,6 +306,9 @@ CREATE INDEX IF NOT EXISTS idx_arma_imagen_orden ON arma_imagen(arma_id, orden);
 CREATE TABLE IF NOT EXISTS arma_stock (
     id BIGSERIAL PRIMARY KEY,
     arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,
+    modelo VARCHAR(100), -- Sincronizado con arma.modelo para facilitar consultas
+    marca VARCHAR(100), -- Sincronizado con arma.marca para facilitar consultas
+    alimentadora VARCHAR(50), -- Sincronizado con arma.alimentadora para facilitar consultas
     cantidad_total INTEGER NOT NULL DEFAULT 0,
     cantidad_disponible INTEGER NOT NULL DEFAULT 0,
     precio_venta DECIMAL(10,2) NOT NULL,
@@ -292,20 +323,22 @@ CREATE TABLE IF NOT EXISTS arma_stock (
     CONSTRAINT chk_arma_stock_precio_venta CHECK (precio_venta > 0)
 );
 
--- Tabla de números de serie de armas
--- Esta tabla almacena todos los números de serie únicos de armas físicas
--- Se carga desde Excel y se asigna a clientes a través de cliente_arma
--- NOTA: La foreign key a cliente_arma se agrega después de crear esa tabla
+-- Tabla de Números de serie de armas
+-- Esta tabla almacena todos los Números de serie únicos de armas f?sicas
+-- Se carga desde Excel y se asigna a clientes a trav?s de cliente_arma
+-- NOTA: La foreign key a cliente_arma se agrega despu�s de crear esa tabla
 CREATE TABLE IF NOT EXISTS arma_serie (
     id BIGSERIAL PRIMARY KEY,
-    numero_serie VARCHAR(100) UNIQUE NOT NULL,  -- Número de serie único del arma física
-    arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,  -- Arma del catálogo
+    numero_serie VARCHAR(100) UNIQUE NOT NULL,  -- número de serie ?nico del arma f?sica
+    arma_id BIGINT NOT NULL REFERENCES arma(id) ON DELETE CASCADE,  -- Arma del CatÃ¡logo
     estado VARCHAR(20) DEFAULT 'DISPONIBLE',  -- DISPONIBLE, ASIGNADO, VENDIDO, BAJA
-    fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Cuándo se cargó desde Excel
-    fecha_asignacion TIMESTAMP,  -- Cuándo se asignó a un cliente
-    cliente_arma_id BIGINT,  -- Relación con la reserva del cliente (FK se agrega después)
-    usuario_asignador_id BIGINT REFERENCES usuario(id),  -- Usuario que asignó la serie
-    lote VARCHAR(50),  -- Lote o grupo de importación (opcional)
+    fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Cu?ndo se carg? desde Excel
+    fecha_asignacion TIMESTAMP,  -- Cu?ndo se asign? a un cliente
+    cliente_arma_id BIGINT,  -- relación con la reserva del cliente (FK se agrega despu�s)
+    usuario_asignador_id BIGINT REFERENCES usuario(id),  -- Usuario que asign? la serie
+    lote VARCHAR(50),  -- Lote o grupo de importación (opcional, deprecated - usar grupo_importacion_id)
+    grupo_importacion_id BIGINT,  -- Grupo de importación al que pertenece esta serie (FK se agrega despu�s)
+    licencia_id BIGINT,  -- Licencia asociada al grupo de importación (FK se agrega despu�s)
     observaciones TEXT,  -- Observaciones adicionales
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -314,11 +347,11 @@ CREATE TABLE IF NOT EXISTS arma_serie (
     CONSTRAINT chk_arma_serie_estado CHECK (estado IN ('DISPONIBLE', 'ASIGNADO', 'VENDIDO', 'BAJA'))
 );
 
--- Índices para optimizar búsquedas (sin cliente_arma_id por ahora)
+-- índices para optimizar búsquedas (sin cliente_arma_id por ahora)
 CREATE INDEX IF NOT EXISTS idx_arma_serie_arma_id ON arma_serie(arma_id);
 CREATE INDEX IF NOT EXISTS idx_arma_serie_estado ON arma_serie(estado);
 
--- Tabla de armas físicas (referencia a arma simplificada)
+-- Tabla de armas f?sicas (referencia a arma simplificada)
 CREATE TABLE IF NOT EXISTS arma_fisica (
     id BIGSERIAL PRIMARY KEY,
     numero_serie VARCHAR(100) UNIQUE NOT NULL,
@@ -345,7 +378,7 @@ CREATE TABLE IF NOT EXISTS accesorio (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de accesorios físicos
+-- Tabla de accesorios f?sicos
 CREATE TABLE IF NOT EXISTS accesorio_fisico (
     id BIGSERIAL PRIMARY KEY,
     numero_serie VARCHAR(100) UNIQUE NOT NULL,
@@ -374,8 +407,8 @@ CREATE TABLE IF NOT EXISTS cliente_arma (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    -- Constraint para estados válidos
-    CONSTRAINT chk_cliente_arma_estado CHECK (estado IN ('DISPONIBLE', 'RESERVADA', 'ASIGNADA', 'CANCELADA', 'COMPLETADA'))
+    -- Constraint para estados v?lidos
+    CONSTRAINT chk_cliente_arma_estado CHECK (estado IN ('DISPONIBLE', 'RESERVADA', 'ASIGNADA', 'CANCELADA', 'COMPLETADA', 'REASIGNADO'))
 );
 
 -- Tabla de relación cliente-accesorio (cuando un cliente elige)
@@ -423,6 +456,9 @@ CREATE TABLE IF NOT EXISTS cuota_pago (
     estado VARCHAR(20) DEFAULT 'PENDIENTE',
     fecha_pago TIMESTAMP,
     referencia_pago VARCHAR(100),
+    numero_recibo VARCHAR(100), -- número de recibo (reemplaza "número de Comprobante")
+    comprobante_archivo VARCHAR(500), -- Ruta del archivo PDF/foto del comprobante
+    observaciones TEXT, -- Observaciones adicionales
     usuario_confirmador_id BIGINT REFERENCES usuario(id),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -433,6 +469,7 @@ CREATE TABLE IF NOT EXISTS licencia (
     id BIGSERIAL PRIMARY KEY,
     numero VARCHAR(50) UNIQUE NOT NULL,
     nombre VARCHAR(200) NOT NULL,
+    titulo VARCHAR(200), -- Nuevo campo
     ruc VARCHAR(20),
     cuenta_bancaria VARCHAR(50),
     nombre_banco VARCHAR(100),
@@ -449,7 +486,7 @@ CREATE TABLE IF NOT EXISTS licencia (
     descripcion TEXT,
     fecha_emision DATE,
     observaciones TEXT,
-    estado VARCHAR(20) DEFAULT 'ACTIVA',
+    estado BOOLEAN DEFAULT true, -- true = ACTIVA, false = INACTIVA
     estado_ocupacion VARCHAR(20) DEFAULT 'DISPONIBLE', -- DISPONIBLE, BLOQUEADA
     fecha_vencimiento DATE,
     usuario_creador_id BIGINT REFERENCES usuario(id),
@@ -458,12 +495,8 @@ CREATE TABLE IF NOT EXISTS licencia (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de relación tipo_cliente_tipo_importacion
-CREATE TABLE IF NOT EXISTS tipo_cliente_tipo_importacion (
-    tipo_cliente_id BIGINT NOT NULL REFERENCES tipo_cliente(id) ON DELETE CASCADE,
-    tipo_importacion_id BIGINT NOT NULL REFERENCES tipo_importacion(id) ON DELETE CASCADE,
-    PRIMARY KEY (tipo_cliente_id, tipo_importacion_id)
-);
+-- NOTA: La tabla tipo_cliente_tipo_importacion fue eliminada (no se usa)
+-- Los tipos de cliente ya tienen relación directa con tipo_proceso
 
 -- Tabla de notificaciones
 CREATE TABLE IF NOT EXISTS notificacion (
@@ -480,7 +513,7 @@ CREATE TABLE IF NOT EXISTS notificacion (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de configuración del sistema
+-- Tabla de configuraci?n del sistema
 CREATE TABLE IF NOT EXISTS configuracion_sistema (
     id BIGSERIAL PRIMARY KEY,
     clave VARCHAR(100) UNIQUE NOT NULL,
@@ -514,7 +547,9 @@ CREATE TABLE IF NOT EXISTS grupo_importacion (
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
     licencia_id BIGINT NOT NULL REFERENCES licencia(id),
-    tipo_proceso_id BIGINT NOT NULL REFERENCES tipo_proceso(id),
+    tipo_proceso_id BIGINT REFERENCES tipo_proceso(id), -- Opcional: los grupos pueden tener cualquier tipo de cliente
+    tipo_grupo VARCHAR(20) NOT NULL DEFAULT 'CUPO', -- CUPO o JUSTIFICATIVO
+    tra VARCHAR(20) UNIQUE, -- TRA-XXXXXXXXXX (formato: TRA- seguido de Números)
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE,
     cupo_total INTEGER NOT NULL,
@@ -522,13 +557,20 @@ CREATE TABLE IF NOT EXISTS grupo_importacion (
     codigo VARCHAR(20) UNIQUE,
     fecha_estimada_llegada DATE,
     costo_total DECIMAL(10,2),
+    numero_previa_importacion VARCHAR(100), -- número de previa importación
     observaciones TEXT,
     usuario_actualizador_id BIGINT REFERENCES usuario(id),
     estado VARCHAR(30) DEFAULT 'EN_PREPARACION',
     usuario_creador_id BIGINT NOT NULL REFERENCES usuario(id),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_tipo_grupo CHECK (tipo_grupo IN ('CUPO', 'JUSTIFICATIVO'))
 );
+
+COMMENT ON COLUMN grupo_importacion.tipo_proceso_id IS 
+    'Tipo de proceso (opcional). Los grupos pueden tener cualquier tipo de cliente';
+COMMENT ON COLUMN grupo_importacion.numero_previa_importacion IS 
+    'número de previa importación';
 
 -- Tabla de relación cliente-grupo de importación
 CREATE TABLE IF NOT EXISTS cliente_grupo_importacion (
@@ -554,24 +596,83 @@ CREATE TABLE IF NOT EXISTS grupo_importacion_cupo (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de relación grupo de importación - vendedores (muchos a muchos)
+CREATE TABLE IF NOT EXISTS grupo_importacion_vendedor (
+    id BIGSERIAL PRIMARY KEY,
+    grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
+    vendedor_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    limite_armas INTEGER DEFAULT 0, -- Límite de armas por vendedor en este grupo
+    fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(grupo_importacion_id, vendedor_id)
+);
+
+-- Tabla de Límites por categor?a para grupos de tipo CUPO
+CREATE TABLE IF NOT EXISTS grupo_importacion_limite_categoria (
+    id BIGSERIAL PRIMARY KEY,
+    grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
+    categoria_arma_id BIGINT NOT NULL REFERENCES categoria_arma(id) ON DELETE CASCADE,
+    limite_maximo INTEGER NOT NULL DEFAULT 0, -- Límite máximo de armas de esta categor?a
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(grupo_importacion_id, categoria_arma_id)
+);
+
 -- Tabla de documentos del grupo de importación
 CREATE TABLE IF NOT EXISTS documento_grupo_importacion (
     id BIGSERIAL PRIMARY KEY,
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
+    tipo_documento_id BIGINT REFERENCES tipo_documento(id), -- Referencia al tipo de documento
     nombre_archivo VARCHAR(255) NOT NULL,
     ruta_archivo VARCHAR(500) NOT NULL,
     tamanio_bytes BIGINT,
     descripcion TEXT,
     nombre VARCHAR(255),
     url_archivo VARCHAR(500),
-    tipo_documento VARCHAR(50),
+    tipo_documento VARCHAR(50), -- Mantener por compatibilidad, pero usar tipo_documento_id
     fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     observaciones TEXT,
     estado VARCHAR(20) DEFAULT 'PENDIENTE',
     usuario_carga_id BIGINT NOT NULL REFERENCES usuario(id),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_documento_grupo_importacion_tipo_documento
+        FOREIGN KEY (tipo_documento_id) REFERENCES tipo_documento(id)
 );
+
+-- Tabla de tokens de verificación de correo electrónico
+CREATE TABLE IF NOT EXISTS email_verification_token (
+    id BIGSERIAL PRIMARY KEY,
+    token VARCHAR(36) NOT NULL UNIQUE,
+    cliente_id BIGINT NOT NULL REFERENCES cliente(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT false NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verification_token_token ON email_verification_token(token);
+CREATE INDEX IF NOT EXISTS idx_email_verification_token_cliente ON email_verification_token(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_email_verification_token_expires ON email_verification_token(expires_at);
+CREATE INDEX IF NOT EXISTS idx_email_verification_token_used ON email_verification_token(used);
+
+-- Comentarios descriptivos para tabla de verificación de email
+COMMENT ON TABLE email_verification_token IS 
+    'Tokens únicos y temporales para verificación de correo electrónico de clientes. Expiran en 48 horas y son de un solo uso.';
+
+COMMENT ON COLUMN email_verification_token.token IS 
+    'Token UUID único generado para cada solicitud de verificación';
+
+COMMENT ON COLUMN email_verification_token.cliente_id IS 
+    'Referencia al cliente que debe verificar su correo';
+
+COMMENT ON COLUMN email_verification_token.expires_at IS 
+    'Fecha y hora de expiración del token (48 horas desde la creación)';
+
+COMMENT ON COLUMN email_verification_token.used IS 
+    'Indica si el token ya fue utilizado para verificar el correo';
+
+COMMENT ON COLUMN email_verification_token.used_at IS 
+    'Fecha y hora en que el token fue utilizado';
 
 -- Tabla de documentos generados por el sistema
 CREATE TABLE IF NOT EXISTS documento_generado (
@@ -594,10 +695,10 @@ CREATE TABLE IF NOT EXISTS documento_generado (
 );
 
 -- =====================================================
--- 2. CREACIÓN DE ÍNDICES
+-- 2. CREACI?N DE ?NDICES
 -- =====================================================
 
--- Índices para mejorar rendimiento
+-- índices para mejorar rendimiento
 CREATE INDEX IF NOT EXISTS idx_usuario_username ON usuario(username);
 CREATE INDEX IF NOT EXISTS idx_usuario_email ON usuario(email);
 CREATE INDEX IF NOT EXISTS idx_cliente_identificacion ON cliente(numero_identificacion);
@@ -607,10 +708,19 @@ CREATE INDEX IF NOT EXISTS idx_respuestas_cliente_cliente ON respuestas_cliente(
 CREATE INDEX IF NOT EXISTS idx_documento_cliente_cliente ON documento_cliente(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_cliente_arma_cliente ON cliente_arma(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_documento_grupo_importacion_grupo ON documento_grupo_importacion(grupo_importacion_id);
+CREATE INDEX IF NOT EXISTS idx_documento_grupo_importacion_tipo_documento ON documento_grupo_importacion(tipo_documento_id);
+
+-- índice ?nico para evitar que un cliente est�? en múltiples grupos activos
+CREATE UNIQUE INDEX IF NOT EXISTS uk_cliente_grupo_importacion_activo
+ON cliente_grupo_importacion (cliente_id)
+WHERE estado NOT IN ('COMPLETADO', 'CANCELADO');
+
+COMMENT ON INDEX uk_cliente_grupo_importacion_activo IS 
+    'Evita que un cliente est� asignado a m�ltiples grupos activos simult�neamente';
 CREATE INDEX IF NOT EXISTS idx_arma_fisica_numero_serie ON arma_fisica(numero_serie);
 CREATE INDEX IF NOT EXISTS idx_arma_fisica_estado ON arma_fisica(estado);
 
--- Índices para sistema de pagos
+-- índices para sistema de pagos
 CREATE INDEX IF NOT EXISTS idx_pago_cliente ON pago(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_pago_estado ON pago(estado);
 CREATE INDEX IF NOT EXISTS idx_pago_tipo ON pago(tipo_pago);
@@ -623,12 +733,13 @@ CREATE INDEX IF NOT EXISTS idx_canton_provincia ON canton(provincia_id);
 CREATE INDEX IF NOT EXISTS idx_canton_codigo ON canton(codigo);
 
 -- =====================================================
--- 2. CONSTRAINTS ADICIONALES (después de crear todas las tablas)
+-- 2. CONSTRAINTS ADICIONALES (despu�s de crear todas las tablas)
 -- =====================================================
 
--- Agregar foreign key de arma_serie a cliente_arma (ahora que ya existe)
+-- Agregar foreign keys de arma_serie despu�s de crear las tablas relacionadas
 DO $$ 
 BEGIN
+    -- FK a cliente_arma
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'fk_arma_serie_cliente_arma'
     ) THEN
@@ -636,17 +747,35 @@ BEGIN
             FOREIGN KEY (cliente_arma_id) REFERENCES cliente_arma(id);
         CREATE INDEX IF NOT EXISTS idx_arma_serie_cliente_arma_id ON arma_serie(cliente_arma_id);
     END IF;
+    
+    -- FK a grupo_importacion
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_arma_serie_grupo_importacion'
+    ) THEN
+        ALTER TABLE arma_serie ADD CONSTRAINT fk_arma_serie_grupo_importacion 
+            FOREIGN KEY (grupo_importacion_id) REFERENCES grupo_importacion(id);
+        CREATE INDEX IF NOT EXISTS idx_arma_serie_grupo_importacion_id ON arma_serie(grupo_importacion_id);
+    END IF;
+    
+    -- FK a licencia
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_arma_serie_licencia'
+    ) THEN
+        ALTER TABLE arma_serie ADD CONSTRAINT fk_arma_serie_licencia 
+            FOREIGN KEY (licencia_id) REFERENCES licencia(id);
+        CREATE INDEX IF NOT EXISTS idx_arma_serie_licencia_id ON arma_serie(licencia_id);
+    END IF;
 END $$;
 
 -- =====================================================
--- 3. INSERCIÓN DE DATOS BASE (solo si no existen)
+-- 3. inserción DE DATOS BASE (solo si no existen)
 -- =====================================================
 
 -- Insertar roles del sistema
 INSERT INTO rol (codigo, nombre, descripcion, tipo_rol_vendedor, estado) VALUES
 ('ADMIN', 'Administrador', 'Acceso completo al sistema', NULL, true),
 ('VENDOR', 'Vendedor', 'Registro de clientes y selección de armas catálogo', 'LIBRE', true),
-('SALES_CHIEF', 'Jefe de Ventas', 'Aprobación de solicitudes y creación de grupos de importación', 'FIJO', true),
+('SALES_CHIEF', 'Jefe de Ventas', 'aprobación de solicitudes y creación de grupos de importación', 'FIJO', true),
 ('FINANCE', 'Finanzas', 'Gestión de pagos y facturación', NULL, true),
 ('OPERATIONS', 'Operaciones', 'Gestión de importación y documentación', NULL, true)
 ON CONFLICT (codigo) DO NOTHING;
@@ -666,264 +795,291 @@ INSERT INTO tipo_cliente (nombre, codigo, descripcion, estado, es_militar, es_po
 ('Militar Fuerza Naval', 'NAV', 'Personal activo de fuerzas armadas naval', true, true, false, false, false, false, true, 2),
 ('Militar Fuerza Aérea', 'AER', 'Personal activo de fuerzas armadas aéreas', true, true, false, false, false, false, true, 2),
 ('Uniformado Policial', 'POL', 'Personal activo de fuerza policial', true, false, true, false, false, false, false, 2),
-('Compañía de Seguridad', 'EMP', 'Compañía de seguridad privada', true, false, false, true, false, false, false, 3),
-('Deportista', 'DEP', 'Deportista', true, false, false, false, true, false, false, 4),
-('Militar Expoferia', 'EXP', 'Personal militar para expoferia con catálogo especial', true, true, false, false, false, false, true, 2)
+('compañía de Seguridad', 'EMP', 'compañía de seguridad privada', true, false, false, true, false, false, false, 3),
+('Deportista', 'DEP', 'Deportista', true, false, false, false, true, false, false, 4)
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Insertar tipos de identificación
 INSERT INTO tipo_identificacion (nombre, codigo, descripcion, estado) VALUES
 ('Cédula de Identidad', 'CED', 'Documento de identificación personal', true),
-('RUC', 'RUC', 'Registro Único de Contribuyentes', true)
+('RUC', 'RUC', 'Registro único de Contribuyentes', true)
 ON CONFLICT (codigo) DO NOTHING;
 
--- Insertar tipos de importación
-INSERT INTO tipo_importacion (nombre, cupo_maximo, descripcion, estado) VALUES
-('Cupo Civil', 25, 'Importación regular para personas naturales civiles', true),
-('Extracupo Uniformado', 1000, 'Importación especial para personal uniformado militar y policial', true),
-('Extracupo Compania', 1000, 'Importación especial para empresas de seguridad', true),
-('Cupo Deportista', 1000, 'Importación regular para deportistas', true)
-ON CONFLICT (id) DO NOTHING;
+-- Insertar tipos de importación evitando duplicados
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM tipo_importacion) THEN
+        INSERT INTO tipo_importacion (nombre, cupo_maximo, descripcion, estado) VALUES
+        ('Cupo Civil', 25, 'importación regular para personas naturales civiles', true),
+        ('Extracupo Uniformado', 1000, 'importación especial para personal uniformado militar y policial', true),
+        ('Extracupo Compania', 1000, 'importación especial para empresas de seguridad', true),
+        ('Cupo Deportista', 1000, 'importación regular para deportistas', true);
+    END IF;
+END $$;
 
 -- Insertar relación tipos de importacion con tipo de cliente
-INSERT INTO tipo_cliente_importacion (tipo_cliente_id, tipo_importacion_id) VALUES
-(1, 1), (2, 2), (3, 2), (4, 2), (5, 2), (6, 3), (7, 1), (8, 2)
-ON CONFLICT DO NOTHING;
+-- NOTA: La tabla tipo_cliente_importacion fue eliminada
+-- Los tipos de cliente ya tienen relación directa con tipo_proceso
+-- INSERT INTO tipo_cliente_importacion (tipo_cliente_id, tipo_importacion_id) VALUES
+-- (1, 1), (2, 2), (3, 2), (4, 2), (5, 2), (6, 3), (7, 1), (8, 2)
+-- ON CONFLICT DO NOTHING;
 
 -- Insertar tipos de documento
-INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento) VALUES
--- Documentos para Cupo Civil
-('Copia de cédula', 'Copia legible de la cédula de identidad', true, 1, true, NULL),
-('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 1, true, NULL),
--- Documentos universales para Cupo Civil
-('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 1, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/'),
-('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 1, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/'),
-('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 1, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
-('SATJE', 'Certificado de procesos judiciales', true, 1, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros'),
-
--- Documentos para Extracupo Uniformado
-('Credencial militar/policial', 'Credencial vigente de institución armada o policial', true, 2, true, NULL),
-('Certificado de servicio activo', 'Certificado de servicio activo vigente', true, 2, true, NULL),
-('Copia de cédula', 'Copia legible de la cédula de identidad', true, 2, true, NULL),
-('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 2, true, NULL),
--- Documentos universales para Extracupo Uniformado
-('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 2, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/'),
-('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 2, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/'),
-('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 2, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
-('SATJE', 'Certificado de procesos judiciales', true, 2, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros'),
-
--- Documentos para Extracupo Empresa (solo específicos, no universales)
-('Cédula del representante legal', 'Cédula del representante legal', true, 3, true, NULL),
-('Nombramiento representante legal', 'Documento que acredita representación legal', true, 3, true, NULL),
-('Permiso de funcionamiento', 'Permiso de funcionamiento vigente', true, 3, true, NULL),
-('RUC de la empresa', 'RUC activo de la empresa', true, 3, true, NULL),
-('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 3, true, NULL),
-
--- Documentos para Cupo Deportista
-('Copia de cédula', 'Copia legible de la cédula de identidad', true, 4, true, NULL),
-('Formulario de solicitud', 'Formulario completo de solicitud de importación', true, 4, true, NULL),
-('Credencial de club deportivo', 'Credencial de club deportivo vigente', true, 4, true, NULL),
-('Credencial de tenencia de armas', 'Credencial de tenencia de armas vigente', true, 4, true, NULL),
--- Documentos universales para Cupo Deportista
-('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 4, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/'),
-('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 4, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/'),
-('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 4, true, 'https://www.fiscalia.gob.ec/consultade-noticias-del-delito/'),
-('SATJE', 'Certificado de procesos judiciales', true, 4, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros')
-ON CONFLICT (id) DO NOTHING;
+-- Insertar documentos evitando duplicados con WHERE NOT EXISTS
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 1) THEN
+        INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento, grupos_importacion) VALUES
+        -- Documentos para Cupo Civil
+        ('Copia de Cédula', 'Copia legible de la Cédula de identidad', true, 1, true, NULL, false),
+        -- Documentos universales para Cupo Civil
+        ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 1, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/', false),
+        ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 1, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/', false),
+        ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 1, true, 'https://www.fiscalia.gob.ec/accesibilidad/consulta-de-noticias-del-delito/', false),
+        ('SATJE', 'Certificado de procesos judiciales', true, 1, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros', false);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 2) THEN
+        INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento, grupos_importacion) VALUES
+        -- Documentos para Extracupo Uniformado
+        ('Credencial militar/policial', 'Credencial vigente de institución armada o policial', true, 2, true, NULL, false),
+        ('Certificado de servicio activo', 'Certificado de servicio activo vigente', true, 2, true, NULL, false),
+        ('Copia de Cédula', 'Copia legible de la Cédula de identidad', true, 2, true, NULL, false),
+        -- Documentos universales para Extracupo Uniformado
+        ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 2, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/', false),
+        ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 2, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/', false),
+        ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 2, true, 'https://www.fiscalia.gob.ec/accesibilidad/consulta-de-noticias-del-delito/', false),
+        ('SATJE', 'Certificado de procesos judiciales', true, 2, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros', false);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 3) THEN
+        INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento, grupos_importacion) VALUES
+        -- Documentos para Extracupo Empresa (solo espec?ficos, no universales)
+        ('Cédula del representante legal', 'Cédula del representante legal', true, 3, true, NULL, false),
+        ('Nombramiento representante legal', 'Documento que acredita representaci?n legal', true, 3, true, NULL, false),
+        ('Permiso de funcionamiento', 'Permiso de funcionamiento vigente', true, 3, true, NULL, false),
+        ('RUC de la empresa', 'RUC activo de la empresa', true, 3, true, NULL, false);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE tipo_proceso_id = 4) THEN
+        INSERT INTO tipo_documento (nombre, descripcion, obligatorio, tipo_proceso_id, estado, url_documento, grupos_importacion) VALUES
+        -- Documentos para Cupo Deportista
+        ('Cédula en PDF y papeleta de votación', 'Cédula de identidad en formato PDF y papeleta de votación', true, 4, true, NULL, false),
+        ('Permiso de Deportista otorgado por CCFFAA', 'Permiso de deportista otorgado por las Comandancias Conjuntas de las Fuerzas Armadas (CCFFAA)', true, 4, true, NULL, false),
+        ('Documento del Club de Tiro que certifique estar al día en sus cuotas y afiliado al mismo', 'Documento del Club de Tiro que certifique que el deportista est� al día en sus cuotas y afiliado al mismo', true, 4, true, NULL, false),
+        -- Documentos universales para Cupo Deportista
+        ('SATJE', 'Certificado de procesos judiciales', true, 4, true, 'https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros', false),
+        ('Fiscalía', 'Certificado de no tener procesos por robos/violencia/as esinatos', true, 4, true, 'https://www.fiscalia.gob.ec/accesibilidad/consulta-de-noticias-del-delito/', false),
+        ('Consejo de la Judicatura', 'Certificado de no tener juicios o casos de robos/violencia/as esinatos', true, 4, true, 'https://consultas.funcionjudicial.gob.ec/informacionjudicialindividual/pages/index.jsf#!/', false),
+        ('Antecedentes Penales', 'Certificado de antecedentes penales del Ministerio del Interior', true, 4, true, 'https://certificados.ministeriodelinterior.gob.ec/gestorcertificados/antecedentes/', false);
+    END IF;
+    
+    -- Documentos para grupos de importación (grupos_importacion = true, tipo_proceso_id = NULL)
+    IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE grupos_importacion = true) THEN
+        INSERT INTO tipo_documento (nombre, descripcion, obligatorio, estado, grupos_importacion, tipo_proceso_id) VALUES
+        ('Proforma a fabrica para importacion', 'Proforma recibida de la fábrica para la importación', true, true, true, NULL),
+        ('Solicitar carta inspeccion de rastrillo', 'Carta de inspección de rastrillo', true, true, true, NULL),
+        ('Documento de resolucion de importacion', 'Resolución de importación', true, true, true, NULL),
+        ('Pedido de previa importacion', 'Pedido de previa importación', true, true, true, NULL),
+        ('Retiro de Guia', 'Documento de retiro de guía', true, true, true, NULL),
+        ('Liquidacion de importacion', 'Liquidación de importación', true, true, true, NULL),
+        ('Documento recibido por comando conjunto', 'Documento recibido por comando conjunto', true, true, true, NULL);
+    END IF;
+    
+    -- Documentos finales para clientes (aplicables a todos los tipos de proceso, tipo_proceso_id = NULL)
+    IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE nombre = 'Resolución para migrar serie al cliente') THEN
+        INSERT INTO tipo_documento (nombre, descripcion, obligatorio, estado, grupos_importacion, tipo_proceso_id) VALUES
+        ('Resolución para migrar serie al cliente', 
+         'Resolución que autoriza la migración del número de serie del arma al cliente. Documento requerido antes de la entrega.', 
+         true, 
+         true, 
+         false,  -- Es para clientes, NO para grupos de importación
+         NULL),  -- Aplicable a todos los tipos de proceso
+        ('guía de libre tránsito', 
+         'guía que permite el libre tránsito del arma desde el punto de llegada hasta el cliente. Documento requerido para la entrega final.', 
+         true, 
+         true, 
+         false,  -- Es para clientes, NO para grupos de importación
+         NULL);  -- Aplicable a todos los tipos de proceso
+    END IF;
+END $$;
 
 -- Insertar categorías de armas
+-- NOTA: Se usa singular (PISTOLA, ESCOPETA) para evitar duplicados
 INSERT INTO categoria_arma (nombre, descripcion, codigo, estado, fecha_creacion) VALUES
 ('PISTOLA', 'Armas cortas de puño', 'PIST', true, NOW()),
 ('ESCOPETA', 'Armas largas para perdigones', 'ESCO', true, NOW()),
-('RIFLE', 'Armas largas de precisión', 'RIFL', true, NOW())
+('RIFLE', 'Armas largas de precisión', 'RIFL', true, NOW()),
+('CARABINAS .22', 'Carabinas calibre .22', 'CAR22', true, NOW()),
+('CARABINAS 9MM', 'Carabinas calibre 9MM', 'CAR9MM', true, NOW())
 ON CONFLICT (codigo) DO NOTHING;
 
--- Insertar armas (Catálogo CZ real - basado en archivos existentes)
-INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado) VALUES
+-- Eliminar categorías duplicadas en plural si existen
+DELETE FROM categoria_arma WHERE codigo IN ('PISTOLAS', 'ESCOPETAS');
+
+-- Insertar armas (CatÃ¡logo CZ real - basado en archivos existentes)
+INSERT INTO arma (codigo, modelo, marca, alimentadora, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado) VALUES
 -- Pistolas CZ P09 (basadas en archivos reales)
-('CZ-P09-C-NOCTURNE', 'CZ P09 C NOCTURNE', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
-('CZ-P09-F-NOCTURNE', 'CZ P09 F NOCTURNE', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-F-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
-('CZ-P09-F-FDE', 'CZ P09 F FDE', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-FDE.png', 'https://czfirearms.com/pistols/p09-fde', true),
-('CZ-P09-C-FDE', 'CZ P09 C FDE', '9MM', 12, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-FDE.webp', 'https://czfirearms.com/pistols/p09-fde', true),
-('CZ-P09-F-OD-VERDE', 'CZ P09 F OD Verde', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-OD-Verde.webp', 'https://czfirearms.com/pistols/p09-od-verde', true),
-('CZ-P09-C-FRANCOTIRADOR-GRIS', 'CZ P09 C Francotirador Gris', '9MM', 12, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-Francotirador-Gris.webp', 'https://czfirearms.com/pistols/p09-francotirador', true),
+('CZ-P09-C-NOCTURNE', 'CZ P09 C NOCTURNE', 'CZ', '2 (DOS)', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
+('CZ-P09-F-NOCTURNE', 'CZ P09 F NOCTURNE', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-F-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true),
+('CZ-P09-F-FDE', 'CZ P09 F FDE', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-FDE.png', 'https://czfirearms.com/pistols/p09-fde', true),
+('CZ-P09-C-FDE', 'CZ P09 C FDE', 'CZ', '2 (DOS)', '9MM', 12, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-FDE.webp', 'https://czfirearms.com/pistols/p09-fde', true),
+('CZ-P09-F-OD-VERDE', 'CZ P09 F OD Verde', 'CZ', '2 (DOS)', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-OD-Verde.webp', 'https://czfirearms.com/pistols/p09-od-verde', true),
+('CZ-P09-C-FRANCOTIRADOR-GRIS', 'CZ P09 C Francotirador Gris', 'CZ', '2 (DOS)', '9MM', 12, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-Francotirador-Gris.webp', 'https://czfirearms.com/pistols/p09-francotirador', true),
 
 -- Pistolas CZ P10 (basadas en archivos reales)
-('CZ-P10-M', 'CZ P10 M', '9MM', 7, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-M.webp', 'https://czfirearms.com/pistols/p10-m', true),
-('CZ-P10-C', 'CZ P10 C', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true),
-('CZ-P10-C-OR', 'CZ P10 C OR', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true),
-('CZ-P10-C-FDE-OR', 'CZ P10 C FDE OR', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-FDE-OR.png', 'https://czfirearms.com/pistols/p10-c-fde-or', true),
-('CZ-P10-F', 'CZ P10 F', '9MM', 19, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true),
-('CZ-P10-F-OR', 'CZ P10 F OR', '9MM', 19, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true),
-('CZ-P10-F-MIRAS-TRITIO', 'CZ P10 F Miras Tritio', '9MM', 19, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true),
-('CZ-P10-S', 'CZ P10 S', '9MM', 12, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true),
-('CZ-P10-S-OR', 'CZ P10 S OR', '9MM', 12, 1150.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P-10-S-OR.png', 'https://czfirearms.com/pistols/p10-s-or', true),
-('P10-C-OR-PORTADO', 'P10 C OR Portado', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-C-OR-Portado.png', 'https://czfirearms.com/pistols/p10-c-or-portado', true),
+('CZ-P10-M', 'CZ P10 M', 'CZ', '2 (DOS)', '9MM', 7, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-M.webp', 'https://czfirearms.com/pistols/p10-m', true),
+('CZ-P10-C', 'CZ P10 C', 'CZ', '2 (DOS)', '9MM', 15, 1200.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true),
+('CZ-P10-C-OR', 'CZ P10 C OR', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true),
+('CZ-P10-C-FDE-OR', 'CZ P10 C FDE OR', 'CZ', '2 (DOS)', '9MM', 15, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-FDE-OR.png', 'https://czfirearms.com/pistols/p10-c-fde-or', true),
+('CZ-P10-F', 'CZ P10 F', 'CZ', '2 (DOS)', '9MM', 19, 1250.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true),
+('CZ-P10-F-OR', 'CZ P10 F OR', 'CZ', '2 (DOS)', '9MM', 19, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true),
+('CZ-P10-F-MIRAS-TRITIO', 'CZ P10 F Miras Tritio', 'CZ', '2 (DOS)', '9MM', 19, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true),
+('CZ-P10-S', 'CZ P10 S', 'CZ', '2 (DOS)', '9MM', 12, 1100.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true),
+('CZ-P10-S-OR', 'CZ P10 S OR', 'CZ', '2 (DOS)', '9MM', 12, 1150.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P-10-S-OR.png', 'https://czfirearms.com/pistols/p10-s-or', true),
+('P10-C-OR-PORTADO', 'P10 C OR Portado', 'CZ', '2 (DOS)', '9MM', 15, 1300.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-C-OR-Portado.png', 'https://czfirearms.com/pistols/p10-c-or-portado', true),
 
 -- Pistolas CZ SHADOW 2 (basadas en archivos reales)
-('CZ-SHADOW-2', 'CZ SHADOW 2', '9MM', 19, 1500.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2.png', 'https://czfirearms.com/pistols/shadow-2', true),
-('CZ-SHADOW-2-URBAN-GREY', 'CZ SHADOW 2 URBAN GREY', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-URBAN-GREY.png', 'https://czfirearms.com/pistols/shadow-2-urban', true),
-('CZ-SHADOW-2-COMPACT-OR', 'CZ SHADOW 2 COMPACT OR', '9MM', 16, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true),
-('CZ-SHADOW-2-ORANGE-OR', 'CZ SHADOW 2 ORANGE OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-ORANGE-OR.png', 'https://czfirearms.com/pistols/shadow-2-orange-or', true),
-('CZ-SHADOW-2-TARGET-5', 'CZ SHADOW 2 TARGET 5', '9MM', 19, 1650.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-5.png', 'https://czfirearms.com/pistols/shadow-2-target-5', true),
-('CZ-SHADOW-2-TARGET-6', 'CZ SHADOW 2 TARGET 6', '9MM', 19, 1700.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-6.png', 'https://czfirearms.com/pistols/shadow-2-target-6', true),
-('CZ-SHADOW-2-SA', 'CZ SHADOW 2 SA', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-SA.png', 'https://czfirearms.com/pistols/shadow-2-sa', true),
+('CZ-SHADOW-2', 'CZ SHADOW 2', 'CZ', '2 (DOS)', '9MM', 19, 1500.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2.png', 'https://czfirearms.com/pistols/shadow-2', true),
+('CZ-SHADOW-2-URBAN-GREY', 'CZ SHADOW 2 URBAN GREY', 'CZ', '2 (DOS)', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-URBAN-GREY.png', 'https://czfirearms.com/pistols/shadow-2-urban', true),
+('CZ-SHADOW-2-COMPACT-OR', 'CZ SHADOW 2 COMPACT OR', 'CZ', '2 (DOS)', '9MM', 16, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true),
+('CZ-SHADOW-2-ORANGE-OR', 'CZ SHADOW 2 ORANGE OR', 'CZ', '2 (DOS)', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-ORANGE-OR.png', 'https://czfirearms.com/pistols/shadow-2-orange-or', true),
+('CZ-SHADOW-2-TARGET-5', 'CZ SHADOW 2 TARGET 5', 'CZ', '2 (DOS)', '9MM', 19, 1650.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-5.png', 'https://czfirearms.com/pistols/shadow-2-target-5', true),
+('CZ-SHADOW-2-TARGET-6', 'CZ SHADOW 2 TARGET 6', 'CZ', '2 (DOS)', '9MM', 19, 1700.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-TARGET-6.png', 'https://czfirearms.com/pistols/shadow-2-target-6', true),
+('CZ-SHADOW-2-SA', 'CZ SHADOW 2 SA', 'CZ', '2 (DOS)', '9MM', 19, 1550.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-SA.png', 'https://czfirearms.com/pistols/shadow-2-sa', true),
 
 -- Pistolas CZ 75 (basadas en archivos reales)
-('CZ-75-B', 'CZ 75 B', '9MM', 16, 1400.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-B.jpg', 'https://czfirearms.com/pistols/75-b', true),
-('CZ-75-COMPACT', 'CZ 75 COMPACT', '9MM', 14, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-COMPACT.jpg', 'https://czfirearms.com/pistols/75-compact', true),
-('CZ-75-SP-01-SHADOW', 'CZ 75 SP-01 SHADOW', '9MM', 18, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-SP-01-SHADOW.jpg', 'https://czfirearms.com/pistols/75-sp-01-shadow', true),
+('CZ-75-B', 'CZ 75 B', 'CZ', '2 (DOS)', '9MM', 16, 1400.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-B.jpg', 'https://czfirearms.com/pistols/75-b', true),
+('CZ-75-COMPACT', 'CZ 75 COMPACT', 'CZ', '2 (DOS)', '9MM', 14, 1350.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-COMPACT.jpg', 'https://czfirearms.com/pistols/75-compact', true),
+('CZ-75-SP-01-SHADOW', 'CZ 75 SP-01 SHADOW', 'CZ', '2 (DOS)', '9MM', 18, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-75-SP-01-SHADOW.jpg', 'https://czfirearms.com/pistols/75-sp-01-shadow', true),
 
 -- Pistolas CZ TS2 (basadas en archivos reales)
-('CZ-TS2', 'CZ TS2', '9MM', 20, 1800.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2.png', 'https://czfirearms.com/pistols/ts2', true),
-('CZ-TS2-RACING-GREEN', 'CZ TS2 RACING GREEN', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2-RACING-GREEN.png', 'https://czfirearms.com/pistols/ts2-racing-green', true),
-('CZ-TS-2-ORANGE-BULL', 'CZ TS-2 ORANGE BULL', '9MM', 20, 1900.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-ORANGE-BULL.png', 'https://czfirearms.com/pistols/ts-2-orange-bull', true),
-('CZ-TS-2-BRONZE', 'CZ TS-2 BRONZE', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-BRONZE.png', 'https://czfirearms.com/pistols/ts-2-bronze', true)
+('CZ-TS2', 'CZ TS2', 'CZ', '2 (DOS)', '9MM', 20, 1800.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2.png', 'https://czfirearms.com/pistols/ts2', true),
+('CZ-TS2-RACING-GREEN', 'CZ TS2 RACING GREEN', 'CZ', '2 (DOS)', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS2-RACING-GREEN.png', 'https://czfirearms.com/pistols/ts2-racing-green', true),
+('CZ-TS-2-ORANGE-BULL', 'CZ TS-2 ORANGE BULL', 'CZ', '2 (DOS)', '9MM', 20, 1900.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-ORANGE-BULL.png', 'https://czfirearms.com/pistols/ts-2-orange-bull', true),
+('CZ-TS-2-BRONZE', 'CZ TS-2 BRONZE', 'CZ', '2 (DOS)', '9MM', 20, 1850.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-TS-2-BRONZE.png', 'https://czfirearms.com/pistols/ts-2-bronze', true)
 ON CONFLICT (codigo) DO NOTHING;
-
--- =====================================================
--- ARMAS DEL PLAN PILOTO EXPOFERIA 2025
--- =====================================================
--- Insertar armas específicas del plan piloto con campo expoferia
-INSERT INTO arma (codigo, nombre, calibre, capacidad, precio_referencia, categoria_id, url_imagen, url_producto, estado, expoferia) VALUES
--- Arm as CZ P-10 Serie (Plan Piloto)
-('CZ-P10-C-PLAN-PILOTO', 'CZ P 10 C', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C.png', 'https://czfirearms.com/pistols/p10-c', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-PLAN-PILOTO', 'CZ P-10 SC', '9MM', 15, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC.png', 'https://czfirearms.com/pistols/p10-sc', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-FDE-PLAN-PILOTO', 'CZ P-10 SC FDE', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-FDE.png', 'https://czfirearms.com/pistols/p10-sc-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-SC-URBAN-PLAN-PILOTO', 'CZ P-10 SC URBAN', '9MM', 15, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-SC-URBAN.png', 'https://czfirearms.com/pistols/p10-sc-urban', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-PLAN-PILOTO', 'CZ P-10 F', '9MM', 19, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F.png', 'https://czfirearms.com/pistols/p10-f', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO', 'CZ P-10 F miras tiritium', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-miras-tritio.jpg', 'https://czfirearms.com/pistols/p10-f-miras', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-FDE-PLAN-PILOTO', 'CZ P-10 F FDE', '9MM', 19, 1421.40, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P10-F-FDE.png', 'https://czfirearms.com/pistols/p10-f-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-S-PLAN-PILOTO', 'CZ P-10 S', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-S.png', 'https://czfirearms.com/pistols/p10-s', true, 'EXPOFERIA_2025'),
-('CZ-P10-C-OR-PLAN-PILOTO', 'CZ P-10 C OR', '9MM', 15, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR.png', 'https://czfirearms.com/pistols/p10-c-or', true, 'EXPOFERIA_2025'),
-('CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO', 'CZ P-10 C OR FDE CERAKOTE', '9MM', 15, 1620.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-C-OR-FDE-CERAKOTE.png', 'https://czfirearms.com/pistols/p10-c-or-fde', true, 'EXPOFERIA_2025'),
-('CZ-P10-F-OR-PLAN-PILOTO', 'CZ P-10 F OR', '9MM', 19, 1600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P10-F-OR.png', 'https://czfirearms.com/pistols/p10-f-or', true, 'EXPOFERIA_2025'),
-
--- Arm as CZ P-09 Serie (Plan Piloto)
-('CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO', 'CZ P-09 F NOCTURNE FDE', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-FDE.png', 'https://czfirearms.com/pistols/p09-nocturne-fde', true, 'EXPOFERIA_2025'),
-('CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO', 'CZ P-09 F NOCTURNE OD VERDE', '9MM', 15, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-F-NOCTURNE-OD-Verde.png', 'https://czfirearms.com/pistols/p09-nocturne-od', true, 'EXPOFERIA_2025'),
-('CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO', 'CZ P-09 C NOCTURNE SNIPER GRIS', '9MM', 12, 1450.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/P09-C-NOCTURNE-Sniper-Gris.png', 'https://czfirearms.com/pistols/p09-nocturne-sniper', true, 'EXPOFERIA_2025'),
-('CZ-P09-C-NOCTURNE-PLAN-PILOTO', 'CZ P-09 C NOCTURNE', '9MM', 12, 1380.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-P09-C-NOCTURNE.png', 'https://czfirearms.com/pistols/p09-nocturne', true, 'EXPOFERIA_2025'),
-
--- Arm as CZ SHADOW 2 Serie (Plan Piloto)
-('CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO', 'CZ SHADOW 2 COMPACT OR', '9MM', 16, 2600.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-COMPACT-OR.jpg', 'https://czfirearms.com/pistols/shadow-2-compact-or', true, 'EXPOFERIA_2025'),
-('CZ-SHADOW-2-CARRY-PLAN-PILOTO', 'CZ SHADOW 2 CARRY', '9MM', 16, 2670.00, (SELECT id FROM categoria_arma WHERE codigo = 'PIST'), '/images/weapons/CZ-SHADOW-2-CARRY.png', 'https://czfirearms.com/pistols/shadow-2-carry', true, 'EXPOFERIA_2025')
-ON CONFLICT (codigo) DO NOTHING;
-
--- Insertar stock para las armas del plan piloto
-INSERT INTO arma_stock (arma_id, cantidad_total, cantidad_disponible, precio_venta, activo) VALUES
--- CZ P-10 Serie
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-C-PLAN-PILOTO'), 125, 125, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-PLAN-PILOTO'), 20, 20, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-FDE-PLAN-PILOTO'), 30, 30, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-SC-URBAN-PLAN-PILOTO'), 33, 33, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-PLAN-PILOTO'), 57, 57, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-MIRAS-TRITIO-PLAN-PILOTO'), 20, 20, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-FDE-PLAN-PILOTO'), 73, 73, 1421.40, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-S-PLAN-PILOTO'), 5, 5, 1380.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-PLAN-PILOTO'), 5, 5, 1600.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-C-OR-FDE-CERAKOTE-PLAN-PILOTO'), 10, 10, 1620.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P10-F-OR-PLAN-PILOTO'), 5, 5, 1600.00, true),
-
--- CZ P-09 Serie
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-FDE-PLAN-PILOTO'), 20, 20, 1450.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-F-NOCTURNE-OD-VERDE-PLAN-PILOTO'), 30, 30, 1450.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-SNIPER-GRIS-PLAN-PILOTO'), 20, 20, 1450.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-P09-C-NOCTURNE-PLAN-PILOTO'), 27, 27, 1380.00, true),
-
--- CZ SHADOW 2 Serie
-((SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-COMPACT-OR-PLAN-PILOTO'), 10, 10, 2600.00, true),
-((SELECT id FROM arma WHERE codigo = 'CZ-SHADOW-2-CARRY-PLAN-PILOTO'), 10, 10, 2670.00, true)
-ON CONFLICT (arma_id) DO NOTHING;
 
 -- Insertar preguntas para clientes civiles
-INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-(1, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-(1, '¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
-(1, '¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO')
-ON CONFLICT (id) DO NOTHING;
+-- Insertar preguntas evitando duplicados con WHERE NOT EXISTS
+-- Preguntas para civiles (tipo_proceso_id = 1)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 1) THEN
+        INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
+        (1, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
+        (1, '¿Ha tenido o tiene armas registradas?', true, 2, true, 'SI_NO');
+    END IF;
+END $$;
 
--- Insertar preguntas para militares/policías
-INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-(2, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-(2, '¿Tiene credencial Ispol o IsFA vigente?', true, 2, true, 'SI_NO'),
-(2, '¿Ya tiene firma electrónica habilitada?', true, 3, true, 'SI_NO'),
-(2, '¿Tiene certificado de servicio activo?', false, 4, true, 'SI_NO'),
-(2, '¿Ha tenido o tiene armas registradas?', true, 5, true, 'SI_NO')
-ON CONFLICT (id) DO NOTHING;
+-- Preguntas para militares/policías (tipo_proceso_id = 2)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 2) THEN
+        INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
+        (2, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
+        (2, '¿Tiene credencial Ispol o IsFA vigente?', true, 2, true, 'SI_NO'),
+        (2, '¿Ya tiene firma electrónica habilitada?', true, 3, true, 'SI_NO'),
+        (2, '¿Tiene certificado de servicio activo?', false, 4, true, 'SI_NO'),
+        (2, '¿Ha tenido o tiene armas registradas?', true, 5, true, 'SI_NO');
+    END IF;
+END $$;
 
--- Insertar preguntas para empresas
-INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-(3, '¿Tiene nombramiento del representante legal vigente?', true, 1, true, 'SI_NO'),
-(3, '¿Tiene permiso de operaciones vigente?', true, 2, true, 'SI_NO'),
-(3, '¿Tiene autorización de tenencia de armas?', true, 3, true, 'SI_NO'),
-(3, '¿La empresa está registrada en el SRI?', true, 4, true, 'SI_NO'),
-(3, '¿Tiene RUC activo?', true, 5, true, 'SI_NO')
-ON CONFLICT (id) DO NOTHING;
+-- Preguntas para empresas (tipo_proceso_id = 3)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 3) THEN
+        INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
+        (3, '¿Tiene nombramiento del representante legal vigente?', true, 1, true, 'SI_NO'),
+        (3, '¿Tiene permiso de operaciones vigente?', true, 2, true, 'SI_NO'),
+        (3, '¿Tiene autorización de tenencia de armas?', true, 3, true, 'SI_NO'),
+        (3, '¿La empresa esta registrada en el SRI?', true, 4, true, 'SI_NO'),
+        (3, '¿Tiene RUC activo?', true, 5, true, 'SI_NO');
+    END IF;
+END $$;
 
--- Insertar preguntas para deportistas
-INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
-(4, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
-(4, '¿La dirección en Sicoar coincide con su domicilio actual?', true, 2, true, 'SI_NO'),
-(4, '¿Ha tenido o tiene armas registradas?', true, 3, true, 'SI_NO'),
-(4, 'Credencial de club deportivo vigente', true, 4, true, 'SI_NO'),
-(4, 'Credencial de tenencia de armas', true, 5, true, 'SI_NO')
-ON CONFLICT (id) DO NOTHING;
+-- Preguntas para deportistas (tipo_proceso_id = 4)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM preguntas WHERE tipo_proceso_id = 4) THEN
+        INSERT INTO preguntas (tipo_proceso_id, pregunta, obligatoria, orden, estado, tipo_respuesta) VALUES
+        (4, '¿Tiene cuenta en el Sicoar?', true, 1, true, 'SI_NO'),
+        (4, '¿Ha tenido o tiene armas registradas?', true, 2, true, 'SI_NO');
+    END IF;
+END $$;
 
 
 
 -- Insertar licencias
 INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, cupo_total, cupo_disponible, cupo_civil, cupo_militar, cupo_empresa, cupo_deportista, estado, estado_ocupacion, fecha_vencimiento) VALUES
-('LIC001', 'LEITON PORTILLA CORALIA SALOME', '1725781254', '2200614031', 'PICHINCHA', 'AHORROS', '1725781254', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC002', 'SILVA ACOSTA FRANCISCO JAVIER', '1714597414', '3020513304', 'PICHINCHA', 'AHORROS', '1714597414', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC003', 'MULLER BENITEZ NICOLE PAMELA', '1713978540', '2212737882', 'PICHINCHA', 'AHORROS', '1713978540', 'vbenitez@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC004', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORROS', '0993392212001', 'simogue.sas@gmail.com', '0000000000', 100, 100, 0, 0, 100, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC005', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922', '8151263', 'INTERNACIONAL', 'AHORROS', '1707815922', 'joseluis@guerreromartinez.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31'),
-('LIC006', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, 'ACTIVA', 'DISPONIBLE', '2050-12-31')
+('LIC001', 'LEITON PORTILLA CORALIA SALOME', '1725781254', '2200614031', 'PICHINCHA', 'AHORROS', '1725781254', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC002', 'SILVA ACOSTA FRANCISCO JAVIER', '1714597414', '3020513304', 'PICHINCHA', 'AHORROS', '1714597414', 'frank_gun@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC003', 'MULLER BENITEZ NICOLE PAMELA', '1713978540', '2212737882', 'PICHINCHA', 'AHORROS', '1713978540', 'vbenitez@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC004', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORROS', '0993392212001', 'simogue.sas@gmail.com', '0000000000', 100, 100, 0, 0, 100, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC005', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922', '8151263', 'INTERNACIONAL', 'AHORROS', '1707815922', 'joseluis@guerreromartinez.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC006', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0000000000', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
--- Insertar configuración del sistema
+-- Insertar configuraci?n del sistema
 INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
-('EMAIL_NOTIFICACIONES', 'notificaciones@gmarm.com', 'Email para enviar notificaciones', true),
-('DIAS_VALIDEZ_DOCUMENTOS', '30', 'Días de validez para documentos subidos', true),
+('EMAIL_NOTIFICACIONES', 'gmarm.notificacion@gmail.com', 'Email para enviar notificaciones', true),
+-- Configuraci?n SMTP para envío de emails
+('SMTP_HOST', 'smtp.gmail.com', 'Servidor SMTP para envío de emails', true),
+('SMTP_PORT', '587', 'Puerto del servidor SMTP (587=TLS, 465=SSL)', true),
+('SMTP_USERNAME', 'gmarm.notificacion@gmail.com', 'Usuario SMTP (email de la cuenta)', true),
+('SMTP_PASSWORD', 'vxdacadmloeecjiz', 'Contraseña de aplicación SMTP (NO la Contraseña normal)', true),
+('SMTP_AUTH', 'true', 'Requiere autenticación SMTP (true/false)', true),
+('SMTP_STARTTLS', 'true', 'Habilitar STARTTLS (true/false)', true),
+-- Correos que reciben copia de recibos de pago (adem?s del cliente)
+-- Formato: JSON array de strings, ej: ["email1@example.com", "email2@example.com"]
+-- Tambi?n acepta separado por comas: "email1@example.com, email2@example.com"
+('CORREOS_RECIBO', '["joseluis@guerreromartinez.com", "valeria@gmarm.com"]', 'Lista de correos electrónicos que reciben copia automática de los recibos de pago. Se envía además del correo del cliente. Formato: JSON array o separado por comas. Ejemplo: ["email1@example.com", "email2@example.com"] o "email1@example.com, email2@example.com"', true),
+('DIAS_VALIDEZ_DOCUMENTOS', '30', 'días de validez para documentos subidos', true),
 ('PORCENTAJE_ANTICIPO', '40', 'Porcentaje de anticipo requerido', true),
-('IVA', '15', 'Porcentaje de IVA aplicable', false),
-('EDAD_MINIMA_CLIENTE', '25', 'Edad mínima para clientes', false),
-('MAX_INTENTOS_LOGIN', '3', 'Máximo intentos de login antes de bloquear', false),
-('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago válidos en el sistema', false),
-('MAX_CUOTAS_PERMITIDAS', '6', 'Máximo número de cuotas permitidas', false),
-('MIN_MONTO_CUOTA', '100.00', 'Monto mínimo por cuota', false),
-('EXPOFERIA_ACTIVA', 'true', 'Indica si la expoferia está activa y se deben mostrar solo armas de expoferia', true),
-('EXPOFERIA_NOMBRE', 'EXPOFERIA_2025', 'Nombre de la expoferia actual', true)
+('IVA', '15', 'Porcentaje de IVA aplicable', true),
+('EDAD_MINIMA_CLIENTE', '25', 'Edad mínima para clientes', true),
+('MAX_INTENTOS_LOGIN', '3', 'máximo intentos de login antes de bloquear', true),
+('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago válidos en el sistema', true),
+('MAX_CUOTAS_PERMITIDAS', '6', 'máximo número de cuotas permitidas', true),
+('MIN_MONTO_CUOTA', '100.00', 'Monto minimo por cuota', true),
+-- Configuración de EXPOFERIA eliminada - ya no se usa en el sistema
+('COORDINADOR_NOMBRE', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar', true),
+('COORDINADOR_CARGO', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar', true),
+('COORDINADOR_DIRECCION', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección cargo del coordinador militar', true),
+-- Cupos por defecto de licencias de importación (valores constantes)
+('CUPO_DEFAULT_CIVIL', '25', 'Cupo por defecto para clientes civiles en licencias de importación', false),
+('CUPO_DEFAULT_MILITAR', '1000', 'Cupo por defecto para clientes uniformados (militares) en licencias de importación', false),
+('CUPO_DEFAULT_EMPRESA', '1000', 'Cupo por defecto para empresas de seguridad en licencias de importación', false),
+('CUPO_DEFAULT_DEPORTISTA', '1000', 'Cupo por defecto para deportistas en licencias de importación', false)
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================
--- 4. INSERCIÓN DE DATOS DE LOCALIZACIÓN
+-- 4. inserción DE DATOS DE LOCALIZACión
 -- =====================================================
 
 -- =====================================================
--- SISTEMA DE PAGOS - EXPLICACIÓN
+-- SISTEMA DE PAGOS - EXPLICACI?N
 -- =====================================================
 -- El sistema de pagos funciona de la siguiente manera:
 -- 
 -- 1. TABLA 'pago': Resumen del plan de pago del cliente
 --    - monto_total: Cuánto debe pagar en total
 --    - tipo_pago: 'CONTADO' o 'CUOTAS'
---    - numero_cuotas: Cuántas cuotas tiene (1 para contado)
+--    - numero_cuotas: Cu?ntas cuotas tiene (1 para contado)
 --    - monto_cuota: Monto de cada cuota
---    - monto_pagado: Cuánto ya pagó
+--    - monto_pagado: Cuánto ya pag?
 --    - monto_pendiente: Cuánto le falta (calculado automáticamente)
---    - cuota_actual: En qué cuota va el cliente
+--    - cuota_actual: En qu? cuota va el cliente
 -- 
 -- 2. TABLA 'cuota_pago': Detalle de cada cuota individual
 --    - pago_id: Referencia al plan de pago
---    - numero_cuota: Número de la cuota (1, 2, 3, 4, 5, 6)
---    - monto: Monto específico de esta cuota
---    - fecha_vencimiento: Cuándo vence
+--    - numero_cuota: número de la cuota (1, 2, 3, 4, 5, 6)
+--    - monto: Monto espec?fico de esta cuota
+--    - fecha_vencimiento: Cu?ndo vence
 --    - estado: 'PENDIENTE', 'PAGADA', 'VENCIDA'
---    - fecha_pago: Cuándo se pagó (NULL si no se ha pagado)
+--    - fecha_pago: Cu?ndo se pag? (NULL si no se ha pagado)
 --    - referencia_pago: Referencia del pago (transferencia, etc.)
---    - usuario_confirmador_id: Quién confirmó el pago
+--    - usuario_confirmador_id: Qui?n confirm? el pago
 -- 
 -- EJEMPLO DE USO:
 -- Cliente compra arma por $1200 en 3 cuotas:
@@ -933,22 +1089,22 @@ ON CONFLICT (clave) DO NOTHING;
 -- =====================================================
 
 -- =====================================================
--- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACIÓN
+-- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACI?N
 -- =====================================================
 -- El sistema de cupos funciona de la siguiente manera:
 -- 
 -- 1. TABLA 'licencia': Define los cupos disponibles por tipo de cliente
 --    - Todas las licencias son del mismo tipo: IMPORTACION_ARMAS
---    - cupo_civil: Máximo 25 armas para clientes civiles
---    - cupo_militar: Máximo 1000 armas para uniformados
---    - cupo_empresa: Máximo 1000 armas para empresas de seguridad
---    - cupo_deportista: Máximo 1000 armas para deportistas
+--    - cupo_civil: máximo 25 armas para clientes civiles
+--    - cupo_militar: máximo 1000 armas para uniformados
+--    - cupo_empresa: máximo 1000 armas para empresas de seguridad
+--    - cupo_deportista: máximo 1000 armas para deportistas
 --    - estado_ocupacion: 'DISPONIBLE' o 'BLOQUEADA'
 -- 
 -- 2. TABLA 'grupo_importacion_cupo': Controla el consumo de cupos por grupo
---    - licencia_id: Qué licencia se está usando
---    - tipo_cliente: Para qué tipo de cliente se consume
---    - cupo_consumido: Cuánto consume este grupo específico
+--    - licencia_id: Qu? licencia se est�? usando
+--    - tipo_cliente: Para qu? tipo de cliente se consume
+--    - cupo_consumido: Cuánto consume este grupo espec?fico
 --    - cupo_disponible_licencia: Cuánto queda disponible en la licencia
 -- 
 -- FLUJO DE TRABAJO:
@@ -989,7 +1145,7 @@ INSERT INTO provincia (nombre, codigo, estado) VALUES
 ('Pastaza', 'PAS', true),
 ('Pichincha', 'PIC', true),
 ('Santa Elena', 'SEL', true),
-('Santo Domingo de los Tsáchilas', 'SDT', true),
+('Santo Domingo de los Ts?chilas', 'SDT', true),
 ('Sucumbíos', 'SUC', true),
 ('Tungurahua', 'TUN', true),
 ('Zamora Chinchipe', 'ZCH', true)
@@ -1011,10 +1167,10 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('El Pan', 'ELPA', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Sevilla de Oro', 'SEOR', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
 ('Guachapala', 'GUAC', true, (SELECT id FROM provincia WHERE codigo = 'AZU')),
-('Camilo Ponce Enríquez', 'CPEN', true, (SELECT id FROM provincia WHERE codigo = 'AZU'))
+('Camilo Ponce Enriquez', 'CPEN', true, (SELECT id FROM provincia WHERE codigo = 'AZU'))
 ON CONFLICT DO NOTHING;
 
--- BOLÍVAR
+-- BOL?VAR
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Guaranda', 'GUAR', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
 ('Chillanes', 'CHIL', true, (SELECT id FROM provincia WHERE codigo = 'BOL')),
@@ -1025,13 +1181,13 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Las Naves', 'LNAV', true, (SELECT id FROM provincia WHERE codigo = 'BOL'))
 ON CONFLICT DO NOTHING;
 
--- CAÑAR
+-- CA?AR
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Azogues', 'AZOG', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('Cañar', 'CAN', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('La Troncal', 'LTRO', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('El Tambo', 'ETAM', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
-('Déleg', 'DELE', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
+('Deleg', 'DELE', true, (SELECT id FROM provincia WHERE codigo = 'CAN')),
 ('Suscal', 'SUSC', true, (SELECT id FROM provincia WHERE codigo = 'CAN'))
 ON CONFLICT DO NOTHING;
 
@@ -1098,7 +1254,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Rioverde', 'RIOV', true, (SELECT id FROM provincia WHERE codigo = 'ESM'))
 ON CONFLICT DO NOTHING;
 
--- GALÁPAGOS
+-- GALAPAGOS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('San Cristóbal', 'SCRI', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
 ('Isabela', 'ISAB', true, (SELECT id FROM provincia WHERE codigo = 'GAL')),
@@ -1154,7 +1310,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Celica', 'CELI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Chaguarpamba', 'CHAG', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Espíndola', 'ESPI', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
-('Gonzanamá', 'GONZ', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
+('Gonzanamí', 'GONZ', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Macará', 'MACA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Paltas', 'PALT', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
 ('Puyango', 'PUYA', true, (SELECT id FROM provincia WHERE codigo = 'LOJ')),
@@ -1166,7 +1322,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Olmedo', 'OLME', true, (SELECT id FROM provincia WHERE codigo = 'LOJ'))
 ON CONFLICT DO NOTHING;
 
--- LOS RÍOS
+-- LOS R?OS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Babahoyo', 'BABA', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
 ('Baba', 'BAB', true, (SELECT id FROM provincia WHERE codigo = 'LRI')),
@@ -1183,7 +1339,7 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Quinsaloma', 'QUIN', true, (SELECT id FROM provincia WHERE codigo = 'LRI'))
 ON CONFLICT DO NOTHING;
 
--- MANABÍ
+-- MANAB?
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Portoviejo', 'PORTO', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
 ('Bolívar', 'BOLI', true, (SELECT id FROM provincia WHERE codigo = 'MAN')),
@@ -1269,13 +1425,13 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Salinas', 'SALI', true, (SELECT id FROM provincia WHERE codigo = 'SEL'))
 ON CONFLICT DO NOTHING;
 
--- SANTO DOMINGO DE LOS TSÁCHILAS
+-- SANTO DOMINGO DE LOS TS?CHILAS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Santo Domingo', 'SDOM', true, (SELECT id FROM provincia WHERE codigo = 'SDT')),
 ('La Concordia', 'LCON', true, (SELECT id FROM provincia WHERE codigo = 'SDT'))
 ON CONFLICT DO NOTHING;
 
--- SUCUMBÍOS
+-- SUCUMB?OS
 INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Nueva Loja', 'NLOJ', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
 ('Cascales', 'CASC', true, (SELECT id FROM provincia WHERE codigo = 'SUC')),
@@ -1314,20 +1470,20 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
--- 5. INSERCIÓN DE USUARIOS (solo si no existen)
+-- 5. inserción DE USUARIOS (solo si no existen)
 -- =====================================================
 
 -- Usuario administrador (password: admin123)
 INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, username, apellidos, email, nombres, direccion, password_hash) VALUES
-(false, 0, NOW(), '0999999999', 'ACTIVO', 'admin', 'SISTEMA', 'admin@armasimportacion.com', 'ADMINISTRADOR', 'QUITO, ECUADOR', 'admin123')
+(false, 0, NOW(), '0999999999', true, 'admin', 'SISTEMA', 'admin@armasimportacion.com', 'ADMINISTRADOR', 'QUITO, ECUADOR', 'admin123')
 ON CONFLICT (username) DO NOTHING;
 
 -- Usuarios de prueba (password: admin123)
 INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, username, apellidos, email, nombres, direccion, password_hash) VALUES
-(false, 0, NOW(), '0987654321', 'ACTIVO', 'vendedor', 'Vendedor', 'vendedor@test.com', 'Juan', 'Guayaquil, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654322', 'ACTIVO', 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654323', 'ACTIVO', 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654324', 'ACTIVO', 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123')
+(false, 0, NOW(), '0987654321', true, 'vendedor', 'Vendedor', 'vendedor@test.com', 'Juan', 'Guayaquil, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654322', true, 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654323', true, 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654324', true, 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123')
 ON CONFLICT (username) DO NOTHING;
 
 -- Asignar roles a usuarios
@@ -1341,7 +1497,7 @@ ON CONFLICT (usuario_id, rol_id) DO NOTHING;
 
 
 -- =====================================================
--- 5.5. MIGRACIÓN DE IMÁGENES (url_imagen → arma_imagen)
+-- 5.5. MIGRACI?N DE imágenes (url_imagen ? arma_imagen)
 -- =====================================================
 
 -- Migrar todas las url_imagen existentes a la tabla arma_imagen
@@ -1380,16 +1536,16 @@ WHERE NOT EXISTS (
 
 
 -- =====================================================
--- 6. VERIFICACIÓN FINAL
+-- 6. verificación FINAL
 -- =====================================================
 
 -- Mostrar resumen de lo creado
-SELECT '=== RESUMEN DE INSTALACIÓN ===' as info;
+SELECT '=== RESUMEN DE INSTALACI?N ===' as info;
 SELECT 'Usuarios creados:' as info, COUNT(*) as total FROM usuario;
 SELECT 'Roles creados:' as info, COUNT(*) as total FROM rol;
 SELECT 'Tipos de cliente:' as info, COUNT(*) as total FROM tipo_cliente;
 SELECT 'Tipos de proceso:' as info, COUNT(*) as total FROM tipo_proceso;
-SELECT 'Categorías de armas:' as info, COUNT(*) as total FROM categoria_arma;
+SELECT 'categorías de armas:' as info, COUNT(*) as total FROM categoria_arma;
 SELECT 'Armas:' as info, COUNT(*) as total FROM arma;
 SELECT 'Licencias:' as info, COUNT(*) as total FROM licencia;
 SELECT 'Provincias:' as info, COUNT(*) as total FROM provincia;
@@ -1403,5 +1559,192 @@ SELECT 'Jefe Ventas:' as usuario, 'jefe@test.com / admin123' as credenciales;
 SELECT 'Finanzas:' as usuario, 'finanzas@test.com / admin123' as credenciales;
 SELECT 'Operaciones:' as usuario, 'operaciones@test.com / admin123' as credenciales;
 
-SELECT '=== INSTALACIÓN COMPLETADA ===' as info;
+SELECT '=== INSTALACI?N COMPLETADA ===' as info;
 SELECT 'La base de datos está lista para usar con el frontend.' as mensaje;
+
+-- ========================================
+-- DATOS ADICIONALES PARA DESARROLLO
+-- ========================================
+-- Agregados automáticamente para tener un ambiente de desarrollo completo
+
+-- ========================================
+-- VENDEDORES
+-- ========================================
+
+-- 1. Karolina Pazmi?o
+INSERT INTO usuario (
+    bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, 
+    username, apellidos, email, nombres, direccion, password_hash
+) VALUES (
+    false, 0, NOW(), '0999999999', true, 
+    'karolina.pazmino', 'Pazmiño', 'karritogeova@hotmail.com', 
+    'Karolina', 'Quito, Ecuador', 'admin123'
+) ON CONFLICT (email) DO UPDATE SET 
+    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
+
+-- 2. Rossy Revelo
+INSERT INTO usuario (
+    bloqueado, intentos_login, fecha_creacion, telefono_principal, estado,
+    username, apellidos, email, nombres, direccion, password_hash
+) VALUES (
+    false, 0, NOW(), '0999999999', true,
+    'rossy.revelo', 'Revelo', 'rossy-revelo@hotmail.com',
+    'Rossy', 'Quito, Ecuador', 'admin123'
+) ON CONFLICT (email) DO UPDATE SET 
+    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
+
+-- Asignar rol VENDOR a vendedores
+INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
+SELECT u.id, r.id, true, NOW()
+FROM usuario u
+CROSS JOIN rol r
+WHERE u.email = 'karritogeova@hotmail.com' AND r.codigo = 'VENDOR'
+ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
+
+INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
+SELECT u.id, r.id, true, NOW()
+FROM usuario u
+CROSS JOIN rol r
+WHERE u.email = 'rossy-revelo@hotmail.com' AND r.codigo = 'VENDOR'
+ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
+
+-- Usuario: Franklin Endara (Finanzas y Jefe de Ventas)
+INSERT INTO usuario (
+    bloqueado, intentos_login, fecha_creacion, telefono_principal, estado,
+    username, apellidos, email, nombres, direccion, password_hash
+) VALUES (
+    false, 0, NOW(), '0999999998', true,
+    'franklin.endara', 'Endara', 'franklin.endara@hotmail.com',
+    'Franklin', 'Quito, Ecuador', 'admin123'
+) ON CONFLICT (username) DO UPDATE
+SET 
+    email = 'franklin.endara@hotmail.com',
+    nombres = 'Franklin',
+    apellidos = 'Endara',
+    estado = true;
+
+-- Asignar roles a franklin.endara (FINANCE y SALES_CHIEF)
+INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
+SELECT u.id, r.id, true, NOW()
+FROM usuario u
+CROSS JOIN rol r
+WHERE u.email = 'franklin.endara@hotmail.com' AND r.codigo IN ('FINANCE', 'SALES_CHIEF')
+ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
+
+-- ========================================
+-- migración DE imágenes A TABLA arma_imagen
+-- ========================================
+
+-- Migrar url_imagen existentes a arma_imagen como imagen principal
+INSERT INTO arma_imagen (arma_id, url_imagen, orden, es_principal, descripcion, fecha_creacion, fecha_actualizacion)
+SELECT 
+    id, url_imagen, 1, true,
+    'Imagen principal (migrada)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM arma
+WHERE url_imagen IS NOT NULL AND url_imagen != ''
+  AND NOT EXISTS (SELECT 1 FROM arma_imagen ai WHERE ai.arma_id = arma.id AND ai.es_principal = true)
+ON CONFLICT DO NOTHING;
+
+-- Agregar placeholder para armas sin imagen
+INSERT INTO arma_imagen (arma_id, url_imagen, orden, es_principal, descripcion)
+SELECT 
+    id, '/images/weapons/placeholder.jpg', 1, true, 'Imagen no disponible'
+FROM arma
+WHERE NOT EXISTS (SELECT 1 FROM arma_imagen ai WHERE ai.arma_id = arma.id)
+ON CONFLICT DO NOTHING;
+
+-- ========================================
+-- verificación FINAL
+-- ========================================
+
+SELECT '=== INSTALACION COMPLETADA - AMBIENTE DESARROLLO ===' as info;
+SELECT 'La base de datos esta lista con todos los datos de desarrollo.' as mensaje;
+
+-- Mostrar usuarios y roles
+SELECT 
+    u.nombres || ' ' || u.apellidos as usuario,
+    u.email,
+    STRING_AGG(r.codigo, ', ') as roles
+FROM usuario u
+LEFT JOIN usuario_rol ur ON u.id = ur.usuario_id
+LEFT JOIN rol r ON ur.rol_id = r.id
+GROUP BY u.id, u.nombres, u.apellidos, u.email
+ORDER BY u.id;
+
+-- Mostrar estad?sticas
+SELECT 'Total de usuarios:' as info, COUNT(*) as total FROM usuario;
+SELECT 'Total de clientes:' as info, COUNT(*) as total FROM cliente;
+SELECT 'Total de armas:' as info, COUNT(*) as total FROM arma;
+SELECT 'Total de imagenes de armas:' as info, COUNT(*) as total FROM arma_imagen;
+SELECT 'Armas con multiples imagenes:' as info, COUNT(DISTINCT arma_id) as total 
+FROM arma_imagen 
+GROUP BY arma_id 
+HAVING COUNT(*) > 1;
+
+-- ========================================
+-- RESET DE SECUENCIAS PARA IDs CONTINUOS
+-- ========================================
+-- CRITICO: Sin est�o, los IDs saltan despu�s de resets
+-- Este bloque asegura que los pr?ximos IDs generados sean consecutivos
+
+SELECT 'Reseteando secuencias de PostgreSQL...' as info;
+
+-- Resetear secuencias principales 
+-- El tercer par?metro 'true' asegura que el pr?ximo ID ser? MAX(id) + 1 (continuaci?n)
+-- GREATEST asegura que el valor m?nimo sea 1 (PostgreSQL no permite 0 en setval)
+-- CR?TICO: Este bloque debe ejecutarse despu�s de insertar todos los datos
+
+-- Tablas principales
+SELECT setval('rol_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM rol), 0), 1), true);
+SELECT setval('usuario_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 1), true);
+SELECT setval('usuario_rol_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario_rol), 0), 1), true);
+SELECT setval('tipo_cliente_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM tipo_cliente), 0), 1), true);
+SELECT setval('tipo_identificacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM tipo_identificacion), 0), 1), true);
+SELECT setval('tipo_proceso_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM tipo_proceso), 0), 1), true);
+SELECT setval('tipo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM tipo_importacion), 0), 1), true);
+SELECT setval('tipo_cliente_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM tipo_cliente_importacion), 0), 1), true);
+SELECT setval('cliente_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM cliente), 0), 1), true);
+SELECT setval('preguntas_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM preguntas), 0), 1), true);
+SELECT setval('respuestas_cliente_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM respuestas_cliente), 0), 1), true);
+SELECT setval('tipo_documento_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM tipo_documento), 0), 1), true);
+SELECT setval('documento_cliente_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM documento_cliente), 0), 1), true);
+
+-- Tablas de armas
+SELECT setval('categoria_arma_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM categoria_arma), 0), 1), true);
+SELECT setval('arma_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM arma), 0), 1), true);
+SELECT setval('arma_imagen_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM arma_imagen), 0), 1), true);
+SELECT setval('arma_stock_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM arma_stock), 0), 1), true);
+SELECT setval('arma_serie_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM arma_serie), 0), 1), true);
+SELECT setval('arma_fisica_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM arma_fisica), 0), 1), true);
+SELECT setval('cliente_arma_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM cliente_arma), 0), 1), true);
+
+-- Tablas de accesorios
+SELECT setval('accesorio_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM accesorio), 0), 1), true);
+SELECT setval('accesorio_fisico_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM accesorio_fisico), 0), 1), true);
+SELECT setval('cliente_accesorio_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM cliente_accesorio), 0), 1), true);
+
+-- Tablas de pagos
+SELECT setval('pago_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM pago), 0), 1), true);
+SELECT setval('cuota_pago_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM cuota_pago), 0), 1), true);
+
+-- Tablas de importación
+SELECT setval('licencia_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM licencia), 0), 1), true);
+SELECT setval('grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion), 0), 1), true);
+SELECT setval('cliente_grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM cliente_grupo_importacion), 0), 1), true);
+SELECT setval('grupo_importacion_cupo_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_cupo), 0), 1), true);
+SELECT setval('grupo_importacion_vendedor_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_vendedor), 0), 1), true);
+SELECT setval('grupo_importacion_limite_categoria_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_limite_categoria), 0), 1), true);
+SELECT setval('documento_grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM documento_grupo_importacion), 0), 1), true);
+SELECT setval('documento_generado_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM documento_generado), 0), 1), true);
+
+-- Tablas de localizaci?n
+SELECT setval('provincia_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM provincia), 0), 1), true);
+SELECT setval('canton_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM canton), 0), 1), true);
+
+-- Tablas del sistema
+SELECT setval('configuracion_sistema_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM configuracion_sistema), 0), 1), true);
+SELECT setval('notificacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM notificacion), 0), 1), true);
+SELECT setval('email_verification_token_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM email_verification_token), 0), 1), true);
+
+SELECT 'Secuencias reseteadas exitosamente' as info;
+SELECT 'El proximo ID generado sera consecutivo' as mensaje;

@@ -179,12 +179,12 @@ public class PedidoArmasGrupoImportacionService {
         // Agrupar armas por modelo (nombre + calibre) y sumar cantidades
         Map<String, Map<String, Object>> armasAgrupadas = new HashMap<>();
         for (ClienteArma clienteArma : armasGrupo) {
-            String clave = clienteArma.getArma().getNombre() + "|" + 
+            String clave = clienteArma.getArma().getModelo() + "|" + 
                           (clienteArma.getArma().getCalibre() != null ? clienteArma.getArma().getCalibre() : "");
             
             if (!armasAgrupadas.containsKey(clave)) {
                 Map<String, Object> armaData = new HashMap<>();
-                armaData.put("nombre", clienteArma.getArma().getNombre());
+                armaData.put("nombre", clienteArma.getArma().getModelo()); // Cambiado de nombre a modelo
                 armaData.put("calibre", clienteArma.getArma().getCalibre());
                 armaData.put("capacidad", clienteArma.getArma().getCapacidad());
                 armaData.put("cantidad", 0);

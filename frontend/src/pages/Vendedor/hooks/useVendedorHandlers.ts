@@ -39,7 +39,6 @@ export const useVendedorHandlers = (
   _clientesBloqueados: Record<string, { bloqueado: boolean; motivo: string }>, // Prefijo _ porque se usa indirectamente
   clientWeaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>,
   weaponPrices: Record<number, number>,
-  expoferiaActiva: boolean,
   _clients: Client[], // Prefijo _ para indicar que no se usa directamente pero se necesita para tipos
   
   // Funciones externas
@@ -274,7 +273,13 @@ export const useVendedorHandlers = (
         return; // No continuar con el flujo de pago para armas sin cliente
       } catch (error: any) {
         console.error('❌ Error asignando arma(s) al cliente fantasma:', error);
-        const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al asignar arma';
+        // Extraer mensaje de error del backend (puede estar en diferentes lugares)
+        const errorMessage = error?.responseData?.error || 
+                           error?.responseData?.message || 
+                           error?.response?.data?.error ||
+                           error?.response?.data?.message || 
+                           error?.message || 
+                           'Error desconocido al asignar arma';
         alert(`❌ Error al asignar arma(s): ${errorMessage}`);
         return;
       }
@@ -312,12 +317,9 @@ export const useVendedorHandlers = (
       });
     }
     
-    if (expoferiaActiva && clientFormData && !clientFormData.id) {
-      setCurrentPage('seriesAssignment');
-    } else {
-      setCurrentPage('paymentForm');
-    }
-  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, expoferiaActiva, user, setClientFormData, setSelectedClient, setCurrentPage]);
+    // Siempre ir a paymentForm (expoferia eliminada)
+    setCurrentPage('paymentForm');
+  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, user, setClientFormData, setSelectedClient, setCurrentPage]);
 
   const handleBackToClientForm = useCallback(() => {
     if (clientFormData) {

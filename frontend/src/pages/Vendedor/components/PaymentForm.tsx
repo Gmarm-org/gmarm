@@ -8,7 +8,7 @@ interface PaymentFormProps {
   selectedWeapon: Arma;
   precioModificado: number;
   cantidad: number;
-  selectedSerieNumero?: string | null; // Número de serie seleccionado (si expoferia está activa)
+  selectedSerieNumero?: string | null; // Número de serie seleccionado
   onBack: () => void;
   onComplete: (paymentData: any) => void;
 }

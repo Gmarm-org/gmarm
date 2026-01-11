@@ -44,7 +44,7 @@
     },
     "tipoCliente": {
       "type": "string",
-      "enum": ["Civil", "Militar Fuerza Terrestre", "Militar Fuerza Naval", "Militar Fuerza Aerea", "Militar Expoferia", "Uniformado Policial", "Compañía de Seguridad", "Deportista"],
+      "enum": ["Civil", "Militar Fuerza Terrestre", "Militar Fuerza Naval", "Militar Fuerza Aerea", "Uniformado Policial", "Compañía de Seguridad", "Deportista"],
       "description": "Tipo de cliente"
     },
     "fechaNacimiento": {

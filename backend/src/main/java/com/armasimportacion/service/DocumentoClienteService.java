@@ -210,6 +210,19 @@ public class DocumentoClienteService {
         Cliente cliente = clienteRepository.findById(clienteId)
             .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
         
+        // Si el cliente es fantasma, no requiere documentos obligatorios (es temporal)
+        // Los clientes fantasma son para almacenar armas del vendedor sin cliente específico
+        if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            log.debug("⚠️ Cliente fantasma detectado - no requiere documentos obligatorios");
+            return true;
+        }
+        
+        // Si no tiene tipoProcesoId, no hay documentos obligatorios
+        if (cliente.getTipoProcesoId() == null) {
+            log.debug("⚠️ Cliente sin tipoProcesoId - no hay documentos obligatorios");
+            return true;
+        }
+        
         // Obtener todos los tipos de documento obligatorios para el tipo de proceso del cliente
         // Usar el servicio que excluye documentos de grupos de importación
         List<TipoDocumento> tiposObligatorios = tipoDocumentoService.findByTipoProcesoId(

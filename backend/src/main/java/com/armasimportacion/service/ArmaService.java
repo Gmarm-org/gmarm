@@ -1,8 +1,10 @@
 package com.armasimportacion.service;
 
 import com.armasimportacion.model.Arma;
+import com.armasimportacion.model.ArmaStock;
 import com.armasimportacion.model.CategoriaArma;
 import com.armasimportacion.repository.ArmaRepository;
+import com.armasimportacion.repository.ArmaStockRepository;
 import com.armasimportacion.repository.CategoriaArmaRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.dto.ArmaUpdateDTO;
@@ -11,11 +13,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +26,7 @@ import java.util.List;
 public class ArmaService {
     
     private final ArmaRepository armaRepository;
+    private final ArmaStockRepository armaStockRepository;
     private final ArmaImageService armaImageService;
     private final CategoriaArmaRepository categoriaArmaRepository;
     
@@ -89,7 +92,7 @@ public class ArmaService {
      * Guardar arma
      */
     public Arma save(Arma arma) {
-        log.info("Guardando arma: {}", arma.getNombre());
+        log.info("Guardando arma: {}", arma.getModelo());
         return armaRepository.save(arma);
     }
     
@@ -101,7 +104,9 @@ public class ArmaService {
         Arma arma = findById(id);
         
         arma.setCodigo(armaDetails.getCodigo());
-        arma.setNombre(armaDetails.getNombre());
+        arma.setModelo(armaDetails.getModelo()); // Cambiado de nombre a modelo
+        arma.setMarca(armaDetails.getMarca()); // Nuevo campo
+        arma.setAlimentadora(armaDetails.getAlimentadora()); // Nuevo campo
         arma.setCalibre(armaDetails.getCalibre());
         arma.setCapacidad(armaDetails.getCapacidad());
         arma.setPrecioReferencia(armaDetails.getPrecioReferencia());
@@ -110,7 +115,12 @@ public class ArmaService {
         arma.setUrlProducto(armaDetails.getUrlProducto());
         arma.setEstado(armaDetails.getEstado());
         
-        return armaRepository.save(arma);
+        Arma armaGuardada = armaRepository.save(arma);
+        
+        // Sincronizar campos denormalizados en arma_stock si existe
+        sincronizarArmaStock(armaGuardada);
+        
+        return armaGuardada;
     }
 
     /**
@@ -137,8 +147,14 @@ public class ArmaService {
         }
         
         // Actualizar campos de la arma
-        if (updateDTO.getNombre() != null) {
-            arma.setNombre(updateDTO.getNombre());
+        if (updateDTO.getModelo() != null) {
+            arma.setModelo(updateDTO.getModelo()); // Cambiado de nombre a modelo
+        }
+        if (updateDTO.getMarca() != null) {
+            arma.setMarca(updateDTO.getMarca()); // Nuevo campo
+        }
+        if (updateDTO.getAlimentadora() != null) {
+            arma.setAlimentadora(updateDTO.getAlimentadora()); // Nuevo campo
         }
         if (updateDTO.getCalibre() != null) {
             arma.setCalibre(updateDTO.getCalibre());
@@ -158,9 +174,6 @@ public class ArmaService {
         if (updateDTO.getEstado() != null) {
             arma.setEstado(updateDTO.getEstado());
         }
-        if (updateDTO.getExpoferia() != null) {
-            arma.setExpoferia(updateDTO.getExpoferia());
-        }
         if (updateDTO.getUrlImagen() != null && !updateDTO.getUrlImagen().trim().isEmpty()) {
             arma.setUrlImagen(updateDTO.getUrlImagen());
         }
@@ -173,7 +186,12 @@ public class ArmaService {
         // Actualizar fecha de modificación
         arma.setFechaActualizacion(LocalDateTime.now());
         
-        return armaRepository.save(arma);
+        Arma armaGuardada = armaRepository.save(arma);
+        
+        // Sincronizar campos denormalizados en arma_stock si existe
+        sincronizarArmaStock(armaGuardada);
+        
+        return armaGuardada;
     }
     
     /**
@@ -202,12 +220,13 @@ public class ArmaService {
         
         // Crear nueva entidad Arma
         Arma arma = new Arma();
-        arma.setNombre(createDTO.getNombre());
+        arma.setModelo(createDTO.getModelo()); // Cambiado de nombre a modelo
+        arma.setMarca(createDTO.getMarca()); // Nuevo campo
+        arma.setAlimentadora(createDTO.getAlimentadora()); // Nuevo campo
         arma.setCalibre(createDTO.getCalibre());
         arma.setCapacidad(createDTO.getCapacidad());
         arma.setPrecioReferencia(createDTO.getPrecioReferencia());
         arma.setEstado(createDTO.getEstado() != null ? createDTO.getEstado() : true);
-        arma.setExpoferia(createDTO.getExpoferia() != null ? createDTO.getExpoferia() : false);
         arma.setCodigo(createDTO.getCodigo());
         arma.setUrlProducto(createDTO.getUrlProducto());
         arma.setFechaCreacion(LocalDateTime.now());
@@ -224,6 +243,9 @@ public class ArmaService {
         // Guardar la arma primero para obtener el ID
         Arma armaGuardada = armaRepository.save(arma);
         
+        // Sincronizar campos denormalizados en arma_stock si existe
+        sincronizarArmaStock(armaGuardada);
+        
         // Guardar imagen si se proporciona
         if (createDTO.getImagen() != null && !createDTO.getImagen().isEmpty()) {
             log.info("Procesando imagen para nueva arma ID: {}", armaGuardada.getId());
@@ -236,6 +258,29 @@ public class ArmaService {
             log.info("Imagen guardada: {}", imageUrl);
         }
         
+        // Sincronizar campos denormalizados en arma_stock si existe
+        sincronizarArmaStock(armaGuardada);
+        
         return armaGuardada;
+    }
+    
+    /**
+     * Sincroniza los campos denormalizados (modelo, marca, alimentadora) en arma_stock cuando se actualiza un arma
+     */
+    private void sincronizarArmaStock(Arma arma) {
+        try {
+            Optional<ArmaStock> stockOpt = armaStockRepository.findByArmaId(arma.getId());
+            if (stockOpt.isPresent()) {
+                ArmaStock stock = stockOpt.get();
+                stock.setModelo(arma.getModelo());
+                stock.setMarca(arma.getMarca());
+                stock.setAlimentadora(arma.getAlimentadora());
+                armaStockRepository.save(stock);
+                log.debug("✅ Campos denormalizados sincronizados en arma_stock para arma ID: {}", arma.getId());
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Error sincronizando campos denormalizados en arma_stock para arma ID {}: {}", arma.getId(), e.getMessage());
+            // No lanzar excepción, solo loggear el warning para no afectar la operación principal
+        }
     }
 }

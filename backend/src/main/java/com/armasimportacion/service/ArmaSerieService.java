@@ -115,9 +115,9 @@ public class ArmaSerieService {
                     if (armaUnica != null) {
                         armaParaSerie = armaUnica;
                     } else if (modeloArma != null && !modeloArma.isEmpty()) {
-                        // Buscar arma por nombre o código
+                        // Buscar arma por modelo o código
                         final String modeloArmaFinal = modeloArma; // Para usar en lambda
-                        armaParaSerie = armaRepository.findByNombre(modeloArmaFinal)
+                        armaParaSerie = armaRepository.findByModelo(modeloArmaFinal)
                                 .or(() -> armaRepository.findByCodigo(modeloArmaFinal))
                                 .orElse(null);
                         
@@ -153,7 +153,7 @@ public class ArmaSerieService {
             resultado.put("totalErrores", errores.size());
             resultado.put("duplicados", duplicados);
             resultado.put("errores", errores);
-            resultado.put("arma", armaUnica != null ? armaUnica.getNombre() : "Múltiples armas");
+            resultado.put("arma", armaUnica != null ? armaUnica.getModelo() : "Múltiples armas");
             resultado.put("lote", lote);
             resultado.put("formato", esFormatoDobleColumna ? "MODELO_ARMA, NUMERO_SERIE" : "NUMERO_SERIE");
 
@@ -333,7 +333,7 @@ public class ArmaSerieService {
                     clienteArma.getCliente().getNombres(),
                     clienteArma.getCliente().getApellidos());
             log.info("   Arma: {}, Serie: {}", 
-                    serie.getArma().getNombre(),
+                    serie.getArma().getModelo(),
                     serie.getNumeroSerie());
             
             // TODO: Implementar envío de correo cuando se configure SMTP
@@ -443,7 +443,7 @@ public class ArmaSerieService {
                 armaSerieRepository.save(serie);
                 successCount++;
                 
-                log.debug("✅ Fila {}: Serie {} asignada a arma {} en grupo {}", rowNum, serialNumber, arma.getNombre(), grupoImportacion.getCodigo());
+                log.debug("✅ Fila {}: Serie {} asignada a arma {} en grupo {}", rowNum, serialNumber, arma.getModelo(), grupoImportacion.getCodigo());
                 
             } catch (Exception e) {
                 String errorMsg = "Fila " + rowNum + ": Error procesando - " + e.getMessage();

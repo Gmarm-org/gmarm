@@ -28,40 +28,14 @@ public class InventarioService {
     private final ArmaStockMapper armaStockMapper;
 
     /**
-     * Verificar si la expoferia está activa
-     */
-    @Transactional(readOnly = true)
-    public boolean isExpoferiaActiva() {
-        return configuracionSistemaRepository.findByClave("EXPOFERIA_ACTIVA")
-                .map(config -> "true".equalsIgnoreCase(config.getValor()))
-                .orElse(false);
-    }
-
-    /**
-     * Obtener el nombre de la expoferia actual
-     */
-    @Transactional(readOnly = true)
-    public String getExpoferiaNombre() {
-        return configuracionSistemaRepository.findByClave("EXPOFERIA_NOMBRE")
-                .map(config -> config.getValor())
-                .orElse("EXPOFERIA_2025");
-    }
-
-    /**
      * Obtener todas las armas con stock disponible
      */
     @Transactional(readOnly = true)
     public List<ArmaStock> getArmasConStockDisponible() {
         try {
-            if (isExpoferiaActiva()) {
-                log.info("🎯 Expoferia activa - Mostrando solo armas de expoferia (expoferia=true)");
-                List<ArmaStock> armas = armaStockRepository.findArmasExpoferiaConStock(true);
-                return armas != null ? armas : new ArrayList<>();
-            } else {
-                log.info("🎯 Expoferia inactiva - Mostrando todas las armas con stock");
-                List<ArmaStock> armas = armaStockRepository.findArmasConStockDisponible();
-                return armas != null ? armas : new ArrayList<>();
-            }
+            log.info("Obteniendo todas las armas con stock disponible");
+            List<ArmaStock> armas = armaStockRepository.findArmasConStockDisponible();
+            return armas != null ? armas : new ArrayList<>();
         } catch (Exception e) {
             log.error("❌ Error obteniendo armas con stock: {}", e.getMessage(), e);
             return new ArrayList<>(); // Retornar lista vacía en caso de error
@@ -102,7 +76,7 @@ public class InventarioService {
                 .orElseThrow(() -> new RuntimeException("Stock no encontrado para arma ID: " + armaId));
 
         if (!armaStock.tieneStockSuficiente(cantidad)) {
-            throw new RuntimeException("Stock insuficiente para arma: " + armaStock.getArma().getNombre() + 
+            throw new RuntimeException("Stock insuficiente para arma: " + armaStock.getArma().getModelo() + 
                                      ". Disponible: " + armaStock.getCantidadDisponible() + 
                                      ", Solicitado: " + cantidad);
         }
@@ -111,7 +85,7 @@ public class InventarioService {
         armaStockRepository.save(armaStock);
         
         log.info("✅ Stock reducido - Arma: {}, Cantidad: {}, Disponible: {}", 
-                armaStock.getArma().getNombre(), cantidad, armaStock.getCantidadDisponible());
+                armaStock.getArma().getModelo(), cantidad, armaStock.getCantidadDisponible());
     }
 
     /**
@@ -126,23 +100,7 @@ public class InventarioService {
         armaStockRepository.save(armaStock);
         
         log.info("✅ Stock aumentado - Arma: {}, Cantidad: {}, Disponible: {}", 
-                armaStock.getArma().getNombre(), cantidad, armaStock.getCantidadDisponible());
-    }
-
-    /**
-     * Activar/desactivar expoferia
-     */
-    @Transactional
-    public void setExpoferiaActiva(boolean activa) {
-        configuracionSistemaRepository.findByClave("EXPOFERIA_ACTIVA")
-                .ifPresentOrElse(
-                    config -> {
-                        config.setValor(activa ? "true" : "false");
-                        configuracionSistemaRepository.save(config);
-                        log.info("✅ Expoferia {} - Configuración actualizada", activa ? "activada" : "desactivada");
-                    },
-                    () -> log.warn("⚠️ Configuración EXPOFERIA_ACTIVA no encontrada")
-                );
+                armaStock.getArma().getModelo(), cantidad, armaStock.getCantidadDisponible());
     }
 
     /**

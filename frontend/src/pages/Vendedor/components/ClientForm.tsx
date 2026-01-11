@@ -58,7 +58,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
   onClienteBloqueado
 }) => {
   const { user } = useAuth();
-  const { getCodigoTipoCliente, esTipoMilitar, esUniformado, requiereCodigoIssfa } = useTiposClienteConfig();
+  const { getCodigoTipoCliente, esTipoMilitar, esTipoPolicia, esUniformado, requiereCodigoIssfa } = useTiposClienteConfig();
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
 
   // Hooks refactorizados
@@ -117,6 +117,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Determinar si es tipo militar específico que requiere código ISSFA (usando configuración dinámica)
   const isMilitaryType = esTipoMilitar(formData.tipoCliente) && requiereCodigoIssfa(formData.tipoCliente);
   
+  // Determinar si es tipo policía que requiere código ISSPOL
+  const isPoliceType = esTipoPolicia(formData.tipoCliente);
+  
   // Determinar si es uniformado en servicio activo basado en estado militar
   const isUniformado = isUniformadoByType && formData.estadoMilitar === 'ACTIVO';
   
@@ -125,6 +128,33 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Obtener tipoClienteId para hooks de documentos y respuestas
   const tipoClienteEncontrado = tiposCliente.find(tc => tc.nombre === formData.tipoCliente);
   const tipoClienteId = tipoClienteEncontrado?.id;
+
+  // Selección automática de ISSFA para militares e ISSPOL para policías
+  useEffect(() => {
+    if (mode === 'create' || mode === 'edit') {
+      // Si se selecciona un tipo militar, activar campo ISSFA automáticamente
+      if (isMilitaryType && !formData.codigoIssfa) {
+        // No llenar automáticamente, solo asegurar que el campo esté habilitado
+        // El usuario debe ingresar el código manualmente
+      }
+      
+      // Si se selecciona un tipo policía, activar campo ISSPOL automáticamente
+      if (isPoliceType && !formData.codigoIsspol) {
+        // No llenar automáticamente, solo asegurar que el campo esté habilitado
+        // El usuario debe ingresar el código manualmente
+      }
+      
+      // Si cambia el tipo de cliente a uno que NO es militar, limpiar ISSFA
+      if (!isMilitaryType && formData.codigoIssfa) {
+        handleInputChange('codigoIssfa', '');
+      }
+      
+      // Si cambia el tipo de cliente a uno que NO es policía, limpiar ISSPOL
+      if (!isPoliceType && formData.codigoIsspol) {
+        handleInputChange('codigoIsspol', '');
+      }
+    }
+  }, [formData.tipoCliente, isMilitaryType, isPoliceType, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hooks para documentos y respuestas
   const {
@@ -336,7 +366,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
         provinciaEmpresa: client.provinciaEmpresa || '',
         cantonEmpresa: client.cantonEmpresa || '',
         estadoMilitar: client.estadoMilitar,
-        codigoIssfa: client.codigoIssfa || '',
+        codigoIssfa: client.codigoIssfa || '', // Para militares
+        codigoIsspol: (client as any).codigoIsspol || '', // Para policías (nuevo campo)
         rango: client.rango || '',
         documentos: client.documentos || [],
         respuestas: [] // Inicializar vacío - se cargarán por useClientAnswers cuando detecte el clientId
@@ -439,10 +470,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
           }
         }
         
-        // Mapear código ISSFA si está disponible
+        // Mapear código ISSFA si está disponible (para militares)
         if ((client as any).codigoIssfa) {
           (mappedClient as any).codigoIssfa = (client as any).codigoIssfa;
           console.log('✅ Código ISSFA cargado:', (client as any).codigoIssfa);
+        }
+        
+        // Mapear código ISSPOL si está disponible (para policías)
+        if ((client as any).codigoIsspol) {
+          (mappedClient as any).codigoIsspol = (client as any).codigoIsspol;
+          console.log('✅ Código ISSPOL cargado:', (client as any).codigoIsspol);
         }
         
         // Mapear rango si está disponible
@@ -647,7 +684,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
       provinciaEmpresa: formData.provinciaEmpresa || '',
       cantonEmpresa: formData.cantonEmpresa || '',
       estadoMilitar: formData.estadoMilitar && formData.estadoMilitar.trim() !== '' ? formData.estadoMilitar : undefined,
-      codigoIssfa: formData.codigoIssfa || '',
+      codigoIssfa: formData.codigoIssfa || '', // Para militares
+      codigoIsspol: formData.codigoIsspol || '', // Para policías (nuevo campo)
       rango: formData.rango || '',
       usuarioCreadorId: user?.id // Incluir ID del usuario que crea el cliente
     };
@@ -728,7 +766,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
           provinciaEmpresa: (clienteOriginal as any).provinciaEmpresa || '',
           cantonEmpresa: (clienteOriginal as any).cantonEmpresa || '',
           estadoMilitar: (clienteOriginal as any).estadoMilitar || undefined,
-          codigoIssfa: (clienteOriginal as any).codigoIssfa || '',
+          codigoIssfa: (clienteOriginal as any).codigoIssfa || '', // Para militares
+          codigoIsspol: (clienteOriginal as any).codigoIsspol || '', // Para policías (nuevo campo)
           rango: (clienteOriginal as any).rango || ''
         };
         
@@ -1319,7 +1358,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
       if (!formData.estadoMilitar) return false;
       
       // Validar código ISSFA para militares activos y pasivos
-      if (formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO') {
+      if (isMilitaryType && (formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO')) {
         if (!formData.codigoIssfa || formData.codigoIssfa.trim() === '') {
           // No mostrar alert, solo validar con borde rojo
           return false;
@@ -1332,6 +1371,24 @@ const ClientForm: React.FC<ClientFormProps> = ({
         
         // Validar que sea solo números (solo borde rojo, sin alert)
         if (!/^\d{10}$/.test(formData.codigoIssfa)) {
+          return false;
+        }
+      }
+      
+      // Validar código ISSPOL para policías activos y pasivos
+      if (isPoliceType && (formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO')) {
+        if (!formData.codigoIsspol || formData.codigoIsspol.trim() === '') {
+          // No mostrar alert, solo validar con borde rojo
+          return false;
+        }
+        
+        // Validar que tenga exactamente 10 dígitos (solo borde rojo, sin alert)
+        if (formData.codigoIsspol.length !== 10) {
+          return false;
+        }
+        
+        // Validar que sea solo números (solo borde rojo, sin alert)
+        if (!/^\d{10}$/.test(formData.codigoIsspol)) {
           return false;
         }
       }
@@ -1411,6 +1468,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 getNombreProvincia={getNombreProvincia}
                 isUniformadoByType={isUniformadoByType}
                 isMilitaryType={isMilitaryType}
+                isPoliceType={isPoliceType}
                 getBorderColor={getBorderColor}
               />
 

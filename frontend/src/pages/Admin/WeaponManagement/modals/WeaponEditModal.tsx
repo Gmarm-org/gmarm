@@ -11,14 +11,15 @@ interface WeaponEditModalProps {
 }
 
 interface EditFormData {
-  nombre: string;
+  modelo: string; // Cambiado de nombre a modelo
+  marca: string; // Nuevo campo
+  alimentadora: string; // Nuevo campo
   codigo: string;
   calibre: string;
   capacidad: number;
   precioReferencia: number;
   categoriaId: number;
   estado: boolean;
-  expoferia: boolean;
   urlImagen: string;
 }
 
@@ -30,14 +31,15 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
   onSave
 }) => {
   const [editForm, setEditForm] = useState<EditFormData>({
-    nombre: '',
+    modelo: '', // Cambiado de nombre a modelo
+    marca: '', // Nuevo campo
+    alimentadora: '', // Nuevo campo
     codigo: '',
     calibre: '',
     capacidad: 0,
     precioReferencia: 0,
     categoriaId: 0,
     estado: true,
-    expoferia: false,
     urlImagen: ''
   });
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -47,14 +49,15 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
   useEffect(() => {
     if (weapon && isOpen) {
       setEditForm({
-        nombre: weapon.nombre || '',
+        modelo: weapon.modelo || weapon.nombre || '', // Cambiado de nombre a modelo (compatibilidad hacia atrás)
+        marca: weapon.marca || '', // Nuevo campo
+        alimentadora: weapon.alimentadora || '', // Nuevo campo
         codigo: weapon.codigo || '',
         calibre: weapon.calibre || '',
         capacidad: weapon.capacidad || 0,
         precioReferencia: weapon.precioReferencia || 0,
         categoriaId: weapon.categoriaId || 1,
         estado: weapon.estado !== undefined ? weapon.estado : true,
-        expoferia: weapon.expoferia || false,
         urlImagen: weapon.urlImagen || ''
       });
       setSelectedImageFile(null);
@@ -106,14 +109,19 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       setIsSaving(true);
       
       const formData = new FormData();
-      formData.append('nombre', editForm.nombre);
+      formData.append('modelo', editForm.modelo); // Cambiado de nombre a modelo
+      if (editForm.marca) {
+        formData.append('marca', editForm.marca); // Nuevo campo
+      }
+      if (editForm.alimentadora) {
+        formData.append('alimentadora', editForm.alimentadora); // Nuevo campo
+      }
       formData.append('codigo', editForm.codigo);
       formData.append('calibre', editForm.calibre);
       formData.append('capacidad', editForm.capacidad.toString());
       formData.append('precioReferencia', editForm.precioReferencia.toString());
       formData.append('categoriaId', editForm.categoriaId.toString());
       formData.append('estado', editForm.estado.toString());
-      formData.append('expoferia', editForm.expoferia.toString());
       
       if (selectedImageFile) {
         formData.append('imagen', selectedImageFile);
@@ -133,7 +141,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Editar Arma: {weapon.nombre}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Editar Arma: {weapon.modelo || weapon.nombre}</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -146,13 +154,35 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
           {/* Columna Izquierda - Información Básica */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de la Arma *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Modelo de la Arma *</label>
               <input
                 type="text"
-                value={editForm.nombre}
-                onChange={(e) => handleInputChange('nombre', e.target.value)}
+                value={editForm.modelo}
+                onChange={(e) => handleInputChange('modelo', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: CZ 75 B"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+              <input
+                type="text"
+                value={editForm.marca}
+                onChange={(e) => handleInputChange('marca', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: CZ"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Alimentadora</label>
+              <input
+                type="text"
+                value={editForm.alimentadora}
+                onChange={(e) => handleInputChange('alimentadora', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: Semiautomática"
               />
             </div>
             
@@ -249,23 +279,6 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
               </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Expoferia</label>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.expoferia}
-                  onChange={(e) => handleInputChange('expoferia', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Arma disponible para Expoferia
-                </label>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Marque esta opción si el arma está disponible para venta en eventos de Expoferia
-              </p>
-            </div>
           </div>
           
           {/* Columna Derecha - Imagen */}

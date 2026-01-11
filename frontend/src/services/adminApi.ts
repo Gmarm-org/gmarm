@@ -7,20 +7,23 @@ import type { Client } from './api';
 
 export interface Weapon {
   id: number;
-  nombre: string;
+  modelo: string; // Cambiado de nombre a modelo
+  marca?: string; // Nuevo campo
+  alimentadora?: string; // Nuevo campo
   calibre: string;
   capacidad: number;
   precioReferencia: number;
   categoriaId: number;
   categoriaNombre: string;
   estado: boolean;
-  expoferia?: boolean; // true = es de expoferia, false/null = no es de expoferia
   fechaCreacion?: string;
   fechaActualizacion?: string;
   codigo: string;
   urlImagen?: string;
   urlProducto?: string;
   categoriaCodigo?: string;
+  // Mantener nombre para compatibilidad durante la migración
+  nombre?: string; // Deprecated - usar modelo
 }
 
 export interface WeaponCategory {
@@ -35,6 +38,7 @@ export interface License {
   id: number;
   numero: string;
   nombre: string;
+  titulo?: string; // Nuevo campo
   ruc?: string;
   cuenta_bancaria?: string;
   nombre_banco?: string;
@@ -125,7 +129,7 @@ export const weaponApi = {
   // Obtener todas las armas (incluye inactivas para admin)
   getAll: async (): Promise<Weapon[]> => {
     try {
-      // Para admin: incluir armas inactivas (las 30 no-expoferia)
+      // Para admin: incluir armas inactivas
       const response = await apiService.getArmas(true);
       console.log('🔫 Admin API - Armas obtenidas del backend (incluye inactivas):', response);
       return response;

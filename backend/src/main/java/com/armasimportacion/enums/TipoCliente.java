@@ -15,7 +15,6 @@ public enum TipoCliente {
     MILITAR_FUERZA_TERRESTRE("Militar Fuerza Terrestre", "MIL", 2L, true),
     MILITAR_FUERZA_NAVAL("Militar Fuerza Naval", "NAV", 2L, true),
     MILITAR_FUERZA_AEREA("Militar Fuerza Aérea", "AER", 2L, true),
-    MILITAR_EXPOFERIA("Militar Expoferia", "EXP", 2L, true),
     UNIFORMADO_POLICIAL("Uniformado Policial", "POL", 2L, false),
     COMPANIA_SEGURIDAD("Compañía de Seguridad", "EMP", 3L, false),
     DEPORTISTA("Deportista", "DEP", 4L, false);

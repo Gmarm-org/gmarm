@@ -50,7 +50,7 @@ public class AsignacionSerieService {
                 .clienteNumeroIdentificacion(reserva.getCliente().getNumeroIdentificacion())
                 .armaId(reserva.getArma().getId())
                 .armaCodigo(reserva.getArma().getCodigo())
-                .armaNombre(reserva.getArma().getNombre())
+                .armaNombre(reserva.getArma().getModelo()) // Cambiado de nombre a modelo
                 .armaCalibre(reserva.getArma().getCalibre())
                 .armaCapacidad(reserva.getArma().getCapacidad())
                 .cantidad(reserva.getCantidad())

@@ -9,7 +9,6 @@ interface ArmaStockCardProps {
     capacidad: number;
     precioReferencia: number;
     urlImagen?: string;
-    expoferia?: string;
   };
   stock: {
     cantidadTotal: number;
@@ -107,12 +106,6 @@ const ArmaStockCard: React.FC<ArmaStockCardProps> = ({
         {disabled && !sinStock && (
           <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-medium">
             Reservada
-          </div>
-        )}
-
-        {arma.expoferia && (
-          <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-            Expoferia
           </div>
         )}
       </div>

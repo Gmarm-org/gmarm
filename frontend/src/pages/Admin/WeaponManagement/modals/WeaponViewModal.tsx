@@ -43,7 +43,7 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <div className="flex justify-center">
                 <img
                   src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
-                  alt={weapon.nombre}
+                  alt={weapon.modelo || weapon.nombre}
                   className="h-64 w-64 object-cover rounded-lg border border-gray-200 shadow-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -71,8 +71,16 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
                   <p className="text-blue-600 font-mono font-semibold">{weapon.codigo || 'Sin código'}</p>
                 </div>
                 <div>
-                  <label className="font-semibold text-gray-700 text-sm">Nombre:</label>
-                  <p className="text-gray-900 text-lg font-medium">{weapon.nombre}</p>
+                  <label className="font-semibold text-gray-700 text-sm">Modelo:</label>
+                  <p className="text-gray-900 text-lg font-medium">{weapon.modelo || weapon.nombre || 'Sin modelo'}</p>
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-700 text-sm">Marca:</label>
+                  <p className="text-gray-900">{weapon.marca || 'Sin marca'}</p>
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-700 text-sm">Alimentadora:</label>
+                  <p className="text-gray-900">{weapon.alimentadora || 'Sin alimentadora'}</p>
                 </div>
                 <div>
                   <label className="font-semibold text-gray-700 text-sm">Calibre:</label>

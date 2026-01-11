@@ -18,7 +18,6 @@ export const useVendedorData = (
   setTotalPages: (pages: number) => void,
   setTotalClients: (total: number) => void,
   setCurrentPageNumber: (page: number) => void,
-  setExpoferiaActiva: (activa: boolean) => void,
   setProvinciasCompletas: (provincias: Array<{codigo: string, nombre: string}>) => void
 ) => {
   // Cargar provincias completas al inicializar
@@ -33,22 +32,6 @@ export const useVendedorData = (
     };
     cargarProvinciasCompletas();
   }, [setProvinciasCompletas]);
-
-  // Cargar estado de expoferia al inicializar
-  useEffect(() => {
-    const cargarEstadoExpoferia = async () => {
-      try {
-        const config = await apiService.getConfiguracion('EXPOFERIA_ACTIVA');
-        const estado = config.valor === 'true' || config.valor === '1';
-        console.log('🎯 Estado de expoferia cargado desde configuracion_sistema:', estado);
-        setExpoferiaActiva(estado);
-      } catch (error) {
-        console.error('Error cargando estado de expoferia:', error);
-        setExpoferiaActiva(false);
-      }
-    };
-    cargarEstadoExpoferia();
-  }, [setExpoferiaActiva]);
 
   const loadClients = useCallback(async (page: number = currentPageNumber) => {
     try {

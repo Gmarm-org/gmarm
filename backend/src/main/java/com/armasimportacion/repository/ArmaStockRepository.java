@@ -32,17 +32,6 @@ public interface ArmaStockRepository extends JpaRepository<ArmaStock, Long> {
     List<ArmaStock> findArmasConStockDisponible();
 
     /**
-     * Obtener armas de expoferia con stock disponible
-     */
-    @Query("SELECT ast FROM ArmaStock ast " +
-           "JOIN ast.arma a " +
-           "WHERE ast.cantidadDisponible > 0 " +
-           "AND ast.activo = true " +
-           "AND a.expoferia = :esExpoferia " +
-           "AND a.estado = true")
-    List<ArmaStock> findArmasExpoferiaConStock(@Param("esExpoferia") Boolean esExpoferia);
-
-    /**
      * Verificar si una arma tiene stock suficiente
      */
     @Query("SELECT CASE WHEN ast.cantidadDisponible >= :cantidad THEN true ELSE false END " +
@@ -62,6 +51,6 @@ public interface ArmaStockRepository extends JpaRepository<ArmaStock, Long> {
     /**
      * Obtener todo el stock activo (para panel de Jefe de Ventas)
      */
-    @Query("SELECT ast FROM ArmaStock ast JOIN FETCH ast.arma a WHERE ast.activo = true ORDER BY a.nombre")
+    @Query("SELECT ast FROM ArmaStock ast JOIN FETCH ast.arma a WHERE ast.activo = true ORDER BY a.modelo")
     List<ArmaStock> findByActivoTrue();
 }

@@ -21,6 +21,7 @@ public class LicenciaDTO {
     private Long id;
     private String numero;
     private String nombre;
+    private String titulo; // Nuevo campo
     private String ruc;
     
     @JsonProperty("cuenta_bancaria")

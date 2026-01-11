@@ -473,7 +473,7 @@ public class ClienteCompletoService {
         if (armaData != null) {
             var clienteArma = armasHelper.asignarArmaACliente(armaData, cliente);
             if (clienteArma != null) {
-                log.info("✅ Arma asignada: {}", clienteArma.getArma().getNombre());
+                log.info("✅ Arma asignada: {}", clienteArma.getArma().getModelo());
             } else {
                 log.warn("⚠️ No se pudo asignar arma al cliente");
             }

@@ -6,7 +6,6 @@ import com.armasimportacion.dto.ArmaCreateDTO;
 import com.armasimportacion.mapper.ArmaMapper;
 import com.armasimportacion.model.Arma;
 import com.armasimportacion.service.ArmaService;
-import com.armasimportacion.service.InventarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,6 @@ public class ArmaController {
 
     private final ArmaService armaService;
     private final ArmaMapper armaMapper;
-    private final InventarioService inventarioService;
 
     @GetMapping
     @Operation(summary = "Obtener todas las armas", description = "Retorna la lista de todas las armas disponibles")
@@ -45,37 +43,15 @@ public class ArmaController {
             return ResponseEntity.ok(armasDTO);
         }
         
-        // Para vendedores: verificar si la expoferia está activa
-        boolean isExpoferiaActiva = inventarioService.isExpoferiaActiva();
-        
-        // Usar el inventario para obtener armas disponibles
-        List<Arma> armas;
-        if (isExpoferiaActiva) {
-            log.info("🎯 EXPOFERIA ACTIVA - Obteniendo solo armas con stock disponible");
-            armas = inventarioService.getArmasConStockDisponible().stream()
-                    .map(stock -> stock.getArma())
-                    .toList();
-        } else {
-            log.info("🎯 MODO NORMAL - Obteniendo todas las armas activas (sin control de stock)");
-            armas = armaService.findAllActive();
-        }
-        
+        // Obtener todas las armas activas
+        log.info("Obteniendo todas las armas activas");
+        List<Arma> armas = armaService.findAllActive();
         log.info("Total de armas encontradas: {}", armas.size());
         
-        // Mapear a DTOs (incluye información de stock)
+        // Mapear a DTOs
         List<ArmaDTO> armasDTO = armaMapper.toDTOList(armas);
-        
-        // CRÍTICO: Solo filtrar por stock si es EXPOFERIA
-        if (isExpoferiaActiva) {
-            List<ArmaDTO> armasConStock = armasDTO.stream()
-                    .filter(arma -> arma.getTieneStock() != null && arma.getTieneStock())
-                    .toList();
-            log.info("✅ EXPOFERIA - Armas con stock disponible: {}", armasConStock.size());
-            return ResponseEntity.ok(armasConStock);
-        } else {
-            log.info("✅ MODO NORMAL - Todas las armas activas: {}", armasDTO.size());
-            return ResponseEntity.ok(armasDTO);
-        }
+        log.info("✅ Todas las armas activas: {}", armasDTO.size());
+        return ResponseEntity.ok(armasDTO);
     }
 
     @GetMapping("/{id}")
@@ -108,7 +84,7 @@ public class ArmaController {
     @PostMapping
     @Operation(summary = "Crear nueva arma", description = "Crea una nueva arma en el sistema")
     public ResponseEntity<ArmaDTO> createArma(@RequestBody Arma arma) {
-        log.info("Solicitud para crear nueva arma: {}", arma.getNombre());
+        log.info("Solicitud para crear nueva arma: {}", arma.getModelo());
         Arma nuevaArma = armaService.save(arma);
         ArmaDTO armaDTO = armaMapper.toDTO(nuevaArma);
         return ResponseEntity.ok(armaDTO);
@@ -117,13 +93,14 @@ public class ArmaController {
     @PostMapping("/with-image")
     @Operation(summary = "Crear arma con imagen", description = "Crea una nueva arma incluyendo su imagen")
     public ResponseEntity<ArmaDTO> createArmaWithImage(
-            @RequestParam("nombre") String nombre,
+            @RequestParam("modelo") String modelo,
+            @RequestParam(value = "marca", required = false) String marca,
+            @RequestParam(value = "alimentadora", required = false) String alimentadora,
             @RequestParam("calibre") String calibre,
             @RequestParam("capacidad") Integer capacidad,
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
-            @RequestParam(value = "expoferia", required = false, defaultValue = "false") Boolean expoferia,
             @RequestParam("codigo") String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
@@ -133,13 +110,14 @@ public class ArmaController {
         try {
             // Crear DTO con los datos recibidos
             ArmaCreateDTO createDTO = ArmaCreateDTO.builder()
-                    .nombre(nombre)
+                    .modelo(modelo) // Cambiado de nombre a modelo
+                    .marca(marca) // Nuevo campo
+                    .alimentadora(alimentadora) // Nuevo campo
                     .calibre(calibre)
                     .capacidad(capacidad)
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
                     .categoriaId(categoriaId)
                     .estado(estado)
-                    .expoferia(expoferia)
                     .codigo(codigo)
                     .urlProducto(urlProducto)
                     .imagen(imagen)
@@ -174,13 +152,14 @@ public class ArmaController {
     @Operation(summary = "Actualizar arma con imagen", description = "Actualiza una arma existente incluyendo su imagen")
     public ResponseEntity<ArmaDTO> updateArmaWithImage(
             @PathVariable Long id,
-            @RequestParam("nombre") String nombre,
+            @RequestParam("modelo") String modelo,
+            @RequestParam(value = "marca", required = false) String marca,
+            @RequestParam(value = "alimentadora", required = false) String alimentadora,
             @RequestParam("calibre") String calibre,
             @RequestParam("capacidad") Integer capacidad,
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
-            @RequestParam(value = "expoferia", required = false, defaultValue = "false") Boolean expoferia,
             @RequestParam("codigo") String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
@@ -190,13 +169,14 @@ public class ArmaController {
         try {
             // Crear DTO con los datos recibidos
             ArmaUpdateDTO updateDTO = ArmaUpdateDTO.builder()
-                    .nombre(nombre)
+                    .modelo(modelo)
+                    .marca(marca)
+                    .alimentadora(alimentadora)
                     .calibre(calibre)
                     .capacidad(capacidad)
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
                     .categoriaId(categoriaId)
                     .estado(estado)
-                    .expoferia(expoferia)
                     .codigo(codigo)
                     .urlProducto(urlProducto)
                     .imagen(imagen)

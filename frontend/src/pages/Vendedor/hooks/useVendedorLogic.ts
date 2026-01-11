@@ -38,7 +38,6 @@ export const useVendedorLogic = () => {
     state.setTotalPages,
     state.setTotalClients,
     state.setCurrentPageNumber,
-    state.setExpoferiaActiva,
     state.setProvinciasCompletas
   );
   
@@ -73,7 +72,6 @@ export const useVendedorLogic = () => {
     state.clientesBloqueados,
     state.clientWeaponAssignments,
     state.weaponPrices,
-    state.expoferiaActiva,
     state.clients,
     loadClients,
     utils.mapearProvinciaACodigo,
@@ -170,7 +168,6 @@ export const useVendedorLogic = () => {
     isInitialized: state.isInitialized,
     clientesBloqueados: state.clientesBloqueados,
     isLoading,
-    expoferiaActiva: state.expoferiaActiva,
     
     // Paginación
     currentPageNumber: state.currentPageNumber,

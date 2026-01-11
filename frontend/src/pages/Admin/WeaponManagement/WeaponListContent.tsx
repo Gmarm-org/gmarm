@@ -3,7 +3,7 @@ import AdminDataTable from '../components/AdminDataTable';
 import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
-import { weaponApi, weaponCategoryApi, systemConfigApi } from '../../../services/adminApi';
+import { weaponApi, weaponCategoryApi } from '../../../services/adminApi';
 import type { Weapon } from '../../../services/adminApi';
 import { WeaponViewModal, WeaponEditModal, WeaponDeleteModal, WeaponCreateModal } from './modals';
 import { getWeaponImageUrl } from '../../../utils/imageUtils';
@@ -13,8 +13,6 @@ const WeaponListContent: React.FC = () => {
   const [categories, setCategories] = useState<Array<{id: number, nombre: string}>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOnlyActive, setShowOnlyActive] = useState(true);
-  const [isExpoferiaActiva, setIsExpoferiaActiva] = useState(false);
   
   // Estados para modales
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -26,7 +24,6 @@ const WeaponListContent: React.FC = () => {
   useEffect(() => {
     loadWeapons();
     loadCategories();
-    loadExpoferiaConfig();
   }, []);
 
   const loadWeapons = async () => {
@@ -53,31 +50,18 @@ const WeaponListContent: React.FC = () => {
     }
   };
 
-  const loadExpoferiaConfig = async () => {
-    try {
-      console.log('🔍 WeaponList - Verificando estado de expoferia...');
-      const config = await systemConfigApi.getById('EXPOFERIA_ACTIVA');
-      const isActive = config.valor === 'true';
-      console.log('🔍 WeaponList - Expoferia activa:', isActive);
-      setIsExpoferiaActiva(isActive);
-    } catch (error) {
-      console.error('❌ WeaponList - Error cargando config expoferia:', error);
-      setIsExpoferiaActiva(false);
-    }
-  };
 
   const filterWeapons = (weapons: Weapon[], searchTerm: string) => {
     let filtered = weapons;
     
-    // Filtrar por expoferia si está activa
-    if (showOnlyActive && isExpoferiaActiva) {
-      filtered = filtered.filter(weapon => weapon.expoferia === true);
-    }
     
     // Filtrar por término de búsqueda
     if (searchTerm.trim()) {
       filtered = filtered.filter(weapon => 
-        weapon.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        weapon.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        weapon.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || // Compatibilidad hacia atrás
+        weapon.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        weapon.alimentadora?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.calibre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.categoriaNombre?.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -183,9 +167,19 @@ const WeaponListContent: React.FC = () => {
       render: (value: any) => <span className="font-mono text-sm text-blue-600 font-semibold">{value || 'Sin código'}</span>
     },
     {
-      key: 'nombre',
-      label: 'Nombre',
-      render: (value: any) => <span className="font-medium text-gray-900">{value}</span>
+      key: 'modelo',
+      label: 'Modelo',
+      render: (value: any, row: any) => <span className="font-medium text-gray-900">{value || row.nombre || 'Sin modelo'}</span>
+    },
+    {
+      key: 'marca',
+      label: 'Marca',
+      render: (value: any) => <span className="text-gray-700">{value || 'Sin marca'}</span>
+    },
+    {
+      key: 'alimentadora',
+      label: 'Alimentadora',
+      render: (value: any) => <span className="text-gray-700">{value || 'Sin alimentadora'}</span>
     },
     {
       key: 'calibre',
@@ -294,28 +288,9 @@ const WeaponListContent: React.FC = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onView={handleView}
-        searchPlaceholder="Buscar por nombre, calibre o categoría..."
+        searchPlaceholder="Buscar por modelo, marca, alimentadora, calibre o categoría..."
         stats={<AdminStats stats={stats} />}
-        filters={
-          isExpoferiaActiva ? (
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={showOnlyActive}
-                  onChange={(e) => setShowOnlyActive(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Solo armas activas (Plan Piloto Expoferia)</span>
-              </label>
-              {!showOnlyActive && (
-                <span className="text-sm text-gray-500">
-                  Mostrando {filteredWeapons.length} de {weapons.length} armas (incluye todas las armas)
-                </span>
-              )}
-            </div>
-          ) : undefined
-        }
+        filters={undefined}
       />
 
       {/* Modales */}

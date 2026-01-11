@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface ArmaRepository extends JpaRepository<Arma, Long> {
     
     // Buscar por estado con JOIN FETCH para evitar problemas de lazy loading
-    @Query("SELECT DISTINCT a FROM Arma a LEFT JOIN FETCH a.categoria WHERE a.estado = :estado ORDER BY a.categoria.nombre, a.nombre")
+    @Query("SELECT DISTINCT a FROM Arma a LEFT JOIN FETCH a.categoria WHERE a.estado = :estado ORDER BY a.categoria.nombre, a.modelo")
     List<Arma> findByEstado(@Param("estado") Boolean estado);
     
     // Buscar por categoría
@@ -22,14 +22,14 @@ public interface ArmaRepository extends JpaRepository<Arma, Long> {
     // Buscar por código
     Optional<Arma> findByCodigo(String codigo);
     
-    // Buscar por nombre
-    Optional<Arma> findByNombre(String nombre);
+    // Buscar por modelo (cambiado de nombre a modelo)
+    Optional<Arma> findByModelo(String modelo);
     
     // Buscar armas disponibles por categoría
     @Query("SELECT a FROM Arma a WHERE a.categoria.id = :categoriaId AND a.estado = true")
     List<Arma> findDisponiblesByCategoria(@Param("categoriaId") Long categoriaId);
     
     // Buscar todas las armas activas con categoría
-    @Query("SELECT a FROM Arma a WHERE a.estado = true ORDER BY a.categoria.nombre, a.nombre")
+    @Query("SELECT a FROM Arma a WHERE a.estado = true ORDER BY a.categoria.nombre, a.modelo")
     List<Arma> findAllActiveWithCategoria();
 }
