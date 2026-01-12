@@ -45,34 +45,33 @@ public class GestionDocumentosServiceHelper {
     private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
 
     /**
-     * Genera y guarda los documentos según el tipo de grupo del cliente
-     * - CUPO: Solo Cotización
-     * - JUSTIFICATIVO: Solicitud de compra, Contrato, Cotización
+     * Genera y guarda los documentos según el tipo de cliente
+     * - CIVILES: Solo Solicitud de compra
+     * - UNIFORMADOS (Militar Fuerza Aérea/Terrestre/Naval, Policía): Solicitud de compra, Contrato, Cotización
      */
     public List<DocumentoGenerado> generarYGuardarDocumentos(Cliente cliente, Pago pago) {
         try {
             log.info("📄 GENERANDO DOCUMENTOS PARA CLIENTE ID: {}", cliente.getId());
-            log.info("🔍 DEBUG: Cliente nombres: {}, apellidos: {}", cliente.getNombres(), cliente.getApellidos());
-            
-            // Obtener tipo de grupo del cliente
-            String tipoGrupo = obtenerTipoGrupoCliente(cliente.getId());
-            if (tipoGrupo == null) {
-                log.warn("⚠️ No se encontró grupo asignado al cliente, usando CUPO por defecto");
-                tipoGrupo = "CUPO";
-            }
-            
-            log.info("📋 Tipo de grupo del cliente: {}", tipoGrupo);
+            log.info("🔍 DEBUG: Cliente nombres: {}, apellidos: {}, tipo: {}", 
+                cliente.getNombres(), cliente.getApellidos(), 
+                cliente.getTipoCliente() != null ? cliente.getTipoCliente().getNombre() : "N/A");
             
             java.util.List<DocumentoGenerado> documentosGenerados = new java.util.ArrayList<>();
             
-            if ("CUPO".equals(tipoGrupo)) {
-                // CUPO: Solo Cotización
-                log.info("📄 Generando Cotización para grupo CUPO");
-                DocumentoGenerado cotizacion = generarYGuardarCotizacion(cliente, pago);
-                documentosGenerados.add(cotizacion);
-            } else if ("JUSTIFICATIVO".equals(tipoGrupo)) {
-                // JUSTIFICATIVO: Solicitud de compra, Contrato, Cotización
-                log.info("📄 Generando documentos para grupo JUSTIFICATIVO");
+            // Determinar si es civil o uniformado
+            boolean esCivil = cliente.esCivil();
+            boolean esUniformado = cliente.esMilitar() || cliente.esPolicia();
+            
+            log.info("📋 Tipo de cliente: Civil={}, Uniformado={}", esCivil, esUniformado);
+            
+            if (esCivil) {
+                // CIVILES: Solo Solicitud de compra
+                log.info("📄 Generando Solicitud de compra para cliente CIVIL");
+                DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
+                documentosGenerados.add(solicitud);
+            } else if (esUniformado) {
+                // UNIFORMADOS: Solicitud de compra, Contrato, Cotización
+                log.info("📄 Generando documentos para cliente UNIFORMADO");
                 
                 // 1. Solicitud de compra
                 log.info("📄 1/3: Generando Solicitud de compra");
@@ -89,10 +88,10 @@ public class GestionDocumentosServiceHelper {
                 DocumentoGenerado cotizacion = generarYGuardarCotizacion(cliente, pago);
                 documentosGenerados.add(cotizacion);
             } else {
-                // Por defecto, generar solo contrato (comportamiento anterior)
-                log.warn("⚠️ Tipo de grupo desconocido: {}, generando solo contrato", tipoGrupo);
-                DocumentoGenerado contrato = generarYGuardarContrato(cliente, pago);
-                documentosGenerados.add(contrato);
+                // Por defecto, tratar como civil (solo solicitud)
+                log.warn("⚠️ Tipo de cliente no identificado, tratando como CIVIL (solo solicitud)");
+                DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
+                documentosGenerados.add(solicitud);
             }
             
             log.info("✅ {} documento(s) generado(s) exitosamente para cliente ID: {}", 
@@ -474,31 +473,41 @@ public class GestionDocumentosServiceHelper {
     }
     
     /**
-     * Determina el template correcto según el tipo de cliente
+     * Determina el template correcto según el tipo de cliente para CONTRATOS
+     * (Solo para uniformados - los civiles no generan contrato)
      */
     private String determinarTemplateContrato(Cliente cliente) {
+        return determinarTemplateUniformado(cliente, "contrato_compra");
+    }
+    
+    /**
+     * Determina el template correcto según el tipo de cliente para documentos uniformados
+     * @param cliente Cliente
+     * @param tipoDocumento Tipo de documento: "solicitud_compra", "contrato_compra", "cotizacion"
+     * @return Ruta del template (ej: "contratos/uniformados/solicitud_compra_fuerza_aerea")
+     */
+    private String determinarTemplateUniformado(Cliente cliente, String tipoDocumento) {
         if (cliente.getTipoCliente() == null || cliente.getTipoCliente().getNombre() == null) {
             log.warn("⚠️ Tipo de cliente no definido, usando template por defecto");
-            return "contratos/contrato_civil";
+            return "contratos/uniformados/" + tipoDocumento + "_fuerza_terrestre";
         }
         
         String nombreTipoCliente = cliente.getTipoCliente().getNombre();
-        log.info("🔍 Tipo de cliente: {}", nombreTipoCliente);
+        log.info("🔍 Tipo de cliente: {}, tipoDocumento: {}", nombreTipoCliente, tipoDocumento);
         
-        // Mapear nombres de tipos de cliente a templates
-        return switch (nombreTipoCliente) {
-            case "Civil" -> "contratos/contrato_civil";
-            case "Militar Fuerza Terrestre" -> "contratos/contrato_militar_fuerza_terrestre";
-            case "Militar Fuerza Naval" -> "contratos/contrato_militar_fuerza_naval";
-            case "Militar Fuerza Aérea" -> "contratos/contrato_militar_fuerza_aerea";
-            case "Uniformado Policial" -> "contratos/contrato_policial";
-            case "Compañía de Seguridad" -> "contratos/contrato_compania_seguridad";
-            case "Deportista" -> "contratos/contrato_deportista";
+        // Mapear nombres de tipos de cliente a sufijos de templates
+        String sufijoTemplate = switch (nombreTipoCliente) {
+            case "Militar Fuerza Terrestre" -> "fuerza_terrestre";
+            case "Militar Fuerza Naval" -> "fuerza_naval";
+            case "Militar Fuerza Aérea" -> "fuerza_aerea";
+            case "Uniformado Policial" -> "policia";
             default -> {
-                log.warn("⚠️ Tipo de cliente desconocido: {}, usando template por defecto", nombreTipoCliente);
-                yield "contratos/contrato_civil";
+                log.warn("⚠️ Tipo de cliente desconocido para uniformado: {}, usando template por defecto", nombreTipoCliente);
+                yield "fuerza_terrestre"; // Por defecto
             }
         };
+        
+        return String.format("contratos/uniformados/%s_%s", tipoDocumento, sufijoTemplate);
     }
     
     /**
@@ -650,8 +659,12 @@ public class GestionDocumentosServiceHelper {
             variables.put("ivaDecimal", ivaDecimal);
             variables.put("numberToTextService", numberToTextService);
             
-            // Generar PDF usando Flying Saucer con template de cotización
-            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("cotizaciones/cotizacion", variables);
+            // Determinar template según tipo de cliente (solo uniformados generan cotización)
+            String nombreTemplate = determinarTemplateUniformado(cliente, "cotizacion");
+            log.info("📄 Usando template de cotización: {}", nombreTemplate);
+            
+            // Generar PDF usando Flying Saucer con template específico
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate(nombreTemplate, variables);
             
             log.info("✅ PDF de cotización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
@@ -687,8 +700,23 @@ public class GestionDocumentosServiceHelper {
             variables.put("arma", clienteArma.getArma());
             variables.put("numberToTextService", numberToTextService);
             
-            // Generar PDF usando Flying Saucer con template de solicitud de compra
-            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate("solicitudes/solicitud_compra", variables);
+            // Determinar template según tipo de cliente
+            String nombreTemplate;
+            if (cliente.esCivil()) {
+                // Civiles: usar template en carpeta civiles
+                nombreTemplate = "contratos/civiles/solicitud_compra";
+            } else if (cliente.esMilitar() || cliente.esPolicia()) {
+                // Uniformados: usar template específico según tipo
+                nombreTemplate = determinarTemplateUniformado(cliente, "solicitud_compra");
+            } else {
+                // Por defecto, usar template de civiles
+                log.warn("⚠️ Tipo de cliente no identificado, usando template de civiles");
+                nombreTemplate = "contratos/civiles/solicitud_compra";
+            }
+            log.info("📄 Usando template de solicitud: {}", nombreTemplate);
+            
+            // Generar PDF usando Flying Saucer con template específico
+            byte[] pdfBytes = flyingSaucerPdfService.generarPdfDesdeTemplate(nombreTemplate, variables);
             
             log.info("✅ PDF de solicitud de compra generado exitosamente, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;

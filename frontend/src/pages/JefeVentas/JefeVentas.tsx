@@ -1838,26 +1838,33 @@ const JefeVentas: React.FC = () => {
                 )}
 
                 <div className="mt-6 flex justify-end space-x-3">
-                  {/* Botón Generar Contrato - Solo para JEFE DE VENTAS */}
+                  {/* Botón Generar Documentos - Solo para JEFE DE VENTAS */}
                   {user?.roles?.some(role => {
                     const codigo = role.rol?.codigo || (role as any).codigo;
                     return codigo === 'SALES_CHIEF';
-                  }) && (
-                    <button
-                      onClick={(e) => {
-                        console.log('🟢 CLICK EN BOTÓN GENERAR CONTRATO - Handler ejecutándose');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAbrirModalGenerarContrato();
-                      }}
-                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-                    >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Generar Contrato
-                    </button>
-                  )}
+                  }) && (() => {
+                    // Determinar si es civil o uniformado
+                    const esCivil = clienteSeleccionado?.tipoClienteEsCivil ?? false;
+                    const esUniformado = (clienteSeleccionado?.tipoClienteEsMilitar ?? false) || (clienteSeleccionado?.tipoClienteEsPolicia ?? false);
+                    const textoBoton = esCivil ? "Generar Solicitud de Compra" : (esUniformado ? "Generar Documentos" : "Generar Contrato");
+                    
+                    return (
+                      <button
+                        onClick={(e) => {
+                          console.log('🟢 CLICK EN BOTÓN GENERAR DOCUMENTOS - Handler ejecutándose');
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAbrirModalGenerarContrato();
+                        }}
+                        className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {textoBoton}
+                      </button>
+                    );
+                  })()}
                   <button
                     onClick={handleCerrarDetalle}
                     className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -1885,7 +1892,13 @@ const JefeVentas: React.FC = () => {
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">Generar Contrato</h2>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil
+                      ? "Generar Solicitud de Compra"
+                      : (modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsMilitar || modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsPolicia)
+                        ? "Generar Documentos"
+                        : "Generar Contrato"}
+                  </h2>
                   <button
                     onClick={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
                     className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1989,6 +2002,11 @@ const JefeVentas: React.FC = () => {
                         const documentosCompletos = modalGenerarContrato.datosContrato?.documentosCompletos === true;
                         const isDisabled = modalGenerarContrato.isLoading || !emailVerificado || !documentosCompletos;
                         
+                        // Determinar texto del botón según tipo de cliente
+                        const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
+                        const esUniformado = (modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsMilitar ?? false) || (modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsPolicia ?? false);
+                        const textoBoton = esCivil ? "Generar Solicitud de Compra" : (esUniformado ? "Generar Documentos" : "Generar Contrato");
+                        
                         // Log directo en el render para debug
                         console.log('🔴 RENDER BOTÓN - Estado actual:', {
                           isLoading: modalGenerarContrato.isLoading,
@@ -2013,7 +2031,7 @@ const JefeVentas: React.FC = () => {
                                 ? 'Email no validado'
                                 : !documentosCompletos
                                 ? 'Documentos incompletos'
-                                : 'Generar contrato'
+                                : textoBoton.toLowerCase()
                             }
                           >
                         {modalGenerarContrato.isLoading ? (
@@ -2026,7 +2044,7 @@ const JefeVentas: React.FC = () => {
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            Generar Contrato
+                            {textoBoton}
                           </>
                         )}
                           </button>

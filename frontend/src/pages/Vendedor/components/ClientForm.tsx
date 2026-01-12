@@ -813,12 +813,27 @@ const ClientForm: React.FC<ClientFormProps> = ({
           }));
         }
         
+        // Incluir arma si existe (igual que en creación) - El backend decide si crear o actualizar
+        if (currentSelectedWeapon && !clienteArmaIdDelStock) {
+          console.log('🔫 Incluyendo arma en requestData para actualización (PATCH)');
+          console.log('💰 DEBUG - precioModificado que se enviará:', precioModificado);
+          const precioTotal = precioModificado * cantidad;
+          requestDataForBackend.arma = {
+            armaId: parseInt(currentSelectedWeapon.id.toString()),
+            cantidad: cantidad,
+            precioUnitario: precioModificado, // Este es el precio que el vendedor ingresa, NO el precioReferencia
+            precioTotal: precioTotal
+          };
+          console.log('💰 DEBUG - requestDataForBackend.arma completo:', requestDataForBackend.arma);
+        }
+        
         console.log('⚡ Enviando actualización PARCIAL del cliente (PATCH)...', {
           clienteId: client.id,
           camposModificados: Object.keys(cambiosCliente),
           tieneCambiosCliente: Object.keys(cambiosCliente).length > 0,
           tieneRespuestas: !!requestDataForBackend.respuestas,
-          numRespuestas: requestDataForBackend.respuestas?.length || 0
+          numRespuestas: requestDataForBackend.respuestas?.length || 0,
+          tieneArma: !!requestDataForBackend.arma
         });
         
         // Usar PATCH en lugar de PUT para actualización parcial optimizada
@@ -1080,13 +1095,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
         // PERO: Si viene del stock, NO incluirla aquí (se reasignará después)
         if (currentSelectedWeapon && !clienteArmaIdDelStock) {
           console.log('🔫 Incluyendo arma en requestData para guardado transaccional');
+          console.log('💰 DEBUG - precioModificado que se enviará:', precioModificado);
+          console.log('💰 DEBUG - currentSelectedWeapon.precioReferencia:', currentSelectedWeapon.precioReferencia);
           const precioTotal = precioModificado * cantidad;
           requestData.arma = {
             armaId: parseInt(currentSelectedWeapon.id.toString()),
             cantidad: cantidad,
-            precioUnitario: precioModificado,
+            precioUnitario: precioModificado, // Este es el precio que el vendedor ingresa, NO el precioReferencia
             precioTotal: precioTotal
           };
+          console.log('💰 DEBUG - requestData.arma completo:', requestData.arma);
         }
         
         console.log('🔍 Enviando datos completos al backend (transaccional):', requestData);

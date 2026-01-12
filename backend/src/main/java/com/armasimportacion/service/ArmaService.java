@@ -163,7 +163,10 @@ public class ArmaService {
             arma.setCapacidad(updateDTO.getCapacidad());
         }
         if (updateDTO.getPrecioReferencia() != null) {
+            log.info("🔍 DEBUG - Precio recibido en servicio: {}", updateDTO.getPrecioReferencia());
+            log.info("🔍 DEBUG - Precio anterior en BD: {}", arma.getPrecioReferencia());
             arma.setPrecioReferencia(updateDTO.getPrecioReferencia());
+            log.info("🔍 DEBUG - Precio actualizado en entidad: {}", arma.getPrecioReferencia());
         }
         if (updateDTO.getCategoriaId() != null) {
             CategoriaArma categoria = categoriaArmaRepository.findById(updateDTO.getCategoriaId())

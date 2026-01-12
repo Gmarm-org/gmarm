@@ -165,16 +165,20 @@ public class ArmaController {
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
         
         log.info("Solicitud para actualizar arma con ID: {} e imagen", id);
+        log.info("🔍 DEBUG - Precio recibido como string: {}", precioReferencia);
         
         try {
             // Crear DTO con los datos recibidos
+            java.math.BigDecimal precioDecimal = new java.math.BigDecimal(precioReferencia);
+            log.info("🔍 DEBUG - Precio convertido a BigDecimal: {}", precioDecimal);
+            
             ArmaUpdateDTO updateDTO = ArmaUpdateDTO.builder()
                     .modelo(modelo)
                     .marca(marca)
                     .alimentadora(alimentadora)
                     .calibre(calibre)
                     .capacidad(capacidad)
-                    .precioReferencia(new java.math.BigDecimal(precioReferencia))
+                    .precioReferencia(precioDecimal)
                     .categoriaId(categoriaId)
                     .estado(estado)
                     .codigo(codigo)

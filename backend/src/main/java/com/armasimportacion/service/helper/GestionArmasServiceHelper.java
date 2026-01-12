@@ -210,23 +210,43 @@ public class GestionArmasServiceHelper {
      * Calcula el precio de la arma usando datos del frontend o precio de referencia
      */
     private BigDecimal calcularPrecioArma(Map<String, Object> armaData, Arma arma) {
-        // Intentar obtener precio del frontend
-        Optional<BigDecimal> precioFrontend = Optional.ofNullable(armaData.get("precio"))
+        log.info("🔍 DEBUG - armaData recibido en calcularPrecioArma: {}", armaData);
+        
+        // Intentar obtener precioUnitario del frontend (el vendedor ingresa este precio)
+        Optional<BigDecimal> precioFrontend = Optional.ofNullable(armaData.get("precioUnitario"))
             .map(Object::toString)
             .map(precioStr -> {
                 try {
-                    return new BigDecimal(precioStr);
+                    BigDecimal precio = new BigDecimal(precioStr);
+                    log.info("💰 Precio recibido del frontend (precioUnitario): {}", precio);
+                    return precio;
                 } catch (NumberFormatException e) {
-                    log.warn("⚠️ Error parseando precio del frontend '{}': {}", precioStr, e.getMessage());
+                    log.warn("⚠️ Error parseando precioUnitario del frontend '{}': {}", precioStr, e.getMessage());
                     return null;
                 }
             });
         
-        // Si no hay precio del frontend, usar precio de referencia de la arma
+        // Si no hay precioUnitario, intentar con "precio" (para compatibilidad)
+        if (precioFrontend.isEmpty()) {
+            precioFrontend = Optional.ofNullable(armaData.get("precio"))
+                .map(Object::toString)
+                .map(precioStr -> {
+                    try {
+                        BigDecimal precio = new BigDecimal(precioStr);
+                        log.info("💰 Precio recibido del frontend (precio): {}", precio);
+                        return precio;
+                    } catch (NumberFormatException e) {
+                        log.warn("⚠️ Error parseando precio del frontend '{}': {}", precioStr, e.getMessage());
+                        return null;
+                    }
+                });
+        }
+        
+        // Si no hay precio del frontend, usar precio de referencia de la arma como fallback
         BigDecimal precioFinal = precioFrontend.orElseGet(() -> {
             BigDecimal precioReferencia = arma.getPrecioReferencia();
             if (precioReferencia != null) {
-                log.info("🔍 Usando precio de referencia de arma: {}", precioReferencia);
+                log.warn("⚠️ No se encontró precioUnitario ni precio en requestData, usando precioReferencia de arma como fallback: {}", precioReferencia);
                 return precioReferencia;
             } else {
                 log.warn("⚠️ Arma sin precio de referencia, usando cero");
@@ -234,7 +254,7 @@ public class GestionArmasServiceHelper {
             }
         });
         
-        log.info("💰 Precio calculado para arma '{}': {}", arma.getModelo(), precioFinal);
+        log.info("💰 Precio final calculado para arma '{}': {}", arma.getModelo(), precioFinal);
         return precioFinal;
     }
 

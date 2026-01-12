@@ -32,6 +32,7 @@ public class ClienteCompletoService {
     private final com.armasimportacion.repository.TipoIdentificacionRepository tipoIdentificacionRepository;
     private final com.armasimportacion.repository.TipoClienteRepository tipoClienteRepository;
     private final com.armasimportacion.repository.ClienteRepository clienteRepository;
+    private final com.armasimportacion.repository.ClienteArmaRepository clienteArmaRepository;
     private final GrupoImportacionService grupoImportacionService;
 
     /**
@@ -77,7 +78,16 @@ public class ClienteCompletoService {
             log.info("📝 No se enviaron respuestas, manteniendo respuestas actuales");
         }
         
-        // 3. Si se actualizaron datos PERSONALES del cliente, reenviar correo de verificación
+        // 3. Actualizar arma del cliente SOLO si viene en requestData (PATCH - actualizar relación existente)
+        Map<String, Object> armaData = extraerDatosArma(requestData);
+        if (armaData != null && !armaData.isEmpty()) {
+            log.info("⚡ Actualizando precio de arma del cliente (PATCH)");
+            actualizarArmaDelCliente(armaData, cliente);
+        } else {
+            log.info("📝 No se envió arma, manteniendo arma actual");
+        }
+        
+        // 4. Si se actualizaron datos PERSONALES del cliente, reenviar correo de verificación
         // Solo reenviar si se modificaron campos de datos personales (no documentos, preguntas, armas, etc.)
         boolean datosPersonalesActualizados = false;
         if (requestData.containsKey("cliente") && requestData.get("cliente") != null) {
@@ -464,10 +474,10 @@ public class ClienteCompletoService {
     }
 
     /**
-     * Asigna una arma al cliente
+     * Asigna una arma al cliente (usado en POST - creación)
      */
     private void asignarArmaAlCliente(Map<String, Object> requestData, Cliente cliente) {
-        log.info("🔫 Paso 3: Asignando arma al cliente");
+        log.info("🔫 Paso 3: Asignando arma al cliente (POST - creación)");
         
         Map<String, Object> armaData = extraerDatosArma(requestData);
         if (armaData != null) {
@@ -479,6 +489,74 @@ public class ClienteCompletoService {
             }
         } else {
             log.info("📝 No hay datos de arma para asignar");
+        }
+    }
+    
+    /**
+     * Actualiza el precio de la arma del cliente (usado en PATCH - actualización)
+     */
+    private void actualizarArmaDelCliente(Map<String, Object> armaData, Cliente cliente) {
+        log.info("🔫 Actualizando precio de arma del cliente (PATCH - actualización)");
+        
+        if (armaData == null || armaData.isEmpty()) {
+            log.info("📝 No hay datos de arma para actualizar");
+            return;
+        }
+        
+        // Obtener armaId del JSON
+        Object armaIdObj = armaData.get("armaId");
+        if (armaIdObj == null) {
+            log.warn("⚠️ No se encontró armaId en armaData");
+            return;
+        }
+        
+        Long armaId;
+        try {
+            armaId = Long.parseLong(armaIdObj.toString());
+        } catch (NumberFormatException e) {
+            log.error("❌ Error parseando armaId: {}", armaIdObj, e);
+            return;
+        }
+        
+        // Obtener precioUnitario del JSON
+        Object precioUnitarioObj = armaData.get("precioUnitario");
+        if (precioUnitarioObj == null) {
+            log.warn("⚠️ No se encontró precioUnitario en armaData");
+            return;
+        }
+        
+        java.math.BigDecimal precioUnitario;
+        try {
+            precioUnitario = new java.math.BigDecimal(precioUnitarioObj.toString());
+        } catch (NumberFormatException e) {
+            log.error("❌ Error parseando precioUnitario: {}", precioUnitarioObj, e);
+            return;
+        }
+        
+        // Buscar relación cliente_arma existente (reservada o asignada)
+        java.util.List<com.armasimportacion.model.ClienteArma> reservasActivas = 
+            clienteArmaRepository.findReservasActivasByClienteId(cliente.getId());
+        
+        // Buscar la reserva que corresponde al armaId
+        com.armasimportacion.model.ClienteArma reservaExistente = reservasActivas.stream()
+            .filter(ca -> ca.getArma().getId().equals(armaId))
+            .findFirst()
+            .orElse(null);
+        
+        if (reservaExistente != null) {
+            // Actualizar precio de la reserva existente
+            reservaExistente.setPrecioUnitario(precioUnitario);
+            reservaExistente.setFechaActualizacion(java.time.LocalDateTime.now());
+            clienteArmaRepository.save(reservaExistente);
+            log.info("✅ Precio de arma actualizado: cliente={}, arma={}, precio={}", 
+                cliente.getId(), armaId, precioUnitario);
+        } else {
+            log.warn("⚠️ No se encontró reserva activa para cliente {} y arma {}", cliente.getId(), armaId);
+            // Si no existe, crear nueva relación (fallback - aunque no debería pasar en PATCH)
+            log.info("📝 Creando nueva relación cliente_arma como fallback");
+            java.util.Map<String, Object> requestData = new java.util.HashMap<>();
+            requestData.put("arma", armaData);
+            asignarArmaAlCliente(requestData, cliente);
         }
     }
 
