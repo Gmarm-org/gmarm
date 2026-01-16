@@ -6,6 +6,8 @@ interface ClientReservedWeaponSectionProps {
   currentSelectedWeapon: Weapon | null;
   precioModificado: number;
   cantidad: number;
+  maxCantidad?: number;
+  canEditWeapon?: boolean;
   onPriceChange?: (price: number) => void;
   onQuantityChange?: (quantity: number) => void;
   onNavigateToWeaponSelection?: () => void;
@@ -18,6 +20,8 @@ export const ClientReservedWeaponSection: React.FC<ClientReservedWeaponSectionPr
   currentSelectedWeapon,
   precioModificado,
   cantidad,
+  maxCantidad,
+  canEditWeapon = true,
   onPriceChange,
   onQuantityChange,
   onNavigateToWeaponSelection,
@@ -27,6 +31,23 @@ export const ClientReservedWeaponSection: React.FC<ClientReservedWeaponSectionPr
   if (!currentSelectedWeapon || mode !== 'edit') {
     return null;
   }
+
+  const handleQuantityChange = (rawValue: number) => {
+    if (!canEditWeapon) {
+      return;
+    }
+    const safeValue = Number.isFinite(rawValue) ? rawValue : 1;
+    const limitedValue = maxCantidad ? Math.min(safeValue, maxCantidad) : safeValue;
+    const clampedValue = Math.max(1, limitedValue);
+    onQuantityChange?.(clampedValue);
+  };
+
+  const handlePriceChange = (rawValue: number) => {
+    if (!canEditWeapon) {
+      return;
+    }
+    onPriceChange?.(Number.isFinite(rawValue) ? rawValue : 0);
+  };
 
   return (
     <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
@@ -48,7 +69,7 @@ export const ClientReservedWeaponSection: React.FC<ClientReservedWeaponSectionPr
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Modelo:</span>
-              <span className="text-gray-900">{currentSelectedWeapon.nombre}</span>
+              <span className="text-gray-900">{currentSelectedWeapon.modelo || 'Sin modelo'}</span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Calibre:</span>
@@ -69,8 +90,8 @@ export const ClientReservedWeaponSection: React.FC<ClientReservedWeaponSectionPr
               <input
                 type="number"
                 value={precioModificado}
-                onChange={(e) => onPriceChange?.(parseFloat(e.target.value) || 0)}
-                disabled={false}
+                onChange={(e) => handlePriceChange(parseFloat(e.target.value))}
+                disabled={!canEditWeapon}
                 step="0.01"
                 min="0"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
@@ -82,9 +103,10 @@ export const ClientReservedWeaponSection: React.FC<ClientReservedWeaponSectionPr
               <input
                 type="number"
                 value={cantidad}
-                onChange={(e) => onQuantityChange?.(parseInt(e.target.value) || 1)}
-                disabled={false}
+                onChange={(e) => handleQuantityChange(parseInt(e.target.value, 10))}
+                disabled={!canEditWeapon}
                 min="1"
+                max={maxCantidad}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
               />
             </div>
@@ -109,7 +131,7 @@ export const ClientReservedWeaponSection: React.FC<ClientReservedWeaponSectionPr
         </div>
       </div>
       
-      {mode === 'edit' && (
+      {mode === 'edit' && canEditWeapon && (
         <div className="mt-6 flex justify-center">
           <button
             type="button"

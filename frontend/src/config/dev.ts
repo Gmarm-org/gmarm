@@ -32,7 +32,7 @@ export const devConfig = {
   // Configuración de imágenes
   images: {
     weaponsPath: '/images/weapons',
-    defaultWeapon: '/images/weapons/default-weapon.jpg',
+    defaultWeapon: '/images/weapons/default-weapon.svg',
     supportedFormats: ['webp', 'png', 'jpg', 'jpeg', 'svg', 'gif']
   },
 

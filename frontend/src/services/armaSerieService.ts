@@ -4,7 +4,8 @@ export interface ArmaSerie {
   id: number;
   numeroSerie: string;
   armaId: number;
-  armaNombre: string;
+  armaModelo?: string;
+  armaNombre?: string; // Deprecated - usar armaModelo
   armaCodigo: string;
   armaCalibre: string;
   estado: 'DISPONIBLE' | 'ASIGNADO' | 'RESERVADA';
@@ -25,7 +26,8 @@ export interface ArmaSerie {
 
 export interface EstadisticaSeries {
   armaId: number;
-  armaNombre: string;
+  armaModelo?: string;
+  armaNombre?: string; // Deprecated - usar armaModelo
   total: number;
   disponibles: number;
   asignadas: number;

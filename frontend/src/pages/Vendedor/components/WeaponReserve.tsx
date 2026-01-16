@@ -312,11 +312,12 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
   // Componente de imagen SIMPLE (igual que Admin - SIN carrusel por ahora)
   const WeaponImage = ({ weapon }: { weapon: Arma }) => {
+    const displayName = weapon.modelo || 'Sin modelo';
     return (
       <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
         <img
           src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
-          alt={weapon.nombre}
+          alt={displayName}
           className="max-w-full max-h-full object-contain"
           onError={(e) => {
             // Silenciosamente cambiar a imagen por defecto sin imprimir errores
@@ -347,6 +348,14 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
         alert(`❌ No se puede asignar arma: ${mensajeError}`);
         return;
       }
+    }
+
+    const precioEnEdicion = preciosEnEdicion[weapon.id];
+    const precioActual = getWeaponPriceForClient(weapon.id, currentClientId) || 0;
+    const precioIngresado = precioEnEdicion !== undefined ? (parseFloat(precioEnEdicion) || 0) : precioActual;
+    if (precioIngresado <= 0) {
+      alert('❌ Debes ingresar el precio antes de seleccionar el arma.');
+      return;
     }
 
     // Si es Cliente Civil, manejar múltiples selecciones (máximo según límite)
@@ -654,7 +663,9 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
 
                       {/* Información del arma */}
                       <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-3">{weapon.nombre}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">
+                          {weapon.modelo || 'Sin modelo'}
+                        </h3>
                         
                         <div className="space-y-2 mb-4">
                           {weapon.calibre && (
@@ -781,7 +792,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                         <div key={arma.id} className="flex justify-between items-center bg-white rounded-lg p-3 border border-blue-200">
                           <div>
                             <span className="text-sm font-medium text-gray-700">Arma {index + 1}:</span>
-                            <span className="text-sm text-gray-600 ml-2">{arma.nombre}</span>
+                            <span className="text-sm text-gray-600 ml-2">{arma.modelo || 'Sin modelo'}</span>
                           </div>
                           <div className="text-right">
                             <span className="text-sm font-bold text-blue-600">${totalArma.toFixed(2)}</span>
@@ -852,11 +863,11 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
                     // El precio debe ser mayor o igual al precio base, y mayor que 0
                     if (precioFinal <= 0) {
                       precioValido = false;
-                      mensajeDeshabilitado = `Ingresa un precio válido para ${arma.nombre}`;
+                      mensajeDeshabilitado = `Ingresa un precio válido para ${arma.modelo || 'el arma'}`;
                       break;
                     } else if (precioBaseArma > 0 && precioFinal < precioBaseArma) {
                       precioValido = false;
-                      mensajeDeshabilitado = `El precio de ${arma.nombre} debe ser mayor o igual a $${precioBaseArma.toFixed(2)} USD`;
+                      mensajeDeshabilitado = `El precio de ${arma.modelo || 'el arma'} debe ser mayor o igual a $${precioBaseArma.toFixed(2)} USD`;
                       break;
                     }
                   }

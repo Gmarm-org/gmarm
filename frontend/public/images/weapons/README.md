@@ -84,7 +84,7 @@ Cada arma debe tener su imagen correspondiente:
 ### **Prioridad del Sistema:**
 1. **Primero**: URL de la base de datos (`weapon.urlImagen`)
 2. **Segundo**: Imagen local (`/images/weapons/CODIGO.jpg`)
-3. **Tercero**: Imagen por defecto (`default-weapon.jpg`)
+3. **Tercero**: Imagen por defecto (`default-weapon.svg`)
 
 ## 📋 **Lista de Armas que Necesitan Imágenes**
 

@@ -43,20 +43,13 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <div className="flex justify-center">
                 <img
                   src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
-                  alt={weapon.modelo || weapon.nombre}
+                  alt={weapon.modelo || 'Sin modelo'}
                   className="h-64 w-64 object-cover rounded-lg border border-gray-200 shadow-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = getWeaponImageUrlWithCacheBusting(null);
                   }}
                 />
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-2">📊 Información del Sistema</h4>
-              <div className="text-sm text-gray-700 space-y-1">
-                <p><strong>ID:</strong> {weapon.id}</p>
               </div>
             </div>
           </div>
@@ -67,12 +60,8 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <h4 className="font-medium text-gray-900 mb-3">🔫 Información de la Arma</h4>
               <div className="space-y-3">
                 <div>
-                  <label className="font-semibold text-gray-700 text-sm">Código:</label>
-                  <p className="text-blue-600 font-mono font-semibold">{weapon.codigo || 'Sin código'}</p>
-                </div>
-                <div>
                   <label className="font-semibold text-gray-700 text-sm">Modelo:</label>
-                  <p className="text-gray-900 text-lg font-medium">{weapon.modelo || weapon.nombre || 'Sin modelo'}</p>
+                  <p className="text-gray-900 text-lg font-medium">{weapon.modelo || 'Sin modelo'}</p>
                 </div>
                 <div>
                   <label className="font-semibold text-gray-700 text-sm">Marca:</label>

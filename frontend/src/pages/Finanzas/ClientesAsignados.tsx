@@ -17,7 +17,7 @@ interface ClienteConVendedor extends Client {
 interface WeaponAssignment {
   weapon: {
     id: number;
-    nombre: string;
+    modelo: string;
     calibre: string;
     codigo: string;
     urlImagen?: string;
@@ -80,7 +80,7 @@ const ClientesAsignados: React.FC = () => {
             weaponAssignments[client.id] = {
               weapon: {
                 id: arma.armaId,
-                nombre: arma.armaNombre,
+                modelo: arma.armaModelo || 'N/A',
                 calibre: arma.armaCalibre || 'N/A',
                 codigo: arma.armaCodigo,
                 urlImagen: arma.armaImagen,
@@ -341,7 +341,7 @@ const ClientesAsignados: React.FC = () => {
                       <td className="px-4 py-3 text-sm">
                         {assignment ? (
                           <div>
-                            <div className="font-medium">{assignment.weapon.nombre}</div>
+                            <div className="font-medium">{assignment.weapon.modelo || 'N/A'}</div>
                             <div className="text-xs text-gray-500">{assignment.weapon.calibre}</div>
                           </div>
                         ) : (
@@ -608,7 +608,7 @@ const ClientesAsignados: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-gray-600">Modelo:</span>
-                      <span className="font-medium ml-2">{weaponAssignment.weapon.nombre}</span>
+                      <span className="font-medium ml-2">{weaponAssignment.weapon.modelo || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-gray-600">Calibre:</span>

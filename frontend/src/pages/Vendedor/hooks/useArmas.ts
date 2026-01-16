@@ -5,7 +5,7 @@ import type { ArmaImagen } from '../../../types';
 export interface Arma {
   id: number;
   codigo: string;
-  nombre: string;
+  modelo: string;
   calibre?: string;
   capacidad?: number;
   precioReferencia?: number;

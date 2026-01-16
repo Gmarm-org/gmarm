@@ -3,6 +3,7 @@ package com.armasimportacion.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -29,6 +30,12 @@ public class ImageController {
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
+
+    private final ResourceLoader resourceLoader;
+
+    public ImageController(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
 
     @GetMapping("/weapons/{filename:.+}")
     public ResponseEntity<Resource> getWeaponImage(@PathVariable String filename) {
@@ -69,24 +76,33 @@ public class ImageController {
      */
     private ResponseEntity<Resource> getPlaceholderImage() {
         try {
-            // Buscar default-weapon.jpg en uploads/images/weapons
+            // Buscar default-weapon.svg en uploads/images/weapons
             Path placeholderPath = Paths.get(uploadDir)
                     .resolve("images/weapons")
-                    .resolve("default-weapon.jpg")
+                    .resolve("default-weapon.svg")
                     .normalize();
             
             Resource placeholder = new UrlResource(placeholderPath.toUri());
             
             if (placeholder.exists() && placeholder.isReadable()) {
-                log.debug("✅ Sirviendo placeholder: default-weapon.jpg");
+                log.debug("✅ Sirviendo placeholder: default-weapon.svg (uploads)");
                 return ResponseEntity.ok()
-                        .contentType(MediaType.IMAGE_JPEG)
+                        .contentType(MediaType.parseMediaType("image/svg+xml"))
                         .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
                         .body(placeholder);
             } else {
+                Resource classpathPlaceholder = resourceLoader.getResource(
+                        "classpath:/static/images/weapons/default-weapon.svg");
+                if (classpathPlaceholder.exists()) {
+                    log.debug("✅ Sirviendo placeholder: default-weapon.svg (classpath)");
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType("image/svg+xml"))
+                            .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
+                            .body(classpathPlaceholder);
+                }
                 // Si ni siquiera existe el placeholder, crear respuesta vacía con 404
                 // pero NO romper el sistema (error 500)
-                log.warn("⚠️ Placeholder default-weapon.jpg no existe - Retornando 404 silencioso");
+                log.warn("⚠️ Placeholder default-weapon.svg no existe - Retornando 404 silencioso");
                 return ResponseEntity.notFound()
                         .header(HttpHeaders.CACHE_CONTROL, "no-cache")
                         .build();

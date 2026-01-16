@@ -131,7 +131,7 @@ export const mockClients: Client[] = [];
 export const mockWeapons: Weapon[] = [
   {
     id: '1',
-    nombre: 'Glock 17',
+    modelo: 'Glock 17',
     codigo: 'GLOCK-17',
     calibre: '9mm',
     categoriaNombre: 'PISTOLA',
@@ -141,7 +141,7 @@ export const mockWeapons: Weapon[] = [
   },
   {
     id: '2',
-    nombre: 'Beretta 92FS',
+    modelo: 'Beretta 92FS',
     codigo: 'BERETTA-92FS',
     calibre: '9mm',
     categoriaNombre: 'PISTOLA',
@@ -151,7 +151,7 @@ export const mockWeapons: Weapon[] = [
   },
   {
     id: '3',
-    nombre: 'Sig Sauer P226',
+    modelo: 'Sig Sauer P226',
     codigo: 'SIG-P226',
     calibre: '9mm',
     categoriaNombre: 'PISTOLA',
@@ -161,7 +161,7 @@ export const mockWeapons: Weapon[] = [
   },
   {
     id: '4',
-    nombre: 'Colt 1911',
+    modelo: 'Colt 1911',
     codigo: 'COLT-1911',
     calibre: '.45 ACP',
     categoriaNombre: 'PISTOLA',
@@ -171,7 +171,7 @@ export const mockWeapons: Weapon[] = [
   },
   {
     id: '5',
-    nombre: 'Smith & Wesson M&P',
+    modelo: 'Smith & Wesson M&P',
     codigo: 'SW-MP',
     calibre: '9mm',
     categoriaNombre: 'PISTOLA',

@@ -84,6 +84,6 @@ public class Arma {
         }
         // Si no hay imágenes en arma_imagen, retornar placeholder
         // NOTA: Esto no debería pasar si la migración se ejecutó correctamente
-        return "/images/weapons/default-weapon.jpg";
+        return "/images/weapons/default-weapon.svg";
     }
 }

@@ -266,8 +266,8 @@ const JefeVentas: React.FC = () => {
             weaponAssignments[client.id] = {
               weapon: {
                 id: arma.armaId,
-                nombre: arma.armaModelo || arma.armaNombre, // Usar modelo si está disponible
-                modelo: arma.armaModelo || arma.armaNombre, // Nuevo campo
+                nombre: arma.armaModelo || 'N/A',
+                modelo: arma.armaModelo || 'N/A',
                 marca: arma.armaMarca, // Nuevo campo
                 alimentadora: arma.armaAlimentadora, // Nuevo campo
                 calibre: arma.armaCalibre || 'N/A', // Corregido: usar armaCalibre, no armaModelo
@@ -891,7 +891,7 @@ const JefeVentas: React.FC = () => {
                         
                         return (
                           <tr key={stock.armaId} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium">{stock.armaModelo || stock.armaNombre || 'Sin modelo'}</td>
+                            <td className="px-4 py-3 text-sm font-medium">{stock.armaModelo || 'Sin modelo'}</td>
                             <td className="px-4 py-3 text-sm">{stock.armaCalibre}</td>
                             <td className="px-4 py-3 text-center">
                               <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-bold rounded-full">
@@ -1359,7 +1359,7 @@ const JefeVentas: React.FC = () => {
                             <td className="px-4 py-3 text-sm">
                               {weaponAssignment ? (
                                 <div>
-                                  <div className="font-medium">{weaponAssignment.weapon.modelo || weaponAssignment.weapon.nombre || 'N/A'}</div>
+                                  <div className="font-medium">{weaponAssignment.weapon.modelo || 'N/A'}</div>
                                   <div className="text-xs text-gray-500">{weaponAssignment.weapon.calibre}</div>
                                 </div>
                               ) : (
@@ -1540,7 +1540,7 @@ const JefeVentas: React.FC = () => {
                               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                                 <div>
                                   <p className="text-sm text-gray-600">Arma</p>
-                                  <p className="font-semibold text-blue-600">{arma.armaModelo || arma.armaNombre || 'N/A'}</p>
+                                  <p className="font-semibold text-blue-600">{arma.armaModelo || 'N/A'}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-600">Número de Serie</p>
@@ -1974,7 +1974,7 @@ const JefeVentas: React.FC = () => {
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           {modalGenerarContrato.datosContrato.armas.map((arma: any, index: number) => (
                             <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                              <p className="font-medium">{arma.modelo || arma.nombre || 'N/A'}</p>
+                              <p className="font-medium">{arma.modelo || 'N/A'}</p>
                               <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                                 <div>
                                   <span className="text-gray-600">Cantidad:</span> {arma.cantidad || 1}
@@ -2141,7 +2141,7 @@ const JefeVentas: React.FC = () => {
                         <tr key={arma.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm">
                             <div>
-                              <div className="font-medium">{arma.armaModelo || arma.armaNombre || 'N/A'}</div>
+                              <div className="font-medium">{arma.armaModelo || 'N/A'}</div>
                               {arma.armaCalibre && (
                                 <div className="text-xs text-gray-500">Calibre: {arma.armaCalibre}</div>
                               )}
@@ -2254,7 +2254,7 @@ const JefeVentas: React.FC = () => {
               
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Arma Actual</p>
-                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaModelo || modalEditarArma.clienteArma.armaNombre || 'N/A'}</p>
+                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaModelo || 'N/A'}</p>
                 <p className="text-sm text-gray-600 mt-2">Precio Actual</p>
                 <p className="font-medium">${modalEditarArma.clienteArma.precioUnitario?.toFixed(2) || '0.00'}</p>
               </div>
@@ -2280,7 +2280,7 @@ const JefeVentas: React.FC = () => {
                   <option value="">Selecciona una arma...</option>
                   {modalEditarArma.armasDisponibles.map((arma: any) => (
                     <option key={arma.id} value={arma.id}>
-                      {arma.modelo || arma.nombre || 'N/A'} - ${arma.precioReferencia?.toFixed(2) || '0.00'}
+                      {arma.modelo || 'N/A'} - ${arma.precioReferencia?.toFixed(2) || '0.00'}
                     </option>
                   ))}
                 </select>
@@ -2401,7 +2401,7 @@ const JefeVentas: React.FC = () => {
               
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold text-gray-800 mb-2">Información del Arma</h3>
-                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaModelo || modalClienteReasignado.arma.armaNombre || 'N/A'}</p>
+                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaModelo || 'N/A'}</p>
                 {modalClienteReasignado.arma.armaCalibre && (
                   <p className="text-sm text-gray-600"><strong>Calibre:</strong> {modalClienteReasignado.arma.armaCalibre}</p>
                 )}

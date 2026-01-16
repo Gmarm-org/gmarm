@@ -300,7 +300,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                       <div className="flex-shrink-0">
                         <img 
                           src={arma.armaImagen} 
-                          alt={arma.armaNombre}
+                          alt={arma.armaModelo || arma.armaNombre || 'Sin modelo'}
                           className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
@@ -311,7 +311,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                     
                     {/* Información del arma */}
                     <div className="flex-1 space-y-2">
-                      <p><span className="font-medium">Arma:</span> {arma.armaNombre || 'N/A'}</p>
+                      <p><span className="font-medium">Arma:</span> {arma.armaModelo || arma.armaNombre || 'N/A'}</p>
                       <p><span className="font-medium">Modelo:</span> {arma.armaModelo || 'N/A'}</p>
                       <p><span className="font-medium">Código:</span> {arma.armaCodigo || 'N/A'}</p>
                       {arma.numeroSerie && (

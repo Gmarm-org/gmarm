@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS cliente (
     telefono_secundario VARCHAR(20),
     direccion TEXT,
     fecha_nacimiento DATE,
-    estado VARCHAR(20) DEFAULT 'PENDIENTE',
+    estado VARCHAR(50) DEFAULT 'PENDIENTE',
     aprobado BOOLEAN DEFAULT false,
     fecha_aprobacion TIMESTAMP,
     usuario_aprobador_id BIGINT REFERENCES usuario(id),
@@ -1523,7 +1523,7 @@ WHERE url_imagen IS NOT NULL
 INSERT INTO arma_imagen (arma_id, url_imagen, orden, es_principal, descripcion, fecha_creacion, fecha_actualizacion)
 SELECT 
     a.id as arma_id,
-    '/images/weapons/default-weapon.jpg' as url_imagen,
+    '/images/weapons/default-weapon.svg' as url_imagen,
     1 as orden,
     true as es_principal,
     'Imagen por defecto' as descripcion,

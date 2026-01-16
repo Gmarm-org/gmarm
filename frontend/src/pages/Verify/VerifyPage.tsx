@@ -29,6 +29,7 @@ const VerifyPage: React.FC = () => {
   useEffect(() => {
     const verifyEmail = async () => {
       const token = searchParams.get('token');
+      const action = searchParams.get('action');
 
       if (!token) {
         setStatus('error');
@@ -48,6 +49,10 @@ const VerifyPage: React.FC = () => {
 
         // Mostrar datos para revisión antes de verificar
         setClienteInfo(tokenInfo as VerificationResponse);
+        if (action === 'incorrect') {
+          setStatus('datosIncorrectos');
+          return;
+        }
         setStatus('review');
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido';

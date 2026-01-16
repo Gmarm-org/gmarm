@@ -214,7 +214,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-700">Arma Seleccionada</h3>
                     <div className="space-y-2">
-                      <p><span className="font-medium">Arma:</span> {selectedWeapon.nombre}</p>
+                      <p><span className="font-medium">Arma:</span> {selectedWeapon.modelo}</p>
                       {selectedSerieNumero && (
                         <p className="flex items-center gap-2">
                           <span className="font-medium">Número de Serie:</span> 

@@ -4,7 +4,7 @@ import { apiService } from '../../services/api';
 interface Arma {
   id: number;
   codigo: string;
-  nombre: string;
+  modelo: string;
   calibre: string;
   capacidad: number;
   precio_referencia: number;
@@ -72,7 +72,7 @@ const WeaponSelector: React.FC<WeaponSelectorProps> = ({
     // Filtrar por búsqueda
     if (searchTerm) {
       filtered = filtered.filter(weapon =>
-        weapon.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        weapon.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.calibre.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -127,13 +127,13 @@ const WeaponSelector: React.FC<WeaponSelectorProps> = ({
               {selectedWeapon.url_imagen && (
                 <img 
                   src={selectedWeapon.url_imagen} 
-                  alt={selectedWeapon.nombre}
+                  alt={selectedWeapon.modelo}
                   className="w-8 h-8 object-cover rounded"
                 />
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {selectedWeapon.nombre}
+                  {selectedWeapon.modelo}
                 </p>
                 <p className="text-sm text-gray-500 truncate">
                   {selectedWeapon.codigo} - {selectedWeapon.calibre}
@@ -208,13 +208,13 @@ const WeaponSelector: React.FC<WeaponSelectorProps> = ({
                       {weapon.url_imagen && (
                         <img 
                           src={weapon.url_imagen} 
-                          alt={weapon.nombre}
+                          alt={weapon.modelo}
                           className="w-12 h-12 object-cover rounded"
                         />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {weapon.nombre}
+                          {weapon.modelo}
                         </p>
                         <p className="text-sm text-gray-500 truncate">
                           {weapon.codigo} - {weapon.calibre} - Capacidad: {weapon.capacidad}

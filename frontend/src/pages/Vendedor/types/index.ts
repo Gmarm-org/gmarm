@@ -86,7 +86,7 @@ export interface Respuesta {
 
 export interface Weapon {
   id: string;
-  nombre: string;
+  modelo: string;
   codigo: string;
   calibre: string;
   categoriaNombre: string;

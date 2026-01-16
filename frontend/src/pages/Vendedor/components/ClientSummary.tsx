@@ -305,7 +305,7 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
             <div className="weapon-summary">
               <img 
                 src={getWeaponImageUrlWithCacheBusting(armaSeleccionada.urlImagen)} 
-                alt={armaSeleccionada.nombre}
+                alt={armaSeleccionada.modelo}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';
@@ -317,7 +317,7 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
                   fontSize: '1rem',
                   color: '#1f2937',
                   fontWeight: '600'
-                }}><strong>Modelo:</strong> {armaSeleccionada.nombre}</p>
+                }}><strong>Modelo:</strong> {armaSeleccionada.modelo}</p>
                 <p><strong>Calibre:</strong> {armaSeleccionada.calibre}</p>
                 <p><strong>Código:</strong> {armaSeleccionada.codigo}</p>
                 {clienteParaResumen?.tipoClienteEsEmpresa && (

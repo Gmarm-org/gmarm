@@ -22,8 +22,6 @@ export interface Weapon {
   urlImagen?: string;
   urlProducto?: string;
   categoriaCodigo?: string;
-  // Mantener nombre para compatibilidad durante la migración
-  nombre?: string; // Deprecated - usar modelo
 }
 
 export interface WeaponCategory {

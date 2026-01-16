@@ -584,7 +584,7 @@ const Vendedor: React.FC = React.memo(() => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {weaponAssignment ? (
                               <div>
-                                <div className="font-medium">{weaponAssignment.weapon.nombre}</div>
+                                <div className="font-medium">{weaponAssignment.weapon.modelo || 'Sin modelo'}</div>
                                 {weaponAssignment.weapon.calibre && (
                                   <div className="text-xs text-gray-500">Calibre: {weaponAssignment.weapon.calibre}</div>
                                 )}
@@ -847,7 +847,7 @@ const Vendedor: React.FC = React.memo(() => {
           <div className="p-6">
             <SeriesAssignment
               armaId={selectedWeapon.id}
-              armaNombre={selectedWeapon.nombre}
+              armaNombre={selectedWeapon.modelo}
               clienteNombres={clienteData?.nombres || ''}
               clienteApellidos={clienteData?.apellidos || ''}
               onSerieSelected={handleSerieSelected}

@@ -75,14 +75,14 @@ const ClientTable: React.FC<ClientTableProps> = ({
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <img 
                           src={getWeaponImageUrlWithCacheBusting(arma.urlImagen)} 
-                          alt={arma.nombre} 
+                          alt={arma.modelo} 
                           style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb', background: '#f3f4f6' }}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                           }}
                         />
-                        <span style={{ fontSize: '0.95rem', color: '#374151' }}>{arma.nombre}</span>
+                        <span style={{ fontSize: '0.95rem', color: '#374151' }}>{arma.modelo}</span>
                       </span>
                     ) : (
                       <span style={{ color: '#9ca3af', fontSize: '0.95rem' }}>—</span>
@@ -183,13 +183,13 @@ const ClientTable: React.FC<ClientTableProps> = ({
                         <div className="client-card-weapon">
                           <img 
                             src={getWeaponImageUrlWithCacheBusting(arma.urlImagen)} 
-                            alt={arma.nombre}
+                            alt={arma.modelo}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
                           />
-                          <span>{arma.nombre}</span>
+                          <span>{arma.modelo}</span>
                         </div>
                       ) : (
                         <span style={{ color: '#9ca3af' }}>—</span>

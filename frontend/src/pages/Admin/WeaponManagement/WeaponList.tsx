@@ -65,7 +65,7 @@ const WeaponList: React.FC = () => {
     // Filtrar por término de búsqueda
     if (searchTerm.trim()) {
       filtered = filtered.filter(weapon => 
-        weapon.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        weapon.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.calibre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.categoriaNombre?.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -166,9 +166,9 @@ const WeaponList: React.FC = () => {
       )
     },
     {
-      key: 'nombre',
-      label: 'Nombre',
-      render: (value: any) => <span className="font-medium text-gray-900">{value}</span>
+      key: 'modelo',
+      label: 'Modelo',
+      render: (value: any) => <span className="font-medium text-gray-900">{value || 'Sin modelo'}</span>
     },
     {
       key: 'calibre',
@@ -286,7 +286,7 @@ const WeaponList: React.FC = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
-          searchPlaceholder="Buscar por nombre, calibre o categoría..."
+          searchPlaceholder="Buscar por modelo, calibre o categoría..."
           stats={<AdminStats stats={stats} />}
           filters={
             <div className="flex items-center space-x-4">

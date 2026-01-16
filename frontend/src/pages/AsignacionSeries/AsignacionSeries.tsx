@@ -12,7 +12,8 @@ interface ReservaPendienteDTO {
   // Datos del arma (planos, no anidados)
   armaId: number;
   armaCodigo: string;
-  armaNombre: string;
+  armaModelo?: string;
+  armaNombre?: string; // Deprecated - usar armaModelo
   armaCalibre: string;
   armaCapacidad: number;
   // Datos de la reserva
@@ -176,7 +177,7 @@ const AsignacionSeries: React.FC = () => {
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="font-medium text-gray-900">
-                        🔫 {reserva.armaNombre}
+                        🔫 {reserva.armaModelo || reserva.armaNombre || 'N/A'}
                       </p>
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-sm text-gray-600">
@@ -217,7 +218,7 @@ const AsignacionSeries: React.FC = () => {
               <>
                 <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-sm font-semibold text-blue-900">
-                    Arma: {reservaSeleccionada.armaNombre}
+                    Arma: {reservaSeleccionada.armaModelo || reservaSeleccionada.armaNombre || 'N/A'}
                   </p>
                   <p className="text-sm text-blue-700">
                     Cliente: {reservaSeleccionada.clienteNombres} {reservaSeleccionada.clienteApellidos}

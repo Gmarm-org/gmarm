@@ -58,7 +58,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
   onClienteBloqueado
 }) => {
   const { user } = useAuth();
-  const { getCodigoTipoCliente, esTipoMilitar, esTipoPolicia, esUniformado, requiereCodigoIssfa } = useTiposClienteConfig();
+  const { getCodigoTipoCliente, esTipoMilitar, esTipoPolicia, esUniformado, requiereCodigoIssfa, debeTratarseComoCivilCuandoPasivo } = useTiposClienteConfig();
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
 
   // Hooks refactorizados
@@ -122,6 +122,25 @@ const ClientForm: React.FC<ClientFormProps> = ({
   
   // Determinar si es uniformado en servicio activo basado en estado militar
   const isUniformado = isUniformadoByType && formData.estadoMilitar === 'ACTIVO';
+
+  const isCivilByType = formData.tipoCliente === 'Civil' || formData.tipoCliente === 'Cliente Civil';
+  const isUniformadoPasivoTratadoComoCivil = isUniformadoByType &&
+    formData.estadoMilitar === 'PASIVO' &&
+    debeTratarseComoCivilCuandoPasivo(formData.tipoCliente);
+  const isCivil = isCivilByType || isUniformadoPasivoTratadoComoCivil;
+
+  const isClientConfirmed = client?.emailVerificado === true;
+  const canEditAllInEditMode = Boolean(
+    user?.roles?.some((role: any) => {
+      const codigo = role.rol?.codigo || (role as any).codigo || role;
+      return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
+    })
+  );
+  const isRestrictedToDocuments = mode === 'edit' && isClientConfirmed && !canEditAllInEditMode;
+  const personalSectionMode = isRestrictedToDocuments ? 'view' : mode;
+  const answersSectionMode = isRestrictedToDocuments ? 'view' : mode;
+  const documentsSectionMode = mode;
+  const editButtonLabel = isClientConfirmed && !canEditAllInEditMode ? 'Editar Documentos' : 'Editar Cliente';
   
   // El tipo de proceso real se usa internamente en los hooks useClientDocuments y useClientAnswers
 
@@ -249,9 +268,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
         // Establecer selectedWeapon para que se muestre en modo edit
         const weaponData = {
           id: armaAsignada.armaId,
-          nombre: armaAsignada.armaNombre || 'N/A',
+          modelo: armaAsignada.armaModelo || 'N/A',
           codigo: armaAsignada.armaCodigo || '',
-          calibre: armaAsignada.armaModelo || 'N/A',
+          calibre: armaAsignada.armaCalibre || 'N/A',
           categoriaNombre: 'N/A',
           precioReferencia: parseFloat(armaAsignada.precioUnitario) || 0,
           urlImagen: armaAsignada.armaImagen || '',
@@ -307,7 +326,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     // Convertir el arma del stock al formato Weapon
     const weapon: Weapon = {
       id: armaEnStock.armaId.toString(),
-      nombre: armaEnStock.armaNombre,
+      modelo: armaEnStock.armaModelo || 'N/A',
       codigo: armaEnStock.armaCodigo,
       calibre: armaEnStock.armaCalibre,
       categoriaNombre: armaEnStock.armaCategoriaNombre || 'N/A',
@@ -331,7 +350,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
     
     // Mostrar mensaje informativo sobre documentos requeridos
-    alert(`✅ Arma "${armaEnStock.armaNombre}" seleccionada del stock.\n\n` +
+    alert(`✅ Arma "${armaEnStock.armaModelo || 'N/A'}" seleccionada del stock.\n\n` +
           `⚠️ IMPORTANTE: Para poder entregar el arma al cliente, debes:\n` +
           `1. Completar todos los datos del cliente\n` +
           `2. Cargar y aprobar TODOS los documentos obligatorios\n` +
@@ -1237,7 +1256,33 @@ const ClientForm: React.FC<ClientFormProps> = ({
             }
             
             if (documentErrors.length > 0) {
-              alert(`⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos: ${documentErrors.join(', ')}. Puedes subirlos más tarde.`);
+              try {
+                const documentosActualizados = await apiService.getDocumentosCliente(parseInt(clienteId.toString()));
+                const documentosMap: Record<string, any> = {};
+                if (Array.isArray(documentosActualizados)) {
+                  documentosActualizados.forEach(doc => {
+                    if (doc.tipoDocumentoNombre && doc.rutaArchivo && doc.estado === 'CARGADO' && doc.id) {
+                      documentosMap[doc.tipoDocumentoNombre] = doc;
+                    }
+                  });
+                }
+
+                const documentosFaltantes = requiredDocuments.filter(doc => {
+                  const porNombre = documentosMap[doc.nombre];
+                  const porUploaded = uploadedDocuments[doc.nombre] || uploadedDocuments[doc.id?.toString?.() || ''];
+                  return !porNombre && !porUploaded;
+                });
+
+                if (documentosFaltantes.length > 0) {
+                  const nombres = documentosFaltantes.map(doc => doc.nombre).join(', ');
+                  alert(`⚠️ Cliente creado exitosamente, pero faltan documentos por subir: ${nombres}. Puedes subirlos más tarde.`);
+                } else {
+                  console.log('✅ Documentos subidos correctamente. No hay faltantes.');
+                }
+              } catch (verificarError) {
+                console.error('❌ Error verificando documentos después de la carga:', verificarError);
+                alert(`⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos: ${documentErrors.join(', ')}. Puedes subirlos más tarde.`);
+              }
             } else {
               console.log('✅ Todos los documentos subidos exitosamente');
             }
@@ -1476,7 +1521,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Datos Personales - Componente Extraído */}
               <ClientPersonalDataSection
-                mode={mode}
+                mode={personalSectionMode}
                 formData={formData}
                 handleInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value)}
                 tiposCliente={tiposCliente}
@@ -1493,7 +1538,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               {/* Datos de Empresa - Componente Extraído */}
               {isEmpresa && (
                 <ClientCompanyDataSection
-                  mode={mode}
+                  mode={personalSectionMode}
                   formData={formData}
                   handleInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value)}
                   provincias={provincias}
@@ -1524,9 +1569,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
               )}
 
               {/* Documentos del Cliente - Componente Extraído (solo en modo create/edit) */}
-              {formData.tipoCliente && requiredDocuments.length > 0 && mode !== 'view' && (
+              {formData.tipoCliente && requiredDocuments.length > 0 && documentsSectionMode !== 'view' && (
                 <ClientDocumentsSection
-                  mode={mode}
+                  mode={documentsSectionMode}
                   requiredDocuments={requiredDocuments}
                   uploadedDocuments={uploadedDocuments}
                   loadedDocuments={loadedDocuments}
@@ -1539,7 +1584,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               {/* Preguntas de Seguridad - Componente Extraído */}
               {formData.tipoCliente && clientQuestions.length > 0 && (
                 <ClientAnswersSection
-                  mode={mode}
+                  mode={answersSectionMode}
                   clientQuestions={clientQuestions}
                   getAnswerForQuestion={getAnswerForQuestion}
                   handleAnswerChange={handleAnswerChange}
@@ -1564,9 +1609,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 currentSelectedWeapon={currentSelectedWeapon || null}
                 precioModificado={precioModificado}
                 cantidad={cantidad}
-                onPriceChange={onPriceChange}
-                onQuantityChange={onQuantityChange}
-                onNavigateToWeaponSelection={onNavigateToWeaponSelection}
+                maxCantidad={isCivil ? 2 : undefined}
+                canEditWeapon={mode !== 'edit' || canEditAllInEditMode}
+                onPriceChange={mode !== 'edit' || canEditAllInEditMode ? onPriceChange : undefined}
+                onQuantityChange={mode !== 'edit' || canEditAllInEditMode ? onQuantityChange : undefined}
+                onNavigateToWeaponSelection={mode !== 'edit' || canEditAllInEditMode ? onNavigateToWeaponSelection : undefined}
                 ivaDecimal={ivaDecimal}
                 ivaPorcentaje={ivaPorcentaje}
               />
@@ -1610,30 +1657,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
                         window.dispatchEvent(event);
                       }
                     }}
-                    disabled={user ? (!user.roles?.some((role: any) => {
-                      const codigo = role.rol?.codigo || (role as any).codigo || role;
-                      return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
-                    }) && client?.emailVerificado === true) : false}
+                    disabled={false}
                     className={`px-8 py-3 rounded-xl transition-all duration-200 font-semibold shadow-lg ${
-                      user ? (!user.roles?.some((role: any) => {
-                        const codigo = role.rol?.codigo || (role as any).codigo || role;
-                        return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
-                      }) && client?.emailVerificado === true)
-                        ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
-                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                      'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
                     }`}
                     title={
-                      user ? (!user.roles?.some((role: any) => {
-                        const codigo = role.rol?.codigo || (role as any).codigo || role;
-                        return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
-                      }) && client?.emailVerificado === true)
-                        ? 'No puede editar: El cliente ya confirmó sus datos. Solo el Jefe de Ventas puede editar clientes confirmados.'
+                      isClientConfirmed && !canEditAllInEditMode
+                        ? 'El cliente confirmó sus datos: solo puede actualizar documentos.'
                         : 'Editar cliente'
-                      : 'Editar cliente'
                     }
                   >
-                    Editar Cliente
+                    {editButtonLabel}
                   </button>
                 )}
                 

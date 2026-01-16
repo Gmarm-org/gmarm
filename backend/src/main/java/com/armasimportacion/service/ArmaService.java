@@ -103,7 +103,13 @@ public class ArmaService {
         log.info("Actualizando arma con ID: {}", id);
         Arma arma = findById(id);
         
-        arma.setCodigo(armaDetails.getCodigo());
+        // Generar código automáticamente desde el modelo si cambió
+        if (armaDetails.getModelo() != null && !armaDetails.getModelo().equals(arma.getModelo())) {
+            String nuevoCodigo = generarCodigoDesdeModelo(armaDetails.getModelo());
+            arma.setCodigo(nuevoCodigo);
+            log.info("Código actualizado automáticamente desde modelo: '{}' -> '{}'", armaDetails.getModelo(), nuevoCodigo);
+        }
+        
         arma.setModelo(armaDetails.getModelo()); // Cambiado de nombre a modelo
         arma.setMarca(armaDetails.getMarca()); // Nuevo campo
         arma.setAlimentadora(armaDetails.getAlimentadora()); // Nuevo campo
@@ -149,6 +155,10 @@ public class ArmaService {
         // Actualizar campos de la arma
         if (updateDTO.getModelo() != null) {
             arma.setModelo(updateDTO.getModelo()); // Cambiado de nombre a modelo
+            // Generar código automáticamente desde el modelo si cambió
+            String nuevoCodigo = generarCodigoDesdeModelo(updateDTO.getModelo());
+            arma.setCodigo(nuevoCodigo);
+            log.info("Código actualizado automáticamente desde modelo: '{}' -> '{}'", updateDTO.getModelo(), nuevoCodigo);
         }
         if (updateDTO.getMarca() != null) {
             arma.setMarca(updateDTO.getMarca()); // Nuevo campo
@@ -230,7 +240,10 @@ public class ArmaService {
         arma.setCapacidad(createDTO.getCapacidad());
         arma.setPrecioReferencia(createDTO.getPrecioReferencia());
         arma.setEstado(createDTO.getEstado() != null ? createDTO.getEstado() : true);
-        arma.setCodigo(createDTO.getCodigo());
+        // Generar código automáticamente desde el modelo
+        String codigoGenerado = generarCodigoDesdeModelo(createDTO.getModelo());
+        arma.setCodigo(codigoGenerado);
+        log.info("Código generado automáticamente desde modelo: '{}' -> '{}'", createDTO.getModelo(), codigoGenerado);
         arma.setUrlProducto(createDTO.getUrlProducto());
         arma.setFechaCreacion(LocalDateTime.now());
         arma.setFechaActualizacion(LocalDateTime.now());
@@ -265,6 +278,26 @@ public class ArmaService {
         sincronizarArmaStock(armaGuardada);
         
         return armaGuardada;
+    }
+    
+    /**
+     * Genera el código del arma automáticamente desde el modelo
+     * Convierte el modelo a mayúsculas y reemplaza espacios con guiones
+     * Ejemplo: "CZ P09 C NOCTURNE" -> "CZ-P09-C-NOCTURNE"
+     */
+    private String generarCodigoDesdeModelo(String modelo) {
+        if (modelo == null || modelo.trim().isEmpty()) {
+            return "";
+        }
+        // Convertir a mayúsculas y reemplazar espacios con guiones
+        String codigo = modelo.trim()
+                .toUpperCase()
+                .replaceAll("\\s+", "-")  // Reemplazar uno o más espacios con un guión
+                .replaceAll("-+", "-")    // Reemplazar múltiples guiones consecutivos con uno solo
+                .replaceAll("^-|-$", ""); // Eliminar guiones al inicio o final
+        
+        log.debug("Código generado desde modelo '{}': '{}'", modelo, codigo);
+        return codigo;
     }
     
     /**

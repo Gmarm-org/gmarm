@@ -69,8 +69,8 @@ export const useVendedorData = (
             weaponAssignments[client.id] = {
               weapon: {
                 id: arma.armaId,
-                nombre: arma.armaNombre,
-                calibre: arma.armaModelo || 'N/A',
+                modelo: arma.armaModelo || 'N/A',
+                calibre: arma.armaCalibre || 'N/A',
                 codigo: arma.armaCodigo,
                 urlImagen: arma.armaImagen,
                 precioReferencia: parseFloat(arma.precioUnitario) || 0
@@ -100,9 +100,9 @@ export const useVendedorData = (
       const armas = await apiService.getArmas();
       
       if (Array.isArray(armas)) {
-        const armasSinNombre = armas.filter(arma => !arma.nombre);
-        if (armasSinNombre.length > 0) {
-          console.error('🔫 Vendedor - ❌ ARMAS SIN NOMBRE ENCONTRADAS:', armasSinNombre);
+        const armasSinModelo = armas.filter(arma => !arma.modelo);
+        if (armasSinModelo.length > 0) {
+          console.error('🔫 Vendedor - ❌ ARMAS SIN MODELO ENCONTRADAS:', armasSinModelo);
         }
         
         const armasSinId = armas.filter(arma => !arma.id);

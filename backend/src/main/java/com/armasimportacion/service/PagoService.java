@@ -141,8 +141,8 @@ public class PagoService {
         cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PAGADA);
         cuota.setFechaPago(LocalDateTime.now());
         cuota.setReferenciaPago(referenciaPago);
-        if (numeroRecibo != null) {
-            cuota.setNumeroRecibo(numeroRecibo);
+        if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().trim().isEmpty()) {
+            cuota.setNumeroRecibo(generarNumeroReciboUnico());
         }
         if (comprobanteArchivo != null) {
             cuota.setComprobanteArchivo(comprobanteArchivo);
@@ -208,6 +208,14 @@ public class PagoService {
     private void actualizarCuotaActual(Pago pago) {
         Long cuotasPagadas = cuotaPagoRepository.countCuotasPagadasByPagoId(pago.getId());
         pago.setCuotaActual(cuotasPagadas.intValue() + 1);
+    }
+
+    private String generarNumeroReciboUnico() {
+        int year = LocalDate.now().getYear();
+        String prefix = "RC-" + year + "-";
+        Integer maxSeq = cuotaPagoRepository.findMaxReciboSequence(prefix + "%");
+        int nextSeq = (maxSeq == null) ? 1 : maxSeq + 1;
+        return String.format("RC-%d-%06d", year, nextSeq);
     }
 
     public List<CuotaPago> obtenerCuotasVencidas() {
@@ -411,7 +419,9 @@ public class PagoService {
             
             // Enviar recibo por correo
             List<String> emails = java.util.Arrays.asList(cliente.getEmail());
-            String numeroRecibo = cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId();
+            String numeroRecibo = cuota.getNumeroRecibo() != null
+                ? cuota.getNumeroRecibo()
+                : String.format("RC-%d-%06d", java.time.LocalDate.now().getYear(), cuota.getId());
             String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
             
             emailService.enviarReciboPorCorreo(emails, nombreCompleto, pdfBytes, 

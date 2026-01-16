@@ -42,7 +42,6 @@ const PagosFinanzas: React.FC = () => {
   const [referenciaPago, setReferenciaPago] = useState('');
   const [fechaPago, setFechaPago] = useState('');
   const [montoPago, setMontoPago] = useState<number>(0);
-  const [numeroRecibo, setNumeroRecibo] = useState('');
   const [comprobanteArchivo, setComprobanteArchivo] = useState<File | null>(null);
   const [observaciones, setObservaciones] = useState('');
   const [procesando, setProcesando] = useState(false);
@@ -195,7 +194,6 @@ const PagosFinanzas: React.FC = () => {
     setCuotaEditando(cuota);
     setReferenciaPago('');
     setMontoPago(cuota.monto);
-    setNumeroRecibo('');
     setComprobanteArchivo(null);
     setObservaciones('');
     // Formato manual para evitar problemas de timezone
@@ -242,7 +240,7 @@ const PagosFinanzas: React.FC = () => {
         referenciaPago, 
         usuario.id,
         montoPago || cuotaEditando.monto,
-        numeroRecibo || undefined,
+        undefined,
         comprobanteArchivoRuta || undefined,
         observaciones || undefined
       );
@@ -258,7 +256,6 @@ const PagosFinanzas: React.FC = () => {
       setReferenciaPago('');
       setFechaPago('');
       setMontoPago(0);
-      setNumeroRecibo('');
       setComprobanteArchivo(null);
       setObservaciones('');
     } catch (error) {
@@ -282,8 +279,8 @@ const PagosFinanzas: React.FC = () => {
           const arma = armasResponse[0];
           // Construir descripción: PISTOLA MARCA CZ, MODELO CZ P-10 SC Urban Grey, CALIBRE 9MM SERIE: D286252
           const tipoArma = (arma.armaCategoriaNombre?.toUpperCase() || 'PISTOLA');
-          const marca = arma.armaNombre?.substring(0, 2).toUpperCase() || 'CZ';
-          const modelo = arma.armaNombre || 'N/A';
+          const marca = arma.armaModelo?.substring(0, 2).toUpperCase() || 'CZ';
+          const modelo = arma.armaModelo || 'N/A';
           const calibre = arma.armaCalibre || 'N/A';
           const serie = arma.numeroSerie || 'N/A';
           const descripcion = `${tipoArma} MARCA ${marca}, MODELO ${modelo}, CALIBRE ${calibre} SERIE: ${serie}`;
@@ -378,8 +375,8 @@ const PagosFinanzas: React.FC = () => {
             if (armasResponse && armasResponse.length > 0) {
               const arma = armasResponse[0];
               const tipoArma = (arma.armaCategoriaNombre?.toUpperCase() || 'PISTOLA');
-              const marca = arma.armaNombre?.substring(0, 2).toUpperCase() || 'CZ';
-              const modelo = arma.armaNombre || 'N/A';
+              const marca = arma.armaModelo?.substring(0, 2).toUpperCase() || 'CZ';
+              const modelo = arma.armaModelo || 'N/A';
               const calibre = arma.armaCalibre || 'N/A';
               const serie = arma.numeroSerie || 'N/A';
               descripcionArma = `${tipoArma} MARCA ${marca}, MODELO ${modelo}, CALIBRE ${calibre} SERIE: ${serie}`;
@@ -992,15 +989,11 @@ const PagosFinanzas: React.FC = () => {
             {/* Campos editables */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                NUMERO DE RECIBO *
+                Número de Recibo
               </label>
-              <input
-                type="text"
-                value={numeroRecibo}
-                onChange={(e) => setNumeroRecibo(e.target.value)}
-                placeholder="Ej: REC-001-2024"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700 text-sm">
+                Se genera automáticamente al registrar el pago (formato: RC-AÑO-000001).
+              </div>
             </div>
 
             <div className="mb-4">

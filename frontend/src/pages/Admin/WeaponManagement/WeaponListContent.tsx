@@ -59,7 +59,6 @@ const WeaponListContent: React.FC = () => {
     if (searchTerm.trim()) {
       filtered = filtered.filter(weapon => 
         weapon.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        weapon.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || // Compatibilidad hacia atrás
         weapon.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.alimentadora?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.calibre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,14 +161,9 @@ const WeaponListContent: React.FC = () => {
       )
     },
     {
-      key: 'codigo',
-      label: 'Código',
-      render: (value: any) => <span className="font-mono text-sm text-blue-600 font-semibold">{value || 'Sin código'}</span>
-    },
-    {
       key: 'modelo',
       label: 'Modelo',
-      render: (value: any, row: any) => <span className="font-medium text-gray-900">{value || row.nombre || 'Sin modelo'}</span>
+      render: (value: any) => <span className="font-medium text-gray-900">{value || 'Sin modelo'}</span>
     },
     {
       key: 'marca',

@@ -54,9 +54,25 @@
             font-weight: bold;
             font-size: 16px;
             transition: background-color 0.3s;
+            margin: 6px 8px;
         }
         .verify-button:hover {
             background-color: #4338CA;
+        }
+        .incorrect-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background-color: #DC2626;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin: 6px 8px;
+        }
+        .incorrect-button:hover {
+            background-color: #B91C1C;
         }
         .info-box {
             background-color: #F3F4F6;
@@ -173,16 +189,18 @@
                 </div>
             </div>
 
-            <p>Si todos los datos son correctos, haz clic en el siguiente botón para verificar tu correo electrónico:</p>
+            <p>Selecciona una de las siguientes opciones según corresponda:</p>
 
             <div class="button-container">
-                <a th:href="${verificationUrl}" class="verify-button">✅ Verificar y Confirmar Datos</a>
+                <a th:href="${verificationUrl}" class="verify-button">✅ Confirmar Datos Correctos</a>
+                <a th:href="${incorrectUrl}" class="incorrect-button">❌ Datos Incorrectos</a>
             </div>
 
             <div class="info-box">
-                <p><strong>¿El botón no funciona?</strong></p>
-                <p>Copia y pega el siguiente enlace en tu navegador:</p>
+                <p><strong>¿Los botones no funcionan?</strong></p>
+                <p>Copia y pega el enlace que corresponda en tu navegador:</p>
                 <p style="word-break: break-all; color: #4F46E5; font-size: 12px;" th:text="${verificationUrl}"></p>
+                <p style="word-break: break-all; color: #DC2626; font-size: 12px;" th:text="${incorrectUrl}"></p>
             </div>
 
             <div class="warning">

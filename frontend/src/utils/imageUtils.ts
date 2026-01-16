@@ -19,7 +19,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 export const getWeaponImageUrl = (imageUrl: string | null | undefined): string => {
   if (!imageUrl || imageUrl.trim() === '') {
     // Retornar placeholder si no hay imagen
-    return `${API_BASE_URL}/images/weapons/default-weapon.jpg`;
+    return `${API_BASE_URL}/images/weapons/default-weapon.svg`;
   }
 
   // Si la URL ya es completa (comienza con http), retornarla tal cual
@@ -48,5 +48,5 @@ export const getWeaponImageUrlWithCacheBusting = (imageUrl: string | null | unde
 /**
  * Placeholder por defecto para armas sin imagen
  */
-export const DEFAULT_WEAPON_IMAGE = `${API_BASE_URL}/images/weapons/default-weapon.jpg`;
+export const DEFAULT_WEAPON_IMAGE = `${API_BASE_URL}/images/weapons/default-weapon.svg`;
 

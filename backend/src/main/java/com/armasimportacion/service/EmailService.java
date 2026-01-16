@@ -90,6 +90,10 @@ public class EmailService {
             context.setVariable("telefonoSecundario", cliente.getTelefonoSecundario() != null ? cliente.getTelefonoSecundario() : "No especificado");
             context.setVariable("email", cliente.getEmail() != null ? cliente.getEmail() : "No especificado");
             context.setVariable("verificationUrl", verificationUrl);
+            String incorrectUrl = verificationUrl.contains("?")
+                ? verificationUrl + "&action=incorrect"
+                : verificationUrl + "?action=incorrect";
+            context.setVariable("incorrectUrl", incorrectUrl);
             context.setVariable("expirationHours", 48);
             context.setVariable("noTieneCuentaSicoar", noTieneCuentaSicoar);
 

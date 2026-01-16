@@ -4,7 +4,8 @@ interface VendedorStockWeaponsSectionProps {
   armasEnStock: Array<{
     id: number;
     armaId: number;
-    armaNombre: string;
+    armaModelo?: string;
+    armaNombre?: string; // Deprecated - usar armaModelo
     armaCodigo: string;
     armaCalibre: string;
     armaCategoriaNombre?: string;
@@ -52,14 +53,16 @@ export const VendedorStockWeaponsSection: React.FC<VendedorStockWeaponsSectionPr
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">{armaEnStock.armaNombre}</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  {armaEnStock.armaModelo || armaEnStock.armaNombre || 'Sin modelo'}
+                </h3>
                 <p className="text-sm text-gray-600">Código: {armaEnStock.armaCodigo}</p>
                 <p className="text-sm text-gray-600">Calibre: {armaEnStock.armaCalibre}</p>
               </div>
               {armaEnStock.armaImagen && (
                 <img
                   src={armaEnStock.armaImagen}
-                  alt={armaEnStock.armaNombre}
+                  alt={armaEnStock.armaModelo || armaEnStock.armaNombre || 'Sin modelo'}
                   className="w-16 h-16 object-cover rounded-lg ml-2"
                   onError={(e) => {
                     // Silenciosamente ocultar imagen si falla al cargar

@@ -68,7 +68,7 @@ export const useVendedorExport = (user: User | null) => {
           
           // Campos de arma (solo si hay arma)
           if (arma) {
-            if (arma.armaNombre) fila['Arma Nombre'] = arma.armaNombre;
+            if (arma.armaModelo) fila['Arma Nombre'] = arma.armaModelo;
             if (arma.armaModelo) fila['Arma Modelo'] = arma.armaModelo;
             if (arma.armaCalibre) fila['Arma Calibre'] = arma.armaCalibre;
             if (arma.numeroSerie) fila['Número de Serie'] = arma.numeroSerie;

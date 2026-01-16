@@ -3,7 +3,7 @@ import React from 'react';
 interface ArmaStockCardProps {
   arma: {
     id: number;
-    nombre: string;
+    modelo: string;
     codigo: string;
     calibre: string;
     capacidad: number;
@@ -50,7 +50,7 @@ const ArmaStockCard: React.FC<ArmaStockCardProps> = ({
         {arma.urlImagen ? (
           <img 
             src={arma.urlImagen} 
-            alt={arma.nombre}
+            alt={arma.modelo}
             className="w-full h-full object-contain rounded-lg"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -66,7 +66,7 @@ const ArmaStockCard: React.FC<ArmaStockCardProps> = ({
       {/* Información del arma */}
       <div className="p-4 space-y-2">
         <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
-          {arma.nombre}
+          {arma.modelo}
         </h3>
         
         <div className="space-y-1 text-xs text-gray-600">

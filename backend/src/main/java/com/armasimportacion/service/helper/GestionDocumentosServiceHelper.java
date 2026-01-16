@@ -1006,7 +1006,8 @@ public class GestionDocumentosServiceHelper {
             
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
-            variables.put("numeroRecibo", cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId());
+            String numeroReciboFallback = String.format("RC-%d-%06d", java.time.LocalDate.now().getYear(), cuota.getId());
+            variables.put("numeroRecibo", cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : numeroReciboFallback);
             
             // Fecha de pago
             String fechaPagoStr;
@@ -1087,7 +1088,9 @@ public class GestionDocumentosServiceHelper {
      * Genera el nombre del archivo para el recibo
      */
     private String generarNombreArchivoRecibo(Cliente cliente, CuotaPago cuota) {
-        String numeroRecibo = cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId();
+        String numeroRecibo = cuota.getNumeroRecibo() != null
+            ? cuota.getNumeroRecibo()
+            : String.format("RC-%d-%06d", java.time.LocalDate.now().getYear(), cuota.getId());
         String fecha = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         return String.format("recibo_%s_%s_%s.pdf", numeroRecibo.replaceAll("[^a-zA-Z0-9]", "_"), 
             cliente.getNumeroIdentificacion(), fecha);

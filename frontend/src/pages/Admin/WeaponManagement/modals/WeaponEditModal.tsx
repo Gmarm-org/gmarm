@@ -49,7 +49,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
   useEffect(() => {
     if (weapon && isOpen) {
       setEditForm({
-        modelo: weapon.modelo || weapon.nombre || '', // Cambiado de nombre a modelo (compatibilidad hacia atrás)
+        modelo: weapon.modelo || '',
         marca: weapon.marca || '', // Nuevo campo
         alimentadora: weapon.alimentadora || '', // Nuevo campo
         codigo: weapon.codigo || '',
@@ -67,11 +67,31 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Función para generar código automáticamente desde el modelo
+  const generarCodigoDesdeModelo = (modelo: string): string => {
+    if (!modelo || !modelo.trim()) {
+      return '';
+    }
+    // Convertir a mayúsculas y reemplazar espacios con guiones
+    return modelo.trim()
+      .toUpperCase()
+      .replace(/\s+/g, '-')  // Reemplazar uno o más espacios con un guión
+      .replace(/-+/g, '-')   // Reemplazar múltiples guiones consecutivos con uno solo
+      .replace(/^-|-$/g, ''); // Eliminar guiones al inicio o final
+  };
+
   const handleInputChange = (field: keyof EditFormData, value: any) => {
-    setEditForm(prev => ({
-      ...prev,
+    const newForm = {
+      ...editForm,
       [field]: value
-    }));
+    };
+    
+    // Si cambia el modelo, generar el código automáticamente
+    if (field === 'modelo') {
+      newForm.codigo = generarCodigoDesdeModelo(value);
+    }
+    
+    setEditForm(newForm);
   };
 
   const handleImageFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,7 +141,10 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       if (editForm.alimentadora) {
         formData.append('alimentadora', editForm.alimentadora); // Nuevo campo
       }
-      formData.append('codigo', editForm.codigo);
+      // El código se genera automáticamente en el backend cuando cambia el modelo, pero lo enviamos como referencia
+      if (editForm.codigo) {
+        formData.append('codigo', editForm.codigo);
+      }
       formData.append('calibre', editForm.calibre);
       formData.append('capacidad', editForm.capacidad.toString());
       // Asegurar que el precio se envía correctamente como número
@@ -149,7 +172,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Editar Arma: {weapon.modelo || weapon.nombre}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Editar Arma: {weapon.modelo || 'Sin modelo'}</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -191,17 +214,6 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                 onChange={(e) => handleInputChange('alimentadora', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: Semiautomática"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Código de la Arma *</label>
-              <input
-                type="text"
-                value={editForm.codigo}
-                onChange={(e) => handleInputChange('codigo', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Ej: CZ-75-B"
               />
             </div>
             
@@ -296,7 +308,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
               <div className="flex justify-center">
                 <img
                   src={getWeaponImageUrlWithCacheBusting(weapon.urlImagen)}
-                  alt={weapon.nombre}
+                  alt={weapon.modelo || 'Sin modelo'}
                   className="h-48 w-48 object-cover rounded-lg border border-gray-200"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -346,13 +358,6 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                 </p>
               </div>
             )}
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">📝 Información del Sistema</h4>
-              <div className="text-sm text-blue-800 space-y-1">
-                <p><strong>ID:</strong> {weapon.id}</p>
-              </div>
-            </div>
           </div>
         </div>
         

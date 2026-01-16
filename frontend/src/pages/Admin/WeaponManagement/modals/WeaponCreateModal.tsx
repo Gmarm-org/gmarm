@@ -45,11 +45,31 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Función para generar código automáticamente desde el modelo
+  const generarCodigoDesdeModelo = (modelo: string): string => {
+    if (!modelo || !modelo.trim()) {
+      return '';
+    }
+    // Convertir a mayúsculas y reemplazar espacios con guiones
+    return modelo.trim()
+      .toUpperCase()
+      .replace(/\s+/g, '-')  // Reemplazar uno o más espacios con un guión
+      .replace(/-+/g, '-')   // Reemplazar múltiples guiones consecutivos con uno solo
+      .replace(/^-|-$/g, ''); // Eliminar guiones al inicio o final
+  };
+
   const handleInputChange = (field: keyof CreateFormData, value: any) => {
-    setCreateForm(prev => ({
-      ...prev,
+    const newForm = {
+      ...createForm,
       [field]: value
-    }));
+    };
+    
+    // Si cambia el modelo, generar el código automáticamente
+    if (field === 'modelo') {
+      newForm.codigo = generarCodigoDesdeModelo(value);
+    }
+    
+    setCreateForm(newForm);
   };
 
   const handleImageFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,10 +116,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       alert('El precio debe ser mayor a 0');
       return;
     }
-    if (!createForm.codigo.trim()) {
-      alert('El código de la arma es obligatorio');
-      return;
-    }
+    // El código se genera automáticamente, no es necesario validarlo
 
     try {
       setIsSaving(true);
@@ -117,7 +134,10 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       formData.append('precioReferencia', createForm.precioReferencia.toString());
       formData.append('categoriaId', createForm.categoriaId.toString());
       formData.append('estado', createForm.estado.toString());
-      formData.append('codigo', createForm.codigo);
+      // El código se genera automáticamente en el backend, pero lo enviamos como referencia
+      if (createForm.codigo) {
+        formData.append('codigo', createForm.codigo);
+      }
       formData.append('urlProducto', createForm.urlProducto);
       
       if (selectedImageFile) {
@@ -225,17 +245,6 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
                 onChange={(e) => handleInputChange('alimentadora', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: Semiautomática"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Código de la Arma *</label>
-              <input
-                type="text"
-                value={createForm.codigo}
-                onChange={(e) => handleInputChange('codigo', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Ej: CZ-75-B"
               />
             </div>
             

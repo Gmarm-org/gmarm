@@ -37,7 +37,7 @@ const WeaponDeleteModal: React.FC<WeaponDeleteModalProps> = ({
         <div className="text-center">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Confirmar Desactivación</h2>
           <p className="text-gray-600 mb-6">
-            ¿Estás seguro de que quieres <strong>desactivar</strong> la arma <strong>"{weapon.nombre}"</strong>?
+            ¿Estás seguro de que quieres <strong>desactivar</strong> la arma <strong>"{weapon.modelo || 'Sin modelo'}"</strong>?
             <br /><br />
             <span className="text-sm text-blue-600">
               💡 <strong>Nota:</strong> La arma no se eliminará del sistema, solo cambiará su estado a "Inactiva" y no será visible para los usuarios.

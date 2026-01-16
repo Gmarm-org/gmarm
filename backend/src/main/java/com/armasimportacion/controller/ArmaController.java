@@ -101,7 +101,7 @@ public class ArmaController {
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
-            @RequestParam("codigo") String codigo,
+            @RequestParam(value = "codigo", required = false) String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
 
@@ -109,6 +109,7 @@ public class ArmaController {
 
         try {
             // Crear DTO con los datos recibidos
+            // El código se generará automáticamente desde el modelo si no se proporciona
             ArmaCreateDTO createDTO = ArmaCreateDTO.builder()
                     .modelo(modelo) // Cambiado de nombre a modelo
                     .marca(marca) // Nuevo campo
@@ -118,7 +119,7 @@ public class ArmaController {
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
                     .categoriaId(categoriaId)
                     .estado(estado)
-                    .codigo(codigo)
+                    .codigo(codigo) // Opcional, se generará automáticamente desde el modelo si no se proporciona
                     .urlProducto(urlProducto)
                     .imagen(imagen)
                     .build();
@@ -160,7 +161,7 @@ public class ArmaController {
             @RequestParam("precioReferencia") String precioReferencia,
             @RequestParam("categoriaId") Long categoriaId,
             @RequestParam("estado") Boolean estado,
-            @RequestParam("codigo") String codigo,
+            @RequestParam(value = "codigo", required = false) String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
         
@@ -169,6 +170,7 @@ public class ArmaController {
         
         try {
             // Crear DTO con los datos recibidos
+            // El código se generará automáticamente desde el modelo si no se proporciona
             java.math.BigDecimal precioDecimal = new java.math.BigDecimal(precioReferencia);
             log.info("🔍 DEBUG - Precio convertido a BigDecimal: {}", precioDecimal);
             
@@ -181,7 +183,7 @@ public class ArmaController {
                     .precioReferencia(precioDecimal)
                     .categoriaId(categoriaId)
                     .estado(estado)
-                    .codigo(codigo)
+                    .codigo(codigo) // Opcional, se generará automáticamente desde el modelo si no se proporciona
                     .urlProducto(urlProducto)
                     .imagen(imagen)
                     .build();

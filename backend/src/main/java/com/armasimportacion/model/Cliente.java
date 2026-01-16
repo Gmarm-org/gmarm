@@ -61,7 +61,7 @@ public class Cliente {
     private LocalDate fechaNacimiento;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "estado", length = 20)
+    @Column(name = "estado", length = 50)
     private EstadoCliente estado = EstadoCliente.EN_PROCESO;
 
     @Column(name = "aprobado")

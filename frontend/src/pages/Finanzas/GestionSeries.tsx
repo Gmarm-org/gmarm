@@ -7,7 +7,8 @@ import { useAuth } from '../../contexts/AuthContext';
 interface Arma {
   id: number;
   codigo: string;
-  nombre: string;
+  modelo?: string;
+  nombre?: string; // Deprecated - usar modelo
   calibre: string;
   categoria: string;
 }
@@ -19,7 +20,8 @@ interface ClienteArmaReserva {
   clienteApellidos: string;
   clienteIdentificacion: string;
   armaId: number;
-  armaNombre: string;
+  armaModelo?: string;
+  armaNombre?: string; // Deprecated - usar armaModelo
   armaCodigo: string;
   estado: string;
   numeroSerie?: string;
@@ -243,7 +245,7 @@ const GestionSeries: React.FC = () => {
                   <option value="">Seleccione un arma</option>
                   {armas.map((arma) => (
                     <option key={arma.id} value={arma.id}>
-                      {arma.codigo} - {arma.nombre} ({arma.calibre})
+                      {arma.codigo} - {arma.modelo || arma.nombre || 'N/A'} ({arma.calibre})
                     </option>
                   ))}
                 </select>
@@ -345,7 +347,7 @@ const GestionSeries: React.FC = () => {
                             {reserva.clienteNombre} {reserva.clienteApellidos}
                           </p>
                           <p className="text-sm text-gray-600">CI: {reserva.clienteIdentificacion}</p>
-                          <p className="text-sm text-gray-600">Arma: {reserva.armaNombre}</p>
+                          <p className="text-sm text-gray-600">Arma: {reserva.armaModelo || reserva.armaNombre || 'N/A'}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             Reservado: {new Date(reserva.fechaReserva).toLocaleDateString()}
                           </p>
@@ -375,7 +377,7 @@ const GestionSeries: React.FC = () => {
                     <h3 className="font-bold text-gray-800 mb-2">Cliente</h3>
                     <p><strong>Nombre:</strong> {reservaSeleccionada.clienteNombre} {reservaSeleccionada.clienteApellidos}</p>
                     <p><strong>CI:</strong> {reservaSeleccionada.clienteIdentificacion}</p>
-                    <p><strong>Arma:</strong> {reservaSeleccionada.armaNombre}</p>
+                    <p><strong>Arma:</strong> {reservaSeleccionada.armaModelo || reservaSeleccionada.armaNombre || 'N/A'}</p>
                   </div>
 
                   {/* Selección de número de serie */}
@@ -433,7 +435,7 @@ const GestionSeries: React.FC = () => {
                 <tbody>
                   {estadisticas.map((stat) => (
                     <tr key={stat.armaId} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm">{stat.armaNombre}</td>
+                      <td className="px-4 py-3 text-sm">{stat.armaModelo || stat.armaNombre || 'N/A'}</td>
                       <td className="px-4 py-3 text-center text-sm font-medium">{stat.total}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
