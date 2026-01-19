@@ -33,6 +33,9 @@ public class Arma {
     
     @Column(name = "alimentadora", length = 50)
     private String alimentadora; // Nuevo campo
+
+    @Column(name = "color", length = 100)
+    private String color;
     
     @Column(name = "calibre", length = 20)
     private String calibre;

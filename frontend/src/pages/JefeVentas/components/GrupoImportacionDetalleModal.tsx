@@ -331,6 +331,7 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombres</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Apellidos</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Documentos</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -343,6 +344,13 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                             {cliente.estado}
                           </span>
+                        </td>
+                        <td className="px-4 py-2 text-sm">
+                          {cliente.documentosCompletos ? (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completos</span>
+                          ) : (
+                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Incompletos</span>
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -164,17 +164,24 @@ public class ClienteArmaService {
         log.info("Reserva creada exitosamente con ID: {}", saved.getId());
         
         // ASIGNACIÓN AUTOMÁTICA INTELIGENTE: Asignar cliente a grupo basado en la categoría del arma
-        // Solo si el cliente no es fantasma
-        if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+        // Para cliente fantasma, asignar como CUPO (mismo flujo de civil)
+        {
             try {
                 // Obtener vendedor del cliente
                 Long vendedorId = cliente.getUsuarioCreador() != null ? cliente.getUsuarioCreador().getId() : null;
                 
                 if (vendedorId != null) {
-                    // Obtener categoría del arma
-                    Long categoriaArmaId = arma.getCategoria() != null ? arma.getCategoria().getId() : null;
+                    if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+                        com.armasimportacion.model.ClienteGrupoImportacion asignacion =
+                            grupoImportacionService.asignarClienteAGrupoDisponible(cliente, vendedorId);
+                        if (asignacion == null) {
+                            log.warn("⚠️ No se encontró grupo CUPO disponible para cliente fantasma ID {}", cliente.getId());
+                        }
+                    } else {
+                        // Obtener categoría del arma
+                        Long categoriaArmaId = arma.getCategoria() != null ? arma.getCategoria().getId() : null;
                     
-                    if (categoriaArmaId != null) {
+                        if (categoriaArmaId != null) {
                         // Verificar si es segunda arma (para Cliente Civil con 2 armas)
                         // reservasActivas ya incluye la reserva que acabamos de crear (aún no está guardada, pero la contamos)
                         boolean esSegundaArma = reservasActivas.size() >= 1; // Si ya había 1 reserva activa, esta es la segunda
@@ -227,10 +234,8 @@ public class ClienteArmaService {
                             log.warn("⚠️ No se encontró grupo disponible para asignar cliente ID {} con arma categoría {} (segunda arma: {})", 
                                 cliente.getId(), categoriaArmaId, esSegundaArma);
                             
-                            // Solo lanzar excepción si no es cliente fantasma (los fantasmas no necesitan grupos)
-                            if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
-                                throw new BadRequestException(mensajeError);
-                            }
+                            throw new BadRequestException(mensajeError);
+                        }
                         }
                     }
                 }
@@ -393,7 +398,7 @@ public class ClienteArmaService {
     public void eliminarReserva(Long id) {
         log.info("Eliminando reserva: {}", id);
         
-        ClienteArma clienteArma = clienteArmaRepository.findById(id)
+        clienteArmaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con ID: " + id));
         
         // NOTA: No devolvemos stock al inventario porque estas son armas para importación
@@ -590,6 +595,7 @@ public class ClienteArmaService {
         dto.setClienteNombre(clienteArma.getCliente().getNombreCompleto());
         dto.setArmaId(clienteArma.getArma().getId());
         dto.setArmaNombre(clienteArma.getArma().getModelo());
+        dto.setArmaModelo(clienteArma.getArma().getModelo());
         dto.setArmaCodigo(clienteArma.getArma().getCodigo());
         dto.setArmaCalibre(clienteArma.getArma().getCalibre());
         dto.setArmaCategoriaNombre(clienteArma.getArma().getCategoria() != null ? clienteArma.getArma().getCategoria().getNombre() : null);

@@ -61,6 +61,7 @@ const WeaponListContent: React.FC = () => {
         weapon.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.alimentadora?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        weapon.color?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.calibre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         weapon.categoriaNombre?.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -176,6 +177,11 @@ const WeaponListContent: React.FC = () => {
       render: (value: any) => <span className="text-gray-700">{value || 'Sin alimentadora'}</span>
     },
     {
+      key: 'color',
+      label: 'Color',
+      render: (value: any) => <span className="text-gray-700">{value || 'Sin color'}</span>
+    },
+    {
       key: 'calibre',
       label: 'Calibre',
       render: (value: any) => <span className="text-gray-700">{value || 'Sin calibre'}</span>
@@ -282,7 +288,7 @@ const WeaponListContent: React.FC = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onView={handleView}
-        searchPlaceholder="Buscar por modelo, marca, alimentadora, calibre o categoría..."
+        searchPlaceholder="Buscar por modelo, marca, alimentadora, color, calibre o categoría..."
         stats={<AdminStats stats={stats} />}
         filters={undefined}
       />

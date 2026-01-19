@@ -6,6 +6,8 @@ import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.Usuario;
+import com.armasimportacion.model.Licencia;
+import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.ClienteCompletoService;
@@ -17,6 +19,9 @@ import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.service.FileStorageService;
 import com.armasimportacion.enums.EstadoDocumentoGenerado;
+import com.armasimportacion.service.EmailService;
+import com.armasimportacion.enums.EstadoClienteGrupo;
+import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,9 +53,11 @@ public class ClienteController {
     private final PagoRepository pagoRepository;
     private final GestionDocumentosServiceHelper gestionDocumentosServiceHelper;
     private final DocumentoGeneradoRepository documentoGeneradoRepository;
+    private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
     private final com.armasimportacion.service.GrupoImportacionService grupoImportacionService;
     private final com.armasimportacion.service.DocumentoClienteService documentoClienteService;
     private final FileStorageService fileStorageService;
+    private final EmailService emailService;
     
     // ==================== MÉTODOS AUXILIARES ====================
     
@@ -608,6 +615,9 @@ public class ClienteController {
                 .provincia(cliente.getProvincia())
                 .canton(cliente.getCanton())
                 .emailVerificado(emailVerificado)
+                .tipoClienteEsCivil(cliente.esCivil())
+                .tipoClienteEsMilitar(cliente.esMilitar())
+                .tipoClienteEsPolicia(cliente.esPolicia())
                 .build();
             
             // Construir DTO del pago (si existe)
@@ -708,6 +718,59 @@ public class ClienteController {
             
             // Para compatibilidad, usar el primer documento como referencia
             DocumentoGenerado documentoPrincipal = documentos.get(0);
+
+            // Enviar documentos generados por correo a cliente y vendedor
+            try {
+                Licencia licencia = obtenerLicenciaActiva(cliente);
+                String nombreCliente = (cliente.getNombres() != null ? cliente.getNombres() : "") +
+                    " " +
+                    (cliente.getApellidos() != null ? cliente.getApellidos() : "");
+                Usuario vendedor = cliente.getUsuarioCreador();
+                String nombreVendedor = "Vendedor";
+                if (vendedor != null) {
+                    String nombres = vendedor.getNombres() != null ? vendedor.getNombres() : "";
+                    String apellidos = vendedor.getApellidos() != null ? vendedor.getApellidos() : "";
+                    String combinado = (nombres + " " + apellidos).trim();
+                    if (!combinado.isEmpty()) {
+                        nombreVendedor = combinado;
+                    }
+                }
+
+                List<EmailService.DocumentoAdjunto> adjuntos = documentos.stream()
+                    .map(doc -> {
+                        byte[] bytes = cargarDocumentoAdjunto(doc);
+                        if (bytes == null) {
+                            return null;
+                        }
+                        return new EmailService.DocumentoAdjunto(doc.getNombreArchivo(), bytes);
+                    })
+                    .filter(adj -> adj != null)
+                    .collect(Collectors.toList());
+
+                if (cliente.getEmail() != null && !cliente.getEmail().trim().isEmpty()) {
+                    emailService.enviarDocumentosGenerados(
+                        cliente.getEmail().trim(),
+                        nombreCliente.trim().isEmpty() ? "Cliente" : nombreCliente.trim(),
+                        nombreVendedor,
+                        licencia,
+                        adjuntos
+                    );
+                    log.info("✅ Documentos enviados al cliente: {}", cliente.getEmail());
+                }
+
+                if (vendedor != null && vendedor.getEmail() != null && !vendedor.getEmail().trim().isEmpty()) {
+                    emailService.enviarDocumentosGenerados(
+                        vendedor.getEmail().trim(),
+                        nombreCliente.trim().isEmpty() ? "Cliente" : nombreCliente.trim(),
+                        nombreVendedor,
+                        licencia,
+                        adjuntos
+                    );
+                    log.info("✅ Documentos enviados al vendedor: {}", vendedor.getEmail());
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ No se pudieron enviar documentos por correo: {}", e.getMessage());
+            }
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -750,36 +813,62 @@ public class ClienteController {
     @Operation(summary = "Cargar contrato firmado", description = "Carga el contrato firmado del cliente, reemplazando el contrato generado")
     public ResponseEntity<Map<String, Object>> cargarContratoFirmado(
             @PathVariable Long id,
-            @RequestParam("archivo") MultipartFile archivo) {
+            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam(value = "documentoId", required = false) Long documentoId) {
         try {
             log.info("📄 Cargando contrato firmado para cliente ID: {}", id);
             
             Cliente cliente = clienteService.findById(id);
             
-            // Buscar el último contrato generado para este cliente
-            List<DocumentoGenerado> contratos = documentoGeneradoRepository
-                .findByClienteIdAndTipo(
-                    cliente.getId(), 
-                    com.armasimportacion.enums.TipoDocumentoGenerado.CONTRATO
-                );
-            
-            // Ordenar por fecha de generación descendente y tomar el más reciente
-            contratos.sort((a, b) -> {
-                if (a.getFechaGeneracion() == null && b.getFechaGeneracion() == null) return 0;
-                if (a.getFechaGeneracion() == null) return 1;
-                if (b.getFechaGeneracion() == null) return -1;
-                return b.getFechaGeneracion().compareTo(a.getFechaGeneracion());
-            });
-            
-            if (contratos.isEmpty()) {
-                return ResponseEntity.badRequest()
-                    .body(Map.of("error", "No se encontró un contrato generado para este cliente. Debe generar el contrato primero."));
+            DocumentoGenerado contratoGenerado;
+            if (documentoId != null) {
+                contratoGenerado = documentoGeneradoRepository.findById(documentoId)
+                    .orElse(null);
+                if (contratoGenerado == null || contratoGenerado.getCliente() == null
+                    || !contratoGenerado.getCliente().getId().equals(cliente.getId())) {
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "No se encontró el documento solicitado para este cliente."));
+                }
+            } else {
+                // Para civiles, el documento a firmar es la SOLICITUD_COMPRA
+                // Para uniformados, se prioriza CONTRATO; si no existe, se usa el último documento generado pendiente
+                boolean esCivil = cliente.esCivil();
+                List<DocumentoGenerado> documentosCliente = documentoGeneradoRepository.findByClienteId(cliente.getId());
+                if (documentosCliente.isEmpty()) {
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "No se encontró un documento generado para este cliente. Debe generar la solicitud o documentos primero."));
+                }
+
+                com.armasimportacion.enums.TipoDocumentoGenerado tipoPreferido = esCivil
+                    ? com.armasimportacion.enums.TipoDocumentoGenerado.SOLICITUD_COMPRA
+                    : com.armasimportacion.enums.TipoDocumentoGenerado.CONTRATO;
+
+                List<DocumentoGenerado> documentosFiltrados = documentosCliente.stream()
+                    .filter(doc -> doc.getTipoDocumento() == tipoPreferido)
+                    .filter(doc -> doc.getEstado() != EstadoDocumentoGenerado.FIRMADO)
+                    .toList();
+
+                List<DocumentoGenerado> candidatos = documentosFiltrados.isEmpty()
+                    ? documentosCliente.stream()
+                        .filter(doc -> doc.getEstado() != EstadoDocumentoGenerado.FIRMADO)
+                        .toList()
+                    : documentosFiltrados;
+
+                candidatos.sort((a, b) -> {
+                    if (a.getFechaGeneracion() == null && b.getFechaGeneracion() == null) return 0;
+                    if (a.getFechaGeneracion() == null) return 1;
+                    if (b.getFechaGeneracion() == null) return -1;
+                    return b.getFechaGeneracion().compareTo(a.getFechaGeneracion());
+                });
+
+                contratoGenerado = candidatos.get(0);
             }
             
-            DocumentoGenerado contratoGenerado = contratos.get(0);
-            
             // Guardar el archivo firmado (reemplazar el generado)
-            String nombreArchivoFirmado = "contrato_firmado_" + cliente.getApellidos().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase() 
+            String prefijoArchivo = contratoGenerado.getTipoDocumento() == com.armasimportacion.enums.TipoDocumentoGenerado.SOLICITUD_COMPRA
+                ? "solicitud_firmada_"
+                : "contrato_firmado_";
+            String nombreArchivoFirmado = prefijoArchivo + cliente.getApellidos().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase() 
                 + "_" + cliente.getNombres().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase()
                 + "_" + cliente.getNumeroIdentificacion() + ".pdf";
             
@@ -793,21 +882,23 @@ public class ClienteController {
             contratoGenerado.setTamanioBytes(archivo.getSize());
             contratoGenerado.setFechaFirma(java.time.LocalDateTime.now());
             contratoGenerado.setEstado(EstadoDocumentoGenerado.FIRMADO);
-            contratoGenerado.setDescripcion("Contrato firmado por el cliente");
+            contratoGenerado.setDescripcion("Documento firmado por el cliente");
             
             documentoGeneradoRepository.save(contratoGenerado);
             
             // Actualizar estado del cliente a CONTRATO_FIRMADO
+            // Para civiles se usa el mismo estado al firmar la solicitud
             cliente.setEstado(com.armasimportacion.enums.EstadoCliente.CONTRATO_FIRMADO);
             clienteRepository.save(cliente);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Contrato firmado cargado exitosamente");
+            response.put("message", "Documento firmado cargado exitosamente");
             response.put("documentoId", contratoGenerado.getId());
             response.put("nombreArchivo", nombreArchivoFirmado);
+            response.put("tipoDocumento", contratoGenerado.getTipoDocumento());
             
-            log.info("✅ Contrato firmado cargado exitosamente: {}", nombreArchivoFirmado);
+            log.info("✅ Documento firmado cargado exitosamente: {}", nombreArchivoFirmado);
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -816,6 +907,47 @@ public class ClienteController {
             log.error("Error cargando contrato firmado: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Error al cargar contrato firmado: " + e.getMessage()));
+        }
+    }
+
+    private Licencia obtenerLicenciaActiva(Cliente cliente) {
+        try {
+            List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
+            if (gruposCliente == null || gruposCliente.isEmpty()) {
+                return null;
+            }
+
+            return gruposCliente.stream()
+                .filter(cgi -> cgi.getEstado() != EstadoClienteGrupo.COMPLETADO && cgi.getEstado() != EstadoClienteGrupo.CANCELADO)
+                .sorted((a, b) -> {
+                    boolean aConfirmado = a.getEstado() == EstadoClienteGrupo.CONFIRMADO;
+                    boolean bConfirmado = b.getEstado() == EstadoClienteGrupo.CONFIRMADO;
+                    if (aConfirmado != bConfirmado) {
+                        return aConfirmado ? -1 : 1;
+                    }
+                    java.time.LocalDateTime fa = a.getFechaAsignacion() != null ? a.getFechaAsignacion() : a.getFechaCreacion();
+                    java.time.LocalDateTime fb = b.getFechaAsignacion() != null ? b.getFechaAsignacion() : b.getFechaCreacion();
+                    if (fa == null && fb == null) return 0;
+                    if (fa == null) return 1;
+                    if (fb == null) return -1;
+                    return fb.compareTo(fa);
+                })
+                .map(cgi -> cgi.getGrupoImportacion() != null ? cgi.getGrupoImportacion().getLicencia() : null)
+                .filter(licencia -> licencia != null)
+                .findFirst()
+                .orElse(null);
+        } catch (Exception e) {
+            log.warn("⚠️ No se pudo obtener licencia activa del cliente {}: {}", cliente.getId(), e.getMessage());
+        }
+        return null;
+    }
+
+    private byte[] cargarDocumentoAdjunto(DocumentoGenerado documento) {
+        try {
+            return fileStorageService.loadFile(documento.getRutaArchivo());
+        } catch (Exception e) {
+            log.warn("⚠️ No se pudo cargar documento generado {}: {}", documento.getId(), e.getMessage());
+            return null;
         }
     }
 

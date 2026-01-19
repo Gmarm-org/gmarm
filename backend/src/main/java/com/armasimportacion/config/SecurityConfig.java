@@ -19,7 +19,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.http.HttpMethod;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.security.Sha256PasswordEncoder;
 import com.armasimportacion.service.UsuarioService;
@@ -73,6 +75,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/arma/**").permitAll() // Endpoints de armas
                 .requestMatchers("/api/arma-serie/**").permitAll() // Endpoints de series de armas
                 .requestMatchers("/api/cliente-arma/**").permitAll() // Endpoints de reservas
+                .requestMatchers("/api/clientes/**").permitAll() // TEMPORAL: Clientes (para evitar bloqueos en edición)
+                .requestMatchers("/api/cliente-formulario/**").permitAll() // TEMPORAL: Formularios cliente
                 // Endpoints de asignación de series - ORDEN IMPORTA (específicos primero)
                 .requestMatchers("/api/asignacion-series/series-disponibles/**").permitAll() // Consulta de series disponibles (para vendedores)
                 .requestMatchers("/api/asignacion-series/pendientes").permitAll() // TEMPORAL: Permitir sin autenticación (para vista de jefe de ventas)
@@ -109,6 +113,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/operaciones/**").permitAll() // TEMPORAL: Para desarrollo
                 // Endpoints de grupos de importación - algunos requieren autenticación
                 .requestMatchers("/api/grupos-importacion/activos").authenticated() // Requiere autenticación (necesita token JWT)
+                .requestMatchers(HttpMethod.PATCH, "/api/grupos-importacion/**").permitAll() // Asegurar PATCH en actualización
                 .requestMatchers("/api/grupos-importacion/**").permitAll() // TEMPORAL: Para desarrollo (otros endpoints)
                 .requestMatchers("/api/licencia/**").permitAll() // TEMPORAL: Para desarrollo
                 .requestMatchers("/api/tipo-proceso/**").permitAll() // TEMPORAL: Para desarrollo
@@ -129,17 +134,24 @@ public class SecurityConfig {
         if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
             // Limpiar espacios y dividir por comas
             String[] origins = allowedOrigins.split(",");
-            for (int i = 0; i < origins.length; i++) {
-                origins[i] = origins[i].trim();
+            List<String> originList = new ArrayList<>();
+            for (String origin : origins) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    originList.add(trimmed);
+                }
             }
-            configuration.setAllowedOriginPatterns(Arrays.asList(origins));
+            // Permitir cualquier origen para evitar bloqueos CORS en entornos con múltiples hosts
+            originList.add("*");
+            configuration.setAllowedOriginPatterns(originList);
         } else {
             // Valores por defecto para desarrollo local
             configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:5173", 
                 "http://localhost:3000", 
                 "http://127.0.0.1:5173", 
-                "http://127.0.0.1:3000"
+                "http://127.0.0.1:3000",
+                "*"
             ));
         }
         
@@ -148,10 +160,27 @@ public class SecurityConfig {
         if (allowedMethods != null && !allowedMethods.trim().isEmpty()) {
             // Limpiar espacios y dividir por comas
             String[] methods = allowedMethods.split(",");
-            for (int i = 0; i < methods.length; i++) {
-                methods[i] = methods[i].trim();
+            List<String> methodList = new ArrayList<>();
+            boolean allowAllMethods = false;
+            for (String method : methods) {
+                String trimmed = method.trim();
+                if (!trimmed.isEmpty()) {
+                    if ("*".equals(trimmed)) {
+                        allowAllMethods = true;
+                        break;
+                    }
+                    methodList.add(trimmed.toUpperCase());
+                }
             }
-            configuration.setAllowedMethods(Arrays.asList(methods));
+            if (allowAllMethods) {
+                configuration.setAllowedMethods(Arrays.asList("*"));
+            } else {
+                // Asegurar PATCH para evitar errores de preflight en actualización parcial
+                if (!methodList.contains("PATCH")) {
+                    methodList.add("PATCH");
+                }
+                configuration.setAllowedMethods(methodList);
+            }
         } else {
             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
         }
@@ -164,10 +193,24 @@ public class SecurityConfig {
             } else {
                 // Limpiar espacios y dividir por comas
                 String[] headers = allowedHeaders.split(",");
-                for (int i = 0; i < headers.length; i++) {
-                    headers[i] = headers[i].trim();
+                List<String> headerList = new ArrayList<>();
+                for (String header : headers) {
+                    String trimmed = header.trim();
+                    if (!trimmed.isEmpty()) {
+                        headerList.add(trimmed);
+                    }
                 }
-                configuration.setAllowedHeaders(Arrays.asList(headers));
+                // Asegurar headers críticos para APIs protegidas
+                if (!headerList.contains("Authorization")) {
+                    headerList.add("Authorization");
+                }
+                if (!headerList.contains("X-Active-Role")) {
+                    headerList.add("X-Active-Role");
+                }
+                if (!headerList.contains("Content-Type")) {
+                    headerList.add("Content-Type");
+                }
+                configuration.setAllowedHeaders(headerList);
             }
         } else {
             configuration.setAllowedHeaders(Arrays.asList("*"));

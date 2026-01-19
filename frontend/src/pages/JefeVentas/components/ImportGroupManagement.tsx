@@ -43,6 +43,7 @@ const ImportGroupManagement: React.FC = () => {
   const [gruposCompletos, setGruposCompletos] = useState<GrupoImportacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [puedeDefinirPedido, setPuedeDefinirPedido] = useState<Record<number, boolean>>({});
+  const [motivoDefinirPedido, setMotivoDefinirPedido] = useState<Record<number, string>>({});
   const [definiendoPedido, setDefiniendoPedido] = useState<number | null>(null);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<number | null>(null);
   const [mostrarAgregarClientes, setMostrarAgregarClientes] = useState<number | null>(null);
@@ -81,18 +82,23 @@ const ImportGroupManagement: React.FC = () => {
       const puedeDefinirPromises = resumenes.map(async (resumen: GrupoImportacionResumen) => {
         try {
           const resultado = await apiService.puedeDefinirPedido(resumen.grupoId);
-          return { grupoId: resumen.grupoId, puede: resultado.puedeDefinir };
+          return { grupoId: resumen.grupoId, puede: resultado.puedeDefinir, mensaje: resultado.mensaje };
         } catch {
-          return { grupoId: resumen.grupoId, puede: false };
+          return { grupoId: resumen.grupoId, puede: false, mensaje: 'No se pudo verificar el estado del grupo' };
         }
       });
 
       const resultados = await Promise.all(puedeDefinirPromises);
       const puedeDefinirMap: Record<number, boolean> = {};
-      resultados.forEach((r: { grupoId: number; puede: boolean }) => {
+      const motivoMap: Record<number, string> = {};
+      resultados.forEach((r: { grupoId: number; puede: boolean; mensaje?: string }) => {
         puedeDefinirMap[r.grupoId] = r.puede;
+        if (r.mensaje) {
+          motivoMap[r.grupoId] = r.mensaje;
+        }
       });
       setPuedeDefinirPedido(puedeDefinirMap);
+      setMotivoDefinirPedido(motivoMap);
     } catch (error: any) {
       if (error?.message?.includes('404') || error?.message?.includes('Not Found')) {
         setGrupos([]);
@@ -375,19 +381,20 @@ const ImportGroupManagement: React.FC = () => {
                           );
                         })()}
                         
-                        {puedeDefinir && (
-                          <button
-                            onClick={() => handleDefinirPedido(resumen.grupoId)}
-                            disabled={estaDefiniendo}
-                            className={`px-3 py-1 rounded-md text-xs font-medium ${
-                              estaDefiniendo
-                                ? 'bg-gray-400 text-white cursor-not-allowed'
-                                : 'bg-green-600 text-white hover:bg-green-700'
-                            }`}
-                          >
-                            {estaDefiniendo ? 'Definiendo...' : '📋 Definir Pedido'}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => puedeDefinir && handleDefinirPedido(resumen.grupoId)}
+                          disabled={!puedeDefinir || estaDefiniendo}
+                          title={!puedeDefinir ? (motivoDefinirPedido[resumen.grupoId] || 'Existen clientes sin todos los documentos cargados, verifica y vuelve a intentar cuando todos los clientes estén cargados') : 'Definir pedido de importación'}
+                          className={`px-3 py-1 rounded-md text-xs font-medium ${
+                            !puedeDefinir
+                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                              : estaDefiniendo
+                              ? 'bg-gray-400 text-white cursor-not-allowed'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                        >
+                          {estaDefiniendo ? 'Definiendo...' : '📋 Definir Pedido'}
+                        </button>
                         
                         {/* Botón Ver Documento - mostrar si hay documentos generados */}
                         {grupoCompleto?.documentosGenerados && grupoCompleto.documentosGenerados.length > 0 && (

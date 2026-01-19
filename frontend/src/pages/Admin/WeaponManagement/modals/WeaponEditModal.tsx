@@ -14,6 +14,7 @@ interface EditFormData {
   modelo: string; // Cambiado de nombre a modelo
   marca: string; // Nuevo campo
   alimentadora: string; // Nuevo campo
+  color: string;
   codigo: string;
   calibre: string;
   capacidad: number;
@@ -34,6 +35,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
     modelo: '', // Cambiado de nombre a modelo
     marca: '', // Nuevo campo
     alimentadora: '', // Nuevo campo
+    color: '',
     codigo: '',
     calibre: '',
     capacidad: 0,
@@ -52,6 +54,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
         modelo: weapon.modelo || '',
         marca: weapon.marca || '', // Nuevo campo
         alimentadora: weapon.alimentadora || '', // Nuevo campo
+        color: weapon.color || '',
         codigo: weapon.codigo || '',
         calibre: weapon.calibre || '',
         capacidad: weapon.capacidad || 0,
@@ -141,6 +144,9 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       if (editForm.alimentadora) {
         formData.append('alimentadora', editForm.alimentadora); // Nuevo campo
       }
+      if (editForm.color) {
+        formData.append('color', editForm.color);
+      }
       // El código se genera automáticamente en el backend cuando cambia el modelo, pero lo enviamos como referencia
       if (editForm.codigo) {
         formData.append('codigo', editForm.codigo);
@@ -214,6 +220,17 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
                 onChange={(e) => handleInputChange('alimentadora', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: Semiautomática"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+              <input
+                type="text"
+                value={editForm.color}
+                onChange={(e) => handleInputChange('color', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: Negro"
               />
             </div>
             

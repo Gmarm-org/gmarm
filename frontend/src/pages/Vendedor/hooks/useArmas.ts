@@ -6,6 +6,7 @@ export interface Arma {
   id: number;
   codigo: string;
   modelo: string;
+  color?: string;
   calibre?: string;
   capacidad?: number;
   precioReferencia?: number;

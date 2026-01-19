@@ -96,6 +96,7 @@ public class ArmaController {
             @RequestParam("modelo") String modelo,
             @RequestParam(value = "marca", required = false) String marca,
             @RequestParam(value = "alimentadora", required = false) String alimentadora,
+            @RequestParam(value = "color", required = false) String color,
             @RequestParam("calibre") String calibre,
             @RequestParam("capacidad") Integer capacidad,
             @RequestParam("precioReferencia") String precioReferencia,
@@ -114,6 +115,7 @@ public class ArmaController {
                     .modelo(modelo) // Cambiado de nombre a modelo
                     .marca(marca) // Nuevo campo
                     .alimentadora(alimentadora) // Nuevo campo
+                    .color(color)
                     .calibre(calibre)
                     .capacidad(capacidad)
                     .precioReferencia(new java.math.BigDecimal(precioReferencia))
@@ -156,6 +158,7 @@ public class ArmaController {
             @RequestParam("modelo") String modelo,
             @RequestParam(value = "marca", required = false) String marca,
             @RequestParam(value = "alimentadora", required = false) String alimentadora,
+            @RequestParam(value = "color", required = false) String color,
             @RequestParam("calibre") String calibre,
             @RequestParam("capacidad") Integer capacidad,
             @RequestParam("precioReferencia") String precioReferencia,
@@ -178,6 +181,7 @@ public class ArmaController {
                     .modelo(modelo)
                     .marca(marca)
                     .alimentadora(alimentadora)
+                    .color(color)
                     .calibre(calibre)
                     .capacidad(capacidad)
                     .precioReferencia(precioDecimal)

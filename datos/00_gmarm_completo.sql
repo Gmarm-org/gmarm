@@ -275,6 +275,7 @@ CREATE TABLE IF NOT EXISTS arma (
     modelo VARCHAR(100) NOT NULL, -- Cambiado de nombre a modelo
     marca VARCHAR(100), -- Nuevo campo
     alimentadora VARCHAR(50), -- Nuevo campo
+    color VARCHAR(100),
     calibre VARCHAR(20),
     capacidad BIGINT,
     precio_referencia DECIMAL(10,2),
@@ -602,6 +603,7 @@ CREATE TABLE IF NOT EXISTS grupo_importacion_vendedor (
     grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
     vendedor_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
     limite_armas INTEGER DEFAULT 0, -- Límite de armas por vendedor en este grupo
+    activo BOOLEAN DEFAULT true,
     fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(grupo_importacion_id, vendedor_id)
 );
@@ -1571,17 +1573,6 @@ SELECT 'La base de datos está lista para usar con el frontend.' as mensaje;
 -- VENDEDORES
 -- ========================================
 
--- 1. Karolina Pazmi?o
-INSERT INTO usuario (
-    bloqueado, intentos_login, fecha_creacion, telefono_principal, estado, 
-    username, apellidos, email, nombres, direccion, password_hash
-) VALUES (
-    false, 0, NOW(), '0999999999', true, 
-    'karolina.pazmino', 'Pazmiño', 'karritogeova@hotmail.com', 
-    'Karolina', 'Quito, Ecuador', 'admin123'
-) ON CONFLICT (email) DO UPDATE SET 
-    nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
-
 -- 2. Rossy Revelo
 INSERT INTO usuario (
     bloqueado, intentos_login, fecha_creacion, telefono_principal, estado,
@@ -1594,13 +1585,6 @@ INSERT INTO usuario (
     nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos, username = EXCLUDED.username, estado = true;
 
 -- Asignar rol VENDOR a vendedores
-INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
-SELECT u.id, r.id, true, NOW()
-FROM usuario u
-CROSS JOIN rol r
-WHERE u.email = 'karritogeova@hotmail.com' AND r.codigo = 'VENDOR'
-ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
-
 INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
 SELECT u.id, r.id, true, NOW()
 FROM usuario u

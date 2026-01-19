@@ -11,17 +11,15 @@ import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.service.PagoService;
 import com.armasimportacion.service.EmailService;
 import com.armasimportacion.service.ConfiguracionSistemaService;
+import com.armasimportacion.service.FileStorageService;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,6 +45,7 @@ public class PagoController {
     private final DocumentoGeneradoRepository documentoGeneradoRepository;
     private final ClienteRepository clienteRepository;
     private final CuotaPagoRepository cuotaPagoRepository;
+    private final FileStorageService fileStorageService;
 
     @PostMapping
     public ResponseEntity<Pago> crearPago(@RequestBody Pago pago) {
@@ -188,30 +187,48 @@ public class PagoController {
             CuotaPago cuota = cuotaPagoRepository.findById(cuotaId)
                 .orElseThrow(() -> new RuntimeException("Cuota no encontrada"));
             
-            // Buscar el recibo generado para esta cuota
-            List<DocumentoGenerado> recibos = documentoGeneradoRepository.findByClienteId(
-                cuota.getPago().getClienteId()
-            );
+            DocumentoGenerado recibo = null;
+            if (cuota.getNumeroRecibo() != null && !cuota.getNumeroRecibo().trim().isEmpty()) {
+                // Buscar el recibo generado para esta cuota
+                List<DocumentoGenerado> recibos = documentoGeneradoRepository.findByClienteIdAndTipo(
+                    cuota.getPago().getClienteId(),
+                    com.armasimportacion.enums.TipoDocumentoGenerado.RECIBO
+                );
+                
+                recibo = recibos.stream()
+                    .filter(doc -> {
+                        String numeroRecibo = cuota.getNumeroRecibo();
+                        return numeroRecibo != null && doc.getNombreArchivo() != null &&
+                               doc.getNombreArchivo().contains(numeroRecibo);
+                    })
+                    .findFirst()
+                    .orElse(null);
+                
+                if (recibo == null) {
+                    // Fallback: usar el último recibo generado del cliente
+                    recibo = recibos.stream()
+                        .filter(doc -> doc.getNombreArchivo() != null)
+                        .sorted((a, b) -> {
+                            if (a.getFechaGeneracion() == null || b.getFechaGeneracion() == null) {
+                                return 0;
+                            }
+                            return b.getFechaGeneracion().compareTo(a.getFechaGeneracion());
+                        })
+                        .findFirst()
+                        .orElse(null);
+                }
+            }
             
-            DocumentoGenerado recibo = recibos.stream()
-                .filter(doc -> doc.getTipoDocumento() == com.armasimportacion.enums.TipoDocumentoGenerado.RECIBO)
-                .filter(doc -> doc.getNombreArchivo().contains("REC-" + cuotaId) || 
-                              doc.getNombreArchivo().contains("recibo_"))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Recibo no encontrado para esta cuota"));
-
-            // Construir ruta completa
-            String rutaCompleta = "/app/documentacion/" + recibo.getRutaArchivo();
-            if (!rutaCompleta.endsWith(recibo.getNombreArchivo())) {
-                rutaCompleta = rutaCompleta + "/" + recibo.getNombreArchivo();
+            if (recibo == null) {
+                recibo = pagoService.generarRecibo(cuotaId);
+            }
+            
+            if (recibo == null) {
+                throw new RuntimeException("Recibo no encontrado para esta cuota");
             }
 
-            File file = new File(rutaCompleta);
-            if (!file.exists()) {
-                throw new RuntimeException("Archivo de recibo no encontrado en: " + rutaCompleta);
-            }
-
-            Resource resource = new FileSystemResource(file);
+            byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
+            Resource resource = new ByteArrayResource(pdfBytes);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + recibo.getNombreArchivo() + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
@@ -286,11 +303,7 @@ public class PagoController {
             }
 
             // Leer archivo PDF
-            String rutaCompleta = "/app/documentacion/" + recibo.getRutaArchivo();
-            if (!rutaCompleta.endsWith(recibo.getNombreArchivo())) {
-                rutaCompleta = rutaCompleta + "/" + recibo.getNombreArchivo();
-            }
-            byte[] pdfBytes = Files.readAllBytes(Paths.get(rutaCompleta));
+            byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
 
             // Enviar por correo
             emailService.enviarReciboPorCorreo(

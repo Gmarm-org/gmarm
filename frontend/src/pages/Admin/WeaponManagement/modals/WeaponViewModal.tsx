@@ -72,6 +72,10 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
                   <p className="text-gray-900">{weapon.alimentadora || 'Sin alimentadora'}</p>
                 </div>
                 <div>
+                  <label className="font-semibold text-gray-700 text-sm">Color:</label>
+                  <p className="text-gray-900">{weapon.color || 'Sin color'}</p>
+                </div>
+                <div>
                   <label className="font-semibold text-gray-700 text-sm">Calibre:</label>
                   <p className="text-gray-900">{weapon.calibre || 'Sin calibre'}</p>
                 </div>

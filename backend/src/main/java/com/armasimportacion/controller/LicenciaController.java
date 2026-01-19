@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -26,6 +25,7 @@ public class LicenciaController {
 
     private final LicenciaRepository licenciaRepository;
     private final LicenciaMapper licenciaMapper;
+    private final com.armasimportacion.service.LicenciaService licenciaService;
 
     @GetMapping
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
@@ -67,6 +67,13 @@ public class LicenciaController {
                     log.warn("⚠️ Licencia no encontrada con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
+    }
+
+    @GetMapping("/{id}/iniciales")
+    @Operation(summary = "Obtener iniciales del importador", description = "Devuelve las iniciales calculadas desde el nombre de la licencia")
+    public ResponseEntity<java.util.Map<String, String>> getInicialesImportador(@PathVariable Long id) {
+        String iniciales = licenciaService.obtenerInicialesImportador(id);
+        return ResponseEntity.ok(java.util.Map.of("iniciales", iniciales));
     }
 
     @PostMapping

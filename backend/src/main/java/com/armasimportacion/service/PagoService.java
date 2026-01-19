@@ -9,7 +9,6 @@ import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
 import com.armasimportacion.repository.ClienteRepository;
-import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +33,9 @@ public class PagoService {
     private final ClienteRepository clienteRepository;
     private final com.armasimportacion.service.helper.GestionDocumentosServiceHelper gestionDocumentosServiceHelper;
     private final com.armasimportacion.service.EmailService emailService;
+    private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
+    private final LicenciaService licenciaService;
+    private final FileStorageService fileStorageService;
 
     public Pago crearPago(Pago pago) {
         log.info("Creando pago para cliente: {}", pago.getClienteId());
@@ -132,6 +134,9 @@ public class PagoService {
             pago.setMontoPendiente(pago.getMontoPendiente().add(montoAnterior));
         }
         
+        Cliente cliente = clienteRepository.findById(pago.getClienteId())
+            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+
         // Actualizar monto si se proporciona uno nuevo
         BigDecimal montoAPagar = monto != null ? monto : cuota.getMonto();
         BigDecimal montoAnteriorCuota = cuota.getMonto();
@@ -142,7 +147,7 @@ public class PagoService {
         cuota.setFechaPago(LocalDateTime.now());
         cuota.setReferenciaPago(referenciaPago);
         if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().trim().isEmpty()) {
-            cuota.setNumeroRecibo(generarNumeroReciboUnico());
+            cuota.setNumeroRecibo(generarNumeroReciboUnico(cliente));
         }
         if (comprobanteArchivo != null) {
             cuota.setComprobanteArchivo(comprobanteArchivo);
@@ -172,9 +177,6 @@ public class PagoService {
         
         // Generar y enviar recibo automáticamente al cliente
         try {
-            Cliente cliente = clienteRepository.findById(pago.getClienteId())
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-            
             DocumentoGenerado recibo = generarRecibo(cuotaId);
             log.info("✅ Recibo generado automáticamente para cuota ID: {}", cuotaId);
             
@@ -210,12 +212,37 @@ public class PagoService {
         pago.setCuotaActual(cuotasPagadas.intValue() + 1);
     }
 
-    private String generarNumeroReciboUnico() {
+    private String generarNumeroReciboUnico(Cliente cliente) {
         int year = LocalDate.now().getYear();
-        String prefix = "RC-" + year + "-";
+        String inicialesImportador = obtenerInicialesImportador(cliente);
+        String prefix = String.format("RC-%s-%d-", inicialesImportador, year);
         Integer maxSeq = cuotaPagoRepository.findMaxReciboSequence(prefix + "%");
-        int nextSeq = (maxSeq == null) ? 1 : maxSeq + 1;
-        return String.format("RC-%d-%06d", year, nextSeq);
+        int nextSeq = (maxSeq == null) ? 100 : maxSeq + 1;
+        return String.format("RC-%s-%d-%06d", inicialesImportador, year, nextSeq);
+    }
+
+    private String obtenerInicialesImportador(Cliente cliente) {
+        try {
+            List<com.armasimportacion.model.ClienteGrupoImportacion> gruposCliente =
+                clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
+            for (com.armasimportacion.model.ClienteGrupoImportacion cgi : gruposCliente) {
+                if (cgi.getGrupoImportacion() == null) {
+                    continue;
+                }
+                com.armasimportacion.enums.EstadoGrupoImportacion estado = cgi.getGrupoImportacion().getEstado();
+                if (estado != com.armasimportacion.enums.EstadoGrupoImportacion.COMPLETADO &&
+                    estado != com.armasimportacion.enums.EstadoGrupoImportacion.CANCELADO) {
+                    String iniciales = licenciaService.obtenerInicialesImportadorDesdeLicencia(
+                        cgi.getGrupoImportacion().getLicencia());
+                    if (!iniciales.isEmpty()) {
+                        return iniciales;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ No se pudo obtener iniciales desde licencia, usando fallback: {}", e.getMessage());
+        }
+        return licenciaService.obtenerInicialesFallback();
     }
 
     public List<CuotaPago> obtenerCuotasVencidas() {
@@ -344,10 +371,6 @@ public class PagoService {
         List<CuotaPago> todasLasCuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
         
         // Separar cuotas pagadas de pendientes
-        List<CuotaPago> cuotasPagadas = todasLasCuotas.stream()
-            .filter(c -> c.getEstado() == com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
-            .collect(java.util.stream.Collectors.toList());
-        
         List<CuotaPago> cuotasPendientes = todasLasCuotas.stream()
             .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
             .collect(java.util.stream.Collectors.toList());
@@ -358,10 +381,6 @@ public class PagoService {
         }
         
         // Calcular monto ya pagado (suma de todas las cuotas pagadas)
-        BigDecimal montoPagado = cuotasPagadas.stream()
-            .map(CuotaPago::getMonto)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
         // El saldo pendiente ya está actualizado en el pago
         BigDecimal saldoPendiente = pago.getMontoPendiente();
         
@@ -410,18 +429,13 @@ public class PagoService {
             }
             
             // Leer archivo PDF
-            String rutaCompleta = "/app/documentacion/" + recibo.getRutaArchivo();
-            if (!rutaCompleta.endsWith(recibo.getNombreArchivo())) {
-                rutaCompleta = rutaCompleta + "/" + recibo.getNombreArchivo();
-            }
-            
-            byte[] pdfBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(rutaCompleta));
+            byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
             
             // Enviar recibo por correo
             List<String> emails = java.util.Arrays.asList(cliente.getEmail());
             String numeroRecibo = cuota.getNumeroRecibo() != null
                 ? cuota.getNumeroRecibo()
-                : String.format("RC-%d-%06d", java.time.LocalDate.now().getYear(), cuota.getId());
+                : String.format("RC-%s-%d-%06d", obtenerInicialesImportador(cliente), java.time.LocalDate.now().getYear(), cuota.getId());
             String nombreCompleto = cliente.getNombres() + " " + cliente.getApellidos();
             
             emailService.enviarReciboPorCorreo(emails, nombreCompleto, pdfBytes, 
@@ -445,6 +459,10 @@ public class PagoService {
         Pago pago = cuota.getPago();
         Cliente cliente = clienteRepository.findById(pago.getClienteId())
             .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+        if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().trim().isEmpty()) {
+            cuota.setNumeroRecibo(generarNumeroReciboUnico(cliente));
+            cuotaPagoRepository.save(cuota);
+        }
 
         return gestionDocumentosServiceHelper.generarYGuardarRecibo(cliente, pago, cuota);
     }

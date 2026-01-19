@@ -145,6 +145,55 @@ public class LicenciaService {
     }
 
     /**
+     * Obtiene iniciales del importador desde el nombre de la licencia.
+     * Ejemplo: "Juan Gomez" -> "JG"
+     */
+    public String obtenerInicialesImportador(Long licenciaId) {
+        Licencia licencia = obtenerLicencia(licenciaId);
+        return obtenerInicialesImportadorDesdeLicencia(licencia);
+    }
+
+    public String obtenerInicialesImportadorDesdeLicencia(Licencia licencia) {
+        if (licencia == null) {
+            return obtenerInicialesFallback();
+        }
+        String iniciales = obtenerInicialesDesdeNombre(licencia.getNombre());
+        return iniciales.isEmpty() ? obtenerInicialesFallback() : iniciales;
+    }
+
+    public String obtenerInicialesDesdeNombre(String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return "";
+        }
+        String limpio = nombre.replaceAll("[^\\p{L}\\p{N} ]", " ").trim();
+        String[] partes = limpio.split("\\s+");
+        if (partes.length == 0) {
+            return "";
+        }
+        if (partes.length == 1) {
+            String palabra = partes[0];
+            return palabra.length() >= 2
+                ? palabra.substring(0, 2).toUpperCase()
+                : palabra.substring(0, 1).toUpperCase();
+        }
+        String primera = partes[0];
+        String ultima = partes[partes.length - 1];
+        return (primera.substring(0, 1) + ultima.substring(0, 1)).toUpperCase();
+    }
+
+    public String obtenerInicialesFallback() {
+        try {
+            String valor = configuracionSistemaService.getValorConfiguracion("RECIBO_INICIALES_IMPORTADOR");
+            if (valor != null && !valor.trim().isEmpty()) {
+                return valor.trim().toUpperCase();
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ No se pudo obtener RECIBO_INICIALES_IMPORTADOR, usando fallback: {}", e.getMessage());
+        }
+        return "JG";
+    }
+
+    /**
      * Busca licencias disponibles para un tipo de cliente específico
      */
     public List<Licencia> findLicenciasDisponibles(String tipoCliente) {

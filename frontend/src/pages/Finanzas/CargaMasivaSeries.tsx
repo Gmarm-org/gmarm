@@ -5,10 +5,10 @@ import type { GrupoImportacion } from '../../services/api';
 
 interface SerieRow {
   serialNumber: string;
-  codigo: string;
   model: string;
-  caliber: string;
-  observaciones: string;
+  calibre: string;
+  categoria: string;
+  marca: string;
 }
 
 const CargaMasivaSeries: React.FC = () => {
@@ -71,10 +71,10 @@ const CargaMasivaSeries: React.FC = () => {
         // Mapear datos a nuestro formato
         const mappedData: SerieRow[] = jsonData.map((row: any) => ({
           serialNumber: row['Serial number'] || row['serial_number'] || '',
-          codigo: row['CODIGO'] || row['codigo'] || '',
           model: row['Model'] || row['model'] || '',
-          caliber: row['Caliber'] || row['caliber'] || '',
-          observaciones: row['Text2'] || row['text2'] || ''
+          calibre: row['Calibre'] || row['Caliber'] || row['calibre'] || row['caliber'] || '',
+          categoria: row['Tipo'] || row['Categoria'] || row['tipo'] || row['categoria'] || '',
+          marca: row['Marca'] || row['marca'] || ''
         }));
 
         setPreviewData(mappedData);
@@ -169,10 +169,10 @@ const CargaMasivaSeries: React.FC = () => {
         <p className="text-sm text-blue-800 mb-2">El archivo debe tener las siguientes columnas:</p>
         <ul className="text-sm text-blue-800 space-y-1 ml-4">
           <li>• <strong>Serial number</strong>: Número de serie del arma</li>
-          <li>• <strong>CODIGO</strong>: Código del arma en el sistema (ej: CZ-P09-C-NOCTURNE-PLAN-PILOTO)</li>
           <li>• <strong>Model</strong>: Nombre del modelo (ej: CZ P-09 C NOCTURNE)</li>
-          <li>• <strong>Caliber</strong>: Calibre (ej: 9 mm)</li>
-          <li>• <strong>Text2</strong>: Observaciones (ej: 2 alimentadoras)</li>
+          <li>• <strong>Calibre</strong>: Calibre (ej: 9 mm)</li>
+          <li>• <strong>Tipo</strong>: Categoría del arma (ej: Pistola)</li>
+          <li>• <strong>Marca</strong>: Marca del arma (ej: CZ)</li>
         </ul>
       </div>
 
@@ -273,20 +273,20 @@ const CargaMasivaSeries: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Serial Number</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Código</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Model</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Caliber</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Observaciones</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Calibre</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Tipo</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Marca</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {previewData.slice(0, 10).map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-sm font-mono text-blue-600">{row.serialNumber}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-gray-900">{row.codigo}</td>
                     <td className="px-4 py-2 text-sm text-gray-700">{row.model}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">{row.caliber}</td>
-                    <td className="px-4 py-2 text-sm text-gray-600">{row.observaciones}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700">{row.calibre}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700">{row.categoria}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700">{row.marca}</td>
                   </tr>
                 ))}
               </tbody>

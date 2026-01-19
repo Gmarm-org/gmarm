@@ -17,6 +17,7 @@ public class ArmaUpdateDTO {
     private String modelo; // Cambiado de nombre a modelo
     private String marca; // Nuevo campo
     private String alimentadora; // Nuevo campo
+    private String color;
     private String calibre;
     private Integer capacidad;
     private BigDecimal precioReferencia;

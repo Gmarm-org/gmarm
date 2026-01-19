@@ -39,7 +39,7 @@ public interface CuotaPagoRepository extends JpaRepository<CuotaPago, Long> {
     @Query("SELECT c FROM CuotaPago c WHERE c.pago.id = :pagoId AND c.numeroCuota = :numeroCuota")
     CuotaPago findByPagoIdAndNumeroCuota(@Param("pagoId") Long pagoId, @Param("numeroCuota") Integer numeroCuota);
 
-    @Query(value = "SELECT MAX(CAST(SUBSTRING(numero_recibo FROM 9 FOR 6) AS INTEGER)) " +
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(numero_recibo FROM '[0-9]+$') AS INTEGER)) " +
                    "FROM cuota_pago WHERE numero_recibo LIKE :prefix", nativeQuery = true)
     Integer findMaxReciboSequence(@Param("prefix") String prefix);
 }

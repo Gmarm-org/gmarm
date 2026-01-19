@@ -4,8 +4,12 @@ import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.model.ClienteArma;
+import com.armasimportacion.model.Arma;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.model.CuotaPago;
+import com.armasimportacion.model.Licencia;
+import com.armasimportacion.model.ClienteGrupoImportacion;
+import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.UsuarioRepository;
@@ -43,6 +47,7 @@ public class GestionDocumentosServiceHelper {
     private final com.armasimportacion.service.LocalizacionService localizacionService;
     private final com.armasimportacion.service.FileStorageService fileStorageService;
     private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
+    private final com.armasimportacion.service.LicenciaService licenciaService;
 
     /**
      * Genera y guarda los documentos según el tipo de cliente
@@ -682,23 +687,54 @@ public class GestionDocumentosServiceHelper {
         log.info("🔧 Generando PDF de Solicitud de Compra con Flying Saucer para cliente: {}", cliente.getNombres());
         
         try {
-            // Buscar arma asignada al cliente
-            ClienteArma clienteArma = clienteArmaRepository.findByClienteId(cliente.getId())
-                .stream()
-                .findFirst()
-                .orElse(null);
-            
-            if (clienteArma == null) {
+            // Buscar armas asignadas al cliente
+            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            if (armasCliente == null || armasCliente.isEmpty()) {
                 log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new RuntimeException("No se encontró arma asignada al cliente");
             }
+
+            int totalArmas = armasCliente.stream()
+                .mapToInt(arma -> arma.getCantidad() != null ? arma.getCantidad() : 1)
+                .sum();
+            String cantidadArmasTexto = String.format("%02d", totalArmas) + (totalArmas == 1 ? " arma" : " armas");
+            
+            // Preparar detalle de armas para el template (evitar problemas de carga lazy en el render)
+            List<Map<String, Object>> armasDetalle = new java.util.ArrayList<>();
+            for (ClienteArma clienteArma : armasCliente) {
+                Arma arma = clienteArma.getArma();
+                if (arma == null) {
+                    continue;
+                }
+                Map<String, Object> armaDetalle = new java.util.HashMap<>();
+                armaDetalle.put("categoria", arma.getCategoria() != null ? arma.getCategoria().getNombre() : "");
+                armaDetalle.put("marca", arma.getMarca());
+                armaDetalle.put("modelo", arma.getModelo());
+                armaDetalle.put("calibre", arma.getCalibre());
+                armaDetalle.put("alimentadora", arma.getAlimentadora());
+                armaDetalle.put("cantidad", clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1);
+                armasDetalle.add(armaDetalle);
+            }
+            
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaNombre = licencia != null ? licencia.getNombre() : "";
+            String licenciaCiudad = licencia != null ? licencia.getTitulo() : null;
+            if (licenciaCiudad == null || licenciaCiudad.trim().isEmpty()) {
+                licenciaCiudad = cliente.getProvincia() != null ? cliente.getProvincia() : "";
+            }
+            String fechaSolicitud = obtenerFechaActualFormateadaConCiudad(licenciaCiudad);
             
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
             variables.put("cliente", cliente);
             variables.put("pago", pago != null ? pago : null);
-            variables.put("arma", clienteArma.getArma());
             variables.put("numberToTextService", numberToTextService);
+            variables.put("fechaSolicitud", fechaSolicitud);
+            variables.put("licenciaNombre", licenciaNombre);
+            variables.put("licenciaCiudad", licenciaCiudad);
+            variables.put("cantidadArmas", totalArmas);
+            variables.put("cantidadArmasTexto", cantidadArmasTexto);
+            variables.put("armasDetalle", armasDetalle);
             
             // Determinar template según tipo de cliente
             String nombreTemplate;
@@ -842,6 +878,42 @@ public class GestionDocumentosServiceHelper {
         int anio = fecha.getYear();
         
         return String.format("Quito, %d de %s del %d", dia, mes, anio);
+    }
+
+    private String obtenerFechaActualFormateadaConCiudad(String ciudad) {
+        java.time.LocalDate fecha = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
+        String ciudadFinal = ciudad != null && !ciudad.trim().isEmpty() ? ciudad.trim() : "Quito";
+        
+        String[] meses = {
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+        };
+        
+        int dia = fecha.getDayOfMonth();
+        String mes = meses[fecha.getMonthValue() - 1];
+        int anio = fecha.getYear();
+        
+        return String.format("%s, %d de %s del %d", ciudadFinal, dia, mes, anio);
+    }
+
+    private Licencia obtenerLicenciaActiva(Cliente cliente) {
+        try {
+            List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
+            if (gruposCliente == null || gruposCliente.isEmpty()) {
+                return null;
+            }
+            for (ClienteGrupoImportacion cgi : gruposCliente) {
+                EstadoClienteGrupo estado = cgi.getEstado();
+                if (estado != EstadoClienteGrupo.COMPLETADO && estado != EstadoClienteGrupo.CANCELADO) {
+                    if (cgi.getGrupoImportacion() != null && cgi.getGrupoImportacion().getLicencia() != null) {
+                        return cgi.getGrupoImportacion().getLicencia();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ No se pudo obtener licencia activa del cliente {}: {}", cliente.getId(), e.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -1006,7 +1078,10 @@ public class GestionDocumentosServiceHelper {
             
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
-            String numeroReciboFallback = String.format("RC-%d-%06d", java.time.LocalDate.now().getYear(), cuota.getId());
+            int year = java.time.LocalDate.now().getYear();
+            String iniciales = obtenerInicialesImportador(cliente);
+            int fallbackSeq = cuota.getId() != null ? Math.max(cuota.getId().intValue(), 100) : 100;
+            String numeroReciboFallback = String.format("RC-%s-%d-%06d", iniciales, year, fallbackSeq);
             variables.put("numeroRecibo", cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : numeroReciboFallback);
             
             // Fecha de pago
@@ -1088,9 +1163,12 @@ public class GestionDocumentosServiceHelper {
      * Genera el nombre del archivo para el recibo
      */
     private String generarNombreArchivoRecibo(Cliente cliente, CuotaPago cuota) {
+        int year = java.time.LocalDate.now().getYear();
+        String iniciales = obtenerInicialesImportador(cliente);
+        int fallbackSeq = cuota.getId() != null ? Math.max(cuota.getId().intValue(), 100) : 100;
         String numeroRecibo = cuota.getNumeroRecibo() != null
             ? cuota.getNumeroRecibo()
-            : String.format("RC-%d-%06d", java.time.LocalDate.now().getYear(), cuota.getId());
+            : String.format("RC-%s-%d-%06d", iniciales, year, fallbackSeq);
         String fecha = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         return String.format("recibo_%s_%s_%s.pdf", numeroRecibo.replaceAll("[^a-zA-Z0-9]", "_"), 
             cliente.getNumeroIdentificacion(), fecha);
@@ -1135,6 +1213,30 @@ public class GestionDocumentosServiceHelper {
         }
         
         return documento;
+    }
+
+    private String obtenerInicialesImportador(Cliente cliente) {
+        try {
+            List<com.armasimportacion.model.ClienteGrupoImportacion> gruposCliente =
+                clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
+            for (com.armasimportacion.model.ClienteGrupoImportacion cgi : gruposCliente) {
+                if (cgi.getGrupoImportacion() == null) {
+                    continue;
+                }
+                com.armasimportacion.enums.EstadoGrupoImportacion estado = cgi.getGrupoImportacion().getEstado();
+                if (estado != com.armasimportacion.enums.EstadoGrupoImportacion.COMPLETADO &&
+                    estado != com.armasimportacion.enums.EstadoGrupoImportacion.CANCELADO) {
+                    String iniciales = licenciaService.obtenerInicialesImportadorDesdeLicencia(
+                        cgi.getGrupoImportacion().getLicencia());
+                    if (!iniciales.isEmpty()) {
+                        return iniciales;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ No se pudo obtener iniciales desde licencia, usando fallback: {}", e.getMessage());
+        }
+        return licenciaService.obtenerInicialesFallback();
     }
 
     /**

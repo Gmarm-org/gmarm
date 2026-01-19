@@ -113,6 +113,7 @@ public class ArmaService {
         arma.setModelo(armaDetails.getModelo()); // Cambiado de nombre a modelo
         arma.setMarca(armaDetails.getMarca()); // Nuevo campo
         arma.setAlimentadora(armaDetails.getAlimentadora()); // Nuevo campo
+        arma.setColor(armaDetails.getColor());
         arma.setCalibre(armaDetails.getCalibre());
         arma.setCapacidad(armaDetails.getCapacidad());
         arma.setPrecioReferencia(armaDetails.getPrecioReferencia());
@@ -165,6 +166,9 @@ public class ArmaService {
         }
         if (updateDTO.getAlimentadora() != null) {
             arma.setAlimentadora(updateDTO.getAlimentadora()); // Nuevo campo
+        }
+        if (updateDTO.getColor() != null) {
+            arma.setColor(updateDTO.getColor());
         }
         if (updateDTO.getCalibre() != null) {
             arma.setCalibre(updateDTO.getCalibre());
@@ -236,6 +240,7 @@ public class ArmaService {
         arma.setModelo(createDTO.getModelo()); // Cambiado de nombre a modelo
         arma.setMarca(createDTO.getMarca()); // Nuevo campo
         arma.setAlimentadora(createDTO.getAlimentadora()); // Nuevo campo
+        arma.setColor(createDTO.getColor());
         arma.setCalibre(createDTO.getCalibre());
         arma.setCapacidad(createDTO.getCapacidad());
         arma.setPrecioReferencia(createDTO.getPrecioReferencia());

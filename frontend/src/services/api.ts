@@ -669,7 +669,7 @@ class ApiService {
     limitesCategoria?: Array<{ categoriaArmaId: number; limiteMaximo: number }>;
   }): Promise<{ id: number; nombre: string; codigo: string; tra?: string; tipoGrupo?: string; message: string }> {
     return this.request<{ id: number; nombre: string; codigo: string; tra?: string; tipoGrupo?: string; message: string }>(`/api/grupos-importacion/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(dto),
     });
   }
@@ -1442,11 +1442,14 @@ class ApiService {
   }
 
   // Cargar contrato firmado
-  async cargarContratoFirmado(clienteId: number, archivo: File): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string }> {
+  async cargarContratoFirmado(clienteId: number, archivo: File, documentoId?: number): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; tipoDocumento?: string }> {
     const formData = new FormData();
     formData.append('archivo', archivo);
+    if (documentoId) {
+      formData.append('documentoId', documentoId.toString());
+    }
     
-    return this.request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string }>(`/api/clientes/${clienteId}/cargar-contrato-firmado`, {
+    return this.request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; tipoDocumento?: string }>(`/api/clientes/${clienteId}/cargar-contrato-firmado`, {
       method: 'POST',
       body: formData,
       headers: {} // No establecer Content-Type, el navegador lo hará automáticamente con FormData

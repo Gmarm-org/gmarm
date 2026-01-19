@@ -263,11 +263,12 @@ const JefeVentas: React.FC = () => {
           const armasResponse = await apiService.getArmasCliente(client.id);
           if (armasResponse && armasResponse.length > 0) {
             const arma = armasResponse[0]; // Tomar la primera arma
+            const armaModelo = arma.armaModelo || arma.armaNombre || 'N/A';
             weaponAssignments[client.id] = {
               weapon: {
                 id: arma.armaId,
-                nombre: arma.armaModelo || 'N/A',
-                modelo: arma.armaModelo || 'N/A',
+                nombre: armaModelo,
+                modelo: armaModelo,
                 marca: arma.armaMarca, // Nuevo campo
                 alimentadora: arma.armaAlimentadora, // Nuevo campo
                 calibre: arma.armaCalibre || 'N/A', // Corregido: usar armaCalibre, no armaModelo
@@ -703,19 +704,20 @@ const JefeVentas: React.FC = () => {
       const response = await apiService.generarContrato(Number(clienteSeleccionado.id));
       
       if (response.success) {
-        alert('✅ Contrato generado exitosamente');
+        alert('✅ Documento(s) generado(s) exitosamente');
         // Recargar contratos del cliente
         const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
         setContratosCliente(contratos);
         // Cerrar modal
         setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
       } else {
-        alert('Error al generar contrato: ' + (response.message || 'Error desconocido'));
+        alert('Error al generar documento: ' + (response.message || 'Error desconocido'));
         setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error: any) {
-      console.error('Error generando contrato:', error);
-      alert('Error al generar contrato: ' + (error.message || 'Error desconocido'));
+      console.error('Error generando documento:', error);
+      const errorMessage = error?.responseData?.error || error?.message || 'Error desconocido';
+      alert('Error al generar documento: ' + errorMessage);
       setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));
     }
   };
@@ -1540,7 +1542,7 @@ const JefeVentas: React.FC = () => {
                               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                                 <div>
                                   <p className="text-sm text-gray-600">Arma</p>
-                                  <p className="font-semibold text-blue-600">{arma.armaModelo || 'N/A'}</p>
+                                  <p className="font-semibold text-blue-600">{arma.armaModelo || arma.armaNombre || 'N/A'}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-600">Número de Serie</p>
@@ -1660,8 +1662,8 @@ const JefeVentas: React.FC = () => {
                               
                               setCargandoFirmado(true);
                               try {
-                                await apiService.cargarContratoFirmado(Number(clienteSeleccionado.id), archivoFirmado);
-                                alert('✅ Contrato firmado cargado exitosamente');
+                                await apiService.cargarContratoFirmado(Number(clienteSeleccionado.id), archivoFirmado, contrato.id);
+                                alert('✅ Documento firmado cargado exitosamente');
                                 // Recargar contratos
                                 const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
                                 setContratosCliente(contratos);
@@ -1669,7 +1671,8 @@ const JefeVentas: React.FC = () => {
                                 setArchivoFirmado(null);
                               } catch (error: any) {
                                 console.error('Error cargando contrato firmado:', error);
-                                alert('Error al cargar contrato firmado: ' + (error.message || 'Error desconocido'));
+                                const errorMessage = error?.responseData?.error || error?.message || 'Error desconocido';
+                                alert('Error al cargar documento firmado: ' + errorMessage);
                               } finally {
                                 setCargandoFirmado(false);
                               }
@@ -1726,7 +1729,7 @@ const JefeVentas: React.FC = () => {
                                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                           </svg>
-                                          Cargar Firmado
+                                          Cargar Documento Firmado
                                         </button>
                                       )}
                                     </div>
@@ -1737,7 +1740,7 @@ const JefeVentas: React.FC = () => {
                                 {mostrarCargarFirmado === contrato.id && (
                                   <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                      Seleccionar Contrato Firmado (PDF)
+                                      Seleccionar Documento Firmado (PDF)
                                     </label>
                                     <input
                                       type="file"
@@ -1843,10 +1846,27 @@ const JefeVentas: React.FC = () => {
                     const codigo = role.rol?.codigo || (role as any).codigo;
                     return codigo === 'SALES_CHIEF';
                   }) && (() => {
+                    const esClienteFantasma = clienteSeleccionado?.estado === 'PENDIENTE_ASIGNACION_CLIENTE';
+                    const tieneArmasAsignadas = armasCliente.length > 0;
+                    if (esClienteFantasma || !tieneArmasAsignadas) {
+                      return null;
+                    }
+
                     // Determinar si es civil o uniformado
                     const esCivil = clienteSeleccionado?.tipoClienteEsCivil ?? false;
                     const esUniformado = (clienteSeleccionado?.tipoClienteEsMilitar ?? false) || (clienteSeleccionado?.tipoClienteEsPolicia ?? false);
-                    const textoBoton = esCivil ? "Generar Solicitud de Compra" : (esUniformado ? "Generar Documentos" : "Generar Contrato");
+                    const solicitudFirmada = contratosCliente.some(doc => doc.tipoDocumento === 'SOLICITUD_COMPRA' && doc.estado === 'FIRMADO');
+                    const contratoFirmado = contratosCliente.some(doc => doc.tipoDocumento === 'CONTRATO' && doc.estado === 'FIRMADO');
+                    const cotizacionFirmada = contratosCliente.some(doc => doc.tipoDocumento === 'COTIZACION' && doc.estado === 'FIRMADO');
+
+                    if (esCivil && solicitudFirmada) {
+                      return null;
+                    }
+                    if (esUniformado && solicitudFirmada && contratoFirmado && cotizacionFirmada) {
+                      return null;
+                    }
+
+                    const textoBoton = esCivil ? "Generar Solicitud de Compra" : "Generar Documentos";
                     
                     return (
                       <button
@@ -1893,11 +1913,7 @@ const JefeVentas: React.FC = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <h2 className="text-2xl font-bold text-gray-800">
-                    {modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil
-                      ? "Generar Solicitud de Compra"
-                      : (modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsMilitar || modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsPolicia)
-                        ? "Generar Documentos"
-                        : "Generar Contrato"}
+                    Generar Documento
                   </h2>
                   <button
                     onClick={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
@@ -1912,10 +1928,25 @@ const JefeVentas: React.FC = () => {
                 {modalGenerarContrato.isLoading ? (
                   <div className="text-center py-12">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-                    <p className="mt-4 text-gray-600">Cargando datos del contrato...</p>
+                    {(() => {
+                      const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
+                        const textoAccion = esCivil ? "solicitud de compra" : "documentos";
+                      return <p className="mt-4 text-gray-600">Cargando datos para generar {textoAccion}...</p>;
+                    })()}
                   </div>
                 ) : modalGenerarContrato.datosContrato ? (
                   <>
+                    {(() => {
+                      const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
+                      const textoAccion = esCivil ? "la solicitud de compra" : "los documentos";
+                      return (
+                        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            ✅ Confirma estos datos antes de generar {textoAccion}.
+                          </p>
+                        </div>
+                      );
+                    })()}
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4">Datos del Cliente</h3>
                       <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1974,7 +2005,7 @@ const JefeVentas: React.FC = () => {
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           {modalGenerarContrato.datosContrato.armas.map((arma: any, index: number) => (
                             <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                              <p className="font-medium">{arma.modelo || 'N/A'}</p>
+                              <p className="font-medium">{arma.modelo || arma.nombre || arma.armaModelo || arma.armaNombre || 'N/A'}</p>
                               <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                                 <div>
                                   <span className="text-gray-600">Cantidad:</span> {arma.cantidad || 1}
@@ -2004,8 +2035,7 @@ const JefeVentas: React.FC = () => {
                         
                         // Determinar texto del botón según tipo de cliente
                         const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
-                        const esUniformado = (modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsMilitar ?? false) || (modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsPolicia ?? false);
-                        const textoBoton = esCivil ? "Generar Solicitud de Compra" : (esUniformado ? "Generar Documentos" : "Generar Contrato");
+                        const textoBoton = esCivil ? "Generar Solicitud de Compra" : "Generar Documentos";
                         
                         // Log directo en el render para debug
                         console.log('🔴 RENDER BOTÓN - Estado actual:', {
@@ -2063,9 +2093,15 @@ const JefeVentas: React.FC = () => {
                         )}
                         {!(modalGenerarContrato.datosContrato?.documentosCompletos === true) && (
                           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-800">
-                              ⚠️ El cliente no tiene todos sus documentos obligatorios cargados. Debe completar todos los documentos antes de generar el contrato.
-                            </p>
+                            {(() => {
+                              const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
+                              const textoAccion = esCivil ? "la solicitud de compra" : "los documentos";
+                              return (
+                                <p className="text-sm text-red-800">
+                                  ⚠️ El cliente no tiene todos sus documentos obligatorios cargados. Debe completar todos los documentos antes de generar {textoAccion}.
+                                </p>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -2073,7 +2109,7 @@ const JefeVentas: React.FC = () => {
                   </>
                 ) : (
                   <div className="text-center py-12">
-                    <p className="text-gray-600">No se pudieron cargar los datos del contrato.</p>
+                    <p className="text-gray-600">No se pudieron cargar los datos para la generación.</p>
                   </div>
                 )}
               </div>
@@ -2141,7 +2177,7 @@ const JefeVentas: React.FC = () => {
                         <tr key={arma.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm">
                             <div>
-                              <div className="font-medium">{arma.armaModelo || 'N/A'}</div>
+                              <div className="font-medium">{arma.armaModelo || arma.armaNombre || 'N/A'}</div>
                               {arma.armaCalibre && (
                                 <div className="text-xs text-gray-500">Calibre: {arma.armaCalibre}</div>
                               )}
@@ -2254,7 +2290,7 @@ const JefeVentas: React.FC = () => {
               
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Arma Actual</p>
-                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaModelo || 'N/A'}</p>
+                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaModelo || modalEditarArma.clienteArma.armaNombre || 'N/A'}</p>
                 <p className="text-sm text-gray-600 mt-2">Precio Actual</p>
                 <p className="font-medium">${modalEditarArma.clienteArma.precioUnitario?.toFixed(2) || '0.00'}</p>
               </div>
@@ -2401,7 +2437,7 @@ const JefeVentas: React.FC = () => {
               
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold text-gray-800 mb-2">Información del Arma</h3>
-                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaModelo || 'N/A'}</p>
+                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaModelo || modalClienteReasignado.arma.armaNombre || 'N/A'}</p>
                 {modalClienteReasignado.arma.armaCalibre && (
                   <p className="text-sm text-gray-600"><strong>Calibre:</strong> {modalClienteReasignado.arma.armaCalibre}</p>
                 )}

@@ -88,6 +88,7 @@ export interface Weapon {
   id: string;
   modelo: string;
   codigo: string;
+  color?: string;
   calibre: string;
   categoriaNombre: string;
   precioReferencia: number;

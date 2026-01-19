@@ -12,6 +12,7 @@ interface CreateFormData {
   modelo: string; // Cambiado de nombre a modelo
   marca: string; // Nuevo campo
   alimentadora: string; // Nuevo campo
+  color: string;
   calibre: string;
   capacidad: number;
   precioReferencia: number;
@@ -31,6 +32,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
     modelo: '', // Cambiado de nombre a modelo
     marca: '', // Nuevo campo
     alimentadora: '', // Nuevo campo
+    color: '',
     calibre: '',
     capacidad: 0,
     precioReferencia: 0,
@@ -129,6 +131,9 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       if (createForm.alimentadora) {
         formData.append('alimentadora', createForm.alimentadora); // Nuevo campo
       }
+      if (createForm.color) {
+        formData.append('color', createForm.color);
+      }
       formData.append('calibre', createForm.calibre);
       formData.append('capacidad', createForm.capacidad.toString());
       formData.append('precioReferencia', createForm.precioReferencia.toString());
@@ -162,6 +167,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
         modelo: '', // Cambiado de nombre a modelo
         marca: '', // Nuevo campo
         alimentadora: '', // Nuevo campo
+        color: '',
         calibre: '',
         capacidad: 0,
         precioReferencia: 0,
@@ -186,6 +192,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       modelo: '', // Cambiado de nombre a modelo
       marca: '', // Nuevo campo
       alimentadora: '', // Nuevo campo
+      color: '',
       calibre: '',
       capacidad: 0,
       precioReferencia: 0,
@@ -245,6 +252,17 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
                 onChange={(e) => handleInputChange('alimentadora', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Ej: Semiautomática"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+              <input
+                type="text"
+                value={createForm.color}
+                onChange={(e) => handleInputChange('color', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: Negro"
               />
             </div>
             

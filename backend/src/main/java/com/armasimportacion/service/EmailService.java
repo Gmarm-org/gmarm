@@ -2,6 +2,7 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.DocumentoCliente;
+import com.armasimportacion.model.Licencia;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.RespuestaCliente;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,24 @@ public class EmailService {
 
     @Value("${app.email.from-name:GMARM}")
     private String fromName;
+
+    public static class DocumentoAdjunto {
+        private final String nombreArchivo;
+        private final byte[] contenido;
+
+        public DocumentoAdjunto(String nombreArchivo, byte[] contenido) {
+            this.nombreArchivo = nombreArchivo;
+            this.contenido = contenido;
+        }
+
+        public String getNombreArchivo() {
+            return nombreArchivo;
+        }
+
+        public byte[] getContenido() {
+            return contenido;
+        }
+    }
 
     /**
      * Obtiene el email del remitente desde el JavaMailSender configurado
@@ -90,10 +109,6 @@ public class EmailService {
             context.setVariable("telefonoSecundario", cliente.getTelefonoSecundario() != null ? cliente.getTelefonoSecundario() : "No especificado");
             context.setVariable("email", cliente.getEmail() != null ? cliente.getEmail() : "No especificado");
             context.setVariable("verificationUrl", verificationUrl);
-            String incorrectUrl = verificationUrl.contains("?")
-                ? verificationUrl + "&action=incorrect"
-                : verificationUrl + "?action=incorrect";
-            context.setVariable("incorrectUrl", incorrectUrl);
             context.setVariable("expirationHours", 48);
             context.setVariable("noTieneCuentaSicoar", noTieneCuentaSicoar);
 
@@ -262,6 +277,57 @@ public class EmailService {
         } catch (Exception e) {
             log.error("❌ Error inesperado enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar confirmación a vendedor: " + e.getMessage(), e);
+        }
+    }
+
+    public void enviarDocumentosGenerados(String email, String nombreCliente, String nombreVendedor, Licencia licencia,
+                                          List<DocumentoAdjunto> adjuntos) {
+        if (email == null || email.trim().isEmpty()) {
+            log.warn("⚠️ Email vacío, omitiendo envío de documentos generados");
+            return;
+        }
+        log.info("📧 Enviando documentos generados a: {}", email);
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(getFromEmail(), fromName);
+            helper.setTo(email.trim());
+            helper.setSubject("Documentos generados para adquisición de arma - GMARM");
+
+            Context context = new Context();
+            context.setVariable("nombreCliente", nombreCliente);
+            context.setVariable("nombreVendedor", nombreVendedor);
+            context.setVariable("licenciaNombre", licencia != null ? licencia.getNombre() : "N/A");
+            context.setVariable("licenciaBanco", licencia != null ? licencia.getNombreBanco() : "N/A");
+            context.setVariable("licenciaTipoCuenta", licencia != null ? licencia.getTipoCuenta() : "N/A");
+            context.setVariable("licenciaCuenta", licencia != null ? licencia.getCuentaBancaria() : "N/A");
+            context.setVariable("licenciaCedulaCuenta", licencia != null ? licencia.getCedulaCuenta() : "N/A");
+            context.setVariable("licenciaRuc", licencia != null ? licencia.getRuc() : "N/A");
+            context.setVariable("licenciaEmail", licencia != null ? licencia.getEmail() : "N/A");
+            context.setVariable("licenciaTelefono", licencia != null ? licencia.getTelefono() : "N/A");
+
+            String htmlContent = templateEngine.process("email/documentos-generados", context);
+            helper.setText(htmlContent, true);
+
+            if (adjuntos != null) {
+                for (DocumentoAdjunto adjunto : adjuntos) {
+                    if (adjunto == null || adjunto.getContenido() == null || adjunto.getNombreArchivo() == null) {
+                        continue;
+                    }
+                    helper.addAttachment(adjunto.getNombreArchivo(), () -> new java.io.ByteArrayInputStream(adjunto.getContenido()));
+                }
+            }
+
+            mailSender.send(message);
+            log.info("✅ Documentos generados enviados exitosamente a: {}", email);
+        } catch (MessagingException e) {
+            log.error("❌ Error enviando documentos generados a {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Error al enviar documentos generados: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("❌ Error inesperado enviando documentos generados a {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Error inesperado al enviar documentos generados: " + e.getMessage(), e);
         }
     }
 

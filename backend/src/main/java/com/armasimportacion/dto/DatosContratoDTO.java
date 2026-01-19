@@ -33,6 +33,9 @@ public class DatosContratoDTO {
         private String provincia;
         private String canton;
         private Boolean emailVerificado;
+        private Boolean tipoClienteEsCivil;
+        private Boolean tipoClienteEsMilitar;
+        private Boolean tipoClienteEsPolicia;
     }
     
     @Data

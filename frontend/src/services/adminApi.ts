@@ -10,6 +10,7 @@ export interface Weapon {
   modelo: string; // Cambiado de nombre a modelo
   marca?: string; // Nuevo campo
   alimentadora?: string; // Nuevo campo
+  color?: string;
   calibre: string;
   capacidad: number;
   precioReferencia: number;

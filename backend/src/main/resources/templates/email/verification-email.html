@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Verifica tu correo electrónico - GMARM</title>
     <style>
         body {
@@ -58,21 +58,6 @@
         }
         .verify-button:hover {
             background-color: #4338CA;
-        }
-        .incorrect-button {
-            display: inline-block;
-            padding: 15px 40px;
-            background-color: #DC2626;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin: 6px 8px;
-        }
-        .incorrect-button:hover {
-            background-color: #B91C1C;
         }
         .info-box {
             background-color: #F3F4F6;
@@ -164,7 +149,7 @@
             </div>
 
             <p style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px; color: #92400E;">
-                <strong>⚠️ IMPORTANTE:</strong> Si alguno de estos datos es <strong>incorrecto</strong>, por favor haz clic en el botón "Datos Incorrectos" en la página de verificación y comunícate con el vendedor o la persona que gestionó tu compra.
+                <strong>⚠️ IMPORTANTE:</strong> Si alguno de estos datos es <strong>incorrecto</strong>, ingresa con el botón de abajo y selecciona la opción "Datos Incorrectos" para comunicarte con el vendedor o la persona que gestionó tu compra.
             </p>
 
             <!-- Advertencia sobre cuenta en Sicoar (solo si respondió NO) -->
@@ -189,18 +174,16 @@
                 </div>
             </div>
 
-            <p>Selecciona una de las siguientes opciones según corresponda:</p>
+            <p>Haz clic en el botón para revisar, validar o corregir tus datos personales:</p>
 
             <div class="button-container">
-                <a th:href="${verificationUrl}" class="verify-button">✅ Confirmar Datos Correctos</a>
-                <a th:href="${incorrectUrl}" class="incorrect-button">❌ Datos Incorrectos</a>
+                <a th:href="${verificationUrl}" class="verify-button" style="color: #ffffff; text-decoration: none;">✅ Validar o corregir datos personales</a>
             </div>
 
             <div class="info-box">
-                <p><strong>¿Los botones no funcionan?</strong></p>
-                <p>Copia y pega el enlace que corresponda en tu navegador:</p>
+                <p><strong>¿El botón no funciona?</strong></p>
+                <p>Copia y pega el siguiente enlace en tu navegador:</p>
                 <p style="word-break: break-all; color: #4F46E5; font-size: 12px;" th:text="${verificationUrl}"></p>
-                <p style="word-break: break-all; color: #DC2626; font-size: 12px;" th:text="${incorrectUrl}"></p>
             </div>
 
             <div class="warning">

@@ -1,6 +1,5 @@
 package com.armasimportacion.service;
 
-import com.armasimportacion.enums.EstadoUsuario;
 import com.armasimportacion.model.Rol;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.UsuarioRepository;
@@ -87,13 +86,22 @@ public class UsuarioService {
         usuario.setTelefonoSecundario(usuarioUpdate.getTelefonoSecundario());
         usuario.setDireccion(usuarioUpdate.getDireccion());
         usuario.setFoto(usuarioUpdate.getFoto());
+        if (usuarioUpdate.getEstado() != null) {
+            usuario.setEstado(usuarioUpdate.getEstado());
+        }
+        if (usuarioUpdate.getPasswordHash() != null && !usuarioUpdate.getPasswordHash().trim().isEmpty()) {
+            usuario.setPasswordHash(usuarioUpdate.getPasswordHash());
+        }
 
         return usuarioRepository.save(usuario);
     }
 
     public void delete(Long id) {
         Usuario usuario = findById(id);
-        usuarioRepository.delete(usuario);
+        usuario.setEstado(false);
+        usuario.setBloqueado(false);
+        usuario.setIntentosLogin(0);
+        usuarioRepository.save(usuario);
     }
 
     // ===== GESTIÓN DE ROLES =====

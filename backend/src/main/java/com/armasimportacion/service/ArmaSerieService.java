@@ -395,6 +395,7 @@ public class ArmaSerieService {
         int successCount = 0;
         List<String> errors = new ArrayList<>();
         
+        List<Arma> armasCatalogo = armaRepository.findAllActiveWithCategoria();
         for (int i = 0; i < seriesData.size(); i++) {
             Map<String, String> row = seriesData.get(i);
             int rowNum = i + 1;
@@ -402,16 +403,15 @@ public class ArmaSerieService {
             try {
                 String serialNumber = row.get("serialNumber");
                 String codigo = row.get("codigo");
+                String modelo = firstNonBlank(row.get("model"), row.get("modelo"));
+                String calibre = firstNonBlank(row.get("caliber"), row.get("calibre"));
+                String categoria = firstNonBlank(row.get("tipo"), row.get("categoria"));
+                String marca = row.get("marca");
                 String observaciones = row.get("observaciones");
                 
                 // Validar datos requeridos
                 if (serialNumber == null || serialNumber.trim().isEmpty()) {
                     errors.add("Fila " + rowNum + ": Número de serie vacío");
-                    continue;
-                }
-                
-                if (codigo == null || codigo.trim().isEmpty()) {
-                    errors.add("Fila " + rowNum + ": Código de arma vacío");
                     continue;
                 }
                 
@@ -421,12 +421,21 @@ public class ArmaSerieService {
                     continue;
                 }
                 
-                // Buscar el arma por código
-                Arma arma = armaRepository.findByCodigo(codigo)
-                        .orElse(null);
+                // Buscar el arma por código (si viene), o por características del Excel
+                Arma arma = null;
+                if (codigo != null && !codigo.trim().isEmpty()) {
+                    arma = armaRepository.findByCodigo(codigo.trim()).orElse(null);
+                }
+                if (arma == null) {
+                    if (isBlank(modelo) || isBlank(calibre) || isBlank(categoria) || isBlank(marca)) {
+                        errors.add("Fila " + rowNum + ": Modelo, Calibre, Categoria y Marca son obligatorios");
+                        continue;
+                    }
+                    arma = buscarArmaPorCaracteristicas(armasCatalogo, modelo, calibre, categoria, marca);
+                }
                 
                 if (arma == null) {
-                    errors.add("Fila " + rowNum + ": Arma con código " + codigo + " no encontrada");
+                    errors.add("Fila " + rowNum + ": No se encontró arma que coincida con Modelo/Calibre/Categoria/Marca");
                     continue;
                 }
                 
@@ -460,6 +469,53 @@ public class ArmaSerieService {
         result.put("total", seriesData.size());
         
         return result;
+    }
+
+    private Arma buscarArmaPorCaracteristicas(List<Arma> armasCatalogo, String modelo, String calibre, String categoria, String marca) {
+        String modeloNorm = normalizeText(modelo);
+        String calibreNorm = normalizeCompact(calibre);
+        String categoriaNorm = normalizeText(categoria);
+        String marcaNorm = normalizeText(marca);
+        
+        List<Arma> coincidencias = armasCatalogo.stream()
+            .filter(arma -> normalizeText(arma.getModelo()).equals(modeloNorm))
+            .filter(arma -> normalizeCompact(arma.getCalibre()).equals(calibreNorm))
+            .filter(arma -> normalizeText(arma.getMarca()).equals(marcaNorm))
+            .filter(arma -> arma.getCategoria() != null && normalizeText(arma.getCategoria().getNombre()).equals(categoriaNorm))
+            .collect(Collectors.toList());
+        
+        if (coincidencias.size() == 1) {
+            return coincidencias.get(0);
+        }
+        if (coincidencias.size() > 1) {
+            log.warn("⚠️ Múltiples armas coinciden con Modelo/Calibre/Categoria/Marca: {}", modelo);
+        }
+        return null;
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replaceAll("\\s+", " ").toLowerCase();
+    }
+
+    private String normalizeCompact(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replaceAll("\\s+", "").toLowerCase();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (!isBlank(first)) {
+            return first;
+        }
+        return second;
     }
 }
 

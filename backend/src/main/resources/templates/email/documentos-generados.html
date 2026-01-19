@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Documentos Generados - GMARM</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #111827;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 720px;
+            margin: 0 auto;
+            border: 1px solid #e5e7eb;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0 0 16px 0;
+            color: #111827;
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 12px 0;
+        }
+        .bank-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .label {
+            font-weight: bold;
+            color: #111827;
+        }
+        .footer {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Documentos generados para adquisición de arma</h1>
+
+        <p>Estimado/a <strong th:text="${nombreCliente}">Cliente</strong>,</p>
+
+        <p>
+            El/los documentos para la adquisición del arma se han generado.
+            Por favor, revíselos y envíelos firmados.
+        </p>
+
+        <p>
+            Cualquier duda, por favor comuníquese con el vendedor correspondiente:
+            <strong th:text="${nombreVendedor}">Vendedor</strong>.
+        </p>
+
+        <p class="label">Los pagos se deben realizar a esta cuenta:</p>
+        <div class="bank-box">
+            <p><span class="label">Importador:</span> <span th:text="${licenciaNombre}">N/A</span></p>
+            <p><span class="label">Banco:</span> <span th:text="${licenciaBanco}">N/A</span></p>
+            <p><span class="label">Tipo de cuenta:</span> <span th:text="${licenciaTipoCuenta}">N/A</span></p>
+            <p><span class="label">Número de cuenta:</span> <span th:text="${licenciaCuenta}">N/A</span></p>
+            <p><span class="label">Cédula/RUC de cuenta:</span> <span th:text="${licenciaCedulaCuenta}">N/A</span></p>
+            <p><span class="label">RUC:</span> <span th:text="${licenciaRuc}">N/A</span></p>
+            <p><span class="label">Email:</span> <span th:text="${licenciaEmail}">N/A</span></p>
+            <p><span class="label">Teléfono:</span> <span th:text="${licenciaTelefono}">N/A</span></p>
+        </div>
+
+        <p class="footer">
+            Este es un correo automático. Si no reconoce esta solicitud, por favor comuníquese con GMARM.
+        </p>
+    </div>
+</body>
+</html>

@@ -716,6 +716,30 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Estado para controlar el proceso de envío
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  const resolveDocumentoId = (key: string, file: File) => {
+    const parsedId = parseInt(key);
+    if (!Number.isNaN(parsedId)) {
+      const docById = requiredDocuments.find(doc => doc.id.toString() === key);
+      return { tipoDocumentoId: parsedId, documentNombre: docById?.nombre || key };
+    }
+
+    const documentoEncontrado = requiredDocuments.find(doc => doc.nombre === key || doc.id.toString() === key);
+    if (documentoEncontrado) {
+      return { tipoDocumentoId: documentoEncontrado.id, documentNombre: documentoEncontrado.nombre };
+    }
+
+    const numericEntry = Object.entries(uploadedDocuments).find(([k, v]) => {
+      const numericId = parseInt(k);
+      return !Number.isNaN(numericId) && v === file;
+    });
+
+    if (numericEntry) {
+      return { tipoDocumentoId: parseInt(numericEntry[0]), documentNombre: key };
+    }
+
+    return { tipoDocumentoId: null, documentNombre: key };
+  };
+
   // Función para manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -895,32 +919,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
           const documentosSubidos = new Set<string>();
           
           for (const [key, file] of Object.entries(uploadedDocuments)) {
-            // Obtener el ID real del documento
-            // La clave puede ser el ID (string numérico) o el nombre del documento
-            let tipoDocumentoId: number | null = null;
-            let documentNombre: string = key;
-            
-            // Intentar parsear como ID numérico
-            const parsedId = parseInt(key);
-            if (!isNaN(parsedId)) {
-              tipoDocumentoId = parsedId;
-            } else {
-              // Si no es un ID, buscar el documento por nombre en requiredDocuments
-              const documentoEncontrado = requiredDocuments.find(doc => doc.nombre === key || doc.id.toString() === key);
-              if (documentoEncontrado) {
-                tipoDocumentoId = documentoEncontrado.id;
-                documentNombre = documentoEncontrado.nombre;
-              } else {
-                console.warn(`⚠️ No se encontró el ID del documento: ${key}`);
-                documentErrors.push(`Documento ${key}`);
-                continue;
-              }
-            }
+            // Obtener el ID real del documento (la clave puede ser ID o nombre)
+            const { tipoDocumentoId, documentNombre } = resolveDocumentoId(key, file);
             
             // Validar que tenemos un ID válido
             if (!tipoDocumentoId) {
               console.warn(`⚠️ No se pudo determinar el ID del documento: ${key}`);
-              documentErrors.push(`Documento ${documentNombre}`);
+              if (requiredDocuments.length > 0) {
+                documentErrors.push(`Documento ${documentNombre}`);
+              }
               continue;
             }
             
@@ -1170,29 +1177,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
             const documentosSubidos = new Set<string>();
             
             for (const [key, file] of Object.entries(uploadedDocuments)) {
-              // Obtener el ID real del documento
-              let tipoDocumentoId: number | null = null;
-              let documentNombre: string = key;
-              
-              const parsedId = parseInt(key);
-              if (!isNaN(parsedId)) {
-                tipoDocumentoId = parsedId;
-              } else {
-                const documentoEncontrado = requiredDocuments.find(doc => doc.nombre === key || doc.id.toString() === key);
-                if (documentoEncontrado) {
-                  tipoDocumentoId = documentoEncontrado.id;
-                  documentNombre = documentoEncontrado.nombre;
-                } else {
-                  console.warn(`⚠️ No se encontró el ID del documento: ${key}`);
-                  documentErrors.push(`Documento ${key}`);
-                  continue;
-                }
-              }
+              // Obtener el ID real del documento (la clave puede ser ID o nombre)
+              const { tipoDocumentoId, documentNombre } = resolveDocumentoId(key, file);
               
               // Validar que tenemos un ID válido
               if (!tipoDocumentoId) {
                 console.warn(`⚠️ No se pudo determinar el ID del documento: ${key}`);
-                documentErrors.push(`Documento ${documentNombre}`);
+                if (requiredDocuments.length > 0) {
+                  documentErrors.push(`Documento ${documentNombre}`);
+                }
                 continue;
               }
               

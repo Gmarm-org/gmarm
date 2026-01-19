@@ -35,6 +35,9 @@ public class GrupoImportacionVendedor {
     @Column(name = "limite_armas", nullable = false)
     private Integer limiteArmas = 0; // Límite de armas por vendedor en este grupo
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @CreatedDate
     @Column(name = "fecha_asignacion", nullable = false, updatable = false)
     private LocalDateTime fechaAsignacion;

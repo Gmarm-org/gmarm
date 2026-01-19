@@ -40,6 +40,7 @@ import java.util.List;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
@@ -159,20 +160,28 @@ public class GrupoImportacionService {
         if (dto.getVendedores() != null && !dto.getVendedores().isEmpty()) {
             int sumaLimites = 0;
             
+            Map<Long, Integer> limitesPorVendedor = new LinkedHashMap<>();
             for (GrupoImportacionCreateDTO.VendedorLimiteDTO vendedorLimite : dto.getVendedores()) {
-                Usuario vendedor = usuarioRepository.findById(vendedorLimite.getVendedorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + vendedorLimite.getVendedorId()));
+                if (vendedorLimite.getVendedorId() == null) {
+                    continue;
+                }
+                Integer limiteArmas = vendedorLimite.getLimiteArmas() != null ? vendedorLimite.getLimiteArmas() : 0;
+                limitesPorVendedor.put(vendedorLimite.getVendedorId(), limiteArmas);
+            }
+            for (Map.Entry<Long, Integer> vendedorEntry : limitesPorVendedor.entrySet()) {
+                Usuario vendedor = usuarioRepository.findById(vendedorEntry.getKey())
+                    .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + vendedorEntry.getKey()));
                 
                 // Verificar que el usuario tenga rol VENDOR
                 boolean esVendedor = vendedor.getRoles().stream()
                     .anyMatch(rol -> "VENDOR".equals(rol.getCodigo()));
                 
                 if (!esVendedor) {
-                    throw new BadRequestException("El usuario con ID " + vendedorLimite.getVendedorId() + " no es un vendedor");
+                    throw new BadRequestException("El usuario con ID " + vendedorEntry.getKey() + " no es un vendedor");
                 }
                 
                 // Validar límite de armas
-                Integer limiteArmas = vendedorLimite.getLimiteArmas() != null ? vendedorLimite.getLimiteArmas() : 0;
+                Integer limiteArmas = vendedorEntry.getValue();
                 if (limiteArmas < 0) {
                     throw new BadRequestException("El límite de armas no puede ser negativo");
                 }
@@ -191,6 +200,7 @@ public class GrupoImportacionService {
                 grupoVendedor.setGrupoImportacion(grupoGuardado);
                 grupoVendedor.setVendedor(vendedor);
                 grupoVendedor.setLimiteArmas(limiteArmas);
+                grupoVendedor.setActivo(true);
                 grupoImportacionVendedorRepository.save(grupoVendedor);
             }
             log.info("✅ {} vendedor(es) asignado(s) al grupo con límites de armas", dto.getVendedores().size());
@@ -330,29 +340,39 @@ public class GrupoImportacionService {
         // Guardar cambios básicos
         GrupoImportacion grupoGuardado = grupoImportacionRepository.save(grupo);
         
-        // Actualizar vendedores: eliminar todos y crear nuevos
+        // Actualizar vendedores: ajustar límites y agregar nuevos (no eliminar existentes)
         if (dto.getVendedores() != null) {
-            // Eliminar vendedores existentes
-            grupoImportacionVendedorRepository.deleteByGrupoImportacion(grupoGuardado);
-            
-            // Agregar nuevos vendedores con límites
             if (!dto.getVendedores().isEmpty()) {
                 int sumaLimites = 0;
                 
+                Map<Long, Integer> limitesPorVendedor = new LinkedHashMap<>();
                 for (GrupoImportacionCreateDTO.VendedorLimiteDTO vendedorLimite : dto.getVendedores()) {
-                    Usuario vendedor = usuarioRepository.findById(vendedorLimite.getVendedorId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + vendedorLimite.getVendedorId()));
+                    if (vendedorLimite.getVendedorId() == null) {
+                        continue;
+                    }
+                    Integer limiteArmas = vendedorLimite.getLimiteArmas() != null ? vendedorLimite.getLimiteArmas() : 0;
+                    limitesPorVendedor.put(vendedorLimite.getVendedorId(), limiteArmas);
+                }
+                
+                List<GrupoImportacionVendedor> asignacionesExistentes = grupoImportacionVendedorRepository
+                    .findByGrupoImportacion(grupoGuardado);
+                Map<Long, GrupoImportacionVendedor> asignacionesPorVendedor = asignacionesExistentes.stream()
+                    .collect(Collectors.toMap(giv -> giv.getVendedor().getId(), giv -> giv));
+                
+                for (Map.Entry<Long, Integer> vendedorEntry : limitesPorVendedor.entrySet()) {
+                    Usuario vendedor = usuarioRepository.findById(vendedorEntry.getKey())
+                        .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + vendedorEntry.getKey()));
                     
                     // Verificar que el usuario tenga rol VENDOR
                     boolean esVendedor = vendedor.getRoles().stream()
                         .anyMatch(rol -> "VENDOR".equals(rol.getCodigo()));
                     
                     if (!esVendedor) {
-                        throw new BadRequestException("El usuario con ID " + vendedorLimite.getVendedorId() + " no es un vendedor");
+                        throw new BadRequestException("El usuario con ID " + vendedorEntry.getKey() + " no es un vendedor");
                     }
                     
                     // Validar límite de armas
-                    Integer limiteArmas = vendedorLimite.getLimiteArmas() != null ? vendedorLimite.getLimiteArmas() : 0;
+                    Integer limiteArmas = vendedorEntry.getValue();
                     if (limiteArmas < 0) {
                         throw new BadRequestException("El límite de armas no puede ser negativo");
                     }
@@ -367,34 +387,72 @@ public class GrupoImportacionService {
                         }
                     }
                     
-                    GrupoImportacionVendedor grupoVendedor = new GrupoImportacionVendedor();
-                    grupoVendedor.setGrupoImportacion(grupoGuardado);
-                    grupoVendedor.setVendedor(vendedor);
+                    GrupoImportacionVendedor grupoVendedor = asignacionesPorVendedor.get(vendedorEntry.getKey());
+                    if (grupoVendedor == null) {
+                        grupoVendedor = grupoImportacionVendedorRepository
+                            .findByGrupoImportacionAndVendedor(grupoGuardado, vendedor)
+                            .orElse(null);
+                    }
+                    if (grupoVendedor == null) {
+                        grupoVendedor = grupoImportacionVendedorRepository
+                            .findByGrupoImportacionIdAndVendedorId(grupoGuardado.getId(), vendedor.getId())
+                            .orElse(null);
+                    }
+                    if (grupoVendedor == null) {
+                        boolean existeAsignacion = grupoImportacionVendedorRepository
+                            .existsByGrupoImportacionAndVendedor(grupoGuardado, vendedor);
+                        if (existeAsignacion) {
+                            log.warn("⚠️ Asignación ya existe para grupo {} y vendedor {}, se omite inserción", grupoGuardado.getId(), vendedor.getId());
+                            continue;
+                        }
+                        grupoVendedor = new GrupoImportacionVendedor();
+                        grupoVendedor.setGrupoImportacion(grupoGuardado);
+                        grupoVendedor.setVendedor(vendedor);
+                    }
                     grupoVendedor.setLimiteArmas(limiteArmas);
+                    grupoVendedor.setActivo(true);
                     grupoImportacionVendedorRepository.save(grupoVendedor);
                 }
-                log.info("✅ {} vendedor(es) actualizado(s) en el grupo con límites de armas", dto.getVendedores().size());
+                
+                for (GrupoImportacionVendedor asignacion : asignacionesExistentes) {
+                    if (!limitesPorVendedor.containsKey(asignacion.getVendedor().getId())) {
+                        asignacion.setActivo(false);
+                        grupoImportacionVendedorRepository.save(asignacion);
+                    }
+                }
+                log.info("✅ {} vendedor(es) actualizado(s) en el grupo con límites de armas", limitesPorVendedor.size());
             }
         }
         
         // Actualizar límites por categoría: eliminar todos y crear nuevos (solo para tipo CUPO)
         if ("CUPO".equals(grupoGuardado.getTipoGrupo()) && dto.getLimitesCategoria() != null) {
-            // Eliminar límites existentes
+            // Normalizar límites por categoría para evitar duplicados por categoriaArmaId
+            Map<Long, Integer> limitesPorCategoria = new LinkedHashMap<>();
+            for (GrupoImportacionCreateDTO.LimiteCategoriaDTO limiteDTO : dto.getLimitesCategoria()) {
+                if (limiteDTO.getCategoriaArmaId() == null) {
+                    continue;
+                }
+                Integer limiteMaximo = limiteDTO.getLimiteMaximo() != null ? limiteDTO.getLimiteMaximo() : 0;
+                limitesPorCategoria.put(limiteDTO.getCategoriaArmaId(), limiteMaximo);
+            }
+
+            // Eliminar límites existentes y forzar flush para evitar conflictos de unique key
             grupoImportacionLimiteCategoriaRepository.deleteByGrupoImportacion(grupoGuardado);
-            
-            // Agregar nuevos límites
-            if (!dto.getLimitesCategoria().isEmpty()) {
-                for (GrupoImportacionCreateDTO.LimiteCategoriaDTO limiteDTO : dto.getLimitesCategoria()) {
-                    CategoriaArma categoria = categoriaArmaRepository.findById(limiteDTO.getCategoriaArmaId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Categoría de arma no encontrada con ID: " + limiteDTO.getCategoriaArmaId()));
-                    
+            grupoImportacionLimiteCategoriaRepository.flush();
+
+            // Agregar nuevos límites (sin duplicados)
+            if (!limitesPorCategoria.isEmpty()) {
+                for (Map.Entry<Long, Integer> entry : limitesPorCategoria.entrySet()) {
+                    CategoriaArma categoria = categoriaArmaRepository.findById(entry.getKey())
+                        .orElseThrow(() -> new ResourceNotFoundException("Categoría de arma no encontrada con ID: " + entry.getKey()));
+
                     GrupoImportacionLimiteCategoria limite = new GrupoImportacionLimiteCategoria();
                     limite.setGrupoImportacion(grupoGuardado);
                     limite.setCategoriaArma(categoria);
-                    limite.setLimiteMaximo(limiteDTO.getLimiteMaximo());
+                    limite.setLimiteMaximo(entry.getValue());
                     grupoImportacionLimiteCategoriaRepository.save(limite);
                 }
-                log.info("✅ {} límite(s) de categoría actualizado(s) en el grupo", dto.getLimitesCategoria().size());
+                log.info("✅ {} límite(s) de categoría actualizado(s) en el grupo", limitesPorCategoria.size());
             }
         }
         
@@ -982,11 +1040,11 @@ public class GrupoImportacionService {
     public com.armasimportacion.model.DocumentoGenerado definirPedido(Long grupoId, Long usuarioId) {
         log.info("📋 Definiendo pedido para grupo de importación ID: {}", grupoId);
         
-        GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
-        
         // Validar que puede definir pedido
-        if (!verificarPuedeDefinirPedido(grupoId)) {
-            throw new BadRequestException("El grupo no puede definir pedido en este momento. Estado: " + grupo.getEstado());
+        Map<String, Object> validacion = verificarPuedeDefinirPedidoDetalle(grupoId);
+        boolean puedeDefinir = Boolean.TRUE.equals(validacion.get("puedeDefinir"));
+        if (!puedeDefinir) {
+            throw new BadRequestException(validacion.get("mensaje").toString());
         }
         
         // Generar pedido usando el servicio especializado
@@ -998,11 +1056,44 @@ public class GrupoImportacionService {
      */
     @Transactional(readOnly = true)
     public boolean verificarPuedeDefinirPedido(Long grupoId) {
+        return Boolean.TRUE.equals(verificarPuedeDefinirPedidoDetalle(grupoId).get("puedeDefinir"));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> verificarPuedeDefinirPedidoDetalle(Long grupoId) {
         GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
         
         // Solo puede definir pedido si está en estos estados
-        return grupo.getEstado() == EstadoGrupoImportacion.EN_PREPARACION ||
-               grupo.getEstado() == EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES;
+        if (grupo.getEstado() != EstadoGrupoImportacion.EN_PREPARACION &&
+            grupo.getEstado() != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES) {
+            return Map.of(
+                "puedeDefinir", false,
+                "mensaje", "El grupo no está en un estado válido para definir pedido"
+            );
+        }
+        
+        List<ClienteGrupoImportacion> clientesGrupo = obtenerClientesPorGrupo(grupoId);
+        if (clientesGrupo.isEmpty()) {
+            return Map.of(
+                "puedeDefinir", false,
+                "mensaje", "No hay clientes asignados al grupo de importación"
+            );
+        }
+        
+        boolean hayClientesSinDocumentos = clientesGrupo.stream()
+            .anyMatch(cg -> !documentoClienteService.verificarDocumentosCompletos(cg.getCliente().getId()));
+        
+        if (hayClientesSinDocumentos) {
+            return Map.of(
+                "puedeDefinir", false,
+                "mensaje", "Existen clientes sin todos los documentos cargados, verifica y vuelve a intentar cuando todos los clientes estén cargados"
+            );
+        }
+        
+        return Map.of(
+            "puedeDefinir", true,
+            "mensaje", "El grupo puede definir pedido"
+        );
     }
 
     /**
@@ -1303,7 +1394,9 @@ public class GrupoImportacionService {
             
             // Verificar cupo disponible (solo para tipo CUPO)
             // Los límites por categoría solo aplican para CIVILES, DEPORTISTAS y UNIFORMADOS PASIVOS
-            if ("CUPO".equals(grupo.getTipoGrupo())) {
+            // Para cliente fantasma, se asigna como civil antes de validar categoría
+            if ("CUPO".equals(grupo.getTipoGrupo()) &&
+                cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
                 // Verificar si el cliente tiene armas asignadas y si hay cupo disponible por categoría
                 List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
                 

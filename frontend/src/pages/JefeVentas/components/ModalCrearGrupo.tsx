@@ -162,13 +162,16 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       // Cargar vendedores asignados con sus límites
       if ((grupo as any).vendedores && Array.isArray((grupo as any).vendedores)) {
         console.log('👥 Vendedores encontrados en el grupo:', (grupo as any).vendedores);
-        const vendedoresConLimites = (grupo as any).vendedores.map((v: any) => ({
-          vendedorId: v.id,
-          limiteArmas: v.limiteArmas || 0
-        }));
+        const vendedoresConLimites = (grupo as any).vendedores
+          .filter((v: any) => v.activo !== false)
+          .map((v: any) => ({
+            vendedorId: v?.vendedor?.id ?? v?.vendedorId ?? v?.id ?? null,
+            limiteArmas: v.limiteArmas || 0
+          }))
+          .filter((v: any) => v.vendedorId);
         console.log('✅ Vendedores con límites procesados:', vendedoresConLimites);
         setLimitesVendedores(vendedoresConLimites);
-        setVendedorIdsSeleccionados(vendedoresConLimites.map((v: any) => v.vendedorId));
+        setVendedorIdsSeleccionados(Array.from(new Set(vendedoresConLimites.map((v: any) => v.vendedorId))));
       } else {
         console.warn('⚠️ No se encontraron vendedores en el grupo');
         setLimitesVendedores([]);
@@ -178,10 +181,12 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       // Cargar límites por categoría
       if ((grupo as any).limitesCategoria && Array.isArray((grupo as any).limitesCategoria)) {
         console.log('📊 Límites por categoría encontrados:', (grupo as any).limitesCategoria);
-        const limites = (grupo as any).limitesCategoria.map((l: any) => ({
-          categoriaArmaId: l.categoriaArmaId,
-          limiteMaximo: l.limiteMaximo
-        }));
+        const limites = (grupo as any).limitesCategoria
+          .map((l: any) => ({
+            categoriaArmaId: l.categoriaArmaId ?? l.categoriaArma?.id ?? null,
+            limiteMaximo: l.limiteMaximo
+          }))
+          .filter((l: any) => l.categoriaArmaId);
         console.log('✅ Límites procesados:', limites);
         setLimitesCategoria(limites);
       } else {
@@ -365,7 +370,8 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
           tra: tra.trim() || undefined,
           licenciaId: licenciaId || undefined, // Incluir licencia para edición
           vendedores: vendedoresPayload,
-          limitesCategoria: tipoGrupo === 'CUPO' && limitesCategoria.length > 0 ? limitesCategoria : []
+          // Si no hay límites cargados, no enviar para no sobrescribir los existentes
+          limitesCategoria: tipoGrupo === 'CUPO' && limitesCategoria.length > 0 ? limitesCategoria : undefined
         });
         
         alert(`Grupo de importación "${resultado.nombre}" actualizado exitosamente`);

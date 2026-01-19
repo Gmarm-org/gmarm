@@ -42,6 +42,7 @@ public class ArmaMapper {
                 .modelo(arma.getModelo()) // Cambiado de nombre a modelo
                 .marca(arma.getMarca()) // Nuevo campo
                 .alimentadora(arma.getAlimentadora()) // Nuevo campo
+                .color(arma.getColor())
                 .calibre(arma.getCalibre())
                 .capacidad(arma.getCapacidad())
                 .precioReferencia(arma.getPrecioReferencia())

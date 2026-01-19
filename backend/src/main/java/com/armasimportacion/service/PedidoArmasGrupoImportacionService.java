@@ -40,7 +40,6 @@ public class PedidoArmasGrupoImportacionService {
     private final DocumentoGeneradoRepository documentoGeneradoRepository;
     private final UsuarioRepository usuarioRepository;
     private final FileStorageService fileStorageService;
-    private final FlyingSaucerPdfService flyingSaucerPdfService;
     private final ClienteGrupoImportacionRepository clienteGrupoRepository;
     private final ClienteArmaRepository clienteArmaRepository;
     
@@ -53,7 +52,6 @@ public class PedidoArmasGrupoImportacionService {
             DocumentoGeneradoRepository documentoGeneradoRepository,
             UsuarioRepository usuarioRepository,
             FileStorageService fileStorageService,
-            FlyingSaucerPdfService flyingSaucerPdfService,
             ClienteGrupoImportacionRepository clienteGrupoRepository,
             ClienteArmaRepository clienteArmaRepository,
             @Lazy GrupoImportacionService grupoImportacionService) {
@@ -61,7 +59,6 @@ public class PedidoArmasGrupoImportacionService {
         this.documentoGeneradoRepository = documentoGeneradoRepository;
         this.usuarioRepository = usuarioRepository;
         this.fileStorageService = fileStorageService;
-        this.flyingSaucerPdfService = flyingSaucerPdfService;
         this.clienteGrupoRepository = clienteGrupoRepository;
         this.clienteArmaRepository = clienteArmaRepository;
         this.grupoImportacionService = grupoImportacionService;
@@ -176,17 +173,35 @@ public class PedidoArmasGrupoImportacionService {
         
         log.info("📋 Total de armas encontradas para el grupo: {}", armasGrupo.size());
         
-        // Agrupar armas por modelo (nombre + calibre) y sumar cantidades
+        // Agrupar armas por modelo (incluye atributos para no mezclar variantes) y sumar cantidades
         Map<String, Map<String, Object>> armasAgrupadas = new HashMap<>();
         for (ClienteArma clienteArma : armasGrupo) {
-            String clave = clienteArma.getArma().getModelo() + "|" + 
-                          (clienteArma.getArma().getCalibre() != null ? clienteArma.getArma().getCalibre() : "");
+            String modelo = clienteArma.getArma().getModelo();
+            String calibre = clienteArma.getArma().getCalibre();
+            String marca = clienteArma.getArma().getMarca();
+            String color = clienteArma.getArma().getColor();
+            String alimentadora = clienteArma.getArma().getAlimentadora();
+            Integer capacidad = clienteArma.getArma().getCapacidad();
+            String tipo = clienteArma.getArma().getCategoria() != null ? clienteArma.getArma().getCategoria().getNombre() : "";
+            String clave = String.join("|",
+                modelo != null ? modelo : "",
+                calibre != null ? calibre : "",
+                marca != null ? marca : "",
+                color != null ? color : "",
+                alimentadora != null ? alimentadora : "",
+                capacidad != null ? capacidad.toString() : "",
+                tipo
+            );
             
             if (!armasAgrupadas.containsKey(clave)) {
                 Map<String, Object> armaData = new HashMap<>();
-                armaData.put("nombre", clienteArma.getArma().getModelo()); // Cambiado de nombre a modelo
-                armaData.put("calibre", clienteArma.getArma().getCalibre());
-                armaData.put("capacidad", clienteArma.getArma().getCapacidad());
+                armaData.put("modelo", modelo); // Cambiado de nombre a modelo
+                armaData.put("marca", marca);
+                armaData.put("calibre", calibre);
+                armaData.put("color", color);
+                armaData.put("alimentadora", alimentadora);
+                armaData.put("capacidad", capacidad);
+                armaData.put("tipo", tipo);
                 armaData.put("cantidad", 0);
                 armasAgrupadas.put(clave, armaData);
             }
@@ -254,68 +269,25 @@ public class PedidoArmasGrupoImportacionService {
             // Título
             Row titleRow = sheet.createRow(rowNum++);
             Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("PEDIDO DE ARMAS - GRUPO DE IMPORTACIÓN");
+            titleCell.setCellValue("PEDIDO A FABRICA");
             titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));
+            sheet.addMergedRegion(new CellRangeAddress(rowNum - 1, rowNum - 1, 0, 2));
             
-            rowNum++; // Espacio
-            
-            // Información de la licencia en cabecera
-            if (grupo.getLicencia() != null) {
-                Row licenciaRow1 = sheet.createRow(rowNum++);
-                Cell licenciaLabel1 = licenciaRow1.createCell(0);
-                licenciaLabel1.setCellValue("LICENCIA:");
-                licenciaLabel1.setCellStyle(headerStyle);
-                Cell licenciaValue1 = licenciaRow1.createCell(1);
-                licenciaValue1.setCellValue(grupo.getLicencia().getNombre() != null ? grupo.getLicencia().getNombre() : "");
-                licenciaValue1.setCellStyle(infoStyle);
-                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 1, 3));
-                
-                Row licenciaRow2 = sheet.createRow(rowNum++);
-                Cell licenciaLabel2 = licenciaRow2.createCell(0);
-                licenciaLabel2.setCellValue("NÚMERO DE LICENCIA:");
-                licenciaLabel2.setCellStyle(headerStyle);
-                Cell licenciaValue2 = licenciaRow2.createCell(1);
-                licenciaValue2.setCellValue(grupo.getLicencia().getNumero() != null ? grupo.getLicencia().getNumero() : "");
-                licenciaValue2.setCellStyle(infoStyle);
-                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 1, 3));
-            }
-            
-            rowNum++; // Espacio
-            
-            // Información del grupo
-            Row grupoRow1 = sheet.createRow(rowNum++);
-            Cell grupoLabel1 = grupoRow1.createCell(0);
-            grupoLabel1.setCellValue("GRUPO DE IMPORTACIÓN:");
-            grupoLabel1.setCellStyle(headerStyle);
-            Cell grupoValue1 = grupoRow1.createCell(1);
-            grupoValue1.setCellValue(grupo.getNombre() != null ? grupo.getNombre() : "");
-            grupoValue1.setCellStyle(infoStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 1, 3));
-            
-            Row grupoRow2 = sheet.createRow(rowNum++);
-            Cell grupoLabel2 = grupoRow2.createCell(0);
-            grupoLabel2.setCellValue("CÓDIGO DEL GRUPO:");
-            grupoLabel2.setCellStyle(headerStyle);
-            Cell grupoValue2 = grupoRow2.createCell(1);
-            grupoValue2.setCellValue(grupo.getCodigo() != null ? grupo.getCodigo() : "");
-            grupoValue2.setCellStyle(infoStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 1, 3));
-            
-            Row fechaRow = sheet.createRow(rowNum++);
-            Cell fechaLabel = fechaRow.createCell(0);
-            fechaLabel.setCellValue("FECHA:");
-            fechaLabel.setCellStyle(headerStyle);
-            Cell fechaValue = fechaRow.createCell(1);
-            fechaValue.setCellValue(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-            fechaValue.setCellStyle(infoStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 1, 3));
+            // Nombre del importador (licencia)
+            String nombreImportador = grupo.getLicencia() != null && grupo.getLicencia().getNombre() != null
+                ? grupo.getLicencia().getNombre()
+                : "NOMBRE DEL IMPORTADOR";
+            Row importadorRow = sheet.createRow(rowNum++);
+            Cell importadorCell = importadorRow.createCell(0);
+            importadorCell.setCellValue("\"" + nombreImportador + "\"");
+            importadorCell.setCellStyle(infoStyle);
+            sheet.addMergedRegion(new CellRangeAddress(rowNum - 1, rowNum - 1, 0, 2));
             
             rowNum++; // Espacio
             
             // Encabezados de tabla
             Row headerRow = sheet.createRow(rowNum++);
-            String[] headers = {"ORD.", "ARMAS PARA IMPORTAR", "CANT."};
+            String[] headers = {"Orden", "Modelo", "Cantidad"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -324,7 +296,6 @@ public class PedidoArmasGrupoImportacionService {
             
             // Datos de armas
             int orden = 1;
-            int totalCantidad = 0;
             for (Map<String, Object> arma : armasLista) {
                 Row dataRow = sheet.createRow(rowNum++);
                 
@@ -335,45 +306,22 @@ public class PedidoArmasGrupoImportacionService {
                 
                 // Descripción del arma
                 Cell armaCell = dataRow.createCell(1);
-                StringBuilder descripcion = new StringBuilder();
-                descripcion.append("Pistola Modelo, ");
-                if (arma.get("nombre") != null) {
-                    descripcion.append(arma.get("nombre").toString());
-                }
-                if (arma.get("calibre") != null) {
-                    descripcion.append(", Calibre ").append(arma.get("calibre").toString());
-                }
-                if (arma.get("capacidad") != null) {
-                    descripcion.append(", con 2 alimentadoras de ").append(arma.get("capacidad").toString()).append(" municiones");
-                }
-                armaCell.setCellValue(descripcion.toString());
+                armaCell.setCellValue(construirDescripcionArma(arma));
                 armaCell.setCellStyle(dataStyle);
                 
                 // Cantidad
                 int cantidad = (Integer) arma.get("cantidad");
-                totalCantidad += cantidad;
                 Cell cantidadCell = dataRow.createCell(2);
                 cantidadCell.setCellValue(cantidad);
                 cantidadCell.setCellStyle(numberStyle);
             }
             
-            // Fila de total
-            if (armasLista.size() > 0) {
-                Row totalRow = sheet.createRow(rowNum++);
-                Cell totalLabel = totalRow.createCell(0);
-                totalLabel.setCellValue("TOTAL");
-                totalLabel.setCellStyle(headerStyle);
-                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 1));
-                
-                Cell totalValue = totalRow.createCell(2);
-                totalValue.setCellValue(totalCantidad);
-                totalValue.setCellStyle(headerStyle);
-            }
+            // No se agrega fila de total en el formato solicitado
             
             // Ajustar ancho de columnas
-            sheet.setColumnWidth(0, 2000);  // ORD.
-            sheet.setColumnWidth(1, 15000); // ARMAS PARA IMPORTAR
-            sheet.setColumnWidth(2, 4000);  // CANT.
+            sheet.setColumnWidth(0, 2000);  // Orden
+            sheet.setColumnWidth(1, 20000); // Modelo
+            sheet.setColumnWidth(2, 4000);  // Cantidad
             
             // Convertir a bytes
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -383,6 +331,44 @@ public class PedidoArmasGrupoImportacionService {
             log.info("✅ Excel del pedido generado exitosamente, tamaño: {} bytes", excelBytes.length);
             return excelBytes;
         }
+    }
+
+    private String construirDescripcionArma(Map<String, Object> arma) {
+        String tipo = arma.get("tipo") != null ? arma.get("tipo").toString() : "";
+        String modelo = arma.get("modelo") != null ? arma.get("modelo").toString() : "";
+        String marca = arma.get("marca") != null ? arma.get("marca").toString() : "";
+        String calibre = arma.get("calibre") != null ? arma.get("calibre").toString() : "";
+        String color = arma.get("color") != null ? arma.get("color").toString() : "";
+        String alimentadora = arma.get("alimentadora") != null ? arma.get("alimentadora").toString() : "";
+        String capacidad = arma.get("capacidad") != null ? arma.get("capacidad").toString() : "";
+        
+        if (!tipo.isBlank() && tipo.equalsIgnoreCase("Alimentadora")) {
+            return "Alimentadora " + modelo;
+        }
+        
+        StringBuilder descripcion = new StringBuilder();
+        descripcion.append("Categoria: ").append(!tipo.isBlank() ? tipo : "Arma");
+        if (!marca.isBlank()) {
+            descripcion.append(", Marca ").append(marca);
+        }
+        if (!modelo.isBlank()) {
+            descripcion.append(", Modelo: ").append(modelo);
+        }
+        if (!calibre.isBlank()) {
+            descripcion.append(", Calibre: ").append(calibre);
+        }
+        if (!color.isBlank()) {
+            descripcion.append(", Color: ").append(color);
+        }
+        if (!alimentadora.isBlank()) {
+            descripcion.append(", Cargadores: ").append(alimentadora);
+        }
+        if (!capacidad.isBlank()) {
+            descripcion.append(", Capacidad: ").append(capacidad).append(" municiones.");
+        } else if (descripcion.charAt(descripcion.length() - 1) != '.') {
+            descripcion.append(".");
+        }
+        return descripcion.toString();
     }
 }
 

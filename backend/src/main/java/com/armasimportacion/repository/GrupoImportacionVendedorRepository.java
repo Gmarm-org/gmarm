@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GrupoImportacionVendedorRepository extends JpaRepository<GrupoImportacionVendedor, Long> {
@@ -21,6 +22,9 @@ public interface GrupoImportacionVendedorRepository extends JpaRepository<GrupoI
     void deleteByGrupoImportacion(GrupoImportacion grupoImportacion);
     
     boolean existsByGrupoImportacionAndVendedor(GrupoImportacion grupoImportacion, Usuario vendedor);
+
+    Optional<GrupoImportacionVendedor> findByGrupoImportacionAndVendedor(GrupoImportacion grupoImportacion, Usuario vendedor);
+    Optional<GrupoImportacionVendedor> findByGrupoImportacionIdAndVendedorId(Long grupoImportacionId, Long vendedorId);
     
     /**
      * Obtiene grupos activos disponibles para un vendedor específico usando JOIN directo
@@ -32,6 +36,7 @@ public interface GrupoImportacionVendedorRepository extends JpaRepository<GrupoI
     @Query("SELECT giv FROM GrupoImportacionVendedor giv " +
            "JOIN FETCH giv.grupoImportacion gi " +
            "WHERE giv.vendedor.id = :vendedorId " +
+           "AND giv.activo = true " +
            "AND (gi.estado = :estado1 OR gi.estado = :estado2)")
     List<GrupoImportacionVendedor> findGruposActivosByVendedorId(
             @Param("vendedorId") Long vendedorId,

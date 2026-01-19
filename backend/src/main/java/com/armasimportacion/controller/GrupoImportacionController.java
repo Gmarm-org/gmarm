@@ -183,10 +183,12 @@ public class GrupoImportacionController {
                     .map(gv -> {
                         Map<String, Object> vendedorMap = new HashMap<>();
                         vendedorMap.put("id", gv.getVendedor().getId());
+                        vendedorMap.put("vendedorId", gv.getVendedor().getId());
                         vendedorMap.put("nombres", gv.getVendedor().getNombres());
                         vendedorMap.put("apellidos", gv.getVendedor().getApellidos());
                         vendedorMap.put("email", gv.getVendedor().getEmail());
                         vendedorMap.put("limiteArmas", gv.getLimiteArmas() != null ? gv.getLimiteArmas() : 0);
+                        vendedorMap.put("activo", gv.getActivo() != null ? gv.getActivo() : true);
                         return vendedorMap;
                     })
                     .collect(java.util.stream.Collectors.toList());
@@ -364,14 +366,7 @@ public class GrupoImportacionController {
     public ResponseEntity<Map<String, Object>> puedeDefinirPedido(
             @PathVariable @NotNull @Positive Long id) {
         try {
-            boolean puedeDefinir = grupoImportacionService.verificarPuedeDefinirPedido(id);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("puedeDefinir", puedeDefinir);
-            response.put("mensaje", puedeDefinir ? 
-                "El grupo puede definir pedido" : 
-                "El grupo no está en un estado válido para definir pedido");
-            
+            Map<String, Object> response = grupoImportacionService.verificarPuedeDefinirPedidoDetalle(id);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("❌ Error verificando si puede definir pedido: {}", e.getMessage(), e);
@@ -644,7 +639,7 @@ public class GrupoImportacionController {
     /**
      * Actualiza un grupo de importación (editar vendedores y límites)
      */
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @Operation(summary = "Actualizar grupo de importación", 
                description = "Actualiza un grupo de importación, permitiendo modificar vendedores y límites por categoría")
     public ResponseEntity<Map<String, Object>> actualizarGrupo(
