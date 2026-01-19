@@ -9,6 +9,7 @@
             font-size: 12px;
             color: #000;
             margin: 40px;
+            line-height: 1.5;
         }
         .fecha {
             font-weight: bold;
@@ -20,6 +21,13 @@
         .licencia .nombre {
             font-weight: bold;
             text-transform: uppercase;
+        }
+        .texto-justificado {
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .parrafo {
+            margin: 12px 0;
         }
         .tabla {
             width: 100%;
@@ -44,7 +52,7 @@
 <body>
     <div class="fecha" th:text="${fechaSolicitud}">Guayaquil, 16 de enero del 2026</div>
 
-    <div class="licencia">
+    <div class="licencia texto-justificado">
         <div>COMERCIANTE IMPORTADOR</div>
         <div class="nombre" th:text="${#strings.toUpperCase(licenciaNombre)}">NOMBRE LICENCIA</div>
         <div>Distribuidor Autorizado</div>
@@ -52,11 +60,11 @@
         <div>En su despacho.-</div>
     </div>
 
-    <div>
+    <div class="parrafo texto-justificado">
         De mi consideración:
     </div>
 
-    <p>
+    <p class="parrafo texto-justificado">
         Yo,
         <strong th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</strong>,
         con cédula de Identidad No
@@ -92,14 +100,14 @@
         </tbody>
     </table>
 
-    <p>
+    <p class="parrafo texto-justificado">
         Arma que será utilizada para mi defensa personal, aprovechando la oportunidad de tener arma(s) propia como servidor
         <span th:if="${cliente.estadoMilitar != null}">
             <strong th:text="${#strings.toUpperCase(cliente.tipoCliente != null ? cliente.tipoCliente.nombre : 'MILITAR')}">MILITAR</strong>.
         </span>
     </p>
 
-    <p>
+    <p class="parrafo texto-justificado">
         Por la atención a la presente, anticipo mi agradecimiento,
     </p>
 
