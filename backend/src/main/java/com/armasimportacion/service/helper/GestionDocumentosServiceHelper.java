@@ -522,12 +522,9 @@ public class GestionDocumentosServiceHelper {
         log.info("🔧 Generando PDF con Flying Saucer para cliente: {}", cliente.getNombres());
         
         try {
-            // Buscar arma asignada al cliente
-            ClienteArma clienteArma = clienteArmaRepository.findByClienteId(cliente.getId())
-                .stream()
-                .findFirst()
-                .orElse(null);
-            
+            // Buscar armas asignadas al cliente
+            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            ClienteArma clienteArma = armasCliente.stream().findFirst().orElse(null);
             if (clienteArma == null) {
                 log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new RuntimeException("No se encontró arma asignada al cliente");
@@ -568,6 +565,9 @@ public class GestionDocumentosServiceHelper {
             variables.put("ivaDecimal", ivaDecimal);        // Ej: 0.15
             variables.put("cuotas", cuotas);                // Lista de cuotas para fechas dinámicas
             variables.put("numberToTextService", numberToTextService); // Servicio para convertir números a texto
+            variables.put("armasDetalle", construirDetalleArmasContrato(armasCliente));
+            variables.put("cantidadArmasTexto", construirCantidadArmasTexto(armasCliente));
+            variables.put("armasResumenTexto", construirResumenArmasContrato(armasCliente));
             
             // Agregar rango del cliente
             log.info("🎖️ Rango del cliente: '{}'", cliente.getRango());
@@ -581,9 +581,26 @@ public class GestionDocumentosServiceHelper {
             log.info("🪖 Estado militar: '{}'", estadoMilitarLowercase);
             variables.put("estadoMilitarLowercase", estadoMilitarLowercase);
             
-        // Agregar fecha actual en timezone de Ecuador para firma del contrato
-        java.time.LocalDate fechaActualEcuador = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
-        variables.put("fechaActual", fechaActualEcuador);
+            // Agregar fecha actual en timezone de Ecuador para firma del contrato
+            java.time.LocalDate fechaActualEcuador = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
+            variables.put("fechaActual", fechaActualEcuador);
+
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null ? licencia.getTitulo() : "";
+            String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+            String licenciaCedula = "";
+            if (licencia != null) {
+                if (licencia.getCedulaCuenta() != null && !licencia.getCedulaCuenta().trim().isEmpty()) {
+                    licenciaCedula = licencia.getCedulaCuenta();
+                } else if (licencia.getRuc() != null) {
+                    licenciaCedula = licencia.getRuc();
+                }
+            }
+            String licenciaNumero = licencia != null && licencia.getNumero() != null ? licencia.getNumero() : "";
+            variables.put("licenciaTitulo", licenciaTitulo);
+            variables.put("licenciaNombre", licenciaNombre);
+            variables.put("licenciaCedula", licenciaCedula);
+            variables.put("licenciaNumero", licenciaNumero);
             
             // Construir dirección completa con nombres legibles
             String nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());
@@ -639,13 +656,9 @@ public class GestionDocumentosServiceHelper {
         log.info("🔧 Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
         
         try {
-            // Buscar arma asignada al cliente
-            ClienteArma clienteArma = clienteArmaRepository.findByClienteId(cliente.getId())
-                .stream()
-                .findFirst()
-                .orElse(null);
-            
-            if (clienteArma == null) {
+            // Buscar armas asignadas al cliente
+            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            if (armasCliente == null || armasCliente.isEmpty()) {
                 log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new RuntimeException("No se encontró arma asignada al cliente");
             }
@@ -654,15 +667,94 @@ public class GestionDocumentosServiceHelper {
             String ivaValor = configuracionService.getValorConfiguracion("IVA");
             double ivaPorcentaje = Double.parseDouble(ivaValor);
             double ivaDecimal = ivaPorcentaje / 100.0;
+
+            // Cargar cuotas para el detalle de pagos (solo crédito)
+            java.util.List<CuotaPago> cuotas = new java.util.ArrayList<>();
+            if (pago != null && pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
+                cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
+                log.info("📅 Cuotas cargadas para cotización: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
+            }
+
+            // Preparar detalle de armas para el template
+            List<Map<String, Object>> armasDetalle = new java.util.ArrayList<>();
+            int totalArmas = 0;
+            for (ClienteArma clienteArma : armasCliente) {
+                Arma arma = clienteArma.getArma();
+                if (arma == null) {
+                    continue;
+                }
+                int cantidad = clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1;
+                totalArmas += cantidad;
+
+                java.math.BigDecimal precioBase = clienteArma.getPrecioUnitario() != null
+                    ? clienteArma.getPrecioUnitario()
+                    : (arma.getPrecioReferencia() != null ? arma.getPrecioReferencia() : java.math.BigDecimal.ZERO);
+                java.math.BigDecimal precioConIva = precioBase.multiply(java.math.BigDecimal.valueOf(1 + ivaDecimal));
+
+                Map<String, Object> armaDetalle = new java.util.HashMap<>();
+                armaDetalle.put("categoria", arma.getCategoria() != null ? arma.getCategoria().getNombre() : "N/A");
+                armaDetalle.put("marca", arma.getMarca() != null ? arma.getMarca() : "N/A");
+                armaDetalle.put("modelo", arma.getModelo() != null ? arma.getModelo() : "N/A");
+                armaDetalle.put("calibre", arma.getCalibre() != null ? arma.getCalibre() : "N/A");
+                armaDetalle.put("alimentadora", arma.getAlimentadora() != null ? arma.getAlimentadora() : "N/A");
+                armaDetalle.put("cantidad", cantidad);
+                armaDetalle.put("precioConIva", precioConIva);
+                armaDetalle.put("precioConIvaFormateado", formatCurrency(precioConIva));
+                armasDetalle.add(armaDetalle);
+            }
+            String cantidadArmasTexto = String.format("%02d", Math.max(totalArmas, 1))
+                + (totalArmas == 1 ? " arma" : " armas");
+
+            // Licencia activa del grupo del cliente
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+            String licenciaNombreBanco = licencia != null && licencia.getNombreBanco() != null ? licencia.getNombreBanco() : "";
+            String licenciaTipoCuenta = licencia != null && licencia.getTipoCuenta() != null ? licencia.getTipoCuenta() : "";
+            String licenciaCuentaBancaria = licencia != null && licencia.getCuentaBancaria() != null ? licencia.getCuentaBancaria() : "";
+            String licenciaTitular = licenciaNombre;
+
+            // Número de cotización: {INICIALES}-{####}-{AÑO}
+            int year = java.time.LocalDate.now().getYear();
+            String iniciales = obtenerInicialesImportador(cliente);
+            int seq = 1;
+            if (pago != null && pago.getId() != null) {
+                seq = Math.max(pago.getId().intValue(), 1);
+            } else if (cliente.getId() != null) {
+                seq = Math.max(cliente.getId().intValue(), 1);
+            }
+            String numeroCotizacion = String.format("%s-%04d-%d", iniciales, seq, year);
+
+            // Fecha de cotización (fecha de generación del documento)
+            String fechaCotizacion = obtenerFechaActualFormateadaSinCiudad();
+
+            // Etiqueta de uniformado (MILITAR o POLICIA)
+            String tipoUniformadoLabel = "MILITAR";
+            if (cliente.getTipoCliente() != null && "Uniformado Policial".equalsIgnoreCase(cliente.getTipoCliente().getNombre())) {
+                tipoUniformadoLabel = "POLICIA";
+            }
+            String estadoMilitarUpper = cliente.getEstadoMilitar() != null
+                ? cliente.getEstadoMilitar().toString().toUpperCase()
+                : "ACTIVO";
             
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
             variables.put("cliente", cliente);
             variables.put("pago", pago != null ? pago : null);
-            variables.put("arma", clienteArma.getArma());
             variables.put("ivaPorcentaje", ivaPorcentaje);
             variables.put("ivaDecimal", ivaDecimal);
             variables.put("numberToTextService", numberToTextService);
+            variables.put("cuotas", cuotas);
+            variables.put("armasDetalle", armasDetalle);
+            variables.put("cantidadArmasTexto", cantidadArmasTexto);
+            variables.put("numeroCotizacion", numeroCotizacion);
+            variables.put("fechaCotizacion", fechaCotizacion);
+            variables.put("tipoUniformadoLabel", tipoUniformadoLabel);
+            variables.put("estadoMilitarUpper", estadoMilitarUpper);
+            variables.put("licenciaNombre", licenciaNombre);
+            variables.put("licenciaNombreBanco", licenciaNombreBanco);
+            variables.put("licenciaTipoCuenta", licenciaTipoCuenta);
+            variables.put("licenciaCuentaBancaria", licenciaCuentaBancaria);
+            variables.put("licenciaTitular", licenciaTitular);
             
             // Determinar template según tipo de cliente (solo uniformados generan cotización)
             String nombreTemplate = determinarTemplateUniformado(cliente, "cotizacion");
@@ -878,6 +970,18 @@ public class GestionDocumentosServiceHelper {
         int anio = fecha.getYear();
         
         return String.format("Quito, %d de %s del %d", dia, mes, anio);
+    }
+
+    private String obtenerFechaActualFormateadaSinCiudad() {
+        java.time.LocalDate fecha = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
+        String[] meses = {
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+        };
+        int dia = fecha.getDayOfMonth();
+        String mes = meses[fecha.getMonthValue() - 1];
+        int anio = fecha.getYear();
+        return String.format("%d de %s del %d", dia, mes, anio);
     }
 
     private String obtenerFechaActualFormateadaConCiudad(String ciudad) {
@@ -1246,6 +1350,70 @@ public class GestionDocumentosServiceHelper {
         if (amount == null) return "$0.00";
         java.text.NumberFormat formatter = java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("es", "EC"));
         return formatter.format(amount);
+    }
+
+    private List<Map<String, Object>> construirDetalleArmasContrato(List<ClienteArma> armasCliente) {
+        List<Map<String, Object>> armasDetalle = new java.util.ArrayList<>();
+        if (armasCliente == null) {
+            return armasDetalle;
+        }
+        for (ClienteArma clienteArma : armasCliente) {
+            Arma arma = clienteArma.getArma();
+            if (arma == null) {
+                continue;
+            }
+            Map<String, Object> armaDetalle = new java.util.HashMap<>();
+            armaDetalle.put("categoria", arma.getCategoria() != null ? arma.getCategoria().getNombre() : "N/A");
+            armaDetalle.put("marca", arma.getMarca() != null ? arma.getMarca() : "N/A");
+            armaDetalle.put("modelo", arma.getModelo() != null ? arma.getModelo() : "N/A");
+            armaDetalle.put("calibre", arma.getCalibre() != null ? arma.getCalibre() : "N/A");
+            armaDetalle.put("cantidad", clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1);
+            armasDetalle.add(armaDetalle);
+        }
+        return armasDetalle;
+    }
+
+    private String construirCantidadArmasTexto(List<ClienteArma> armasCliente) {
+        int totalArmas = 0;
+        if (armasCliente != null) {
+            totalArmas = armasCliente.stream()
+                .mapToInt(arma -> arma.getCantidad() != null ? arma.getCantidad() : 1)
+                .sum();
+        }
+        totalArmas = Math.max(totalArmas, 1);
+        return String.format("%02d", totalArmas) + (totalArmas == 1 ? " arma" : " armas");
+    }
+
+    private String construirResumenArmasContrato(List<ClienteArma> armasCliente) {
+        if (armasCliente == null || armasCliente.isEmpty()) {
+            return "N/A";
+        }
+        StringBuilder resumen = new StringBuilder();
+        for (ClienteArma clienteArma : armasCliente) {
+            Arma arma = clienteArma.getArma();
+            if (arma == null) {
+                continue;
+            }
+            int cantidad = clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1;
+            String cantidadTexto = numberToTextService != null
+                ? numberToTextService.convertToText(java.math.BigDecimal.valueOf(cantidad))
+                : String.valueOf(cantidad);
+            if (resumen.length() > 0) {
+                resumen.append("; ");
+            }
+            resumen.append(cantidadTexto.toUpperCase())
+                .append(" (").append(cantidad).append(") ");
+            if (arma.getCategoria() != null && arma.getCategoria().getNombre() != null) {
+                resumen.append(arma.getCategoria().getNombre().toUpperCase()).append(" ");
+            }
+            if (arma.getMarca() != null) {
+                resumen.append(arma.getMarca()).append(" ");
+            }
+            if (arma.getModelo() != null) {
+                resumen.append(arma.getModelo());
+            }
+        }
+        return resumen.toString().trim();
     }
     
 }

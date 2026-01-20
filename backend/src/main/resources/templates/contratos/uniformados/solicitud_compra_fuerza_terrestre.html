@@ -2,17 +2,122 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
-    <title>Solicitud de Compra - Fuerza Terrestre</title>
+    <title>Solicitud de Compra</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #000;
             margin: 40px;
+            line-height: 1.5;
+        }
+        .fecha {
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+        .licencia {
+            margin-bottom: 18px;
+        }
+        .licencia .nombre {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .texto-justificado {
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .parrafo {
+            margin: 12px 0;
+        }
+        .tabla {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        .tabla th,
+        .tabla td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: center;
+        }
+        .firma {
+            margin-top: 28px;
+        }
+        .firma .nombre {
+            font-weight: bold;
+            text-transform: uppercase;
         }
     </style>
 </head>
 <body>
-    <h1>Solicitud de Compra - Fuerza Terrestre</h1>
-    <p>Template para militares Fuerza Terrestre - Pendiente de completar</p>
-    <!-- Template pendiente de contenido completo -->
+    <div class="fecha" th:text="${fechaSolicitud}">Guayaquil, 16 de enero del 2026</div>
+
+    <div class="licencia texto-justificado">
+        <div>COMERCIANTE IMPORTADOR</div>
+        <div class="nombre" th:text="${#strings.toUpperCase(licenciaNombre)}">NOMBRE LICENCIA</div>
+        <div>Distribuidor Autorizado</div>
+        <div>CZ Ceska Zbrojovka</div>
+        <div>En su despacho.-</div>
+    </div>
+
+    <div class="parrafo texto-justificado">
+        De mi consideración:
+    </div>
+
+    <p class="parrafo texto-justificado">
+        Yo,
+        <strong th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</strong>,
+        con cédula de Identidad No
+        <strong th:text="${cliente.numeroIdentificacion}">0000000000</strong>,
+        <span th:if="${cliente.estadoMilitar != null}">
+            en mi calidad de servidor militar
+            <strong th:text="${cliente.estadoMilitar}">ACTIVO</strong>,
+        </span>
+        solicito de la manera más comedida se importe por su intermedio
+        <strong th:text="${cantidadArmasTexto}">01 arma</strong>,
+        a mi nombre, en su calidad de Importador acreditado por el Comando Conjunto de las Fuerzas Armadas,
+        el producto de la marca CZ - Ceska Zbrojovka.
+    </p>
+
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>TIPO</th>
+                <th>MARCA</th>
+                <th>MODELO</th>
+                <th>CALIBRE</th>
+                <th>ALIMENTADORAS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="arma : ${armasDetalle}">
+                <td th:text="${arma.categoria}">PISTOLA</td>
+                <td th:text="${arma.marca}">CZ</td>
+                <td th:text="${arma.modelo}">P-10F</td>
+                <td th:text="${arma.calibre}">9MM</td>
+                <td th:text="${arma.alimentadora != null ? arma.alimentadora : 'N/A'}">2 (DOS)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p class="parrafo texto-justificado">
+        Arma que será utilizada para mi defensa personal, aprovechando la oportunidad de tener arma(s) propia como servidor
+        <span th:if="${cliente.estadoMilitar != null}">
+            <strong th:text="${#strings.toUpperCase(cliente.tipoCliente != null ? cliente.tipoCliente.nombre : 'MILITAR')}">MILITAR</strong>.
+        </span>
+    </p>
+
+    <p class="parrafo texto-justificado">
+        Por la atención a la presente, anticipo mi agradecimiento,
+    </p>
+
+    <div class="firma">
+        <div>Atentamente,</div>
+        <div class="nombre" th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</div>
+        <div th:text="${cliente.numeroIdentificacion}">0000000000</div>
+        <div th:if="${cliente.estadoMilitar != null}">
+            <strong>MILITAR EN SERVICIO ACTIVO</strong>
+        </div>
+    </div>
 </body>
 </html>
