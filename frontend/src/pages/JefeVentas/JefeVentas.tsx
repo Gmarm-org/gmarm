@@ -8,6 +8,7 @@ import { useJefeVentasExport } from './hooks/useJefeVentasExport';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import ImportGroupManagement from './components/ImportGroupManagement';
+import GestionImportaciones from '../../components/shared/GestionImportaciones';
 import ClientForm from '../Vendedor/components/ClientForm';
 import WeaponListContent from '../Admin/WeaponManagement/WeaponListContent';
 import WeaponCategoryList from '../Admin/WeaponManagement/WeaponCategoryList';
@@ -39,7 +40,7 @@ interface ClienteConVendedor extends Client {
 
 const JefeVentas: React.FC = () => {
   const { user } = useAuth();
-  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'series' | 'reasignar-armas' | 'armas' | 'categorias'>('clientes');
+  const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'gestion-importaciones' | 'series' | 'reasignar-armas' | 'armas' | 'categorias'>('clientes');
   
   // Hook para exportación a Excel
   const { exportarClientesAExcel } = useJefeVentasExport();
@@ -794,6 +795,17 @@ const JefeVentas: React.FC = () => {
             }`}
           >
             📦 Importaciones
+          </button>
+
+          <button
+            onClick={() => setVistaActual('gestion-importaciones')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              vistaActual === 'gestion-importaciones'
+                ? 'bg-amber-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            ✅ Gestión Importaciones
           </button>
           
           {/* Pestaña de Reasignar Armas */}
@@ -2120,6 +2132,11 @@ const JefeVentas: React.FC = () => {
         {/* Contenido: Importaciones */}
         {vistaActual === 'importaciones' && (
           <ImportGroupManagement />
+        )}
+
+        {/* Contenido: Gestión de Importaciones */}
+        {vistaActual === 'gestion-importaciones' && (
+          <GestionImportaciones />
         )}
 
         {/* Contenido: Reasignar Armas */}

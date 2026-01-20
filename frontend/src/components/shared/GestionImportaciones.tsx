@@ -14,6 +14,7 @@ interface GrupoImportacionResumen {
   clientesDeportistas: number;
   totalClientes: number;
   fechaUltimaActualizacion: string;
+  estado?: string;
 }
 
 interface ClienteGrupo {
@@ -26,25 +27,103 @@ interface ClienteGrupo {
   documentosCompletos?: boolean;
 }
 
+interface ProcesoImportacion {
+  id: number;
+  etapa: string;
+  etapaLabel: string;
+  fechaPlanificada: string | null;
+  completado: boolean;
+  enAlerta: boolean;
+  diasRestantes: number | null;
+}
+
+const etapasOrden: string[] = [
+  'INGRESO_DOCUMENTACION',
+  'INSPECCION',
+  'RESOLUCION',
+  'PREVIA_IMPORTACION_INICIO',
+  'PREVIA_IMPORTACION_FINALIZADA',
+  'PAGO_FABRICA',
+  'AWB',
+  'GUIA_AVIANCA',
+  'AFORO',
+  'GUIA_LIBRE_TRANSITO',
+  'SALIDA_AEROPUERTO',
+  'LIBERACION_CUPO',
+  'LIQUIDACION'
+];
+
+const etiquetasEtapas: Record<string, string> = {
+  INGRESO_DOCUMENTACION: 'Ingreso Documentación',
+  INSPECCION: 'Inspección',
+  RESOLUCION: 'Resolución',
+  PREVIA_IMPORTACION_INICIO: 'Previa Importación Inicio',
+  PREVIA_IMPORTACION_FINALIZADA: 'Previa Importación Finalizada',
+  PAGO_FABRICA: 'Pago a Fábrica',
+  AWB: 'AWB',
+  GUIA_AVIANCA: 'Guía Avianca',
+  AFORO: 'Aforo',
+  GUIA_LIBRE_TRANSITO: 'Guía Libre Tránsito',
+  SALIDA_AEROPUERTO: 'Salida Aeropuerto',
+  LIBERACION_CUPO: 'Liberación Cupo',
+  LIQUIDACION: 'Liquidación'
+};
+
 const GestionImportaciones: React.FC = () => {
   const [grupos, setGrupos] = useState<GrupoImportacionResumen[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
+  const [procesosPorGrupo, setProcesosPorGrupo] = useState<Record<number, ProcesoImportacion[]>>({});
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<number | null>(null);
   const [clientesGrupo, setClientesGrupo] = useState<ClienteGrupo[]>([]);
   const [mostrarModalPago, setMostrarModalPago] = useState<number | null>(null);
   const [mostrarModalAutorizacion, setMostrarModalAutorizacion] = useState<number | null>(null);
   const [mostrarModalDocumento, setMostrarModalDocumento] = useState<number | null>(null);
-  const [procesando, setProcesando] = useState(false);
+  const [alertasProceso, setAlertasProceso] = useState<Array<{
+    grupoImportacionId: number;
+    grupoNombre: string;
+    etapaLabel?: string;
+    fechaPlanificada?: string;
+    diasRestantes?: number;
+  }>>([]);
 
   useEffect(() => {
     cargarGrupos();
-  }, []);
+  }, [page]);
 
   const cargarGrupos = async () => {
     setLoading(true);
     try {
-      const data = await apiService.getGruposParaGestionImportaciones();
+      const response = await apiService.getGruposParaGestionImportaciones(page, pageSize);
+      const data = Array.isArray(response) ? response : (response as any)?.content || (response as any)?.data || [];
       setGrupos(data);
+      if (!Array.isArray(response) && (response as any)?.totalPages !== undefined) {
+        setTotalPages((response as any).totalPages || 1);
+      } else {
+        setTotalPages(1);
+      }
+
+      const procesosData: Record<number, ProcesoImportacion[]> = {};
+      await Promise.all(
+        data.map(async (grupo: GrupoImportacionResumen) => {
+          try {
+            const procesos = await apiService.getProcesosGrupoImportacion(grupo.grupoId);
+            procesosData[grupo.grupoId] = Array.isArray(procesos) ? procesos : [];
+          } catch (error) {
+            console.warn('No se pudo cargar procesos para grupo', grupo.grupoId, error);
+            procesosData[grupo.grupoId] = [];
+          }
+        })
+      );
+      setProcesosPorGrupo(procesosData);
+      try {
+        const alertas = await apiService.getAlertasProcesosImportacion();
+        setAlertasProceso(Array.isArray(alertas) ? alertas : []);
+      } catch (error) {
+        console.warn('No se pudieron cargar alertas de procesos:', error);
+      }
     } catch (error) {
       console.error('Error cargando grupos:', error);
       alert('Error al cargar los grupos de importación');
@@ -60,6 +139,26 @@ const GestionImportaciones: React.FC = () => {
     } catch (error) {
       console.error('Error cargando clientes del grupo:', error);
       alert('Error al cargar los clientes del grupo');
+    }
+  };
+
+  const actualizarProceso = async (grupoId: number, etapa: string, cambios: Partial<ProcesoImportacion>) => {
+    try {
+      const updates = [
+        {
+          etapa,
+          fechaPlanificada: cambios.fechaPlanificada ?? null,
+          completado: typeof cambios.completado === 'boolean' ? cambios.completado : null
+        }
+      ];
+      const data = await apiService.actualizarProcesosGrupoImportacion(grupoId, updates);
+      setProcesosPorGrupo((prev) => ({
+        ...prev,
+        [grupoId]: Array.isArray(data) ? data : prev[grupoId]
+      }));
+    } catch (error) {
+      console.error('Error actualizando proceso:', error);
+      alert('No se pudo actualizar el proceso');
     }
   };
 
@@ -91,8 +190,13 @@ const GestionImportaciones: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">📦 Gestión de Importaciones</h2>
+          {alertasProceso.length > 0 && (
+            <div className="mt-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
+              ⚠️ {alertasProceso.length} alerta(s) de procesos pendientes con fecha cercana.
+            </div>
+          )}
           <p className="text-sm text-gray-600 mt-1">
-            Grupos en estados avanzados: Notificar Agente Aduanero o Esperando Documentos
+            Lista de grupos de importación activos
           </p>
         </div>
         <button
@@ -105,120 +209,120 @@ const GestionImportaciones: React.FC = () => {
 
       {grupos.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No hay grupos de importación en gestión avanzada</p>
+          <p className="text-gray-500 text-lg">No hay grupos de importación creados</p>
           <p className="text-gray-400 text-sm mt-2">
-            Los grupos aparecerán aquí cuando estén en estado "Notificar Agente Aduanero" o "Esperando Documentos"
+            Los grupos aparecerán aquí cuando sean creados
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {grupos.map((grupo) => (
-            <div key={grupo.grupoId} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{grupo.grupoNombre}</h3>
-                  <p className="text-sm text-gray-500">Código: {grupo.grupoCodigo}</p>
-                  <p className="text-sm text-gray-500">
-                    Última actualización: {grupo.fechaUltimaActualizacion 
-                      ? new Date(grupo.fechaUltimaActualizacion).toLocaleDateString('es-ES')
-                      : '-'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {/* TODO: Obtener estado real del grupo desde el backend */}
-                  <button
-                    onClick={() => {
-                      setGrupoSeleccionado(grupo.grupoId);
-                      cargarClientesGrupo(grupo.grupoId);
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                  >
-                    Ver Detalle
-                  </button>
-                </div>
-              </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detalle</th>
+                {etapasOrden.map((etapa) => (
+                  <th key={etapa} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {etiquetasEtapas[etapa] || etapa}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {grupos.map((grupo) => {
+                const procesos = procesosPorGrupo[grupo.grupoId] || [];
+                const procesosMap = new Map(procesos.map((p) => [p.etapa, p]));
+                const estadoGrupo = grupo.estado;
+                const checklistHabilitado = estadoGrupo && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estadoGrupo);
 
-              {/* Resumen de clientes */}
-              <div className="grid grid-cols-5 gap-4 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{grupo.clientesCiviles}</div>
-                  <div className="text-xs text-gray-600">Civiles</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{grupo.clientesUniformados}</div>
-                  <div className="text-xs text-gray-600">Uniformados</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{grupo.clientesEmpresas}</div>
-                  <div className="text-xs text-gray-600">Empresas</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{grupo.clientesDeportistas}</div>
-                  <div className="text-xs text-gray-600">Deportistas</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-800">{grupo.totalClientes}</div>
-                  <div className="text-xs text-gray-600">Total</div>
-                </div>
-              </div>
+                return (
+                  <React.Fragment key={grupo.grupoId}>
+                    <tr>
+                      <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">
+                        <div className="font-semibold">{grupo.grupoNombre}</div>
+                        <div className="text-xs text-gray-500">{grupo.grupoCodigo}</div>
+                        <div className="text-xs text-gray-400">
+                          Última actualización: {grupo.fechaUltimaActualizacion
+                            ? new Date(grupo.fechaUltimaActualizacion).toLocaleDateString('es-ES')
+                            : '-'}
+                        </div>
+                      </td>
+                      {etapasOrden.map((etapa) => {
+                        const proceso = procesosMap.get(etapa);
+                        return (
+                          <td key={etapa} className="px-3 py-2 text-center">
+                            <input
+                              type="checkbox"
+                              checked={!!proceso?.completado}
+                              disabled={!checklistHabilitado}
+                              onChange={(event) => actualizarProceso(grupo.grupoId, etapa, { completado: event.target.checked })}
+                              className="h-4 w-4 text-blue-600 disabled:opacity-50"
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="px-3 py-2 text-xs text-gray-500">Fecha límite</td>
+                      {etapasOrden.map((etapa) => {
+                        const proceso = procesosMap.get(etapa);
+                        return (
+                          <td key={etapa} className="px-3 py-2 text-center">
+                            <input
+                              type="date"
+                              value={proceso?.fechaPlanificada ?? ''}
+                              disabled={!checklistHabilitado}
+                              onChange={(event) => actualizarProceso(grupo.grupoId, etapa, { fechaPlanificada: event.target.value || null })}
+                              className="border border-gray-300 rounded px-2 py-1 text-xs disabled:bg-gray-100 disabled:text-gray-400"
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-              {/* Acciones rápidas */}
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={async () => {
-                    setMostrarModalPago(grupo.grupoId);
-                    // Cargar clientes si no están cargados
-                    if (clientesGrupo.length === 0) {
-                      await cargarClientesGrupo(grupo.grupoId);
-                    }
-                  }}
-                  className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
-                >
-                  💰 Registrar Pagos
-                </button>
-                <button
-                  onClick={() => setMostrarModalDocumento(grupo.grupoId)}
-                  className="px-3 py-1 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700"
-                >
-                  📄 Cargar Documento Comando Conjunto
-                </button>
-                <button
-                  onClick={async () => {
-                    setMostrarModalAutorizacion(grupo.grupoId);
-                    // Cargar clientes si no están cargados
-                    if (clientesGrupo.length === 0) {
-                      await cargarClientesGrupo(grupo.grupoId);
-                    }
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                >
-                  📋 Generar Autorizaciones
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!confirm('¿Confirmas cambiar el estado del grupo a "Notificar Agente Aduanero"?')) {
-                      return;
-                    }
-                    try {
-                      setProcesando(true);
-                      await apiService.notificarAgenteAduanero(grupo.grupoId);
-                      alert('Estado del grupo actualizado exitosamente');
-                      cargarGrupos();
-                    } catch (error: any) {
-                      console.error('Error cambiando estado:', error);
-                      alert(error.message || 'Error al cambiar el estado del grupo');
-                    } finally {
-                      setProcesando(false);
-                    }
-                  }}
-                  disabled={procesando}
-                  className="px-3 py-1 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 disabled:bg-gray-400"
-                >
-                  {procesando ? 'Procesando...' : '📢 Notificar Agente Aduanero'}
-                </button>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6">
+          <button
+            onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+            disabled={page === 0}
+            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm disabled:opacity-50"
+          >
+            ← Anterior
+          </button>
+          <div className="text-sm text-gray-600">
+            Página {page + 1} de {totalPages}
+          </div>
+          <button
+            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
+            disabled={page >= totalPages - 1}
+            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm disabled:opacity-50"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
+      {alertasProceso.length > 0 && (
+        <div className="mt-6 border border-red-200 rounded-lg p-4 bg-red-50">
+          <h3 className="text-sm font-semibold text-red-700 mb-2">Alertas de procesos pendientes</h3>
+          <div className="space-y-2 text-sm text-gray-700">
+            {alertasProceso.map((alerta) => (
+              <div key={`${alerta.grupoImportacionId}-${alerta.etapaLabel || alerta.fechaPlanificada}`} className="flex flex-wrap gap-2">
+                <span className="font-medium">{alerta.grupoNombre}</span>
+                <span>• {alerta.etapaLabel || 'Proceso'}</span>
+                {alerta.fechaPlanificada && <span>• {alerta.fechaPlanificada}</span>}
+                {alerta.diasRestantes !== undefined && alerta.diasRestantes !== null && (
+                  <span className="text-red-600">• {alerta.diasRestantes} días</span>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

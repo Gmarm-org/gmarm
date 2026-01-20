@@ -3,6 +3,7 @@ package com.armasimportacion.service;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.DocumentoCliente;
 import com.armasimportacion.model.Licencia;
+import com.armasimportacion.dto.AlertaProcesoImportacionDTO;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.RespuestaCliente;
 import lombok.RequiredArgsConstructor;
@@ -328,6 +329,38 @@ public class EmailService {
         } catch (Exception e) {
             log.error("❌ Error inesperado enviando documentos generados a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar documentos generados: " + e.getMessage(), e);
+        }
+    }
+
+    public void enviarAlertasProcesoImportacion(String email, String nombreDestinatario, List<AlertaProcesoImportacionDTO> alertas) {
+        if (email == null || email.trim().isEmpty() || alertas == null || alertas.isEmpty()) {
+            return;
+        }
+
+        log.info("📧 Enviando alertas de proceso de importación a: {}", email);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(getFromEmail(), fromName);
+            helper.setTo(email.trim());
+            helper.setSubject("Alertas de procesos de importación - GMARM");
+
+            Context context = new Context();
+            context.setVariable("nombreDestinatario", nombreDestinatario);
+            context.setVariable("alertas", alertas);
+
+            String htmlContent = templateEngine.process("email/alerta-proceso-importacion", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("✅ Alertas enviadas exitosamente a: {}", email);
+        } catch (MessagingException e) {
+            log.error("❌ Error enviando alertas a {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Error al enviar alertas de proceso: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("❌ Error inesperado enviando alertas a {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Error inesperado al enviar alertas: " + e.getMessage(), e);
         }
     }
 

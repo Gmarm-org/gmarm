@@ -568,6 +568,20 @@ CREATE TABLE IF NOT EXISTS grupo_importacion (
     CONSTRAINT chk_tipo_grupo CHECK (tipo_grupo IN ('CUPO', 'JUSTIFICATIVO'))
 );
 
+-- Tabla de procesos del grupo de importación (checklist)
+CREATE TABLE IF NOT EXISTS grupo_importacion_proceso (
+    id BIGSERIAL PRIMARY KEY,
+    grupo_importacion_id BIGINT NOT NULL REFERENCES grupo_importacion(id) ON DELETE CASCADE,
+    etapa VARCHAR(50) NOT NULL,
+    fecha_planificada DATE,
+    completado BOOLEAN DEFAULT false,
+    fecha_completado TIMESTAMP,
+    fecha_ultima_alerta TIMESTAMP,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(grupo_importacion_id, etapa)
+);
+
 COMMENT ON COLUMN grupo_importacion.tipo_proceso_id IS 
     'Tipo de proceso (opcional). Los grupos pueden tener cualquier tipo de cliente';
 COMMENT ON COLUMN grupo_importacion.numero_previa_importacion IS 
@@ -1044,6 +1058,7 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 ('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago válidos en el sistema', true),
 ('MAX_CUOTAS_PERMITIDAS', '6', 'máximo número de cuotas permitidas', true),
 ('MIN_MONTO_CUOTA', '100.00', 'Monto minimo por cuota', true),
+('DIAS_ALERTA_PROCESO_IMPORTACION', '7', 'Días de anticipación para alertas de procesos de importación', true),
 -- Configuración de EXPOFERIA eliminada - ya no se usa en el sistema
 ('COORDINADOR_NOMBRE', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar', true),
 ('COORDINADOR_CARGO', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar', true),
@@ -1716,6 +1731,7 @@ SELECT setval('licencia_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM licencia
 SELECT setval('grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion), 0), 1), true);
 SELECT setval('cliente_grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM cliente_grupo_importacion), 0), 1), true);
 SELECT setval('grupo_importacion_cupo_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_cupo), 0), 1), true);
+SELECT setval('grupo_importacion_proceso_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_proceso), 0), 1), true);
 SELECT setval('grupo_importacion_vendedor_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_vendedor), 0), 1), true);
 SELECT setval('grupo_importacion_limite_categoria_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM grupo_importacion_limite_categoria), 0), 1), true);
 SELECT setval('documento_grupo_importacion_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM documento_grupo_importacion), 0), 1), true);

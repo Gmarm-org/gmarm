@@ -1,0 +1,17 @@
+package com.armasimportacion.enums;
+
+public enum EtapaProcesoImportacion {
+    INGRESO_DOCUMENTACION,
+    INSPECCION,
+    RESOLUCION,
+    PREVIA_IMPORTACION_INICIO,
+    PREVIA_IMPORTACION_FINALIZADA,
+    PAGO_FABRICA,
+    AWB,
+    GUIA_AVIANCA,
+    AFORO,
+    GUIA_LIBRE_TRANSITO,
+    SALIDA_AEROPUERTO,
+    LIBERACION_CUPO,
+    LIQUIDACION
+}

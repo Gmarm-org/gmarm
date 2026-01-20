@@ -99,6 +99,7 @@ const ImportGroupManagement: React.FC = () => {
       });
       setPuedeDefinirPedido(puedeDefinirMap);
       setMotivoDefinirPedido(motivoMap);
+
     } catch (error: any) {
       if (error?.message?.includes('404') || error?.message?.includes('Not Found')) {
         setGrupos([]);
@@ -346,7 +347,7 @@ const ImportGroupManagement: React.FC = () => {
                         >
                           👁️ Ver
                         </button>
-                        
+
                         {/* Botón Editar */}
                         <button
                           onClick={() => setGrupoAEditar(resumen.grupoId)}
@@ -427,6 +428,7 @@ const ImportGroupManagement: React.FC = () => {
           </div>
         )}
       </div>
+
 
       {grupoSeleccionado && (
         <GrupoImportacionDetalleModal

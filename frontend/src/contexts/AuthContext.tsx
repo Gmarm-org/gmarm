@@ -76,6 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('activeRole', rolCodigo);
         }
       }
+
+      try {
+        await revisarAlertasProcesosImportacion();
+      } catch (alertError) {
+        console.warn('No se pudieron cargar alertas de procesos al iniciar sesión:', alertError);
+      }
       
     } catch (error: unknown) {
       console.error('Error en login:', error);
@@ -94,6 +100,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('activeRole');
       setUser(null);
       setActiveRoleState(null);
+    }
+  }, []);
+
+  const revisarAlertasProcesosImportacion = useCallback(async () => {
+    const hoy = new Date().toISOString().split('T')[0];
+    const ultimaAlerta = localStorage.getItem('ultimaAlertaProcesoImportacion');
+    if (ultimaAlerta === hoy) {
+      return;
+    }
+    const alertas = await apiService.getAlertasProcesosImportacion();
+    if (Array.isArray(alertas) && alertas.length > 0) {
+      localStorage.setItem('ultimaAlertaProcesoImportacion', hoy);
+      alert(`⚠️ Hay ${alertas.length} proceso(s) de importación con fecha cercana y sin completar. Revisa la pestaña de Importaciones.`);
     }
   }, []);
 
@@ -145,6 +164,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                       localStorage.removeItem('activeRole');
                     }
                   }
+                  try {
+                    await revisarAlertasProcesosImportacion();
+                  } catch (alertError) {
+                    console.warn('No se pudieron cargar alertas de procesos al iniciar sesión:', alertError);
+                  }
             }
           } catch (authError) {
             console.error('Token inválido o expirado:', authError);
@@ -174,7 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, []); // Sin dependencias - solo se ejecuta una vez
+  }, [getApiService, revisarAlertasProcesosImportacion]); // Inicialización de auth y alertas
 
   // Manejo de inactividad - cerrar sesión después de 10 minutos sin actividad
   useEffect(() => {

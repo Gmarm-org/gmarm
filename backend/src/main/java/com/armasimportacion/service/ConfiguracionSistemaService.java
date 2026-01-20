@@ -182,7 +182,8 @@ public class ConfiguracionSistemaService {
             crearConfiguracion("MAX_INTENTOS_LOGIN", "3", "Máximo intentos de login antes de bloquear", false),
             crearConfiguracion("TIPOS_PAGO_VALIDOS", "CONTADO,CUOTAS", "Tipos de pago válidos en el sistema", false),
             crearConfiguracion("MAX_CUOTAS_PERMITIDAS", "6", "Máximo número de cuotas permitidas", false),
-            crearConfiguracion("MIN_MONTO_CUOTA", "100.00", "Monto mínimo por cuota", false)
+            crearConfiguracion("MIN_MONTO_CUOTA", "100.00", "Monto mínimo por cuota", false),
+            crearConfiguracion("DIAS_ALERTA_PROCESO_IMPORTACION", "7", "Días de anticipación para alertas de procesos de importación", true)
         );
         
         repository.saveAll(configuraciones);

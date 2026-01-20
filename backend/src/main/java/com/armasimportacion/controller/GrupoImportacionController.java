@@ -2,6 +2,9 @@ package com.armasimportacion.controller;
 
 import com.armasimportacion.dto.GrupoImportacionResumenDTO;
 import com.armasimportacion.dto.GrupoImportacionCreateDTO;
+import com.armasimportacion.dto.AlertaProcesoImportacionDTO;
+import com.armasimportacion.dto.GrupoImportacionProcesoDTO;
+import com.armasimportacion.dto.GrupoImportacionProcesoUpdateDTO;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +13,7 @@ import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.GrupoImportacionService;
+import com.armasimportacion.service.GrupoImportacionProcesoService;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.service.DocumentoClienteService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +39,7 @@ import java.util.Map;
 public class GrupoImportacionController {
 
     private final GrupoImportacionService grupoImportacionService;
+    private final GrupoImportacionProcesoService grupoImportacionProcesoService;
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
     private final DocumentoClienteService documentoClienteService;
@@ -58,6 +63,15 @@ public class GrupoImportacionController {
         return usuario.getId();
     }
 
+    private Long obtenerUsuarioIdOpcional(String authHeader, Long grupoId) {
+        try {
+            return obtenerUsuarioId(authHeader);
+        } catch (Exception e) {
+            log.warn("⚠️ Token no enviado en definir pedido, usando usuario creador del grupo {}", grupoId);
+            return grupoImportacionService.obtenerGrupoImportacion(grupoId).getUsuarioCreador().getId();
+        }
+    }
+
     /**
      * Define el pedido para un grupo de importación
      * Genera el PDF "Pedido_Armas_Grupo_Importacion_AAAA_MM_DD" y cambia el estado
@@ -67,11 +81,10 @@ public class GrupoImportacionController {
                description = "Genera el documento PDF del pedido y cambia el estado del grupo a SOLICITAR_PROFORMA_FABRICA")
     public ResponseEntity<Map<String, Object>> definirPedido(
             @PathVariable @NotNull @Positive Long id,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
             log.info("📋 Definiendo pedido para grupo ID: {}", id);
-            
-            Long usuarioId = obtenerUsuarioId(authHeader);
+            Long usuarioId = obtenerUsuarioIdOpcional(authHeader, id);
             
             DocumentoGenerado documento = grupoImportacionService.definirPedido(id, usuarioId);
             
@@ -229,6 +242,42 @@ public class GrupoImportacionController {
     }
 
     /**
+     * Obtiene el checklist de procesos por grupo
+     */
+    @GetMapping("/{id}/procesos")
+    @Operation(summary = "Obtener procesos de importación",
+               description = "Obtiene el checklist de procesos para un grupo de importación")
+    public ResponseEntity<List<GrupoImportacionProcesoDTO>> obtenerProcesosPorGrupo(
+            @PathVariable @NotNull @Positive Long id) {
+        List<GrupoImportacionProcesoDTO> procesos = grupoImportacionProcesoService.obtenerProcesosPorGrupo(id);
+        return ResponseEntity.ok(procesos);
+    }
+
+    /**
+     * Actualiza el checklist de procesos por grupo
+     */
+    @PatchMapping("/{id}/procesos")
+    @Operation(summary = "Actualizar procesos de importación",
+               description = "Actualiza checklist de procesos para un grupo de importación")
+    public ResponseEntity<List<GrupoImportacionProcesoDTO>> actualizarProcesosPorGrupo(
+            @PathVariable @NotNull @Positive Long id,
+            @RequestBody List<GrupoImportacionProcesoUpdateDTO> updates) {
+        List<GrupoImportacionProcesoDTO> procesos = grupoImportacionProcesoService.actualizarProcesos(id, updates);
+        return ResponseEntity.ok(procesos);
+    }
+
+    /**
+     * Evalúa alertas de procesos cercanos y registra notificaciones
+     */
+    @GetMapping("/alertas-proceso")
+    @Operation(summary = "Obtener alertas de procesos",
+               description = "Evalúa procesos con fechas próximas y devuelve alertas")
+    public ResponseEntity<List<AlertaProcesoImportacionDTO>> obtenerAlertasProcesos() {
+        List<AlertaProcesoImportacionDTO> alertas = grupoImportacionProcesoService.evaluarAlertasProcesos();
+        return ResponseEntity.ok(alertas);
+    }
+
+    /**
      * Obtiene el resumen de un grupo de importación con conteo de clientes por tipo
      */
     @GetMapping("/{id}/resumen")
@@ -326,29 +375,22 @@ public class GrupoImportacionController {
 
     /**
      * Lista grupos de importación para Gestión de Importaciones (Finanzas/Jefe de Ventas)
-     * Solo grupos con estado NOTIFICAR_AGENTE_ADUANERO o EN_ESPERA_DOCUMENTOS_CLIENTE
+     * Incluye todos los grupos activos
      */
     @GetMapping("/gestion-importaciones")
     @Operation(summary = "Listar grupos para Gestión de Importaciones", 
-               description = "Obtiene la lista de grupos de importación en estados avanzados para Finanzas/Jefe de Ventas")
-    public ResponseEntity<List<GrupoImportacionResumenDTO>> listarParaGestionImportaciones() {
+               description = "Obtiene la lista paginada de grupos de importación activos para Finanzas/Jefe de Ventas")
+    public ResponseEntity<Page<GrupoImportacionResumenDTO>> listarParaGestionImportaciones(Pageable pageable) {
         try {
             log.info("📋 Listando grupos para Gestión de Importaciones");
             
-            // Obtener todos los grupos activos
-            List<com.armasimportacion.model.GrupoImportacion> grupos = 
-                grupoImportacionService.obtenerGruposActivos();
+            // Obtener grupos paginados
+            Page<com.armasimportacion.model.GrupoImportacion> grupos =
+                grupoImportacionService.findAll(pageable);
             
-            // Filtrar solo los que están en estados avanzados
-            List<com.armasimportacion.model.GrupoImportacion> gruposGestion = grupos.stream()
-                .filter(g -> g.getEstado() == EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO ||
-                            g.getEstado() == EstadoGrupoImportacion.EN_ESPERA_DOCUMENTOS_CLIENTE)
-                .toList();
-            
-            // Convertir a resúmenes
-            List<GrupoImportacionResumenDTO> resumenes = gruposGestion.stream()
-                .map(g -> grupoImportacionService.obtenerResumenGrupo(g.getId()))
-                .toList();
+            Page<GrupoImportacionResumenDTO> resumenes = grupos.map(g ->
+                grupoImportacionService.obtenerResumenGrupo(g.getId())
+            );
             
             return ResponseEntity.ok(resumenes);
         } catch (Exception e) {

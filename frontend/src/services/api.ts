@@ -626,6 +626,27 @@ class ApiService {
     return this.request<GrupoImportacion>(`/api/grupos-importacion/${id}`);
   }
 
+  async getProcesosGrupoImportacion(id: number): Promise<any[]> {
+    return this.request<any[]>(`/api/grupos-importacion/${id}/procesos`);
+  }
+
+  async actualizarProcesosGrupoImportacion(
+    id: number,
+    updates: Array<{ etapa: string; fechaPlanificada?: string | null; completado?: boolean | null }>
+  ): Promise<any[]> {
+    return this.request<any[]>(`/api/grupos-importacion/${id}/procesos`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async getAlertasProcesosImportacion(): Promise<any[]> {
+    return this.request<any[]>(`/api/grupos-importacion/alertas-proceso`);
+  }
+
   async createGrupoImportacion(grupoData: Partial<GrupoImportacion>): Promise<GrupoImportacion> {
     return this.request<GrupoImportacion>('/api/grupos-importacion', {
       method: 'POST',
@@ -770,7 +791,7 @@ class ApiService {
     return this.request(`/api/grupos-importacion/${grupoId}/resumen`);
   }
 
-  async getGruposParaGestionImportaciones(): Promise<Array<{
+  async getGruposParaGestionImportaciones(page: number = 0, size: number = 20): Promise<ApiResponse<Array<{
     grupoId: number;
     grupoNombre: string;
     grupoCodigo: string;
@@ -780,8 +801,12 @@ class ApiService {
     clientesDeportistas: number;
     totalClientes: number;
     fechaUltimaActualizacion: string;
-  }>> {
-    return this.request<Array<{
+    estado?: string;
+  }>>> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    return this.request<ApiResponse<Array<{
       grupoId: number;
       grupoNombre: string;
       grupoCodigo: string;
@@ -791,7 +816,8 @@ class ApiService {
       clientesDeportistas: number;
       totalClientes: number;
       fechaUltimaActualizacion: string;
-    }>>('/api/grupos-importacion/gestion-importaciones');
+      estado?: string;
+    }>>>(`/api/grupos-importacion/gestion-importaciones?${params.toString()}`);
   }
 
   async notificarAgenteAduanero(grupoId: number): Promise<{ message: string }> {

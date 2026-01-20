@@ -524,6 +524,10 @@ public class GrupoImportacionService {
     public Page<GrupoImportacion> findAll(Pageable pageable) {
         return grupoImportacionRepository.findAll(pageable);
     }
+
+    public List<GrupoImportacion> findAll() {
+        return grupoImportacionRepository.findAll();
+    }
     
     public GrupoImportacion findById(Long id) {
         return grupoImportacionRepository.findById(id)
@@ -581,7 +585,10 @@ public class GrupoImportacionService {
     
     // Business Logic
     public List<GrupoImportacion> obtenerGruposActivos() {
-        return grupoImportacionRepository.findGruposActivosParaAsignacion();
+        return grupoImportacionRepository.findAll().stream()
+            .filter(grupo -> grupo.getEstado() != EstadoGrupoImportacion.COMPLETADO)
+            .filter(grupo -> grupo.getEstado() != EstadoGrupoImportacion.CANCELADO)
+            .collect(Collectors.toList());
     }
     
     /**
@@ -1023,6 +1030,7 @@ public class GrupoImportacionService {
                 .fechaUltimaActualizacion(grupo.getFechaActualizacion() != null ? 
                     grupo.getFechaActualizacion().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : 
                     grupo.getFechaCreacion().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .estado(grupo.getEstado() != null ? grupo.getEstado().name() : null)
                 .cupoCivilTotal(cupoCivilTotal)
                 .cupoCivilDisponible(cupoCivilDisponible)
                 .cupoCivilRestante(cupoCivilRestante)

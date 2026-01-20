@@ -19,6 +19,7 @@ public class GrupoImportacionResumenDTO {
     private Integer clientesDeportistas;
     private Integer totalClientes;
     private String fechaUltimaActualizacion;
+    private String estado;
     
     // Información de cupos civiles (el más crítico)
     private Integer cupoCivilTotal; // Total de cupo civil (25)

@@ -105,8 +105,14 @@ public class DocumentoController {
             Resource resource = new FileSystemResource(archivo);
             
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + documento.getNombreArchivo() + "\"");
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/pdf");
+            String nombreArchivo = documento.getNombreArchivo() != null ? documento.getNombreArchivo() : "documento";
+            boolean esExcel = nombreArchivo.toLowerCase().endsWith(".xlsx");
+            String contentType = esExcel
+                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : "application/pdf";
+            String disposition = esExcel ? "attachment" : "inline";
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + nombreArchivo + "\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, contentType);
             // Permitir que se muestre en iframes del mismo origen
             headers.add("X-Frame-Options", "SAMEORIGIN");
             headers.add("Content-Security-Policy", "frame-ancestors 'self'");
@@ -116,7 +122,7 @@ public class DocumentoController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentLength(archivo.length())
-                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentType(MediaType.parseMediaType(contentType))
                     .body(resource);
                     
         } catch (Exception e) {
@@ -160,8 +166,14 @@ public class DocumentoController {
             Resource resource = new FileSystemResource(archivo);
             
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + documento.getNombreArchivo() + "\"");
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/pdf");
+            String nombreArchivo = documento.getNombreArchivo() != null ? documento.getNombreArchivo() : "documento";
+            boolean esExcel = nombreArchivo.toLowerCase().endsWith(".xlsx");
+            String contentType = esExcel
+                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : "application/pdf";
+            String disposition = esExcel ? "attachment" : "inline";
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + nombreArchivo + "\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, contentType);
             // Permitir que se muestre en iframes del mismo origen
             headers.add("X-Frame-Options", "SAMEORIGIN");
             headers.add("Content-Security-Policy", "frame-ancestors 'self'");
@@ -171,7 +183,7 @@ public class DocumentoController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentLength(archivo.length())
-                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentType(MediaType.parseMediaType(contentType))
                     .body(resource);
                     
         } catch (Exception e) {
