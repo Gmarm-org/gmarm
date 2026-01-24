@@ -136,9 +136,9 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
         </div>
 
         {/* Rango - Solo para uniformados */}
-        {isUniformadoByType && (
+        {(isUniformadoByType || isMilitaryType || isPoliceType) && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Rango (Opcional)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Rango *</label>
             {mode === 'view' ? (
               <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
                 {formData.rango || 'No especificado'}
@@ -148,6 +148,7 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
                 type="text"
                 value={formData.rango}
                 onChange={(e) => handleInputChange('rango', e.target.value.toUpperCase())}
+                required
                 placeholder="Ej: TENIENTE, CAPITÁN, MAYOR, etc."
                 maxLength={100}
                 style={{ textTransform: 'uppercase' }}
@@ -352,10 +353,12 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
           )}
         </div>
 
-        {/* Estado Militar - Solo para uniformados */}
-        {isUniformadoByType && (
+        {/* Estado Militar/Policial - Solo para uniformados */}
+        {(isUniformadoByType || isMilitaryType || isPoliceType) && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Estado Militar *</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {isPoliceType ? 'Estado Policial' : 'Estado Militar'} *
+            </label>
             {mode === 'view' ? (
               <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-medium">
                 {formData.estadoMilitar || 'No especificado'}
@@ -432,7 +435,7 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
         )}
 
         {/* Mensaje informativo para uniformados en estado pasivo */}
-        {isUniformadoByType && formData.estadoMilitar === 'PASIVO' && (
+        {(isUniformadoByType || isMilitaryType || isPoliceType) && formData.estadoMilitar === 'PASIVO' && (
           <div className="md:col-span-2">
             <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
               <div className="flex items-start">
@@ -442,11 +445,11 @@ export const ClientPersonalDataSection: React.FC<ClientPersonalDataSectionProps>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-yellow-800 mb-2">Proceso como Cliente Civil</h3>
+                  <h3 className="text-lg font-semibold text-yellow-800 mb-2">Proceso como Cliente Civil (Uniformado Pasivo)</h3>
                   <p className="text-yellow-700">
-                    Al estar en estado pasivo, el proceso continuará como cliente Civil. 
+                    Al estar en estado pasivo, el proceso continuará como cliente Civil (militar o policial).
                     Se aplicarán las preguntas y documentos correspondientes a clientes Civiles.
-                    El código ISSFA es obligatorio.
+                    {isPoliceType ? ' El código ISSPOL es obligatorio.' : ' El código ISSFA es obligatorio.'}
                   </p>
                 </div>
               </div>

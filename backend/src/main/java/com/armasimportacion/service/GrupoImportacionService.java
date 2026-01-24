@@ -26,6 +26,8 @@ import com.armasimportacion.model.CategoriaArma;
 import com.armasimportacion.model.TipoCliente;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoClienteGrupo;
+import com.armasimportacion.enums.EstadoMilitar;
+import com.armasimportacion.enums.EstadoCliente;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -981,9 +983,7 @@ public class GrupoImportacionService {
         for (ClienteGrupoImportacion cgi : clientesGrupo) {
             Cliente cliente = cgi.getCliente();
             if (cliente.getTipoCliente() != null) {
-                if (cliente.getTipoCliente().esCivil() || 
-                    (cliente.getTipoCliente().esMilitar() && cliente.getEstadoMilitar() != null && 
-                     cliente.getEstadoMilitar().name().equals("PASIVO"))) {
+                if (esClienteCivilParaCupo(cliente)) {
                     civiles++;
                 } else if (cliente.getTipoCliente().esUniformado() && 
                           cliente.getEstadoMilitar() != null && 
@@ -1035,6 +1035,27 @@ public class GrupoImportacionService {
                 .cupoCivilDisponible(cupoCivilDisponible)
                 .cupoCivilRestante(cupoCivilRestante)
                 .build();
+    }
+
+    private boolean esClienteCivilParaCupo(Cliente cliente) {
+        if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            return true;
+        }
+        TipoCliente tipoCliente = cliente.getTipoCliente();
+        if (tipoCliente == null) {
+            return false;
+        }
+        return tipoCliente.esCivil() ||
+               tipoCliente.esDeportista() ||
+               (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                cliente.getEstadoMilitar().name().equals("PASIVO"));
+    }
+
+    private boolean esClienteGrupoContable(ClienteGrupoImportacion cgi) {
+        return cgi.getEstado() == EstadoClienteGrupo.PENDIENTE ||
+               cgi.getEstado() == EstadoClienteGrupo.CONFIRMADO ||
+               cgi.getEstado() == EstadoClienteGrupo.APROBADO ||
+               cgi.getEstado() == EstadoClienteGrupo.EN_PROCESO;
     }
 
     // ============================================================
@@ -1269,29 +1290,13 @@ public class GrupoImportacionService {
                     
                     // Contar clientes CONFIRMADOS con armas de esta categoría en este grupo
                     long clientesConfirmadosConCategoria = clienteGrupoRepository.findByGrupoImportacionId(grupo.getId()).stream()
-                        .filter(cgi -> cgi.getEstado() == EstadoClienteGrupo.CONFIRMADO ||
-                                      cgi.getEstado() == EstadoClienteGrupo.APROBADO ||
-                                      cgi.getEstado() == EstadoClienteGrupo.EN_PROCESO)
-                        .filter(cgi -> {
-                            Cliente c = cgi.getCliente();
-                            TipoCliente tc = c.getTipoCliente();
-                            
-                            // Solo contar CIVILES, DEPORTISTAS y UNIFORMADOS PASIVOS
-                            if (tc == null) return false;
-                            if (tc.esCivil()) return true;
-                            if (tc.esDeportista()) return true;
-                            if (tc.esUniformado() && c.getEstadoMilitar() != null && 
-                                c.getEstadoMilitar().name().equals("PASIVO")) {
-                                return true;
-                            }
-                            return false;
-                        })
-                        .filter(cgi -> {
-                            // Verificar si el cliente tiene armas de esta categoría
-                            return clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
-                                .anyMatch(ca -> ca.getArma().getCategoria().getId().equals(categoriaArmaId));
-                        })
-                        .count();
+                        .filter(this::esClienteGrupoContable)
+                        .filter(cgi -> esClienteCivilParaCupo(cgi.getCliente()))
+                        .mapToLong(cgi -> clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
+                            .filter(ca -> ca.getArma().getCategoria().getId().equals(categoriaArmaId))
+                            .mapToInt(ca -> ca.getCantidad() != null ? ca.getCantidad() : 1)
+                            .sum())
+                        .sum();
                     
                     // Verificar si hay cupo disponible
                     if (clientesConfirmadosConCategoria >= limiteMaximo) {
@@ -1509,6 +1514,80 @@ public class GrupoImportacionService {
         
         return false;
     }
+
+    private boolean esTipoCompatibleConGrupo(TipoCliente tipoCliente, EstadoMilitar estadoMilitar, GrupoImportacion grupo) {
+        if (tipoCliente == null) {
+            return false;
+        }
+
+        String tipoGrupo = grupo.getTipoGrupo();
+        if (tipoGrupo == null) {
+            tipoGrupo = "CUPO";
+        }
+
+        if ("CUPO".equals(tipoGrupo)) {
+            if (tipoCliente.esCivil() || tipoCliente.esDeportista()) {
+                return true;
+            }
+            if (tipoCliente.esUniformado()) {
+                return estadoMilitar == null || estadoMilitar == EstadoMilitar.PASIVO;
+            }
+            return false;
+        }
+
+        if ("JUSTIFICATIVO".equals(tipoGrupo)) {
+            if (tipoCliente.esEmpresa() || tipoCliente.esDeportista()) {
+                return true;
+            }
+            if (tipoCliente.esUniformado()) {
+                return estadoMilitar == null || estadoMilitar == EstadoMilitar.ACTIVO;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existeGrupoDisponibleParaVendedorPorTipo(Long vendedorId, TipoCliente tipoCliente, EstadoMilitar estadoMilitar) {
+        Usuario vendedor = usuarioRepository.findById(vendedorId)
+            .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
+
+        List<GrupoImportacionVendedor> asignacionesVendedor = grupoImportacionVendedorRepository.findByVendedor(vendedor);
+        if (asignacionesVendedor.isEmpty()) {
+            return false;
+        }
+
+        return asignacionesVendedor.stream()
+            .filter(GrupoImportacionVendedor::getActivo)
+            .map(GrupoImportacionVendedor::getGrupoImportacion)
+            .filter(grupo -> grupo.getEstado() == EstadoGrupoImportacion.EN_PREPARACION
+                || grupo.getEstado() == EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES)
+            .anyMatch(grupo -> esTipoCompatibleConGrupo(tipoCliente, estadoMilitar, grupo));
+    }
+
+    public String obtenerTipoGrupoRequerido(TipoCliente tipoCliente, EstadoMilitar estadoMilitar) {
+        if (tipoCliente == null) {
+            return null;
+        }
+
+        if (tipoCliente.esEmpresa()) {
+            return "JUSTIFICATIVO";
+        }
+
+        if (tipoCliente.esUniformado()) {
+            if (estadoMilitar == null) {
+                return null;
+            }
+            return estadoMilitar == EstadoMilitar.ACTIVO ? "JUSTIFICATIVO" : "CUPO";
+        }
+
+        if (tipoCliente.esCivil() || tipoCliente.esDeportista()) {
+            return "CUPO";
+        }
+
+        return null;
+    }
     
     /**
      * Asigna automáticamente un cliente a un grupo disponible del vendedor
@@ -1620,35 +1699,13 @@ public class GrupoImportacionService {
             // - DEPORTISTAS
             // - UNIFORMADOS en PASIVO
             long clientesConfirmadosConCategoria = clienteGrupoRepository.findByGrupoImportacionId(grupoId).stream()
-                .filter(cgi -> cgi.getEstado() == EstadoClienteGrupo.CONFIRMADO ||
-                              cgi.getEstado() == EstadoClienteGrupo.APROBADO ||
-                              cgi.getEstado() == EstadoClienteGrupo.EN_PROCESO)
-                .filter(cgi -> {
-                    Cliente cliente = cgi.getCliente();
-                    TipoCliente tipoCliente = cliente.getTipoCliente();
-                    
-                    // Solo contar clientes CIVILES, DEPORTISTAS o UNIFORMADOS PASIVOS
-                    boolean esClienteValidoParaLimites = false;
-                    if (tipoCliente != null) {
-                        if (tipoCliente.esCivil()) {
-                            esClienteValidoParaLimites = true;
-                        } else if (tipoCliente.esDeportista()) {
-                            esClienteValidoParaLimites = true;
-                        } else if (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                                   cliente.getEstadoMilitar().name().equals("PASIVO")) {
-                            esClienteValidoParaLimites = true;
-                        }
-                    }
-                    
-                    if (!esClienteValidoParaLimites) {
-                        return false; // No contar este cliente para los límites
-                    }
-                    
-                    // Verificar si el cliente tiene armas de esta categoría
-                    return clienteArmaRepository.findByClienteId(cliente.getId()).stream()
-                        .anyMatch(ca -> ca.getArma().getCategoria().getId().equals(categoriaId));
-                })
-                .count();
+                .filter(this::esClienteGrupoContable)
+                .filter(cgi -> esClienteCivilParaCupo(cgi.getCliente()))
+                .mapToLong(cgi -> clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
+                    .filter(ca -> ca.getArma().getCategoria().getId().equals(categoriaId))
+                    .mapToInt(ca -> ca.getCantidad() != null ? ca.getCantidad() : 1)
+                    .sum())
+                .sum();
             
             int disponibles = Math.max(0, limiteMaximo - (int)clientesConfirmadosConCategoria);
             cuposDisponibles.put(categoriaId, disponibles);

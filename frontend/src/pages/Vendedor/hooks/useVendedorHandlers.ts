@@ -18,6 +18,7 @@ export const useVendedorHandlers = (
   setClientFormMode: (mode: 'create' | 'edit' | 'view') => void,
   setSelectedClient: (client: Client | null) => void,
   setSelectedWeapon: (weapon: any | null) => void,
+  setSelectedWeapons: (weapons: any[]) => void,
   setPrecioModificado: (precio: number) => void,
   setCantidad: (cantidad: number) => void,
   setClientFilter: (filter: string | null) => void,
@@ -43,6 +44,7 @@ export const useVendedorHandlers = (
   
   // Funciones externas
   loadClients: (page?: number) => Promise<void>,
+  loadWeapons: () => Promise<void>,
   mapearProvinciaACodigo: (nombre: string, provincias: Array<{codigo: string, nombre: string}>) => string,
   mapearCodigoANombreProvincia: (codigo: string, provincias: Array<{codigo: string, nombre: string}>) => string,
   provinciasCompletas: Array<{codigo: string, nombre: string}>,
@@ -60,28 +62,31 @@ export const useVendedorHandlers = (
     setClientFormMode('create');
     setSelectedClient(null);
     setSelectedWeapon(null);
+    setSelectedWeapons([]);
     setPrecioModificado(0);
     setCantidad(1);
-  }, [setCurrentPage, setClientFormMode, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad]);
+  }, [setCurrentPage, setClientFormMode, setSelectedClient, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad]);
 
   const handleAssignWeaponWithoutClient = useCallback(() => {
     setCurrentPage('weaponSelection');
     setSelectedClient(null);
     setSelectedWeapon(null);
+    setSelectedWeapons([]);
     setPrecioModificado(0);
     setCantidad(1);
-  }, [setCurrentPage, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad]);
+  }, [setCurrentPage, setSelectedClient, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad]);
 
   const handleClientSaved = useCallback(async (_client: Client) => {
     setClientFilter(null);
     setSelectedClient(null);
     setSelectedWeapon(null);
+    setSelectedWeapons([]);
     setPrecioModificado(0);
     setCantidad(1);
     setCurrentPage('dashboard');
     setClientFormMode('create');
     await loadClients();
-  }, [setClientFilter, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad, setCurrentPage, setClientFormMode, loadClients]);
+  }, [setClientFilter, setSelectedClient, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad, setCurrentPage, setClientFormMode, loadClients]);
 
   const handleClienteBloqueado = useCallback((clientId: string, bloqueado: boolean, motivo: string) => {
     if (bloqueado) {
@@ -107,9 +112,10 @@ export const useVendedorHandlers = (
     setClientFormMode('create');
     setSelectedClient(null);
     setSelectedWeapon(null);
+    setSelectedWeapons([]);
     setPrecioModificado(0);
     setCantidad(1);
-  }, [setCurrentPage, setClientFormMode, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad]);
+  }, [setCurrentPage, setClientFormMode, setSelectedClient, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad]);
 
   const handleWeaponSelected = useCallback((weapon: any | null) => {
     if (weapon) {
@@ -128,6 +134,7 @@ export const useVendedorHandlers = (
         }
       }
       setSelectedWeapon(weapon);
+      setSelectedWeapons([{ ...weapon, cantidad: 1, precioUnitario: precioAUsar }]);
       setPrecioModificado(precioAUsar);
       setCantidad(1);
       if (selectedClient) {
@@ -138,6 +145,7 @@ export const useVendedorHandlers = (
       }
     } else {
       setSelectedWeapon(null);
+      setSelectedWeapons([]);
       setPrecioModificado(0);
       setCantidad(1);
       if (selectedClient) {
@@ -148,7 +156,7 @@ export const useVendedorHandlers = (
         });
       }
     }
-  }, [selectedClient, clientWeaponAssignments, selectedWeapon, weaponPrices, setSelectedWeapon, setPrecioModificado, setCantidad, setClientWeaponAssignments]);
+  }, [selectedClient, clientWeaponAssignments, selectedWeapon, weaponPrices, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad, setClientWeaponAssignments]);
 
   const handlePriceChange = useCallback((weaponId: number, newPrice: number) => {
     setWeaponPrices(prev => ({ ...prev, [weaponId]: newPrice }));
@@ -195,9 +203,10 @@ export const useVendedorHandlers = (
     setCurrentPage('dashboard');
     setSelectedClient(null);
     setSelectedWeapon(null);
+    setSelectedWeapons([]);
     setPrecioModificado(0);
     setCantidad(1);
-  }, [selectedClient, selectedWeapon, precioModificado, cantidad, setClientWeaponAssignments, setCurrentPage, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad]);
+  }, [selectedClient, selectedWeapon, precioModificado, cantidad, setClientWeaponAssignments, setCurrentPage, setSelectedClient, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad]);
 
   const handleClientDataConfirm = useCallback((formData: any) => {
     const respuestasMapeadas = formData.respuestas?.map((respuesta: any) => {
@@ -225,9 +234,10 @@ export const useVendedorHandlers = (
       setClientFormData(selectedClient);
     }
     
-    // Detectar si viene con múltiples armas (para Cliente Civil)
+    // Detectar si viene con múltiples armas
     const armasMultiples = data?.armas && Array.isArray(data.armas) && data.armas.length > 0;
-    const armasParaReservar = armasMultiples ? data.armas : (selectedWeapon ? [selectedWeapon] : []);
+    const armasParaReservar = armasMultiples ? data.armas : (selectedWeapon ? [{ ...selectedWeapon, cantidad }] : []);
+    setSelectedWeapons(armasParaReservar);
     
     // Si no hay cliente ni datos del cliente, usar el cliente fantasma del vendedor
     if (!clientFormData && !selectedClient) {
@@ -250,18 +260,26 @@ export const useVendedorHandlers = (
         
         // Crear reservas para todas las armas seleccionadas
         for (const arma of armasParaReservar) {
-          const precioTotal = precioModificado * cantidad;
+          const precioUnitario = arma.precioUnitario !== undefined
+            ? arma.precioUnitario
+            : (weaponPrices[arma.id] !== undefined ? weaponPrices[arma.id] : precioModificado);
+          const cantidadArma = arma.cantidad !== undefined ? arma.cantidad : cantidad;
+          const precioTotal = precioUnitario * cantidadArma;
           await apiService.crearReservaArma(
             parseInt(clienteFantasma.id.toString()),
             parseInt(arma.id.toString()),
-            cantidad,
-            precioModificado,
+            cantidadArma,
+            precioUnitario,
             precioTotal
           );
         }
         
         console.log(`✅ ${armasParaReservar.length} arma(s) asignada(s) al cliente fantasma del vendedor.`);
         
+        // Refrescar datos y mostrar mensaje
+        await loadWeapons();
+        await loadClients();
+
         // Mostrar mensaje y volver al dashboard
         alert(`✅ ${armasParaReservar.length} arma(s) asignada(s) exitosamente. Las armas quedarán en tu stock.`);
         
@@ -293,12 +311,16 @@ export const useVendedorHandlers = (
         
         // Crear reservas para todas las armas seleccionadas
         for (const arma of armasParaReservar) {
-          const precioTotal = precioModificado * cantidad;
+          const precioUnitario = arma.precioUnitario !== undefined
+            ? arma.precioUnitario
+            : (weaponPrices[arma.id] !== undefined ? weaponPrices[arma.id] : precioModificado);
+          const cantidadArma = arma.cantidad !== undefined ? arma.cantidad : cantidad;
+          const precioTotal = precioUnitario * cantidadArma;
           await apiService.crearReservaArma(
             parseInt(clienteActual.id.toString()),
             parseInt(arma.id.toString()),
-            cantidad,
-            precioModificado,
+            cantidadArma,
+            precioUnitario,
             precioTotal
           );
         }
@@ -319,7 +341,7 @@ export const useVendedorHandlers = (
     
     // Siempre ir a paymentForm (expoferia eliminada)
     setCurrentPage('paymentForm');
-  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, user, setClientFormData, setSelectedClient, setCurrentPage]);
+  }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, user, loadClients, loadWeapons, weaponPrices, setClientFormData, setSelectedClient, setSelectedWeapons, setCurrentPage]);
 
   const handleBackToClientForm = useCallback(() => {
     if (clientFormData) {

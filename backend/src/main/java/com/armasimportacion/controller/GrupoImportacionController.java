@@ -6,6 +6,8 @@ import com.armasimportacion.dto.AlertaProcesoImportacionDTO;
 import com.armasimportacion.dto.GrupoImportacionProcesoDTO;
 import com.armasimportacion.dto.GrupoImportacionProcesoUpdateDTO;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
+import com.armasimportacion.enums.EstadoMilitar;
+import com.armasimportacion.enums.EstadoCliente;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -16,6 +18,8 @@ import com.armasimportacion.service.GrupoImportacionService;
 import com.armasimportacion.service.GrupoImportacionProcesoService;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.service.DocumentoClienteService;
+import com.armasimportacion.repository.ClienteArmaRepository;
+import com.armasimportacion.repository.TipoClienteRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +48,8 @@ public class GrupoImportacionController {
     private final JwtTokenProvider jwtTokenProvider;
     private final DocumentoClienteService documentoClienteService;
     private final com.armasimportacion.service.CategoriaArmaService categoriaArmaService;
+    private final ClienteArmaRepository clienteArmaRepository;
+    private final TipoClienteRepository tipoClienteRepository;
 
     /**
      * Obtiene el usuario actual desde el token JWT
@@ -477,14 +483,20 @@ public class GrupoImportacionController {
             
             List<Map<String, Object>> clientesDTO = clientesGrupo.stream().map(cg -> {
                 Map<String, Object> clienteMap = new HashMap<>();
+                boolean esClienteFantasma = cg.getCliente().getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE;
                 clienteMap.put("id", cg.getId());
                 clienteMap.put("clienteId", cg.getCliente().getId());
-                clienteMap.put("clienteNombres", cg.getCliente().getNombres());
-                clienteMap.put("clienteApellidos", cg.getCliente().getApellidos());
-                clienteMap.put("clienteCedula", cg.getCliente().getNumeroIdentificacion());
+                clienteMap.put("clienteNombres", esClienteFantasma ? "SIN CLIENTE" : cg.getCliente().getNombres());
+                clienteMap.put("clienteApellidos", esClienteFantasma ? "CIVIL" : cg.getCliente().getApellidos());
+                clienteMap.put("clienteCedula", esClienteFantasma ? "N/A" : cg.getCliente().getNumeroIdentificacion());
                 clienteMap.put("estado", cg.getEstado());
                 clienteMap.put("fechaAsignacion", cg.getFechaAsignacion());
                 clienteMap.put("fechaCreacion", cg.getFechaCreacion());
+
+                int totalArmas = clienteArmaRepository.findByClienteId(cg.getCliente().getId()).stream()
+                    .mapToInt(ca -> ca.getCantidad() != null ? ca.getCantidad() : 1)
+                    .sum();
+                clienteMap.put("totalArmas", totalArmas);
                 
                 // Incluir estado de documentos para referencia
                 boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(cg.getCliente().getId());
@@ -497,6 +509,71 @@ public class GrupoImportacionController {
         } catch (Exception e) {
             log.error("❌ Error obteniendo clientes del grupo ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/disponible-por-tipo")
+    @Operation(summary = "Verificar grupos disponibles por tipo de cliente",
+               description = "Valida si el vendedor tiene un grupo disponible según el tipo de cliente y estado militar")
+    public ResponseEntity<Map<String, Object>> verificarGrupoDisponiblePorTipo(
+            @RequestParam String tipoClienteCodigo,
+            @RequestParam(required = false) String estadoMilitar,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long usuarioId = obtenerUsuarioId(authHeader);
+
+            var tipoClienteOpt = tipoClienteRepository.findByCodigo(tipoClienteCodigo);
+            if (tipoClienteOpt.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Tipo de cliente inválido: " + tipoClienteCodigo));
+            }
+
+            EstadoMilitar estado = null;
+            if (estadoMilitar != null && !estadoMilitar.trim().isEmpty()) {
+                estado = EstadoMilitar.valueOf(estadoMilitar.trim().toUpperCase());
+            }
+
+            String tipoGrupoRequerido = grupoImportacionService.obtenerTipoGrupoRequerido(tipoClienteOpt.get(), estado);
+            boolean disponible;
+
+            if (estado == null && tipoClienteOpt.get().esUniformado()) {
+                boolean disponibleActivo = grupoImportacionService.existeGrupoDisponibleParaVendedorPorTipo(
+                    usuarioId, tipoClienteOpt.get(), EstadoMilitar.ACTIVO
+                );
+                boolean disponiblePasivo = grupoImportacionService.existeGrupoDisponibleParaVendedorPorTipo(
+                    usuarioId, tipoClienteOpt.get(), EstadoMilitar.PASIVO
+                );
+                disponible = disponibleActivo || disponiblePasivo;
+                if (!disponible) {
+                    tipoGrupoRequerido = null;
+                }
+            } else {
+                disponible = grupoImportacionService.existeGrupoDisponibleParaVendedorPorTipo(
+                    usuarioId, tipoClienteOpt.get(), estado
+                );
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("disponible", disponible);
+            response.put("tipoGrupoRequerido", tipoGrupoRequerido);
+            if (!disponible) {
+                if (estado == null && tipoClienteOpt.get().esUniformado()) {
+                    response.put("mensaje", "No existe grupo de tipo JUSTIFICATIVO ni CUPO para poder cargar el cliente.");
+                } else if (tipoGrupoRequerido != null) {
+                    response.put("mensaje", "No existe grupo de tipo " + tipoGrupoRequerido + " para poder cargar el cliente.");
+                } else {
+                    response.put("mensaje", "No hay grupos de importación disponibles para este tipo de cliente.");
+                }
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Estado militar inválido: " + estadoMilitar));
+        } catch (Exception e) {
+            log.error("❌ Error verificando grupos disponibles por tipo: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Error verificando disponibilidad de grupos"));
         }
     }
 

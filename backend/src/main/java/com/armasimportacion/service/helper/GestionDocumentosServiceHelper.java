@@ -65,13 +65,14 @@ public class GestionDocumentosServiceHelper {
             
             // Determinar si es civil o uniformado
             boolean esCivil = cliente.esCivil();
+            boolean esDeportista = cliente.esDeportista();
             boolean esUniformado = cliente.esMilitar() || cliente.esPolicia();
             
             log.info("📋 Tipo de cliente: Civil={}, Uniformado={}", esCivil, esUniformado);
             
-            if (esCivil) {
-                // CIVILES: Solo Solicitud de compra
-                log.info("📄 Generando Solicitud de compra para cliente CIVIL");
+            if (esCivil || esDeportista) {
+                // CIVILES y DEPORTISTAS: Solo Solicitud de compra
+                log.info("📄 Generando Solicitud de compra para cliente CIVIL/DEPORTISTA");
                 DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
                 documentosGenerados.add(solicitud);
             } else if (esUniformado) {
@@ -482,6 +483,18 @@ public class GestionDocumentosServiceHelper {
      * (Solo para uniformados - los civiles no generan contrato)
      */
     private String determinarTemplateContrato(Cliente cliente) {
+        if (cliente.getTipoCliente() == null || cliente.getTipoCliente().getNombre() == null) {
+            log.warn("⚠️ Tipo de cliente no definido, usando template de uniformados por defecto");
+            return determinarTemplateUniformado(cliente, "contrato_compra");
+        }
+
+        String nombreTipoCliente = cliente.getTipoCliente().getNombre();
+        if ("Compañía de Seguridad".equalsIgnoreCase(nombreTipoCliente)
+            || "Compania de Seguridad".equalsIgnoreCase(nombreTipoCliente)
+            || "Empresa Seguridad".equalsIgnoreCase(nombreTipoCliente)) {
+            return "contratos/companias/contrato_compania_seguridad";
+        }
+
         return determinarTemplateUniformado(cliente, "contrato_compra");
     }
     

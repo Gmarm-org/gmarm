@@ -479,6 +479,19 @@ public class ClienteCompletoService {
     private void asignarArmaAlCliente(Map<String, Object> requestData, Cliente cliente) {
         log.info("🔫 Paso 3: Asignando arma al cliente (POST - creación)");
         
+        List<Map<String, Object>> armasData = extraerDatosArmas(requestData);
+        if (armasData != null && !armasData.isEmpty()) {
+            for (Map<String, Object> armaData : armasData) {
+                var clienteArma = armasHelper.asignarArmaACliente(armaData, cliente);
+                if (clienteArma != null) {
+                    log.info("✅ Arma asignada: {}", clienteArma.getArma().getModelo());
+                } else {
+                    log.warn("⚠️ No se pudo asignar arma al cliente");
+                }
+            }
+            return;
+        }
+
         Map<String, Object> armaData = extraerDatosArma(requestData);
         if (armaData != null) {
             var clienteArma = armasHelper.asignarArmaACliente(armaData, cliente);
@@ -487,9 +500,10 @@ public class ClienteCompletoService {
             } else {
                 log.warn("⚠️ No se pudo asignar arma al cliente");
             }
-        } else {
-            log.info("📝 No hay datos de arma para asignar");
+            return;
         }
+
+        log.info("📝 No hay datos de arma para asignar");
     }
     
     /**
@@ -603,6 +617,14 @@ public class ClienteCompletoService {
         return Optional.ofNullable(requestData.get("arma"))
             .filter(obj -> obj instanceof Map)
             .map(obj -> (Map<String, Object>) obj)
+            .orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extraerDatosArmas(Map<String, Object> requestData) {
+        return Optional.ofNullable(requestData.get("armas"))
+            .filter(obj -> obj instanceof List)
+            .map(obj -> (List<Map<String, Object>>) obj)
             .orElse(null);
     }
 

@@ -9,6 +9,7 @@ import type { User } from '../../../types';
 export const useVendedorPaymentHandler = (
   clientFormData: any,
   selectedWeapon: any | null,
+  selectedWeapons: any[],
   precioModificado: number,
   cantidad: number,
   user: User | null,
@@ -19,6 +20,7 @@ export const useVendedorPaymentHandler = (
   setCurrentPage: (page: string) => void,
   setSelectedClient: (client: any) => void,
   setSelectedWeapon: (weapon: any | null) => void,
+  setSelectedWeapons: (weapons: any[]) => void,
   setPrecioModificado: (precio: number) => void,
   setCantidad: (cantidad: number) => void,
   setClientFormData: (data: any) => void
@@ -39,7 +41,10 @@ export const useVendedorPaymentHandler = (
       if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
-      if (!selectedWeapon) {
+      const armasSeleccionadas = (paymentData?.armas && Array.isArray(paymentData.armas) && paymentData.armas.length > 0)
+        ? paymentData.armas
+        : (selectedWeapons && selectedWeapons.length > 0 ? selectedWeapons : []);
+      if (!selectedWeapon && armasSeleccionadas.length === 0) {
         throw new Error('No hay arma seleccionada');
       }
       if (!paymentData) {
@@ -49,26 +54,34 @@ export const useVendedorPaymentHandler = (
       const clienteDataToSend = { ...clientFormData };
       delete clienteDataToSend.id;
       
+      const montoTotalCalculado = paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100;
       const pagoData = {
         clienteId: null,
-        montoTotal: paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100,
+        montoTotal: montoTotalCalculado,
         tipoPago: paymentData.tipoPago || 'CONTADO',
         numeroCuotas: paymentData.numeroCuotas || 1,
-        montoCuota: paymentData.montoPorCuota || Math.round((precioModificado * cantidad * 1.15) * 100) / 100,
+        montoCuota: paymentData.montoPorCuota || montoTotalCalculado,
         montoPagado: 0,
-        montoPendiente: paymentData.total || Math.round((precioModificado * cantidad * 1.15) * 100) / 100
+        montoPendiente: montoTotalCalculado
       };
       
       const numeroSerieDesdeRef = selectedSerieNumeroRef.current;
       const numeroSerieDesdePayment = paymentData.numeroSerie;
       const numeroSerieFinal = numeroSerieDesdeRef || numeroSerieDesdePayment || null;
       
-      const armaData = selectedWeapon ? {
-        armaId: selectedWeapon.id,
-        cantidad: cantidad,
-        precioUnitario: precioModificado,
-        numeroSerie: numeroSerieFinal
-      } : null;
+      const armaData = armasSeleccionadas.length > 1
+        ? null
+        : (selectedWeapon ? {
+          armaId: selectedWeapon.id,
+          cantidad: cantidad,
+          precioUnitario: precioModificado,
+          numeroSerie: numeroSerieFinal
+        } : (armasSeleccionadas.length === 1 ? {
+          armaId: armasSeleccionadas[0].armaId ?? armasSeleccionadas[0].id,
+          cantidad: armasSeleccionadas[0].cantidad ?? 1,
+          precioUnitario: armasSeleccionadas[0].precioUnitario ?? precioModificado,
+          numeroSerie: numeroSerieFinal
+        } : null));
       
       const documentosUsuario = clientFormData.uploadedDocuments || {};
       
@@ -126,6 +139,7 @@ export const useVendedorPaymentHandler = (
           precioUnitario: armaData.precioUnitario,
           numeroSerie: armaData.numeroSerie
         } : null,
+        armas: armasSeleccionadas,
         respuestas: (clientFormData.respuestas || []).map((respuesta: any) => ({
           ...respuesta,
           preguntaId: respuesta.questionId || respuesta.preguntaId || respuesta.id
@@ -161,10 +175,13 @@ export const useVendedorPaymentHandler = (
         alert('🎉 ¡Proceso completado exitosamente! Cliente, arma, plan de pago creados y contrato enviado por email.');
       }
       
+      // El backend asigna todas las armas enviadas en requestData.armas
+
       await loadClients(0);
       setCurrentPage('dashboard');
       setSelectedClient(null);
       setSelectedWeapon(null);
+      setSelectedWeapons([]);
       setPrecioModificado(0);
       setCantidad(1);
       setClientFormData(null);
@@ -191,7 +208,7 @@ export const useVendedorPaymentHandler = (
       // Liberar el flag de procesamiento
       (handlePaymentComplete as any).isProcessing = false;
     }
-  }, [clientFormData, selectedWeapon, precioModificado, cantidad, user, selectedSerieNumeroRef, mapearProvinciaACodigo, provinciasCompletas, loadClients, setCurrentPage, setSelectedClient, setSelectedWeapon, setPrecioModificado, setCantidad, setClientFormData]);
+  }, [clientFormData, selectedWeapon, selectedWeapons, precioModificado, cantidad, user, selectedSerieNumeroRef, mapearProvinciaACodigo, provinciasCompletas, loadClients, setCurrentPage, setSelectedClient, setSelectedWeapon, setSelectedWeapons, setPrecioModificado, setCantidad, setClientFormData]);
 
   return { handlePaymentComplete };
 };

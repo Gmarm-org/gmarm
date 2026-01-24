@@ -107,15 +107,15 @@ public class ClienteFormularioController {
     }
 
     /**
-     * Determina el tipo de proceso considerando el estado militar
-     * Si es militar PASIVO, se trata como civil
+     * Determina el tipo de proceso considerando el estado militar/policial
+     * Si es uniformado PASIVO, se trata como civil
      */
     private Long determinarTipoProcesoConEstadoMilitar(com.armasimportacion.model.TipoCliente tipoCliente, String estadoMilitar) {
         boolean esPasivo = "PASIVO".equals(estadoMilitar);
         
-        // Si es tipo militar pero está PASIVO, se trata como civil
-        if (tipoCliente.esMilitar() && esPasivo) {
-            log.info("Cliente tipo militar {} con estado PASIVO - tratando como civil", tipoCliente.getNombre());
+        // Si es uniformado pero está PASIVO, se trata como civil
+        if (tipoCliente.esUniformado() && esPasivo) {
+            log.info("Cliente uniformado {} con estado PASIVO - tratando como civil", tipoCliente.getNombre());
             return TipoProceso.CUPO_CIVIL.getId();
         }
         

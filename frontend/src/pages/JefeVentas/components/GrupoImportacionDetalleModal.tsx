@@ -324,38 +324,54 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
               <p className="text-gray-500 text-center py-4">No hay clientes asignados a este grupo</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cédula</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombres</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Apellidos</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Documentos</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {clientes.map((cliente) => (
-                      <tr key={cliente.id}>
-                        <td className="px-4 py-2 text-sm">{cliente.clienteCedula}</td>
-                        <td className="px-4 py-2 text-sm">{cliente.clienteNombres}</td>
-                        <td className="px-4 py-2 text-sm">{cliente.clienteApellidos}</td>
-                        <td className="px-4 py-2 text-sm">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            {cliente.estado}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-sm">
-                          {cliente.documentosCompletos ? (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completos</span>
-                          ) : (
-                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Incompletos</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {(() => {
+                  const clientesExpandido = clientes.flatMap((cliente) => {
+                    const totalArmas = Math.max(1, Number(cliente.totalArmas) || 1);
+                    return Array.from({ length: totalArmas }, (_, index) => ({
+                      ...cliente,
+                      _armaIndex: index + 1,
+                      _armaTotal: totalArmas
+                    }));
+                  });
+                  return (
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cédula</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombres</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Apellidos</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arma</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Documentos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {clientesExpandido.map((cliente) => (
+                          <tr key={`${cliente.id}-${cliente._armaIndex}`}>
+                            <td className="px-4 py-2 text-sm">{cliente.clienteCedula}</td>
+                            <td className="px-4 py-2 text-sm">{cliente.clienteNombres}</td>
+                            <td className="px-4 py-2 text-sm">{cliente.clienteApellidos}</td>
+                            <td className="px-4 py-2 text-sm">
+                              {cliente._armaTotal > 1 ? `${cliente._armaIndex}/${cliente._armaTotal}` : '1'}
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                {cliente.estado}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              {cliente.documentosCompletos ? (
+                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completos</span>
+                              ) : (
+                                <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Incompletos</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
             )}
           </div>

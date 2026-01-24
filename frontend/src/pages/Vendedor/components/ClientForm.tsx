@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { validarEdadMinima } from '../../../utils/ageValidation';
@@ -58,8 +58,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
   onClienteBloqueado
 }) => {
   const { user } = useAuth();
-  const { getCodigoTipoCliente, esTipoMilitar, esTipoPolicia, esUniformado, requiereCodigoIssfa, debeTratarseComoCivilCuandoPasivo } = useTiposClienteConfig();
+  const { getCodigoTipoCliente, esTipoMilitar, esTipoPolicia, esUniformado, requiereCodigoIssfa, loading: tiposClienteLoading } = useTiposClienteConfig();
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
+  const lastGrupoCheckRef = useRef<string | null>(null);
 
   // Hooks refactorizados
   const {
@@ -111,22 +112,26 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Determinar si es empresa
   const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
   
+  const tipoClienteLower = (formData.tipoCliente || '').toLowerCase();
+  const isPoliceTypeFallback = tipoClienteLower.includes('polic');
+  const isMilitaryTypeFallback = tipoClienteLower.includes('militar');
+
   // Determinar si es uniformado basado en el tipo de cliente (militar O policía)
-  const isUniformadoByType = esUniformado(formData.tipoCliente);
+  const isUniformadoByType = esUniformado(formData.tipoCliente) || isPoliceTypeFallback || isMilitaryTypeFallback;
   
   // Determinar si es tipo militar específico que requiere código ISSFA (usando configuración dinámica)
-  const isMilitaryType = esTipoMilitar(formData.tipoCliente) && requiereCodigoIssfa(formData.tipoCliente);
+  const isMilitaryType = (esTipoMilitar(formData.tipoCliente) && requiereCodigoIssfa(formData.tipoCliente))
+    || isMilitaryTypeFallback;
   
   // Determinar si es tipo policía que requiere código ISSPOL
-  const isPoliceType = esTipoPolicia(formData.tipoCliente);
+  const isPoliceType = esTipoPolicia(formData.tipoCliente) || isPoliceTypeFallback;
   
   // Determinar si es uniformado en servicio activo basado en estado militar
   const isUniformado = isUniformadoByType && formData.estadoMilitar === 'ACTIVO';
 
   const isCivilByType = formData.tipoCliente === 'Civil' || formData.tipoCliente === 'Cliente Civil';
   const isUniformadoPasivoTratadoComoCivil = isUniformadoByType &&
-    formData.estadoMilitar === 'PASIVO' &&
-    debeTratarseComoCivilCuandoPasivo(formData.tipoCliente);
+    formData.estadoMilitar === 'PASIVO';
   const isCivil = isCivilByType || isUniformadoPasivoTratadoComoCivil;
 
   const isClientConfirmed = client?.emailVerificado === true;
@@ -176,6 +181,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
   }, [formData.tipoCliente, isMilitaryType, isPoliceType, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hooks para documentos y respuestas
+  const esTipoUniformadoParaForm = useCallback((tipo: string | undefined) => {
+    const tipoLower = (tipo || '').toLowerCase();
+    return esTipoMilitar(tipo) || esTipoPolicia(tipo) || tipoLower.includes('militar') || tipoLower.includes('polic');
+  }, [esTipoMilitar, esTipoPolicia]);
+
   const {
     requiredDocuments,
     uploadedDocuments,
@@ -191,7 +201,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     tipoClienteId,
     formData.tipoCliente,
     formData.estadoMilitar,
-    esTipoMilitar,
+    esTipoUniformadoParaForm,
     formData
   );
 
@@ -204,7 +214,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     tipoClienteId,
     formData.tipoCliente,
     formData.estadoMilitar,
-    esTipoMilitar,
+    esTipoUniformadoParaForm,
     formData.id?.toString(), // Convertir a string para el hook
     formData.respuestas,
     setFormData
@@ -217,6 +227,60 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   // Usar handleInputChange directamente del hook (ya incluye toda la lógica necesaria)
   const handleInputChange = handleInputChangeBase;
+
+  useEffect(() => {
+    if (mode !== 'create') {
+      return;
+    }
+
+    if (!formData.tipoCliente) {
+      return;
+    }
+
+    if (tiposClienteLoading) {
+      return;
+    }
+
+    let tipoClienteCodigo: string;
+    try {
+      tipoClienteCodigo = getCodigoTipoCliente(formData.tipoCliente);
+    } catch (error) {
+      return;
+    }
+
+    if (tipoClienteCodigo === 'CIV' || tipoClienteCodigo === 'DEP') {
+      return;
+    }
+
+    const estadoMilitar = formData.estadoMilitar || '';
+    const checkKey = `${tipoClienteCodigo}-${estadoMilitar}`;
+    if (lastGrupoCheckRef.current === checkKey) {
+      return;
+    }
+    lastGrupoCheckRef.current = checkKey;
+
+    const verificarDisponibilidad = async () => {
+      try {
+        const resultado = await apiService.verificarGrupoDisponiblePorTipo(
+          tipoClienteCodigo,
+          estadoMilitar || undefined
+        );
+
+        if (!resultado.disponible) {
+          const mensaje = resultado.mensaje
+            || (resultado.tipoGrupoRequerido
+              ? `No existe grupo de tipo ${resultado.tipoGrupoRequerido} para poder cargar el cliente.`
+              : 'No hay grupos de importación disponibles para este tipo de cliente.');
+          alert(`⚠️ ${mensaje}`);
+          onCancel();
+        }
+      } catch (error) {
+        console.error('Error verificando disponibilidad de grupos:', error);
+      }
+    };
+
+    verificarDisponibilidad();
+  }, [formData.tipoCliente, formData.estadoMilitar, mode, getCodigoTipoCliente, esUniformado, onCancel, tiposClienteLoading]);
   
   // Función para cargar datos adicionales del cliente
   const loadClientData = useCallback(async (clienteId: number) => {
@@ -1248,7 +1312,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               }
             }
             
-            if (documentErrors.length > 0) {
+            if (requiredDocuments.length > 0) {
               try {
                 const documentosActualizados = await apiService.getDocumentosCliente(parseInt(clienteId.toString()));
                 const documentosMap: Record<string, any> = {};
@@ -1274,8 +1338,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 }
               } catch (verificarError) {
                 console.error('❌ Error verificando documentos después de la carga:', verificarError);
-                alert(`⚠️ Cliente creado exitosamente, pero hubo problemas subiendo algunos documentos: ${documentErrors.join(', ')}. Puedes subirlos más tarde.`);
+                // Evitar falso positivo si la verificación falla pero los documentos fueron subidos
               }
+            } else if (documentErrors.length > 0) {
+              console.warn('⚠️ Hubo errores reportados al subir documentos, pero no hay documentos requeridos definidos.', documentErrors);
             } else {
               console.log('✅ Todos los documentos subidos exitosamente');
             }
@@ -1409,9 +1475,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
       }
     }
 
+    const isUniformadoValidacion = isUniformadoByType || isMilitaryType || isPoliceType;
     // Para uniformados, validar que tengan estado militar
-    if (isUniformadoByType) {
+    if (isUniformadoValidacion) {
       if (!formData.estadoMilitar) return false;
+      if (!formData.rango || !formData.rango.trim()) return false;
       
       // Validar código ISSFA para militares activos y pasivos
       if (isMilitaryType && (formData.estadoMilitar === 'ACTIVO' || formData.estadoMilitar === 'PASIVO')) {

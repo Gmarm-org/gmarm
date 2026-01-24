@@ -5,7 +5,8 @@ import { useIVA } from '../../../hooks/useConfiguracion';
 
 interface PaymentFormProps {
   client: Client;
-  selectedWeapon: Arma;
+  selectedWeapon?: Arma | null;
+  selectedWeapons?: Array<Arma & { cantidad?: number; precioUnitario?: number }>;
   precioModificado: number;
   cantidad: number;
   selectedSerieNumero?: string | null; // Número de serie seleccionado
@@ -22,6 +23,7 @@ interface CuotaData {
 const PaymentForm: React.FC<PaymentFormProps> = ({
   client,
   selectedWeapon,
+  selectedWeapons = [],
   precioModificado,
   cantidad,
   selectedSerieNumero,
@@ -36,11 +38,29 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   // Obtener IVA dinámicamente desde la BD
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
 
-  // Calcular montos
-  const subtotal = precioModificado * cantidad;
+  const weaponsForPayment = selectedWeapons.length > 0
+    ? selectedWeapons
+    : (selectedWeapon ? [{ ...selectedWeapon, cantidad, precioUnitario: precioModificado }] : []);
+
+  const subtotal = weaponsForPayment.reduce((sum, arma) => {
+    const cantidadArma = arma.cantidad ?? 1;
+    const precioUnitario = arma.precioUnitario ?? precioModificado;
+    return sum + (precioUnitario * cantidadArma);
+  }, 0);
   const ivaTotal = subtotal * ivaDecimal;
   const total = subtotal + ivaTotal;
   const montoPorCuota = tipoPago === 'CUOTAS' ? total / numeroCuotas : 0;
+
+  const distribuirMontosEnCuotas = (totalAmount: number, count: number): number[] => {
+    if (count <= 0) return [];
+    const totalCents = Math.round(totalAmount * 100);
+    const base = Math.floor(totalCents / count);
+    const remainder = totalCents - (base * count);
+    return Array.from({ length: count }, (_, index) => {
+      const cents = index === count - 1 ? base + remainder : base;
+      return Math.round(cents) / 100;
+    });
+  };
 
   // Generar cuotas cuando cambie el número de cuotas
   useEffect(() => {
@@ -48,6 +68,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       const nuevasCuotas: CuotaData[] = [];
       const fechaInicial = new Date();
       
+      const montos = distribuirMontosEnCuotas(total, numeroCuotas);
       for (let i = 0; i < numeroCuotas; i++) {
         const fechaCuota = new Date(fechaInicial);
         fechaCuota.setMonth(fechaCuota.getMonth() + i);
@@ -61,7 +82,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         nuevasCuotas.push({
           numeroCuota: i + 1,
           fecha: fechaString,
-          monto: Math.round(montoPorCuota * 100) / 100 // Redondear a 2 decimales
+          monto: montos[i] ?? 0
         });
       }
       
@@ -72,10 +93,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   // Actualizar monto por cuota cuando cambie el total
   useEffect(() => {
     if (tipoPago === 'CUOTAS' && cuotas.length > 0) {
-      const montoActualizado = total / numeroCuotas;
-      setCuotas(prev => prev.map(cuota => ({
+      const montos = distribuirMontosEnCuotas(total, numeroCuotas);
+      setCuotas(prev => prev.map((cuota, index) => ({
         ...cuota,
-        monto: Math.round(montoActualizado * 100) / 100 // Redondear a 2 decimales
+        monto: montos[index] ?? cuota.monto
       })));
     }
   }, [total, numeroCuotas, tipoPago]);
@@ -152,11 +173,18 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       }
     }
 
+    const armasPayload = weaponsForPayment.map((arma) => ({
+      armaId: parseInt(arma.id.toString()),
+      cantidad: arma.cantidad ?? 1,
+      precioUnitario: arma.precioUnitario ?? precioModificado
+    }));
+
     const paymentData = {
       clienteId: client ? parseInt(client.id) : null,
-      armaId: parseInt(selectedWeapon.id.toString()),
-      cantidad,
-      precioUnitario: precioModificado,
+      armaId: armasPayload.length === 1 ? armasPayload[0].armaId : null,
+      cantidad: armasPayload.length === 1 ? armasPayload[0].cantidad : cantidad,
+      precioUnitario: armasPayload.length === 1 ? armasPayload[0].precioUnitario : precioModificado,
+      armas: armasPayload,
       subtotal,
       iva: ivaTotal,
       total,
@@ -212,10 +240,23 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
                   {/* Información del arma */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-700">Arma Seleccionada</h3>
+                    <h3 className="text-lg font-semibold text-gray-700">Armas Seleccionadas</h3>
                     <div className="space-y-2">
-                      <p><span className="font-medium">Arma:</span> {selectedWeapon.modelo}</p>
-                      {selectedSerieNumero && (
+                      {weaponsForPayment.length === 0 && (
+                        <p className="text-red-500">⚠️ No hay armas seleccionadas</p>
+                      )}
+                      {weaponsForPayment.map((arma, index) => {
+                        const cantidadArma = arma.cantidad ?? 1;
+                        const precioUnitario = arma.precioUnitario ?? precioModificado;
+                        return (
+                          <div key={`${arma.id}-${index}`} className="border rounded-lg p-3 bg-gray-50">
+                            <p><span className="font-medium">Arma:</span> {arma.modelo}</p>
+                            <p><span className="font-medium">Cantidad:</span> {cantidadArma}</p>
+                            <p><span className="font-medium">Precio unitario:</span> ${precioUnitario.toFixed(2)}</p>
+                          </div>
+                        );
+                      })}
+                      {selectedSerieNumero && weaponsForPayment.length === 1 && (
                         <p className="flex items-center gap-2">
                           <span className="font-medium">Número de Serie:</span> 
                           <span className="font-mono bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm font-bold">
@@ -223,8 +264,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                           </span>
                         </p>
                       )}
-                      <p><span className="font-medium">Cantidad:</span> {cantidad}</p>
-                      <p><span className="font-medium">Precio unitario:</span> ${precioModificado.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>

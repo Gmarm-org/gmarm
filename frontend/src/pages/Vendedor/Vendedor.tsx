@@ -75,6 +75,7 @@ const Vendedor: React.FC = React.memo(() => {
     clientFormMode,
     availableWeapons,
     selectedWeapon,
+    selectedWeapons,
     precioModificado,
     cantidad,
     clientFormData,
@@ -778,6 +779,7 @@ const Vendedor: React.FC = React.memo(() => {
               reservaParaCliente={selectedClient as any}
               clienteParaResumen={selectedClient as any}
               armaSeleccionadaEnReserva={selectedWeapon}
+              selectedWeapons={selectedWeapons}
               isCreatingClient={!!clientFormData}
               tipoCliente={tipoClienteParaReserva}
               respuestas={clientFormData?.respuestas || []}
@@ -882,6 +884,7 @@ const Vendedor: React.FC = React.memo(() => {
             <PaymentForm
               client={clientData}
               selectedWeapon={selectedWeapon as any}
+              selectedWeapons={selectedWeapons as any}
               precioModificado={precioModificado}
               cantidad={cantidad}
               selectedSerieNumero={selectedSerieNumero}

@@ -724,6 +724,19 @@ class ApiService {
     return this.request<any[]>(`/api/grupos-importacion/${grupoId}/clientes`);
   }
 
+  async verificarGrupoDisponiblePorTipo(tipoClienteCodigo: string, estadoMilitar?: string): Promise<{
+    disponible: boolean;
+    mensaje?: string;
+    tipoGrupoRequerido?: string | null;
+  }> {
+    const params = new URLSearchParams();
+    params.append('tipoClienteCodigo', tipoClienteCodigo);
+    if (estadoMilitar) {
+      params.append('estadoMilitar', estadoMilitar);
+    }
+    return this.request(`/api/grupos-importacion/disponible-por-tipo?${params.toString()}`);
+  }
+
   async removerClienteDelGrupo(grupoId: number, clienteId: number): Promise<void> {
     await this.request(`/api/grupos-importacion/${grupoId}/clientes/${clienteId}`, {
       method: 'DELETE',

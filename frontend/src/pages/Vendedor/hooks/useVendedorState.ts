@@ -19,6 +19,7 @@ export const useVendedorState = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [availableWeapons, setAvailableWeapons] = useState<any[]>([]);
   const [selectedWeapon, setSelectedWeapon] = useState<any | null>(null);
+  const [selectedWeapons, setSelectedWeapons] = useState<any[]>([]);
   const [precioModificado, setPrecioModificado] = useState<number>(0);
   const [cantidad, setCantidad] = useState<number>(1);
   const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>>({});
@@ -67,6 +68,8 @@ export const useVendedorState = () => {
     setAvailableWeapons,
     selectedWeapon,
     setSelectedWeapon,
+    selectedWeapons,
+    setSelectedWeapons,
     precioModificado,
     setPrecioModificado,
     cantidad,

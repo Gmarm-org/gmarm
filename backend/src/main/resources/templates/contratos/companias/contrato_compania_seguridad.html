@@ -213,7 +213,7 @@
 
         <div>
             <span class="clause-title-bold">PRIMERA.-</span>
-            <span class="clause-content-inline">El Dr. José Luis Guerrero Martínez, vende en favor del <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, la cantidad de: UNA (1) pistola <span th:text="${arma.nombre}">CZ P09 C NOCTURNE</span> Total (1) arma.</span>
+            <span class="clause-content-inline">El Dr. José Luis Guerrero Martínez, vende en favor del <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, la cantidad de: <span th:text="${armasResumenTexto}">UNA (1) pistola CZ P 10 C</span> Total <span th:text="${cantidadArmasTexto}">01 arma</span>.</span>
         </div>
 
         <div class="clause-content">
