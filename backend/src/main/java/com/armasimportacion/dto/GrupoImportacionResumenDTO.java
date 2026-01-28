@@ -25,5 +25,10 @@ public class GrupoImportacionResumenDTO {
     private Integer cupoCivilTotal; // Total de cupo civil (25)
     private Integer cupoCivilDisponible; // Cupo civil disponible (25 - clientesCiviles)
     private Integer cupoCivilRestante; // Cuántos cupos faltan (igual a cupoCivilDisponible, pero más claro)
+    
+    // Información de series
+    private Integer totalArmasSolicitadas; // Total de armas en el pedido
+    private Integer seriesCargadas; // Series ya cargadas al grupo
+    private Integer seriesPendientes; // Armas que aún necesitan series (totalArmas - seriesCargadas)
 }
 

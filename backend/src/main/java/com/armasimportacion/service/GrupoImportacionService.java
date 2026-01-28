@@ -67,6 +67,7 @@ public class GrupoImportacionService {
     private final GrupoImportacionVendedorRepository grupoImportacionVendedorRepository;
     private final GrupoImportacionLimiteCategoriaRepository grupoImportacionLimiteCategoriaRepository;
     private final com.armasimportacion.repository.CategoriaArmaRepository categoriaArmaRepository;
+    private final com.armasimportacion.repository.ArmaSerieRepository armaSerieRepository;
     // CRUD Operations
     public GrupoImportacion crearGrupoDesdeDTO(GrupoImportacionCreateDTO dto, Long usuarioId) {
         log.info("Creando nuevo grupo de importación desde DTO: {}", dto.getNombre());
@@ -1018,6 +1019,29 @@ public class GrupoImportacionService {
             cupoCivilRestante = cupoCivilDisponible;
         }
         
+        // Calcular información de series
+        int totalArmasSolicitadas = 0;
+        int seriesCargadas = 0;
+        int seriesPendientes = 0;
+        
+        // Contar total de armas solicitadas (ClienteArma en estados RESERVADA o ASIGNADA)
+        for (ClienteGrupoImportacion cgi : clientesGrupo) {
+            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteIdAndEstado(
+                cgi.getCliente().getId(), 
+                ClienteArma.EstadoClienteArma.RESERVADA
+            );
+            armasCliente.addAll(clienteArmaRepository.findByClienteIdAndEstado(
+                cgi.getCliente().getId(), 
+                ClienteArma.EstadoClienteArma.ASIGNADA
+            ));
+            totalArmasSolicitadas += armasCliente.size();
+        }
+        
+        // Contar series cargadas al grupo
+        Long seriesCargadasLong = armaSerieRepository.countByGrupoImportacionId(grupoId);
+        seriesCargadas = seriesCargadasLong != null ? seriesCargadasLong.intValue() : 0;
+        seriesPendientes = Math.max(0, totalArmasSolicitadas - seriesCargadas);
+        
         return GrupoImportacionResumenDTO.builder()
                 .grupoId(grupo.getId())
                 .grupoNombre(grupo.getNombre())
@@ -1034,6 +1058,9 @@ public class GrupoImportacionService {
                 .cupoCivilTotal(cupoCivilTotal)
                 .cupoCivilDisponible(cupoCivilDisponible)
                 .cupoCivilRestante(cupoCivilRestante)
+                .totalArmasSolicitadas(totalArmasSolicitadas)
+                .seriesCargadas(seriesCargadas)
+                .seriesPendientes(seriesPendientes)
                 .build();
     }
 

@@ -37,9 +37,16 @@ const CargaMasivaSeries: React.FC = () => {
       const grupos = Array.isArray(response) ? response : (response as any)?.content || [];
       
       // Filtrar solo grupos que tengan pedido definido (estados posteriores a EN_PREPARACION)
+      // Y que AÚN necesiten series (seriesPendientes > 0)
       const gruposPedidoDefinido = grupos.filter((g: any) => {
         const estado = g.grupoEstado || g.estado;
-        return estado && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estado);
+        const tienePedidoDefinido = estado && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estado);
+        
+        // Verificar si aún necesita series
+        const seriesPendientes = g.seriesPendientes !== undefined ? g.seriesPendientes : 999; // Si no tiene el campo, asumir que necesita
+        const necesitaSeries = seriesPendientes > 0;
+        
+        return tienePedidoDefinido && necesitaSeries;
       });
       
       // Mapear a la estructura esperada por el componente (id, nombre, codigo)
@@ -48,7 +55,10 @@ const CargaMasivaSeries: React.FC = () => {
         nombre: g.grupoNombre || g.nombre,
         codigo: g.grupoCodigo || g.codigo,
         estado: g.grupoEstado || g.estado,
-        tipoGrupo: g.tipoGrupo
+        tipoGrupo: g.tipoGrupo,
+        totalArmasSolicitadas: g.totalArmasSolicitadas || 0,
+        seriesCargadas: g.seriesCargadas || 0,
+        seriesPendientes: g.seriesPendientes || 0
       }));
       
       setGruposDisponibles(gruposMapeados);
@@ -308,9 +318,12 @@ const CargaMasivaSeries: React.FC = () => {
           </option>
           {gruposDisponibles.map((grupo) => {
             const grupoAny = grupo as any;
+            const seriesInfo = grupoAny.seriesPendientes > 0 
+              ? ` (${grupoAny.seriesCargadas}/${grupoAny.totalArmasSolicitadas} series cargadas)`
+              : '';
             return (
               <option key={grupo.id} value={grupo.id}>
-                {grupoAny.codigo || grupoAny.nombre || `Grupo ${grupo.id}`} - {grupo.nombre}
+                {grupoAny.codigo || grupoAny.nombre || `Grupo ${grupo.id}`} - {grupo.nombre}{seriesInfo}
               </option>
             );
           })}
