@@ -238,21 +238,23 @@ public class DocumentoClienteService {
         // Obtener documentos cargados del cliente
         List<DocumentoCliente> documentosCargados = repository.findByClienteId(clienteId);
         
-        // Verificar que todos los tipos obligatorios tengan documentos CARGADOS (excluyendo los reemplazados)
+        // Verificar que todos los tipos obligatorios tengan documentos CARGADOS o APROBADOS (excluyendo los reemplazados)
         // CARGADO = documento subido por el vendedor, listo para verificar completitud
+        // APROBADO = documento validado y aprobado
         // PENDIENTE = documento NO cargado (falta subirlo)
         for (TipoDocumento tipoObligatorio : tiposObligatorios) {
             boolean tieneDocumentoCargado = documentosCargados.stream()
                 .filter(doc -> doc.getEstado() != DocumentoCliente.EstadoDocumento.REEMPLAZADO) // Excluir reemplazados
                 .anyMatch(doc -> {
                     boolean mismoTipo = doc.getTipoDocumento().getId().equals(tipoObligatorio.getId());
-                    // Solo CARGADO cuenta como válido. PENDIENTE significa que no está cargado.
-                    boolean estadoValido = doc.getEstado() == DocumentoCliente.EstadoDocumento.CARGADO;
+                    // Aceptar tanto CARGADO como APROBADO. PENDIENTE significa que no está cargado.
+                    boolean estadoValido = doc.getEstado() == DocumentoCliente.EstadoDocumento.CARGADO ||
+                                          doc.getEstado() == DocumentoCliente.EstadoDocumento.APROBADO;
                     return mismoTipo && estadoValido;
                 });
             
             if (!tieneDocumentoCargado) {
-                log.debug("❌ Falta documento obligatorio cargado: {} (ID: {})", tipoObligatorio.getNombre(), tipoObligatorio.getId());
+                log.debug("❌ Falta documento obligatorio cargado o aprobado: {} (ID: {})", tipoObligatorio.getNombre(), tipoObligatorio.getId());
                 return false;
             }
         }

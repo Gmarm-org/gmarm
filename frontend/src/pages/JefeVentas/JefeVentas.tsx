@@ -1788,7 +1788,10 @@ const JefeVentas: React.FC = () => {
                                               Cargando...
                                             </>
                                           ) : (
-                                            'Cargar Contrato Firmado'
+                                            contrato.nombreArchivo?.toLowerCase().includes('solicitud_compra') || 
+                                            contrato.nombreArchivo?.toLowerCase().includes('solicitud de compra')
+                                              ? 'Cargar Solicitud de Compra Firmada'
+                                              : 'Cargar Contrato Firmado'
                                           )}
                                         </button>
                                       </div>
