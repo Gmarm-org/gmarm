@@ -30,5 +30,7 @@ public class GrupoImportacionResumenDTO {
     private Integer totalArmasSolicitadas; // Total de armas en el pedido
     private Integer seriesCargadas; // Series ya cargadas al grupo
     private Integer seriesPendientes; // Armas que aún necesitan series (totalArmas - seriesCargadas)
+    private Integer seriesAsignadas; // Series asignadas a clientes (ClienteArma.ASIGNADA)
+    private Integer armasSinAsignar; // Armas que aún no tienen serie asignada
 }
 

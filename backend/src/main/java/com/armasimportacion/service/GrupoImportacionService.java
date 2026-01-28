@@ -1023,18 +1023,26 @@ public class GrupoImportacionService {
         int totalArmasSolicitadas = 0;
         int seriesCargadas = 0;
         int seriesPendientes = 0;
+        int seriesAsignadas = 0;
+        int armasSinAsignar = 0;
         
-        // Contar total de armas solicitadas (ClienteArma en estados RESERVADA o ASIGNADA)
+        // Contar total de armas solicitadas y asignadas
         for (ClienteGrupoImportacion cgi : clientesGrupo) {
-            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteIdAndEstado(
+            // Armas RESERVADAS (pendientes de asignar serie)
+            List<ClienteArma> armasReservadas = clienteArmaRepository.findByClienteIdAndEstado(
                 cgi.getCliente().getId(), 
                 ClienteArma.EstadoClienteArma.RESERVADA
             );
-            armasCliente.addAll(clienteArmaRepository.findByClienteIdAndEstado(
+            armasSinAsignar += armasReservadas.size();
+            
+            // Armas ASIGNADAS (ya tienen serie)
+            List<ClienteArma> armasAsignadas = clienteArmaRepository.findByClienteIdAndEstado(
                 cgi.getCliente().getId(), 
                 ClienteArma.EstadoClienteArma.ASIGNADA
-            ));
-            totalArmasSolicitadas += armasCliente.size();
+            );
+            seriesAsignadas += armasAsignadas.size();
+            
+            totalArmasSolicitadas += armasReservadas.size() + armasAsignadas.size();
         }
         
         // Contar series cargadas al grupo
@@ -1042,8 +1050,8 @@ public class GrupoImportacionService {
         seriesCargadas = seriesCargadasLong != null ? seriesCargadasLong.intValue() : 0;
         seriesPendientes = Math.max(0, totalArmasSolicitadas - seriesCargadas);
         
-        log.debug("📊 Grupo {}: {} armas solicitadas, {} series cargadas, {} pendientes", 
-            grupo.getCodigo(), totalArmasSolicitadas, seriesCargadas, seriesPendientes);
+        log.debug("📊 Grupo {}: {} armas solicitadas, {} series cargadas, {} asignadas, {} sin asignar", 
+            grupo.getCodigo(), totalArmasSolicitadas, seriesCargadas, seriesAsignadas, armasSinAsignar);
         
         return GrupoImportacionResumenDTO.builder()
                 .grupoId(grupo.getId())
@@ -1064,6 +1072,8 @@ public class GrupoImportacionService {
                 .totalArmasSolicitadas(totalArmasSolicitadas)
                 .seriesCargadas(seriesCargadas)
                 .seriesPendientes(seriesPendientes)
+                .seriesAsignadas(seriesAsignadas)
+                .armasSinAsignar(armasSinAsignar)
                 .build();
     }
 
