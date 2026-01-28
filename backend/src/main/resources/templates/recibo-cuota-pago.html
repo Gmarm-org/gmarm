@@ -209,7 +209,7 @@
             </div>
 
             <!-- Title -->
-            <div class="title">RECIBO DE RESERVA</div>
+            <div class="title">RECIBO DE RESERVA # <span th:text="${numeroRecibo}">RC-XXXX-X-XXXXXX</span></div>
 
             <!-- Date and Location -->
             <div class="date-location">
@@ -231,7 +231,7 @@
                     por <strong class="amount-highlight">$ <span th:text="${montoFormateado}">0.00</span></strong> 
                     (<span th:text="${montoEnLetras}">CERO CON 00/100</span> DÓLARES AMERICANOS), 
                     por concepto del pago <span th:if="${numeroCuota != null}">de la cuota <strong th:text="${numeroCuota}">X</strong></span> 
-                    antes de IVA, correspondiente a la reserva, para la importación de
+                    correspondiente a la reserva, para la importación de
                 </p>
 
                 <!-- Weapon Information -->
