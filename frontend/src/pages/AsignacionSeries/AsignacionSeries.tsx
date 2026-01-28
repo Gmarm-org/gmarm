@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiService, { GrupoImportacion } from '../../services/api';
+import apiService from '../../services/api';
 
 // DTO que coincide EXACTAMENTE con el backend ReservaPendienteDTO
 interface ReservaPendienteDTO {
