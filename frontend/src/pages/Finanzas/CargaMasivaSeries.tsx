@@ -42,10 +42,20 @@ const CargaMasivaSeries: React.FC = () => {
         return estado && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estado);
       });
       
-      setGruposDisponibles(gruposPedidoDefinido);
-      console.log('✅ Grupos con pedido definido cargados:', gruposPedidoDefinido.length);
+      // Mapear a la estructura esperada por el componente (id, nombre, codigo)
+      const gruposMapeados = gruposPedidoDefinido.map((g: any) => ({
+        id: g.grupoId || g.id,
+        nombre: g.grupoNombre || g.nombre,
+        codigo: g.grupoCodigo || g.codigo,
+        estado: g.grupoEstado || g.estado,
+        tipoGrupo: g.tipoGrupo
+      }));
       
-      if (gruposPedidoDefinido.length === 0) {
+      setGruposDisponibles(gruposMapeados);
+      console.log('✅ Grupos con pedido definido cargados:', gruposMapeados.length);
+      console.log('📋 Grupos disponibles:', gruposMapeados);
+      
+      if (gruposMapeados.length === 0) {
         console.warn('⚠️ No hay grupos con pedido definido. Los grupos deben estar en estado SOLICITAR_PROFORMA_FABRICA o posterior.');
       }
     } catch (error) {
