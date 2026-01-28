@@ -56,6 +56,31 @@ const CargaMasivaSeries: React.FC = () => {
     processExcelFile(file);
   };
 
+  // Helper para encontrar valor en el row con variaciones de nombre de columna
+  const findColumnValue = (row: any, ...possibleNames: string[]): string => {
+    // Normalizar función: quitar espacios, guiones bajos, convertir a minúsculas
+    const normalize = (str: string) => str.toLowerCase().replace(/[\s_-]/g, '');
+    
+    // Buscar primero coincidencia exacta
+    for (const name of possibleNames) {
+      if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+        return row[name];
+      }
+    }
+    
+    // Si no hay coincidencia exacta, buscar por coincidencia normalizada
+    const rowKeys = Object.keys(row);
+    for (const name of possibleNames) {
+      const normalizedName = normalize(name);
+      const matchingKey = rowKeys.find(key => normalize(key) === normalizedName);
+      if (matchingKey && row[matchingKey] !== undefined && row[matchingKey] !== null && row[matchingKey] !== '') {
+        return row[matchingKey];
+      }
+    }
+    
+    return '';
+  };
+
   const processExcelFile = (file: File) => {
     const reader = new FileReader();
     
@@ -68,13 +93,26 @@ const CargaMasivaSeries: React.FC = () => {
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-        // Mapear datos a nuestro formato
+        // Mapear datos a nuestro formato con búsqueda flexible
         const mappedData: SerieRow[] = jsonData.map((row: any) => ({
-          serialNumber: row['Serial number'] || row['serial_number'] || '',
-          model: row['Model'] || row['model'] || '',
-          calibre: row['Calibre'] || row['Caliber'] || row['calibre'] || row['caliber'] || '',
-          categoria: row['Tipo'] || row['Categoria'] || row['tipo'] || row['categoria'] || '',
-          marca: row['Marca'] || row['marca'] || ''
+          serialNumber: findColumnValue(row, 
+            'serialNumber', 'Serial number', 'Serial numbe', 'serial_number', 
+            'SERIAL_NUMBER', 'Serial Number', 'SerialNumber', 'numero de serie', 
+            'Numero de Serie', 'numero_serie'
+          ),
+          model: findColumnValue(row, 
+            'model', 'Model', 'modelo', 'Modelo', 'MODEL', 'MODELO'
+          ),
+          calibre: findColumnValue(row, 
+            'calibre', 'Calibre', 'caliber', 'Caliber', 'CALIBRE', 'CALIBER'
+          ),
+          categoria: findColumnValue(row, 
+            'tipo', 'Tipo', 'categoria', 'Categoria', 'TIPO', 'CATEGORIA', 
+            'category', 'Category'
+          ),
+          marca: findColumnValue(row, 
+            'marca', 'Marca', 'MARCA', 'brand', 'Brand'
+          )
         }));
 
         setPreviewData(mappedData);
@@ -180,16 +218,43 @@ const CargaMasivaSeries: React.FC = () => {
       {/* Instrucciones */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <h3 className="font-semibold text-blue-900 mb-2">📋 Formato del Excel</h3>
-        <p className="text-sm text-blue-800 mb-2">El archivo debe tener las siguientes columnas (exactamente con estos nombres):</p>
-        <ul className="text-sm text-blue-800 space-y-1 ml-4">
-          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">serialNumber</strong>: Número de serie del arma (sin espacios, con 'N' mayúscula)</li>
-          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">model</strong> o <strong className="font-mono bg-blue-100 px-1 rounded">modelo</strong>: Nombre del modelo (ej: CZ P-09 C NOCTURNE)</li>
-          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">caliber</strong> o <strong className="font-mono bg-blue-100 px-1 rounded">calibre</strong>: Calibre (ej: 9MM)</li>
-          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">tipo</strong> o <strong className="font-mono bg-blue-100 px-1 rounded">categoria</strong>: Categoría del arma (ej: PISTOLA)</li>
-          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">marca</strong>: Marca del arma (ej: CZ)</li>
+        <p className="text-sm text-blue-800 mb-2">El archivo debe tener las siguientes columnas (acepta múltiples variaciones):</p>
+        <ul className="text-sm text-blue-800 space-y-2 ml-4">
+          <li>
+            • <strong>Número de Serie</strong>: Acepta cualquiera de estos nombres:
+            <div className="ml-4 mt-1 text-xs">
+              <span className="font-mono bg-blue-100 px-1 rounded mr-1">Serial number</span>
+              <span className="font-mono bg-blue-100 px-1 rounded mr-1">serialNumber</span>
+              <span className="font-mono bg-blue-100 px-1 rounded mr-1">numero de serie</span>
+              <span className="font-mono bg-blue-100 px-1 rounded">serial_number</span>
+            </div>
+          </li>
+          <li>
+            • <strong>Modelo</strong>: Acepta: 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">Model</span>, 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">modelo</span>
+          </li>
+          <li>
+            • <strong>Calibre</strong>: Acepta: 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">Calibre</span>, 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">caliber</span>
+          </li>
+          <li>
+            • <strong>Tipo/Categoría</strong>: Acepta: 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">Tipo</span>, 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">categoria</span>
+          </li>
+          <li>
+            • <strong>Marca</strong>: Acepta: 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">Marca</span>, 
+            <span className="font-mono bg-blue-100 px-1 rounded ml-1">marca</span>
+          </li>
         </ul>
-        <p className="text-xs text-red-600 mt-3 font-semibold">
-          ⚠️ IMPORTANTE: La columna debe llamarse "serialNumber" (camelCase, sin espacios). NO "Serial number", "Serial numbe", ni "SERIAL_NUMBER".
+        <p className="text-xs text-green-600 mt-3 font-semibold flex items-center">
+          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          El sistema detecta automáticamente las columnas, sin importar mayúsculas, espacios o guiones bajos.
         </p>
       </div>
 
