@@ -1042,6 +1042,9 @@ public class GrupoImportacionService {
         seriesCargadas = seriesCargadasLong != null ? seriesCargadasLong.intValue() : 0;
         seriesPendientes = Math.max(0, totalArmasSolicitadas - seriesCargadas);
         
+        log.debug("📊 Grupo {}: {} armas solicitadas, {} series cargadas, {} pendientes", 
+            grupo.getCodigo(), totalArmasSolicitadas, seriesCargadas, seriesPendientes);
+        
         return GrupoImportacionResumenDTO.builder()
                 .grupoId(grupo.getId())
                 .grupoNombre(grupo.getNombre())

@@ -43,8 +43,12 @@ const CargaMasivaSeries: React.FC = () => {
         const tienePedidoDefinido = estado && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estado);
         
         // Verificar si aún necesita series
+        const totalArmas = g.totalArmasSolicitadas || 0;
+        const seriesCargadas = g.seriesCargadas || 0;
         const seriesPendientes = g.seriesPendientes !== undefined ? g.seriesPendientes : 999; // Si no tiene el campo, asumir que necesita
         const necesitaSeries = seriesPendientes > 0;
+        
+        console.log(`🔍 Grupo ${g.grupoCodigo || g.grupoId}: ${totalArmas} armas, ${seriesCargadas} series, ${seriesPendientes} pendientes → ${necesitaSeries ? 'MOSTRAR' : 'OCULTAR'}`);
         
         return tienePedidoDefinido && necesitaSeries;
       });
