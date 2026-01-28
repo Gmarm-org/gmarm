@@ -274,17 +274,6 @@
                     </table>
                 </div>
 
-                <p th:if="${clienteDireccion != null and !clienteDireccion.isEmpty()}">
-                    El SR./SRA. <strong><span th:text="${clienteNombre}">NOMBRE CLIENTE</span></strong>, 
-                    se encuentra domiciliado en: <strong><span th:text="${clienteDireccion}">DIRECCIÓN</span></strong>
-                    <span th:if="${clienteTelefono != null and !clienteTelefono.isEmpty()}">
-                        con teléfono <strong><span th:text="${clienteTelefono}">TELEFONO</span></strong>
-                    </span>
-                    <span th:if="${clienteEmail != null and !clienteEmail.isEmpty()}">
-                        y correo electrónico: <strong><span th:text="${clienteEmail}">EMAIL</span></strong>
-                    </span>.
-                </p>
-
                 <!-- Declaration -->
                 <div class="declaration">
                     <p>
