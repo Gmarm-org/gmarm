@@ -31,9 +31,23 @@ const CargaMasivaSeries: React.FC = () => {
   const cargarGruposActivos = async () => {
     setCargandoGrupos(true);
     try {
-      const grupos = await apiService.getGruposActivos();
-      setGruposDisponibles(grupos);
-      console.log('✅ Grupos de importación cargados:', grupos.length);
+      // Usar endpoint de gestión de importaciones que incluye TODOS los grupos
+      // Necesitamos grupos con pedido definido (EN_PROCESO_OPERACIONES, etc.)
+      const response = await apiService.getGruposParaJefeVentas(0, 100);
+      const grupos = Array.isArray(response) ? response : (response as any)?.content || [];
+      
+      // Filtrar solo grupos que tengan pedido definido (estados posteriores a EN_PREPARACION)
+      const gruposPedidoDefinido = grupos.filter((g: any) => {
+        const estado = g.grupoEstado || g.estado;
+        return estado && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estado);
+      });
+      
+      setGruposDisponibles(gruposPedidoDefinido);
+      console.log('✅ Grupos con pedido definido cargados:', gruposPedidoDefinido.length);
+      
+      if (gruposPedidoDefinido.length === 0) {
+        console.warn('⚠️ No hay grupos con pedido definido. Los grupos deben estar en estado SOLICITAR_PROFORMA_FABRICA o posterior.');
+      }
     } catch (error) {
       console.error('❌ Error cargando grupos:', error);
       alert('Error al cargar los grupos de importación');
@@ -297,10 +311,11 @@ const CargaMasivaSeries: React.FC = () => {
         {!cargandoGrupos && gruposDisponibles.length === 0 && (
           <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800 font-medium">
-              ⚠️ No hay grupos de importación disponibles
+              ⚠️ No hay grupos con pedido definido
             </p>
             <p className="text-xs text-yellow-700 mt-1">
-              Debe crear grupos de importación activos antes de cargar series. Comuníquese con el Jefe de Ventas.
+              Solo puedes cargar series a grupos que YA tienen el pedido definido (estado: SOLICITAR_PROFORMA_FABRICA o posterior). 
+              Primero define el pedido del grupo desde la página de Importaciones.
             </p>
           </div>
         )}
@@ -315,6 +330,11 @@ const CargaMasivaSeries: React.FC = () => {
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Seleccionar archivo Excel (.xlsx o .xls)
+          {!grupoSeleccionado && (
+            <span className="text-red-500 text-xs ml-2">
+              (Primero selecciona un grupo de importación)
+            </span>
+          )}
         </label>
         <div className="flex items-center space-x-4">
           <label className="flex-1">
@@ -322,13 +342,16 @@ const CargaMasivaSeries: React.FC = () => {
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileSelect}
-              className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-lg file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100
-                cursor-pointer"
+              disabled={!grupoSeleccionado}
+              className={`block w-full text-sm ${
+                !grupoSeleccionado 
+                  ? 'text-gray-400 cursor-not-allowed' 
+                  : 'text-gray-500 cursor-pointer'
+              } file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold ${
+                !grupoSeleccionado 
+                  ? 'file:bg-gray-100 file:text-gray-400 file:cursor-not-allowed' 
+                  : 'file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+              }`}
             />
           </label>
           {selectedFile && (
