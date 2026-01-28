@@ -68,11 +68,19 @@ const ImportGroupProcessChecklist: React.FC<ImportGroupProcessChecklistProps> = 
   const actualizarProceso = async (etapa: string, cambios: Partial<ProcesoImportacion>) => {
     try {
       setGuardando(true);
+      
+      // Encontrar el proceso actual para preservar valores no modificados
+      const procesoActual = procesos.find(p => p.etapa === etapa);
+      
       const updates = [
         {
           etapa,
-          fechaPlanificada: cambios.fechaPlanificada ?? null,
-          completado: typeof cambios.completado === 'boolean' ? cambios.completado : null
+          fechaPlanificada: cambios.fechaPlanificada !== undefined 
+            ? cambios.fechaPlanificada 
+            : (procesoActual?.fechaPlanificada ?? null),
+          completado: typeof cambios.completado === 'boolean' 
+            ? cambios.completado 
+            : (procesoActual?.completado ?? null)
         }
       ];
       const data = await apiService.actualizarProcesosGrupoImportacion(grupoId, updates);
