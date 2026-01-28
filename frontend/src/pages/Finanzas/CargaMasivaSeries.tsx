@@ -125,12 +125,25 @@ const CargaMasivaSeries: React.FC = () => {
         errors: result.errors || []
       });
 
+      // Mostrar resultado al usuario
+      let mensaje = '';
       if (result.success > 0) {
-        alert(`✅ Se cargaron exitosamente ${result.success} series`);
+        mensaje += `✅ Se cargaron exitosamente ${result.success} de ${result.total} series.\n\n`;
       }
 
       if (result.errors && result.errors.length > 0) {
-        console.error('⚠️ Errores al cargar algunas series:', result.errors);
+        mensaje += `⚠️ Se encontraron ${result.errors.length} errores:\n\n`;
+        // Mostrar solo los primeros 10 errores para no saturar el alert
+        const erroresAMostrar = result.errors.slice(0, 10);
+        mensaje += erroresAMostrar.join('\n');
+        if (result.errors.length > 10) {
+          mensaje += `\n\n... y ${result.errors.length - 10} errores más. Revisa la consola para ver todos.`;
+        }
+        console.error('⚠️ Lista completa de errores:', result.errors);
+      }
+
+      if (mensaje) {
+        alert(mensaje);
       }
 
       // Limpiar formulario
@@ -138,9 +151,10 @@ const CargaMasivaSeries: React.FC = () => {
       setPreviewData([]);
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error subiendo series:', error);
-      alert('Error al cargar las series. Revisa la consola para más detalles.');
+      const errorMessage = error?.message || 'Error desconocido';
+      alert(`❌ Error al cargar las series:\n\n${errorMessage}\n\nRevisa que:\n- El archivo Excel tenga el formato correcto\n- Las columnas se llamen exactamente: serialNumber, model, caliber, tipo, marca\n- Hayas seleccionado un grupo de importación`);
     } finally {
       setIsProcessing(false);
     }
@@ -166,14 +180,17 @@ const CargaMasivaSeries: React.FC = () => {
       {/* Instrucciones */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <h3 className="font-semibold text-blue-900 mb-2">📋 Formato del Excel</h3>
-        <p className="text-sm text-blue-800 mb-2">El archivo debe tener las siguientes columnas:</p>
+        <p className="text-sm text-blue-800 mb-2">El archivo debe tener las siguientes columnas (exactamente con estos nombres):</p>
         <ul className="text-sm text-blue-800 space-y-1 ml-4">
-          <li>• <strong>Serial number</strong>: Número de serie del arma</li>
-          <li>• <strong>Model</strong>: Nombre del modelo (ej: CZ P-09 C NOCTURNE)</li>
-          <li>• <strong>Calibre</strong>: Calibre (ej: 9 mm)</li>
-          <li>• <strong>Tipo</strong>: Categoría del arma (ej: Pistola)</li>
-          <li>• <strong>Marca</strong>: Marca del arma (ej: CZ)</li>
+          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">serialNumber</strong>: Número de serie del arma (sin espacios, con 'N' mayúscula)</li>
+          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">model</strong> o <strong className="font-mono bg-blue-100 px-1 rounded">modelo</strong>: Nombre del modelo (ej: CZ P-09 C NOCTURNE)</li>
+          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">caliber</strong> o <strong className="font-mono bg-blue-100 px-1 rounded">calibre</strong>: Calibre (ej: 9MM)</li>
+          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">tipo</strong> o <strong className="font-mono bg-blue-100 px-1 rounded">categoria</strong>: Categoría del arma (ej: PISTOLA)</li>
+          <li>• <strong className="font-mono bg-blue-100 px-1 rounded">marca</strong>: Marca del arma (ej: CZ)</li>
         </ul>
+        <p className="text-xs text-red-600 mt-3 font-semibold">
+          ⚠️ IMPORTANTE: La columna debe llamarse "serialNumber" (camelCase, sin espacios). NO "Serial number", "Serial numbe", ni "SERIAL_NUMBER".
+        </p>
       </div>
 
       {/* Selección de grupo de importación */}
