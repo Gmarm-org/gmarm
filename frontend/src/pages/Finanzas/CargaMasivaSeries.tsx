@@ -141,7 +141,8 @@ const CargaMasivaSeries: React.FC = () => {
     setUploadResult(null);
 
     try {
-      const response = await fetch('http://localhost:8080/api/arma-serie/bulk-upload', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiBaseUrl}/api/arma-serie/bulk-upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
