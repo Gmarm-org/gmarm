@@ -737,8 +737,11 @@ public class GestionDocumentosServiceHelper {
             }
             String numeroCotizacion = String.format("%s-%04d-%d", iniciales, seq, year);
 
-            // Fecha de cotización (fecha de generación del documento)
-            String fechaCotizacion = obtenerFechaActualFormateadaSinCiudad();
+            // Fecha de cotización con ciudad del cantón de la licencia (ej: "Quito, 27 de enero de 2026")
+            String licenciaCiudad = licencia != null && licencia.getCanton() != null 
+                ? licencia.getCanton().getNombre() 
+                : "Quito"; // Valor por defecto
+            String fechaCotizacion = obtenerFechaActualFormateadaConCiudad(licenciaCiudad);
 
             // Etiqueta de uniformado (MILITAR o POLICIA)
             String tipoUniformadoLabel = "MILITAR";
@@ -823,9 +826,12 @@ public class GestionDocumentosServiceHelper {
             
             Licencia licencia = obtenerLicenciaActiva(cliente);
             String licenciaNombre = licencia != null ? licencia.getNombre() : "";
-            String licenciaCiudad = licencia != null ? licencia.getTitulo() : null;
+            // Obtener cantón de la licencia para la fecha (ej: "Quito, 27 de enero del 2026")
+            String licenciaCiudad = licencia != null && licencia.getCanton() != null 
+                ? licencia.getCanton().getNombre() 
+                : null;
             if (licenciaCiudad == null || licenciaCiudad.trim().isEmpty()) {
-                licenciaCiudad = cliente.getProvincia() != null ? cliente.getProvincia() : "";
+                licenciaCiudad = "Quito"; // Valor por defecto
             }
             String fechaSolicitud = obtenerFechaActualFormateadaConCiudad(licenciaCiudad);
             
