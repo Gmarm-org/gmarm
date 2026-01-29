@@ -194,17 +194,17 @@
 
         <div class="parties-section">
             <div class="party-info">
-                Comparecen a la celebración del presente contrato, por una parte, <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, portador de la cédula de ciudadanía <span th:text="${licenciaCedula}">0000000000</span>, en su calidad de Comerciante Importadora de Armas y Municiones debidamente acreditada, por una parte, y por otra parte el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span>, con correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span> y número telefónico: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>, militar en servicio <span th:text="${estadoMilitarLowercase}">activo</span> de la Fuerza Naval del Ecuador, como se justifica en el <span class="text-bold">certificado</span> adjunto de las Fuerzas Armadas del Ecuador, con código ISSFA <span class="nowrap">No. <span th:text="${cliente.codigoIssfa}">20250919007</span></span>, domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, por otra parte; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
+                Comparecen a la celebración del presente contrato, por una parte, <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, con RUC No. <span th:text="${licenciaRuc}">0000000000001</span>, en su calidad de Comerciante Importador de Armas y Municiones debidamente acreditado por el Comando Conjunto de las Fuerzas Armadas del Ecuador, por una parte; y, por otra parte, el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span> y correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span>, miembro activo de las Fuerzas Armadas del Ecuador, con código ISSFA No. <span th:text="${cliente.codigoIssfa}">20250919007</span>; domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, Teléfono: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
             </div>
         </div>
 
-        <div class="section-title">ANTECEDENTES.-</div>
+        <div class="section-title">ANTECEDENTES. - </div>
         <div class="clause-content">
-            <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, en adelante el Comerciante Importador de armas y municiones debidamente acreditado por el Comando Conjunto de las Fuerzas Armadas de El Ecuador, con licencia No <span th:text="${licenciaNumero}">DOC-000000000</span>, cuya copia se apareja al presente contrato.
+            La <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, es comerciante importador de armas y municiones con registro del Comando Conjunto de las Fuerzas Armadas de El Ecuador, <span th:text="${licenciaNumero}">DOC-000772798</span>, cuya copia se apareja al presente instrumento.
         </div>
         
         <div class="clause-content">
-            <span>El </span> <span class="text-bold text-uppercase" th:if="${clienteRango != null and clienteRango != ''}" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span class="text-bold text-uppercase" th:unless="${clienteRango != null and clienteRango != ''}" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, militar en servicio <span th:text="${estadoMilitarLowercase}">activo</span> de la Fuerza Naval del Ecuador y requiere adquirir un arma de porte o tenencia personal.
+            A la presente fecha, el <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, requiere adquirir un arma para porte personal.
         </div>
         
         <div class="clause-content">
@@ -212,8 +212,8 @@
         </div>
 
         <div>
-            <span class="clause-title-bold">PRIMERA.-</span>
-            <span class="clause-content-inline"><span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, vende en favor del <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, la cantidad de: <span th:text="${armasResumenTexto}">UNA (1) pistola CZ P 10 C</span> Total <span th:text="${cantidadArmasTexto}">01 arma</span>.</span>
+            <span class="clause-title-bold">PRIMERA. - </span>
+            <span class="clause-content-inline">La <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, vende en favor del <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, la cantidad de: <span th:text="${armasResumenTexto}">UNA (1) pistola CZ P 10 F</span>, Total <span th:text="${cantidadArmasTexto}">1 arma</span>.</span>
         </div>
 
         <div class="clause-content">
@@ -221,8 +221,8 @@
         </div>
 
         <div>
-            <span class="clause-title-bold">SEGUNDA.-</span>
-            <span class="clause-content-inline">El precio pactado por la venta sin contar el IVA es de <span>USD <span th:text="${#numbers.formatDecimal(pago.subtotal != null ? pago.subtotal : pago.montoTotal, 1, 2)}">1200.00</span> (<span th:text="${numberToTextService.convertToText(pago.subtotal != null ? pago.subtotal : pago.montoTotal)}">MIL DOSCIENTOS 00/100</span> DOLARES DE LOS ESTADOS UNIDOS)</span>.</span>
+            <span class="clause-title-bold">SEGUNDA. - PRECIO. - </span>
+            <span class="clause-content-inline">El precio pactado por la venta del arma descrita en la cláusula primera, sin contar el IVA es de USD <span th:text="${#numbers.formatDecimal(pago.subtotal != null ? pago.subtotal : pago.montoTotal, 1, 2)}">1,380.00</span> (<span th:text="${numberToTextService.convertToText(pago.subtotal != null ? pago.subtotal : pago.montoTotal)}">UN MIL TRESCIENTOS OCHENTA CON 00/100</span>, DÓLARES AMERICANOS)</span>
         </div>
 
         <div class="clause-content">
@@ -230,16 +230,12 @@
         </div>
 
         <div>
-            <span class="clause-title-bold">TERCERA.-</span>
-            <span class="clause-content-inline">El tiempo de entrega estimado será máximo hasta el día 30 de noviembre 2025.</span>
+            <span class="clause-title-bold">TERCERA. - </span>
+            <span class="clause-content-inline">El tiempo estimado de entrega será de doscientos días aproximadamente desde la firma del presente instrumento.</span>
         </div>
         
         <div class="clause-content">
-            En virtud de que al ser productos de fabricación europea y por la naturaleza de estos, requieren permisos especiales tanto para su importación como para su exportación desde el lugar de origen, el tiempo estimado de entrega podría variar, hecho que las partes lo reconocen, sin que esto resulte en algún perjuicio para las mismas.
-        </div>
-        
-        <div class="clause-content">
-            En caso de que el arma llegue a Ecuador en un tiempo menor al establecido anteriormente el comprador podrá pagar el valor total y recibir la correspondiente factura para realizar los tramites de matriculación. En ningún caso se entregará una arma sin que se encuentre pagada en su totalidad.
+            En virtud de que al ser productos de fabricación europea y por la naturaleza de estos, requieren permisos especiales tanto para su importación como para su exportación, el tiempo estimado de entrega podría variar, hecho que las partes lo reconocen, sin que esto resulte en algún perjuicio para las mismas.
         </div>
 
         <div>
