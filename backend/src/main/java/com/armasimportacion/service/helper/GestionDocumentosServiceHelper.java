@@ -1230,7 +1230,10 @@ public class GestionDocumentosServiceHelper {
 
             // Obtener licencia para el nombre del importador
             Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+                ? licencia.getTitulo() : "Sr/Sra";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "CZ ECUADOR";
+            variables.put("licenciaTitulo", licenciaTitulo);
             variables.put("licenciaNombre", licenciaNombre);
 
             variables.put("numeroCuota", cuota.getNumeroCuota());

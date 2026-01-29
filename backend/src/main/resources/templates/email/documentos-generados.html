@@ -64,7 +64,7 @@
 
         <p class="label">Los pagos se deben realizar a esta cuenta:</p>
         <div class="bank-box">
-            <p><span class="label">Importador:</span> <span th:text="${licenciaNombre}">N/A</span></p>
+            <p><span class="label">Importador:</span> <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Sr/Sra Nombre</span></p>
             <p><span class="label">Banco:</span> <span th:text="${licenciaBanco}">N/A</span></p>
             <p><span class="label">Tipo de cuenta:</span> <span th:text="${licenciaTipoCuenta}">N/A</span></p>
             <p><span class="label">Número de cuenta:</span> <span th:text="${licenciaCuenta}">N/A</span></p>
