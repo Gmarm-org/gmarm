@@ -238,7 +238,7 @@ const VerifyPage: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">¡Verificación Exitosa!</h2>
                 <p className="text-gray-600 mb-6">{message}</p>
 
-                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-6">
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
                   <p className="text-green-800 font-medium">
                     ✅ Tu correo electrónico y datos personales han sido verificados correctamente.
                   </p>
@@ -246,13 +246,6 @@ const VerifyPage: React.FC = () => {
                     Ya puedes recibir notificaciones y actualizaciones sobre tu proceso de importación.
                   </p>
                 </div>
-
-                <button
-                  onClick={() => navigate('/')}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg"
-                >
-                  Volver al inicio
-                </button>
               </div>
             )}
 
