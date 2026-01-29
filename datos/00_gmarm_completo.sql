@@ -1026,7 +1026,45 @@ BEGIN
     END IF;
 END $$;
 
+-- =====================================================
+-- 3.5. DATOS DE LOCALIZACIÓN (ANTES DE LICENCIAS)
+-- =====================================================
+-- IMPORTANTE: Las provincias y cantones DEBEN insertarse ANTES de las licencias
+-- porque licencia tiene foreign keys a provincia_id y canton_id
 
+-- Insertar TODAS las provincias de Ecuador
+INSERT INTO provincia (nombre, codigo, estado) VALUES
+('Azuay', 'AZU', true),
+('Bolívar', 'BOL', true),
+('Cañar', 'CAN', true),
+('Carchi', 'CAR', true),
+('Chimborazo', 'CHI', true),
+('Cotopaxi', 'COT', true),
+('El Oro', 'ORE', true),
+('Esmeraldas', 'ESM', true),
+('Galápagos', 'GAL', true),
+('Guayas', 'GUA', true),
+('Imbabura', 'IMB', true),
+('Loja', 'LOJ', true),
+('Los Ríos', 'LRI', true),
+('Manabí', 'MAN', true),
+('Morona Santiago', 'MSA', true),
+('Napo', 'NAP', true),
+('Orellana', 'ORE', true),
+('Pastaza', 'PAS', true),
+('Pichincha', 'PIC', true),
+('Santa Elena', 'SEL', true),
+('Santo Domingo de los Tsáchilas', 'SDT', true),
+('Sucumbíos', 'SUC', true),
+('Tungurahua', 'TUN', true),
+('Zamora Chinchipe', 'ZCH', true)
+ON CONFLICT (codigo) DO NOTHING;
+
+-- Insertar cantones principales (Quito y Guayaquil son los más usados)
+INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
+('Quito', 'QUIT', true, (SELECT id FROM provincia WHERE codigo = 'PIC')),
+('Guayaquil', 'GUAY', true, (SELECT id FROM provincia WHERE codigo = 'GUA'))
+ON CONFLICT DO NOTHING;
 
 -- Insertar licencias
 INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, provincia_id, canton_id, cupo_total, cupo_disponible, cupo_civil, cupo_militar, cupo_empresa, cupo_deportista, estado, estado_ocupacion, fecha_vencimiento) VALUES
