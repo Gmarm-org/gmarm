@@ -997,6 +997,223 @@ cd frontend; npm run lint
 cd ../backend; ./mvnw test
 ```
 
+## 📄 **TEMPLATES DE DOCUMENTOS (CRÍTICO)**
+
+El sistema genera automáticamente documentos legales en PDF usando plantillas Thymeleaf. Esta es una funcionalidad CORE del proyecto.
+
+### **Tipos de Documentos**
+
+#### **1. Contratos de Compra**
+Ubicación: `backend/src/main/resources/templates/contratos/`
+
+**Por Tipo de Cliente:**
+- **Civiles**: `contratos/civiles/contrato_compra.html`
+- **Policía**: `contratos/uniformados/contrato_compra_policia.html` (**USA ISSPOL**)
+- **Fuerza Terrestre**: `contratos/uniformados/contrato_compra_fuerza_terrestre.html` (**USA ISSFA**)
+- **Fuerza Naval**: `contratos/uniformados/contrato_compra_fuerza_naval.html` (**USA ISSFA**)
+- **Fuerza Aérea**: `contratos/uniformados/contrato_compra_fuerza_aerea.html` (**USA ISSFA**)
+
+**Contenido del Contrato:**
+- Datos del comerciante importador (licencia con RUC)
+- Datos completos del cliente (cédula, ISSFA/ISSPOL, dirección completa)
+- ANTECEDENTES: Registro del comerciante + necesidad del cliente
+- PRIMERA: Descripción del arma
+- SEGUNDA: PRECIO (sin IVA, en USD y texto)
+- TERCERA: Tiempo estimado de entrega (~200 días)
+- CUARTA: FORMA DE PAGO (mensualizados con letras a), b), c)...)
+  - Incluye cláusula de facturación y aceleración de pago
+- QUINTA a NOVENA: Cláusulas sobre importancia de pago, cash deposits, intransferibilidad, matriculación, fondos lícitos
+- DECIMA: ICE y IVA incrementos
+- DECIMA PRIMERA: Rastrillo/bodega + SINCOAR + 10 ANEXOS
+- DECIMA SEGUNDA: JURISDICCION CONVENCIONAL (Pichincha, citación por email)
+- Firmas: Comerciante (título + nombre + CC) y Cliente (rango + nombre + CC)
+
+**⚠️ CRÍTICO - Diferencias ISSPOL vs ISSFA:**
+- **ISSPOL**: Solo para Policía Nacional
+- **ISSFA**: Para Fuerza Terrestre, Naval y Aérea
+- **ANEXO 4**: "Carnet del ISSPOL" vs "Carnet del ISSFA"
+- **ANEXO 10**: "Certificado ISSPOL" vs "Certificado ISSFA"
+
+#### **2. Solicitudes de Compra**
+Ubicación: `backend/src/main/resources/templates/contratos/`
+
+**Plantillas específicas por tipo:**
+- `contratos/civiles/solicitud_compra.html`
+- `contratos/uniformados/solicitud_compra_policia.html`
+- `contratos/uniformados/solicitud_compra_fuerza_terrestre.html`
+- `contratos/uniformados/solicitud_compra_fuerza_naval.html`
+- `contratos/uniformados/solicitud_compra_fuerza_aerea.html`
+
+**Contenido:**
+- Fecha y ciudad (cantón de la licencia): "Quito, 27 de enero de 2026"
+- Saludo: "Señor/a," (inclusivo)
+- Datos del comerciante
+- Datos del solicitante (con rango si aplica)
+- Tabla con descripción del arma
+- Firma del solicitante
+
+#### **3. Cotizaciones**
+Ubicación: `backend/src/main/resources/templates/contratos/uniformados/`
+
+**Plantillas específicas:**
+- `cotizacion_policia.html`
+- `cotizacion_fuerza_terrestre.html`
+- `cotizacion_fuerza_naval.html`
+- `cotizacion_fuerza_aerea.html`
+
+**Formato Actualizado:**
+```
+COTIZACIÓN: ML-0001-2026
+
+Fecha: Quito, 27 de enero de 2026
+Cliente: CBOP. QUINTERO CABEZA JOSE LUIS - POLICIA EN SERVICIO ACTIVO
+Cédula: 0925588196
+
+Por medio de la presente me permito enviar la Cotización para 01 pistola(s)
+de las siguientes características:
+
+[TABLA]
+TIPO | MARCA | MODELO | CALIBRE | ALIMENTADORA DE FABRICA | PRECIO INCLUIDO IVA
+
+El arma será cancelada en la siguiente manera:
+[CUOTAS si aplica]
+
+El depósito deberá realizarlo en la cuenta bancaria:
+Banco: Banco Guayaquil
+Cuenta: AHORROS
+Número: 29282140
+
+Para constancia de aceptación de la cotización firman.
+[FIRMAS con formato capitalizado]
+```
+
+### **Variables Thymeleaf Disponibles**
+
+**Datos del Cliente:**
+```thymeleaf
+${cliente.nombres}
+${cliente.apellidos}
+${cliente.numeroIdentificacion}
+${cliente.email}
+${cliente.telefonoPrincipal}
+${clienteRango}                    <!-- Solo uniformados -->
+${cliente.codigoIssfa}             <!-- ISSFA/ISSPOL -->
+${estadoMilitarLowercase}          <!-- activo/pasivo -->
+${estadoMilitarUpper}              <!-- ACTIVO/PASIVO -->
+${clienteDireccionCompleta}        <!-- Dirección + Provincia + Cantón -->
+```
+
+**Datos de la Licencia:**
+```thymeleaf
+${licenciaTitulo}                  <!-- MSC, ING, etc. -->
+${licenciaNombre}                  <!-- Nombre completo -->
+${licenciaCedula}
+${licenciaRuc}
+${licenciaCiudad}                  <!-- Cantón para fechas -->
+${licenciaNombreBanco}             <!-- Banco Guayaquil -->
+${licenciaTipoCuenta}              <!-- AHORROS -->
+${licenciaCuentaBancaria}          <!-- Número de cuenta -->
+```
+
+**Datos del Arma:**
+```thymeleaf
+${arma.tipoArma}
+${arma.marca}
+${arma.modelo}
+${arma.calibre}
+${arma.cantidadAlimentadoras}
+```
+
+**Datos de Pago:**
+```thymeleaf
+${pago.tipoPago}                   <!-- CONTADO/CREDITO -->
+${pago.montoTotal}                 <!-- Sin IVA -->
+${precioConIva}                    <!-- Con IVA -->
+${ivaPorcentaje}                   <!-- 15 -->
+${pago.montoCuota}                 <!-- Si es crédito -->
+${cuotas}                          <!-- Lista de cuotas -->
+${cuotas[0].monto}
+${cuotas[0].fechaVencimiento}
+${numeroCotizacion}                <!-- ML-0001-2026 -->
+```
+
+**Utilidades Thymeleaf:**
+```thymeleaf
+<!-- Fechas -->
+${fechaActual}
+${fechaCotizacion}                 <!-- "Quito, 27 de enero de 2026" -->
+${#temporals.format(fecha, 'dd')}
+${T(java.time.format.DateTimeFormatter).ofPattern('MMMM', new java.util.Locale('es', 'ES')).format(fecha)}
+
+<!-- Números -->
+${#numbers.formatDecimal(precio, 1, 2)}
+
+<!-- Strings -->
+${#strings.toUpperCase(texto)}
+${#strings.capitalize(texto)}
+
+<!-- Conversión número a texto -->
+${numberToTextService.convertToText(monto)}
+```
+
+### **⚠️ REGLAS CRÍTICAS para Templates**
+
+1. **NO GENERALIZAR**: Cada tipo de cliente tiene SU PROPIO template
+   - ❌ MAL: "Vamos a hacer un template genérico que se adapte"
+   - ✅ BIEN: Un template específico para cada caso (Policía, Naval, Terrestre, Aérea, Civil)
+
+2. **ISSFA vs ISSPOL**: NUNCA confundir
+   - Policía = ISSPOL
+   - Fuerzas Armadas (Terrestre, Naval, Aérea) = ISSFA
+
+3. **Formato de Firmas**:
+   ```thymeleaf
+   <!-- Licencia -->
+   ${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}
+   
+   <!-- Cliente con rango -->
+   <span th:if="${clienteRango != null and clienteRango != ''}">
+     ${#strings.capitalize(clienteRango) + '. ' + #strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}
+   </span>
+   ```
+
+4. **Fechas con Ciudad**:
+   ```thymeleaf
+   ${fechaCotizacion}  <!-- Ya incluye "Quito, 27 de enero de 2026" -->
+   ```
+
+5. **Después de modificar templates**: SIEMPRE `restart backend_local`
+
+### **Servicio de Generación**
+
+**Backend:** `GestionDocumentosServiceHelper.java`
+```java
+public byte[] generarContrato(Long ventaId)
+public byte[] generarSolicitudCompra(Long ventaId)
+public byte[] generarCotizacion(Long ventaId)
+```
+
+**Endpoints:**
+```
+GET /api/ventas/{ventaId}/documentos/contrato
+GET /api/ventas/{ventaId}/documentos/solicitud-compra
+GET /api/ventas/{ventaId}/documentos/cotizacion
+```
+
+### **Testing de Documentos**
+
+1. Crear venta con todos los datos
+2. Generar documento via endpoint
+3. Verificar:
+   - ✅ Datos del cliente correctos
+   - ✅ ISSFA/ISSPOL según corresponda
+   - ✅ Formato de firmas correcto
+   - ✅ Fecha con ciudad (cantón de licencia)
+   - ✅ Cuotas si es crédito
+   - ✅ Anexos correctos
+
+---
+
 ## 🐛 Debugging
 
 ### 1. Logs Importantes
@@ -1030,17 +1247,60 @@ console.error('❌ Error cargando datos:', error);
 
 ## 📚 Recursos Útiles
 
-### 1. Archivos Importantes
-- `datos/00_gmarm_completo.sql` - Script maestro de BD
-- `CHANGELOG_CODIGO_ISSFA.md` - Ejemplo de documentación
-- `docker-compose.dev.yml` - Configuración de desarrollo
+### 1. Documentación Principal
+- **`README.md`** - Documentación principal del proyecto (754 líneas)
+  - Estado actual, características, arquitectura
+  - Inicio rápido, configuración de entornos
+  - Base de datos, usuarios, documentos generados
+  - CI/CD, testing, build y deploy
+- **`backend/README.md`** - Documentación técnica del backend (1,066 líneas)
+  - Estructura de paquetes completa
+  - Entidades, DTOs, Mappers, Servicios
+  - Controllers y endpoints documentados
+  - Generación de documentos PDF
+  - Configuración, seguridad, testing
+- **`frontend/README.md`** - Documentación técnica del frontend (947 líneas)
+  - Estructura de carpetas detallada
+  - Componentes, custom hooks, servicios
+  - Routing, state management, estilos
+  - Testing, build y deploy
+- **`AGENTS.md`** - Este archivo (guía para IAs)
+- **`MONITORING.md`** - Configuración de monitoreo
+- **`.github/README.md`** - Workflows de CI/CD
 
-### 2. Patrones Comunes
+### 2. Archivos Críticos
+- `datos/00_gmarm_completo.sql` - Script maestro de BD (fuente única de verdad)
+- `docker-compose.local.yml` - Configuración LOCAL (localhost)
+- `docker-compose.dev.yml` - Configuración DEV (servidor remoto)
+- `docker-compose.prod.yml` - Configuración PRODUCCIÓN
+- `backend/src/main/resources/templates/contratos/` - Templates de documentos
+
+### 3. Templates de Documentos
+- **Contratos**: `contratos/civiles/`, `contratos/uniformados/`
+  - `contrato_compra_policia.html` (ISSPOL)
+  - `contrato_compra_fuerza_terrestre.html` (ISSFA)
+  - `contrato_compra_fuerza_naval.html` (ISSFA)
+  - `contrato_compra_fuerza_aerea.html` (ISSFA)
+  - `contrato_compra.html` (civiles)
+- **Solicitudes**: Mismo directorio que contratos
+  - `solicitud_compra_policia.html`
+  - `solicitud_compra_fuerza_terrestre.html`
+  - `solicitud_compra_fuerza_naval.html`
+  - `solicitud_compra_fuerza_aerea.html`
+  - `solicitud_compra.html` (civiles)
+- **Cotizaciones**: `contratos/uniformados/`
+  - `cotizacion_policia.html`
+  - `cotizacion_fuerza_terrestre.html`
+  - `cotizacion_fuerza_naval.html`
+  - `cotizacion_fuerza_aerea.html`
+
+### 4. Patrones Comunes
 - **CRUD Services** con Repository pattern
 - **DTOs** para transferencia de datos
 - **Mappers** para conversión entre entidades y DTOs
 - **Validaciones** con esquemas JSON
 - **Logging** con SLF4J
+- **Generación de PDFs** con Thymeleaf + OpenPDF
 
 ---
 
