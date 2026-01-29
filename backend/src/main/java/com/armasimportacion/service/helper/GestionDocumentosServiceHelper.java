@@ -611,32 +611,46 @@ public class GestionDocumentosServiceHelper {
                 }
             }
             String licenciaNumero = licencia != null && licencia.getNumero() != null ? licencia.getNumero() : "";
+            String licenciaRuc = licencia != null && licencia.getRuc() != null ? licencia.getRuc() : "";
             variables.put("licenciaTitulo", licenciaTitulo);
             variables.put("licenciaNombre", licenciaNombre);
             variables.put("licenciaCedula", licenciaCedula);
             variables.put("licenciaNumero", licenciaNumero);
-            
-            // Construir dirección completa con nombres legibles
+            variables.put("licenciaRuc", licenciaRuc);
+
+            // Construir dirección completa con nombres legibles, evitando duplicados
             String nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());
             String nombreCanton = cliente.getCanton(); // El cantón ya debería estar como nombre
-            
+            String direccionCliente = cliente.getDireccion();
+
             log.info("🗺️ Provincia - Código: {}, Nombre: {}", cliente.getProvincia(), nombreProvincia);
             log.info("🗺️ Cantón: {}", nombreCanton);
-            log.info("🗺️ Dirección: {}", cliente.getDireccion());
-            
+            log.info("🗺️ Dirección: {}", direccionCliente);
+
             StringBuilder direccionCompleta = new StringBuilder();
             if (nombreProvincia != null && !nombreProvincia.isEmpty()) {
                 direccionCompleta.append(nombreProvincia);
             }
             if (nombreCanton != null && !nombreCanton.isEmpty()) {
-                if (direccionCompleta.length() > 0) direccionCompleta.append(", ");
-                direccionCompleta.append(nombreCanton);
+                // Solo agregar cantón si no está ya en la provincia
+                String cantonUpper = nombreCanton.toUpperCase();
+                String provinciaUpper = nombreProvincia != null ? nombreProvincia.toUpperCase() : "";
+                if (!provinciaUpper.contains(cantonUpper) && !cantonUpper.equals(provinciaUpper)) {
+                    if (direccionCompleta.length() > 0) direccionCompleta.append(", ");
+                    direccionCompleta.append(nombreCanton);
+                }
             }
-            if (cliente.getDireccion() != null && !cliente.getDireccion().isEmpty()) {
-                if (direccionCompleta.length() > 0) direccionCompleta.append(", ");
-                direccionCompleta.append(cliente.getDireccion());
+            if (direccionCliente != null && !direccionCliente.isEmpty()) {
+                // Evitar duplicar el cantón en la dirección
+                String direccionUpper = direccionCliente.toUpperCase();
+                String cantonUpper = nombreCanton != null ? nombreCanton.toUpperCase() : "";
+                // Solo agregar la dirección si no es exactamente igual al cantón
+                if (!direccionUpper.equals(cantonUpper)) {
+                    if (direccionCompleta.length() > 0) direccionCompleta.append(", ");
+                    direccionCompleta.append(direccionCliente);
+                }
             }
-            
+
             log.info("🗺️ Dirección completa construida: {}", direccionCompleta.toString());
             variables.put("clienteDireccionCompleta", direccionCompleta.toString());
             
@@ -716,12 +730,22 @@ public class GestionDocumentosServiceHelper {
                 armaDetalle.put("precioConIvaFormateado", formatCurrency(precioConIva));
                 armasDetalle.add(armaDetalle);
             }
-            String cantidadArmasTexto = String.format("%02d", Math.max(totalArmas, 1))
+            String cantidadArmasTexto = Math.max(totalArmas, 1)
                 + (totalArmas == 1 ? " arma" : " armas");
 
             // Licencia activa del grupo del cliente
             Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+                ? licencia.getTitulo() : "Sr/Sra";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+            String licenciaCedula = "";
+            if (licencia != null) {
+                if (licencia.getCedulaCuenta() != null && !licencia.getCedulaCuenta().trim().isEmpty()) {
+                    licenciaCedula = licencia.getCedulaCuenta();
+                } else if (licencia.getRuc() != null) {
+                    licenciaCedula = licencia.getRuc();
+                }
+            }
             String licenciaNombreBanco = licencia != null && licencia.getNombreBanco() != null ? licencia.getNombreBanco() : "";
             String licenciaTipoCuenta = licencia != null && licencia.getTipoCuenta() != null ? licencia.getTipoCuenta() : "";
             String licenciaCuentaBancaria = licencia != null && licencia.getCuentaBancaria() != null ? licencia.getCuentaBancaria() : "";
@@ -767,7 +791,10 @@ public class GestionDocumentosServiceHelper {
             variables.put("fechaCotizacion", fechaCotizacion);
             variables.put("tipoUniformadoLabel", tipoUniformadoLabel);
             variables.put("estadoMilitarUpper", estadoMilitarUpper);
+            variables.put("clienteRango", cliente.getRango());
+            variables.put("licenciaTitulo", licenciaTitulo);
             variables.put("licenciaNombre", licenciaNombre);
+            variables.put("licenciaCedula", licenciaCedula);
             variables.put("licenciaNombreBanco", licenciaNombreBanco);
             variables.put("licenciaTipoCuenta", licenciaTipoCuenta);
             variables.put("licenciaCuentaBancaria", licenciaCuentaBancaria);
@@ -806,8 +833,8 @@ public class GestionDocumentosServiceHelper {
             int totalArmas = armasCliente.stream()
                 .mapToInt(arma -> arma.getCantidad() != null ? arma.getCantidad() : 1)
                 .sum();
-            String cantidadArmasTexto = String.format("%02d", totalArmas) + (totalArmas == 1 ? " arma" : " armas");
-            
+            String cantidadArmasTexto = totalArmas + (totalArmas == 1 ? " arma" : " armas");
+
             // Preparar detalle de armas para el template (evitar problemas de carga lazy en el render)
             List<Map<String, Object>> armasDetalle = new java.util.ArrayList<>();
             for (ClienteArma clienteArma : armasCliente) {
@@ -824,24 +851,27 @@ public class GestionDocumentosServiceHelper {
                 armaDetalle.put("cantidad", clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1);
                 armasDetalle.add(armaDetalle);
             }
-            
+
             Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+                ? licencia.getTitulo() : "Sr/Sra";
             String licenciaNombre = licencia != null ? licencia.getNombre() : "";
             // Obtener cantón de la licencia para la fecha (ej: "Quito, 27 de enero del 2026")
-            String licenciaCiudad = licencia != null && licencia.getCanton() != null 
-                ? licencia.getCanton().getNombre() 
+            String licenciaCiudad = licencia != null && licencia.getCanton() != null
+                ? licencia.getCanton().getNombre()
                 : null;
             if (licenciaCiudad == null || licenciaCiudad.trim().isEmpty()) {
                 licenciaCiudad = "Quito"; // Valor por defecto
             }
             String fechaSolicitud = obtenerFechaActualFormateadaConCiudad(licenciaCiudad);
-            
+
             // Preparar variables para el template
             Map<String, Object> variables = new HashMap<>();
             variables.put("cliente", cliente);
             variables.put("pago", pago != null ? pago : null);
             variables.put("numberToTextService", numberToTextService);
             variables.put("fechaSolicitud", fechaSolicitud);
+            variables.put("licenciaTitulo", licenciaTitulo);
             variables.put("licenciaNombre", licenciaNombre);
             variables.put("licenciaCiudad", licenciaCiudad);
             variables.put("cantidadArmas", totalArmas);
@@ -1411,7 +1441,7 @@ public class GestionDocumentosServiceHelper {
                 .sum();
         }
         totalArmas = Math.max(totalArmas, 1);
-        return String.format("%02d", totalArmas) + (totalArmas == 1 ? " arma" : " armas");
+        return totalArmas + (totalArmas == 1 ? " arma" : " armas");
     }
 
     /**

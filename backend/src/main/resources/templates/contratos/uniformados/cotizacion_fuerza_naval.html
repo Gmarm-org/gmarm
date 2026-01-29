@@ -2,195 +2,186 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
-    <title>Cotización</title>
+    <title>Cotización CZ</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            color: #000;
-            margin: 40px;
-            line-height: 1.2;
-            text-align: justify;
+        @page {
+            size: A4;
+            margin: 20mm;
         }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11.5pt;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+        }
+        .page {
+            max-width: 170mm;
+            margin: auto;
+            position: relative;
+            background: white;
+        }
+
         .titulo {
             text-align: center;
+            font-size: 16pt;
             font-weight: bold;
-            margin-bottom: 14px;
+            margin-bottom: 30px;
+            text-decoration: underline;
         }
-        .datos {
-            margin-bottom: 12px;
+
+        .datos-cliente {
+            margin-bottom: 25px;
         }
-        .datos div {
-            margin: 2px 0;
-        }
+        .datos-cliente div { margin: 5px 0; }
+
         .tabla {
             width: 100%;
             border-collapse: collapse;
-            margin: 12px 0;
+            margin: 20px 0;
         }
-        .tabla th,
-        .tabla td {
+        .tabla th, .tabla td {
             border: 1px solid #000;
-            padding: 4px;
+            padding: 8px;
             text-align: center;
-            font-size: 10px;
+            font-size: 10pt;
         }
-        .payment-title {
-            margin: 10px 0 6px 0;
-            font-weight: bold;
-        }
+        .tabla th { background-color: #eeeeee; }
+
+        .payment-section { margin-top: 20px; }
         .payment-item {
-            margin: 4px 0;
+            margin-bottom: 10px;
+            text-align: justify;
         }
-        .label {
+        .text-bold {
             font-weight: bold;
         }
-        .bank {
-            margin-top: 10px;
+
+        .bank-details {
+            margin-top: 30px;
+            line-height: 1.6;
         }
-        .signature-section {
-            margin-top: 26px;
-            page-break-inside: avoid;
-        }
-        .signature-table {
+
+        .signatures {
+            margin-top: 60px;
             width: 100%;
-            border-collapse: collapse;
         }
-        .signature-cell {
+        .signature-box {
             width: 45%;
-            vertical-align: bottom;
             text-align: center;
+            vertical-align: top;
+            font-size: 10pt;
         }
-        .signature-spacer {
-            width: 10%;
+        .line {
+            border-top: 1px dotted #000;
+            width: 80%;
+            margin: 0 auto 10px auto;
         }
-        .signature-line {
-            border-bottom: 1px solid #000;
-            margin: 18px 0 6px 0;
-            height: 1px;
+
+        @media print {
+            .page { margin: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="titulo">
-        COTIZACIÓN: <span th:text="${numeroCotizacion}">ML-0001-2026</span>
-    </div>
-
-    <div class="datos">
-        <div><strong>Fecha:</strong> <span th:text="${fechaCotizacion}">Quito, 27 de enero de 2026</span></div>
-        <div>
-            <strong>Cliente:</strong>
-            <span th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.toUpperCase(clienteRango + '. ' + cliente.nombres + ' ' + cliente.apellidos)}">RANGO. NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE APELLIDO</span>
-            - FUERZA NAVAL EN SERVICIO <span th:text="${estadoMilitarUpper}">ACTIVO</span>
+    <div class="page">
+        <div class="titulo">
+            COTIZACIÓN: <span th:text="${numeroCotizacion}">ML-0001-2026</span>
         </div>
-        <div><strong>Cédula:</strong> <span th:text="${cliente.numeroIdentificacion}">0000000000</span></div>
-    </div>
 
-    <p>
-        Por medio de la presente me permito enviar la Cotización para
-        <strong th:text="${cantidadArmasTexto}">01 pistola(s)</strong>
-        de las siguientes características:
-    </p>
+        <div class="datos-cliente">
+            <div><strong>Fecha:</strong> <span th:text="${fechaCotizacion}">Quito, 27 de enero de 2026</span></div>
+            <div>
+                <strong>Cliente:</strong>
+                <span th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.toUpperCase(clienteRango + '. ' + cliente.nombres + ' ' + cliente.apellidos)}">CBOP. QUINTERO CABEZA JOSE LUIS</span><span th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE APELLIDO</span>
+                - FUERZA NAVAL EN SERVICIO <span th:text="${estadoMilitarUpper}">ACTIVO</span>
+            </div>
+            <div><strong>Cédula:</strong> <span th:text="${cliente.numeroIdentificacion}">0925588196</span></div>
+        </div>
 
-    <table class="tabla">
-        <thead>
+        <p>Por medio de la presente me permito enviar la Cotización para <strong th:text="${cantidadArmasTexto}">01 pistola(s)</strong> de las siguientes características:</p>
+
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>TIPO</th>
+                    <th>MARCA</th>
+                    <th>MODELO</th>
+                    <th>CALIBRE</th>
+                    <th>ALIMENTADORA DE FABRICA</th>
+                    <th>PRECIO INCLUIDO IVA</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="arma : ${armasDetalle}">
+                    <td th:text="${arma.categoria}">PISTOLA</td>
+                    <td th:text="${arma.marca}">CZ</td>
+                    <td th:text="${arma.modelo}">CZ P10 F</td>
+                    <td th:text="${arma.calibre}">9MM</td>
+                    <td th:text="${arma.alimentadora}">2 (DOS)</td>
+                    <td><strong th:text="${arma.precioConIvaFormateado}">$1.587,00</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>El arma será cancelada en la siguiente manera:</p>
+
+        <div class="payment-section">
+            <!-- Pago de contado -->
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CONTADO'}">
+                <span class="text-bold">a). - </span>A las 24 horas después de la suscripción del presente contrato la cantidad de USD <span th:text="${#numbers.formatDecimal(pago.montoTotal, 1, 2)}">1,380.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoTotal)}">UN MIL TRESCIENTOS OCHENTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+
+            <!-- Pago a crédito -->
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CREDITO'}">
+                <span class="text-bold">a). - </span>A las 24 horas después de la suscripción del presente contrato la cantidad de USD <span th:text="${#numbers.formatDecimal(pago.montoCuota, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoCuota)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 2}">
+                <span class="text-bold">b). -</span>Hasta el <span th:text="${#temporals.format(cuotas[1].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[1].fechaVencimiento)}">febrero 2026</span>, USD <span th:text="${#numbers.formatDecimal(cuotas[1].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[1].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 3}">
+                <span class="text-bold">c). -</span>Hasta el <span th:text="${#temporals.format(cuotas[2].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[2].fechaVencimiento)}">marzo 2026</span>, USD <span th:text="${#numbers.formatDecimal(cuotas[2].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[2].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 4}">
+                <span class="text-bold">d). -</span>Hasta el <span th:text="${#temporals.format(cuotas[3].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[3].fechaVencimiento)}">abril 2026</span>, USD <span th:text="${#numbers.formatDecimal(cuotas[3].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[3].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 5}">
+                <span class="text-bold">e). -</span>Hasta el <span th:text="${#temporals.format(cuotas[4].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[4].fechaVencimiento)}">mayo 2026</span>, USD <span th:text="${#numbers.formatDecimal(cuotas[4].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[4].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+
+            <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 6}">
+                <span class="text-bold">f). - </span>Hasta el <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}">05</span> de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[5].fechaVencimiento)}">junio 2026</span>, USD <span th:text="${#numbers.formatDecimal(cuotas[5].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[5].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
+            </div>
+        </div>
+
+        <div class="bank-details">
+            El depósito deberá realizarlo en la cuenta bancaria:<br/>
+            <strong>Banco:</strong> <span th:text="${licenciaNombreBanco}">Banco Guayaquil</span><br/>
+            <strong>Cuenta:</strong> <span th:text="${licenciaTipoCuenta}">AHORROS</span><br/>
+            <strong>Número:</strong> <span th:text="${licenciaCuentaBancaria}">29282140</span>
+        </div>
+
+        <div style="margin-top: 30px;">Para constancia de aceptación de la cotización firman.</div>
+
+        <table class="signatures">
             <tr>
-                <th>TIPO</th>
-                <th>MARCA</th>
-                <th>MODELO</th>
-                <th>CALIBRE</th>
-                <th>ALIMENTADORA DE FABRICA</th>
-                <th>PRECIO INCLUIDO IVA</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="arma : ${armasDetalle}">
-                <td th:text="${arma.categoria}">PISTOLA</td>
-                <td th:text="${arma.marca}">CZ</td>
-                <td th:text="${arma.modelo}">CZ P10 F</td>
-                <td th:text="${arma.calibre}">9MM</td>
-                <td th:text="${arma.alimentadora}">2 (DOS)</td>
-                <td th:text="${arma.precioConIvaFormateado}">$1.587,00</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <p>El arma será cancelada en la siguiente manera:</p>
-
-    <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CONTADO'}">
-        <span class="label">a).-</span>
-        A las 24 horas después de la suscripción del presente contrato, la cantidad de USD
-        <span th:text="${#numbers.formatDecimal(pago.montoTotal, 1, 2)}">0.00</span>
-        (<span th:text="${numberToTextService.convertToText(pago.montoTotal) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-    </div>
-
-    <div th:if="${pago != null and pago.tipoPago == 'CREDITO'}">
-        <div class="payment-item">
-            <span class="label">a).-</span>
-            A las 24 horas después de la suscripción del presente contrato, la cantidad de USD
-            <span th:text="${#numbers.formatDecimal(pago.montoCuota, 1, 2)}">0.00</span>
-            (<span th:text="${numberToTextService.convertToText(pago.montoCuota) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-        </div>
-        <div class="payment-item" th:if="${cuotas != null and cuotas.size() >= 2}">
-            <span class="label">b).-</span>
-            Hasta el <span th:text="${#temporals.format(cuotas[1].fechaVencimiento, 'dd')}">01</span> de
-            <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es','ES')).format(cuotas[1].fechaVencimiento)}">enero 2026</span>,
-            USD <span th:text="${#numbers.formatDecimal(cuotas[1].monto, 1, 2)}">0.00</span>
-            (<span th:text="${numberToTextService.convertToText(cuotas[1].monto) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-        </div>
-        <div class="payment-item" th:if="${cuotas != null and cuotas.size() >= 3}">
-            <span class="label">c).-</span>
-            Hasta el <span th:text="${#temporals.format(cuotas[2].fechaVencimiento, 'dd')}">01</span> de
-            <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es','ES')).format(cuotas[2].fechaVencimiento)}">enero 2026</span>,
-            USD <span th:text="${#numbers.formatDecimal(cuotas[2].monto, 1, 2)}">0.00</span>
-            (<span th:text="${numberToTextService.convertToText(cuotas[2].monto) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-        </div>
-        <div class="payment-item" th:if="${cuotas != null and cuotas.size() >= 4}">
-            <span class="label">d).-</span>
-            Hasta el <span th:text="${#temporals.format(cuotas[3].fechaVencimiento, 'dd')}">01</span> de
-            <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es','ES')).format(cuotas[3].fechaVencimiento)}">enero 2026</span>,
-            USD <span th:text="${#numbers.formatDecimal(cuotas[3].monto, 1, 2)}">0.00</span>
-            (<span th:text="${numberToTextService.convertToText(cuotas[3].monto) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-        </div>
-        <div class="payment-item" th:if="${cuotas != null and cuotas.size() >= 5}">
-            <span class="label">e).-</span>
-            Hasta el <span th:text="${#temporals.format(cuotas[4].fechaVencimiento, 'dd')}">01</span> de
-            <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es','ES')).format(cuotas[4].fechaVencimiento)}">enero 2026</span>,
-            USD <span th:text="${#numbers.formatDecimal(cuotas[4].monto, 1, 2)}">0.00</span>
-            (<span th:text="${numberToTextService.convertToText(cuotas[4].monto) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-        </div>
-        <div class="payment-item" th:if="${cuotas != null and cuotas.size() >= 6}">
-            <span class="label">f).-</span>
-            Hasta el <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}">01</span> de
-            <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es','ES')).format(cuotas[5].fechaVencimiento)}">enero 2026</span>,
-            USD <span th:text="${#numbers.formatDecimal(cuotas[5].monto, 1, 2)}">0.00</span>
-            (<span th:text="${numberToTextService.convertToText(cuotas[5].monto) + ' DÓLARES DE LOS ESTADOS UNIDOS'}">CERO</span>).
-        </div>
-    </div>
-
-    <div class="bank">
-        <div>El depósito deberá realizarlo en la cuenta bancaria:</div>
-        <div>Banco: <span th:text="${licenciaNombreBanco}">Guayaquil</span></div>
-        <div>Cuenta: <span th:text="${licenciaTipoCuenta}">Corriente</span></div>
-        <div>Número: <span th:text="${licenciaCuentaBancaria}">0000000000</span></div>
-    </div>
-
-    <div class="signature-section">
-        <div>Para constancia de aceptación de la cotización firman.</div>
-        <table class="signature-table">
-            <tr>
-                <td class="signature-cell">
-                    <div class="signature-line"></div>
-                    <div th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}">MSC LOYAGA CORREA MARCIA NATHALY</div>
-                    <div>Distribuidor Autorizado</div>
-                    <div>Česká Zbrojovka</div>
-                    <div>CC. <span th:text="${licenciaCedula}">1725831950</span></div>
+                <td class="signature-box">
+                    <div class="line"></div>
+                    <strong th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}">MSC LOYAGA CORREA MARCIA NATHALY</strong><br/>
+                    Distribuidor Autorizado<br/>
+                    Česká Zbrojovka<br/>
+                    CC. <span th:text="${licenciaCedula}">1725831950</span>
                 </td>
-                <td class="signature-spacer"></td>
-                <td class="signature-cell">
-                    <div class="signature-line"></div>
-                    <div th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(clienteRango) + '. ' + #strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Rango. Nombre Apellido</div><div th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Nombre Apellido</div>
-                    <div>CC <span th:text="${cliente.numeroIdentificacion}">0000000000</span>.</div>
+                <td style="width: 10%;"></td>
+                <td class="signature-box">
+                    <div class="line"></div>
+                    <strong th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(clienteRango) + '. ' + #strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Cbop. Quintero Cabeza Jose Luis</strong><strong th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Nombre Apellido</strong><br/>
+                    CC <span th:text="${cliente.numeroIdentificacion}">0925588196</span>
                 </td>
             </tr>
         </table>
