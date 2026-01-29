@@ -72,6 +72,7 @@ export interface Client {
   
   estadoMilitar?: 'ACTIVO' | 'PASIVO';
   codigoIssfa?: string; // Código ISSFA para tipos militares
+  codigoIsspol?: string; // Código ISSPOL para policías
   rango?: string; // Rango militar/policial (opcional)
   
   // Campos para empresa

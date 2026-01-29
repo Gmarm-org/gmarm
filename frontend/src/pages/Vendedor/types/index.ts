@@ -36,7 +36,8 @@ export interface Client {
   tipoIdentificacion?: string; // Alias para tipoIdentificacionNombre
   
   estadoMilitar?: 'ACTIVO' | 'PASIVO';
-  codigoIssfa?: string;
+  codigoIssfa?: string; // Código ISSFA para militares
+  codigoIsspol?: string; // Código ISSPOL para policías
   rango?: string;
   
   // Campos para empresa

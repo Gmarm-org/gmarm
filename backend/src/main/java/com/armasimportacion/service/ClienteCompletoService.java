@@ -217,6 +217,9 @@ public class ClienteCompletoService {
         if (clientData.containsKey("codigoIssfa")) {
             cliente.setCodigoIssfa((String) clientData.get("codigoIssfa"));
         }
+        if (clientData.containsKey("codigoIsspol")) {
+            cliente.setCodigoIsspol((String) clientData.get("codigoIsspol"));
+        }
         if (clientData.containsKey("rango")) {
             cliente.setRango((String) clientData.get("rango"));
         }
@@ -669,9 +672,10 @@ public class ClienteCompletoService {
         dto.setProvinciaEmpresa((String) clientData.get("provinciaEmpresa"));
         dto.setCantonEmpresa((String) clientData.get("cantonEmpresa"));
         
-        // Campo militar
+        // Campo militar/policial
         dto.setEstadoMilitar((String) clientData.get("estadoMilitar"));
         dto.setCodigoIssfa((String) clientData.get("codigoIssfa"));
+        dto.setCodigoIsspol((String) clientData.get("codigoIsspol"));
         dto.setRango((String) clientData.get("rango"));
         
         // Campo estado (si viene, se establecerá en el cliente)
