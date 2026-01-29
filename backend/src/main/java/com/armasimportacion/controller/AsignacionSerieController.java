@@ -89,10 +89,18 @@ public class AsignacionSerieController {
             String currentUsername = SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getName();
-            
-            Usuario usuario = usuarioRepository.findByEmail(currentUsername)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + currentUsername));
-            
+
+            // Si es usuario anónimo (endpoint permitAll), usar usuario admin por defecto
+            Usuario usuario;
+            if ("anonymousUser".equals(currentUsername) || currentUsername == null) {
+                log.info("👤 Usuario anónimo detectado, usando usuario admin por defecto");
+                usuario = usuarioRepository.findByEmail("admin@armasimportacion.com")
+                    .orElseThrow(() -> new RuntimeException("Usuario admin no encontrado en el sistema"));
+            } else {
+                usuario = usuarioRepository.findByEmail(currentUsername)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + currentUsername));
+            }
+
             log.info("👤 Usuario asignador: {} (ID: {})", usuario.getUsername(), usuario.getId());
             
             // Asignar serie

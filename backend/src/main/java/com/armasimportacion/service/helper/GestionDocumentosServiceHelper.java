@@ -845,6 +845,7 @@ public class GestionDocumentosServiceHelper {
             variables.put("licenciaCiudad", licenciaCiudad);
             variables.put("cantidadArmas", totalArmas);
             variables.put("cantidadArmasTexto", cantidadArmasTexto);
+            variables.put("cantidadArmasSolicitud", construirCantidadArmasSolicitud(totalArmas));
             variables.put("armasDetalle", armasDetalle);
             
             // Determinar template según tipo de cliente
@@ -1401,6 +1402,38 @@ public class GestionDocumentosServiceHelper {
         }
         totalArmas = Math.max(totalArmas, 1);
         return String.format("%02d", totalArmas) + (totalArmas == 1 ? " arma" : " armas");
+    }
+
+    /**
+     * Construye el texto de cantidad de armas para solicitudes de compra
+     * Formato: "un arma (1)", "dos armas (2)", "tres armas (3)", etc.
+     */
+    private String construirCantidadArmasSolicitud(int totalArmas) {
+        totalArmas = Math.max(totalArmas, 1);
+        String numeroEnLetras = convertirNumeroALetras(totalArmas);
+        String armaPlural = totalArmas == 1 ? "arma" : "armas";
+        return String.format("%s %s (%d)", numeroEnLetras, armaPlural, totalArmas);
+    }
+
+    /**
+     * Convierte un número (1-20) a su representación en letras en español (minúsculas)
+     * Ej: 1 -> "un", 2 -> "dos", 3 -> "tres"
+     */
+    private String convertirNumeroALetras(int numero) {
+        String[] numerosEnLetras = {
+            "", "un", "dos", "tres", "cuatro", "cinco",
+            "seis", "siete", "ocho", "nueve", "diez",
+            "once", "doce", "trece", "catorce", "quince",
+            "dieciséis", "diecisiete", "dieciocho", "diecinueve", "veinte"
+        };
+        if (numero >= 1 && numero <= 20) {
+            return numerosEnLetras[numero];
+        }
+        // Para números mayores a 20, usar el servicio existente o devolver el número
+        if (numberToTextService != null) {
+            return numberToTextService.convertToText(java.math.BigDecimal.valueOf(numero)).toLowerCase();
+        }
+        return String.valueOf(numero);
     }
 
     private String construirResumenArmasContrato(List<ClienteArma> armasCliente) {

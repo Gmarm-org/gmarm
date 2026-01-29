@@ -4,78 +4,80 @@
     <meta charset="UTF-8" />
     <title>Solicitud de Compra</title>
     <style>
+        @page {
+            size: A4;
+            margin: 2.54cm;
+        }
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
             color: #000;
-            margin: 40px;
-            line-height: 1.5;
+            line-height: 1.2;
+            margin: 0;
+            padding: 0;
         }
         .fecha {
-            font-weight: bold;
-            margin-bottom: 18px;
+            margin-bottom: 40px;
         }
-        .licencia {
-            margin-bottom: 18px;
+        .destinatario {
+            margin-bottom: 30px;
+            line-height: 1.1;
         }
-        .licencia .nombre {
-            font-weight: bold;
-            text-transform: uppercase;
+        .destinatario .nombre {
+            font-weight: normal;
         }
         .texto-justificado {
             text-align: justify;
-            text-justify: inter-word;
         }
         .parrafo {
-            margin: 12px 0;
+            margin-top: 15px;
+            margin-bottom: 15px;
         }
         .tabla {
             width: 100%;
             border-collapse: collapse;
-            margin: 16px 0;
+            margin: 25px 0;
         }
-        .tabla th,
-        .tabla td {
+        .tabla th, .tabla td {
             border: 1px solid #000;
-            padding: 6px;
+            padding: 4px 8px;
             text-align: center;
+            font-size: 11pt;
+        }
+        .tabla th {
+            font-weight: bold;
         }
         .firma {
-            margin-top: 28px;
+            margin-top: 80px;
+            line-height: 1.2;
         }
-        .firma .nombre {
-            font-weight: bold;
+        .firma-linea {
+            margin-top: 10px;
             text-transform: uppercase;
+        }
+        strong {
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="fecha" th:text="${fechaSolicitud}">Guayaquil, 16 de enero del 2026</div>
+    <div class="fecha" th:text="${fechaSolicitud}">Quito, 27 de enero del 2026</div>
 
-    <div class="parrafo texto-justificado">
-        Señor/a,
-    </div>
-    
-    <div class="licencia">
-        <div class="nombre" th:text="${#strings.toUpperCase(licenciaNombre)}">NOMBRE LICENCIA</div>
-        <div>Comerciante Importador y Distribuidor Autorizado de CZ</div>
-        <div>En su despacho. -</div>
+    <div class="destinatario">
+        Señor/a,<br/>
+        <span class="nombre" th:text="${licenciaNombre}">MSC Loyaga Correa Marcia Nathaly</span><br/>
+        Comerciante Importador y Distribuidor Autorizado de CZ<br/>
+        En su despacho. -
     </div>
 
-    <div class="parrafo texto-justificado">
+    <div class="parrafo">
         De mi consideración:
     </div>
 
     <p class="parrafo texto-justificado">
-        Yo,
-        <strong th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</strong>,
-        con cédula de Identidad No.
-        <strong th:text="${cliente.numeroIdentificacion}">0000000000</strong>,
-        en mi calidad de servidor de la FUERZA TERRESTRE en servicio
-        <strong th:text="${cliente.estadoMilitar != null ? #strings.toUpperCase(cliente.estadoMilitar.toString()) : 'ACTIVO'}">ACTIVO</strong>,
-        solicito de la manera más comedida se importe por su intermedio, en su calidad de Importador acreditado por el Comando Conjunto de las Fuerzas Armadas,
-        <strong th:text="${cantidadArmasTexto}">un arma (1)</strong>
-        a mi nombre según las siguientes características:
+        Yo, <strong th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE APELLIDO</strong>, con cédula de Identidad No.
+        <strong th:text="${cliente.numeroIdentificacion}">0000000000</strong>, en mi calidad de servidor de la FUERZA TERRESTRE en servicio
+        <strong th:text="${cliente.estadoMilitar != null ? #strings.toUpperCase(cliente.estadoMilitar.toString()) : 'ACTIVO'}">ACTIVO</strong>, solicito de la manera más comedida se importe por su intermedio, en su calidad de Importador acreditado por el Comando Conjunto de las Fuerzas Armadas, <strong th:text="${cantidadArmasSolicitud}">un arma (1)</strong> a mi nombre según las siguientes características:
     </p>
 
     <table class="tabla">
@@ -92,31 +94,29 @@
             <tr th:each="arma : ${armasDetalle}">
                 <td th:text="${arma.categoria}">PISTOLA</td>
                 <td th:text="${arma.marca}">CZ</td>
-                <td th:text="${arma.modelo}">P-10F</td>
+                <td th:text="${arma.modelo}">CZ P10 F</td>
                 <td th:text="${arma.calibre}">9MM</td>
-                <td th:text="${arma.alimentadora != null ? arma.alimentadora : 'N/A'}">2 (DOS)</td>
+                <td th:text="${arma.alimentadora}">2 (DOS)</td>
             </tr>
         </tbody>
     </table>
 
-    <p class="parrafo texto-justificado">
+    <p class="parrafo">
         Arma que será utilizada para mi defensa personal.
     </p>
 
-    <p class="parrafo texto-justificado">
+    <p class="parrafo">
         Por la atención prestada a la presente, anticipo mi agradecimiento.
     </p>
 
     <div class="firma">
-        <div>Atentamente,</div>
-        <div class="nombre" th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</div>
-        <div>
-            CI <span th:text="${cliente.numeroIdentificacion}">0000000000</span>
+        Atentamente,<br/><br/><br/>
+        <div class="firma-linea">
+            <strong th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE APELLIDO</strong><br/>
+            CI <span th:text="${cliente.numeroIdentificacion}">0000000000</span><br/>
+            <span th:if="${cliente.rango != null}" th:text="${#strings.toUpperCase(cliente.rango)}">RANGO</span><br/>
+            FUERZA TERRESTRE
         </div>
-        <div th:if="${cliente.rango != null and !cliente.rango.isEmpty()}" th:text="${#strings.toUpperCase(cliente.rango)}">
-            RANGO
-        </div>
-        <div>FUERZA TERRESTRE</div>
     </div>
 </body>
 </html>
