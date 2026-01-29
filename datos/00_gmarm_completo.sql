@@ -478,6 +478,8 @@ CREATE TABLE IF NOT EXISTS licencia (
     cedula_cuenta VARCHAR(20),
     email VARCHAR(100),
     telefono VARCHAR(20),
+    provincia VARCHAR(100), -- Provincia del importador
+    canton VARCHAR(100), -- Cantón del importador
     cupo_total BIGINT,
     cupo_disponible BIGINT,
     cupo_civil BIGINT,
@@ -1027,12 +1029,12 @@ END $$;
 
 
 -- Insertar licencias
-INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, cupo_total, cupo_disponible, cupo_civil, cupo_militar, cupo_empresa, cupo_deportista, estado, estado_ocupacion, fecha_vencimiento) VALUES
-('LIC001', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922001', '8151263', 'INTERNACIONAL', 'AHORRO', '1707815922', 'joseluis@guerreromartinez.com', '0999999999', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('LIC002', 'MULLER BENITEZ NICOLE PAMELA', '1713978540001', '2212737882', 'PICHINCHA', 'AHORRO', '1713978540', 'vbenitez@hotmail.com', '0999999999', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('LIC003', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632001', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0999999999', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('LIC004', 'LOYAGA CORREA MARCIA NATHALY', '1725831950001', '29282140', 'GUAYAQUIL', 'AHORRO', '1725831950', 'marcia.loyaga@example.com', '0999999999', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('LIC005', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORRO', '1314955061', 'simogue.sas@gmail.com', '0999999999', 100, 100, 0, 0, 100, 0, true, 'DISPONIBLE', '2050-12-31')
+INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, provincia, canton, cupo_total, cupo_disponible, cupo_civil, cupo_militar, cupo_empresa, cupo_deportista, estado, estado_ocupacion, fecha_vencimiento) VALUES
+('LIC001', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922001', '8151263', 'INTERNACIONAL', 'AHORRO', '1707815922', 'joseluis@guerreromartinez.com', '0999999999', 'Pichincha', 'Quito', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC002', 'MULLER BENITEZ NICOLE PAMELA', '1713978540001', '2212737882', 'PICHINCHA', 'AHORRO', '1713978540', 'vbenitez@hotmail.com', '0999999999', 'Pichincha', 'Quito', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC003', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632001', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0999999999', 'Pichincha', 'Quito', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC004', 'LOYAGA CORREA MARCIA NATHALY', '1725831950001', '29282140', 'GUAYAQUIL', 'AHORRO', '1725831950', 'marcia.loyaga@example.com', '0999999999', 'Pichincha', 'Quito', 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
+('LIC005', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORRO', '1314955061', 'simogue.sas@gmail.com', '0999999999', 'Guayas', 'Guayaquil', 100, 100, 0, 0, 100, 0, true, 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
 -- Insertar configuraci?n del sistema
