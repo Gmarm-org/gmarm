@@ -52,12 +52,14 @@
 <body>
     <div class="fecha" th:text="${fechaSolicitud}">Guayaquil, 16 de enero del 2026</div>
 
-    <div class="licencia texto-justificado">
-        <div>COMERCIANTE IMPORTADOR</div>
+    <div class="parrafo texto-justificado">
+        Señora,
+    </div>
+    
+    <div class="licencia">
         <div class="nombre" th:text="${#strings.toUpperCase(licenciaNombre)}">NOMBRE LICENCIA</div>
-        <div>Distribuidor Autorizado</div>
-        <div>CZ Ceska Zbrojovka</div>
-        <div>En su despacho.-</div>
+        <div>Comerciante Importador y Distribuidor Autorizado de CZ</div>
+        <div>En su despacho. -</div>
     </div>
 
     <div class="parrafo texto-justificado">
@@ -67,16 +69,13 @@
     <p class="parrafo texto-justificado">
         Yo,
         <strong th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</strong>,
-        con cédula de Identidad No
+        con cédula de Identidad No.
         <strong th:text="${cliente.numeroIdentificacion}">0000000000</strong>,
-        <span th:if="${cliente.estadoMilitar != null}">
-            en mi calidad de servidor militar
-            <strong th:text="${cliente.estadoMilitar}">ACTIVO</strong>,
-        </span>
-        solicito de la manera más comedida se importe por su intermedio
-        <strong th:text="${cantidadArmasTexto}">01 arma</strong>,
-        a mi nombre, en su calidad de Importador acreditado por el Comando Conjunto de las Fuerzas Armadas,
-        el producto de la marca CZ - Ceska Zbrojovka.
+        en mi calidad de servidor de la POLICIA NACIONAL en servicio
+        <strong th:text="${cliente.estadoMilitar != null ? #strings.toUpperCase(cliente.estadoMilitar.toString()) : 'ACTIVO'}">ACTIVO</strong>,
+        solicito de la manera más comedida se importe por su intermedio, en su calidad de Importador acreditado por el Comando Conjunto de las Fuerzas Armadas,
+        <strong th:text="${cantidadArmasTexto}">un arma (1)</strong>
+        a mi nombre según las siguientes características:
     </p>
 
     <table class="tabla">
@@ -101,23 +100,23 @@
     </table>
 
     <p class="parrafo texto-justificado">
-        Arma que será utilizada para mi defensa personal, aprovechando la oportunidad de tener arma(s) propia como servidor
-        <span th:if="${cliente.estadoMilitar != null}">
-            <strong th:text="${#strings.toUpperCase(cliente.tipoCliente != null ? cliente.tipoCliente.nombre : 'MILITAR')}">MILITAR</strong>.
-        </span>
+        Arma que será utilizada para mi defensa personal.
     </p>
 
     <p class="parrafo texto-justificado">
-        Por la atención a la presente, anticipo mi agradecimiento,
+        Por la atención prestada a la presente, anticipo mi agradecimiento.
     </p>
 
     <div class="firma">
         <div>Atentamente,</div>
         <div class="nombre" th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</div>
-        <div th:text="${cliente.numeroIdentificacion}">0000000000</div>
-        <div th:if="${cliente.estadoMilitar != null}">
-            <strong>MILITAR EN SERVICIO ACTIVO</strong>
+        <div>
+            CI <span th:text="${cliente.numeroIdentificacion}">0000000000</span>
         </div>
+        <div th:if="${cliente.rango != null and !cliente.rango.isEmpty()}" th:text="${#strings.toUpperCase(cliente.rango)}">
+            RANGO
+        </div>
+        <div>POLICIA NACIONAL</div>
     </div>
 </body>
 </html>
