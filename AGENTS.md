@@ -1410,19 +1410,33 @@ Antes de implementar, pregúntate:
 
 **Si respondiste SÍ a alguna:** ➡️ **Usar `configuracion_sistema`**
 
-### 📝 **Valores Actuales Hardcodeados (PENDIENTES DE REFACTORIZAR):**
+### ✅ **IVA Refactorizado (Completado en Sprint 11):**
 
-**Frontend:**
-- `ClientSummary.tsx:71` - IVA hardcodeado (0.15)
-- `ClientForm.tsx:2004` - IVA hardcodeado (0.15)
-- `PaymentForm.tsx:42` - IVA hardcodeado (IVA_SISTEMA = 0.15)
-- `WeaponReserve.tsx:302` - IVA hardcodeado (0.15)
+**El IVA ya NO está hardcodeado.** Se implementó la siguiente arquitectura:
 
-**Backend:**
-- `GestionPagosServiceHelper.java` - Posible IVA hardcodeado
-- Template HTML de contratos - IVA potencialmente hardcodeado
+```
+BD (configuracion_sistema) → Backend API → useIVA() hook → Componentes
+```
 
-**ACCIÓN REQUERIDA:** Refactorizar todos estos para usar `configuracion_sistema`.
+**Frontend - Usando `useIVA()` hook:**
+- ✅ `ClientSummary.tsx` - Usa `useIVA()`
+- ✅ `ClientForm.tsx` - Usa `useIVA()`
+- ✅ `PaymentForm.tsx` - Usa `useIVA()`
+- ✅ `WeaponReserve.tsx` - Usa `useIVA()`
+
+**Backend - Usando `ConfiguracionSistemaService`:**
+- ✅ `GestionPagosServiceHelper.java` - Obtiene IVA desde BD
+- ✅ `GestionDocumentosServiceHelper.java` - Obtiene IVA desde BD
+- ✅ Templates HTML - Usan variable `${ivaPorcentaje}` de Thymeleaf
+
+**Fallbacks (correcto para resiliencia):**
+- `useConfiguracion.ts` - Fallback a 0.15 si API falla
+- `GestionPagosServiceHelper.java` - Fallback a 0.15 si BD falla
+
+**Para agregar nuevos valores configurables:**
+1. Insertar en tabla `configuracion_sistema` (SQL maestro)
+2. Backend: Usar `ConfiguracionSistemaService.getValor(clave)`
+3. Frontend: Crear hook similar a `useIVA()` en `useConfiguracion.ts`
 
 ## ⚠️ Recordatorios Importantes
 

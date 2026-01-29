@@ -77,8 +77,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/cliente-arma/**").permitAll() // Endpoints de reservas
                 .requestMatchers("/api/clientes/**").permitAll() // TEMPORAL: Clientes (para evitar bloqueos en edición)
                 .requestMatchers("/api/cliente-formulario/**").permitAll() // TEMPORAL: Formularios cliente
-                // Endpoints de asignación de series - REQUIEREN AUTENTICACIÓN
-                .requestMatchers("/api/asignacion-series/**").authenticated() // ✅ Asignación de series requiere autenticación
+                // Endpoints de asignación de series
+                .requestMatchers("/api/asignacion-series/**").permitAll() // TEMPORAL: Para desarrollo (evitar problemas CORS/JWT)
                 .requestMatchers("/api/pagos/**").permitAll() // TEMPORAL: Para debugging
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
