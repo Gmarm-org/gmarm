@@ -1487,16 +1487,24 @@ public class GestionDocumentosServiceHelper {
                 continue;
             }
             int cantidad = clienteArma.getCantidad() != null ? clienteArma.getCantidad() : 1;
-            String cantidadTexto = numberToTextService != null
-                ? numberToTextService.convertToText(java.math.BigDecimal.valueOf(cantidad))
-                : String.valueOf(cantidad);
+            // Usar convertirNumeroALetras para cantidad simple (ej: "UNA", "DOS"), no formato monetario
+            String cantidadTexto = convertirNumeroALetras(cantidad);
+            // Para "un" cambiar a "UNA" cuando es pistola (femenino)
+            String categoriaNombre = arma.getCategoria() != null ? arma.getCategoria().getNombre() : "";
+            boolean esFemenino = categoriaNombre != null &&
+                (categoriaNombre.toUpperCase().contains("PISTOLA") ||
+                 categoriaNombre.toUpperCase().contains("ESCOPETA") ||
+                 categoriaNombre.toUpperCase().contains("CARABINA"));
+            if (cantidad == 1 && esFemenino) {
+                cantidadTexto = "una";
+            }
             if (resumen.length() > 0) {
                 resumen.append("; ");
             }
             resumen.append(cantidadTexto.toUpperCase())
                 .append(" (").append(cantidad).append(") ");
-            if (arma.getCategoria() != null && arma.getCategoria().getNombre() != null) {
-                resumen.append(arma.getCategoria().getNombre().toUpperCase()).append(" ");
+            if (categoriaNombre != null && !categoriaNombre.isEmpty()) {
+                resumen.append(categoriaNombre.toUpperCase()).append(" ");
             }
             if (arma.getMarca() != null) {
                 resumen.append(arma.getMarca()).append(" ");
