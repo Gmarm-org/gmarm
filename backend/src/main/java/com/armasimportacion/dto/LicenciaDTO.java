@@ -38,6 +38,11 @@ public class LicenciaDTO {
     
     private String email;
     private String telefono;
+    
+    // Ubicación geográfica (igual que Cliente - strings simples)
+    private String provincia; // Nombre de la provincia
+    private String canton;    // Nombre del cantón
+    
     private String descripcion;
     
     @JsonProperty("tipo_licencia")

@@ -78,6 +78,14 @@ public class Licencia {
     @Column(name = "telefono", length = 20)
     private String telefono;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "provincia_id")
+    private Provincia provincia;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "canton_id")
+    private Canton canton;
+
     @Column(name = "fecha_vencimiento", nullable = false)
     private LocalDate fechaVencimiento;
 

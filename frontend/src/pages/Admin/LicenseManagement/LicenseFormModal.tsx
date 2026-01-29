@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { License } from '../../../services/adminApi';
+import { useClientCatalogs } from '../../Vendedor/hooks/useClientCatalogs';
 
 interface LicenseFormModalProps {
   isOpen: boolean;
@@ -16,6 +17,14 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
   license,
   mode
 }) => {
+  // Reutilizar hook de Cliente para provincias/cantones
+  const {
+    provincias,
+    availableCantons,
+    loadCantones,
+    setAvailableCantons
+  } = useClientCatalogs();
+
   const [formData, setFormData] = useState<Partial<License>>({
     numero: '',
     nombre: '',
@@ -23,6 +32,8 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
     ruc: '',
     email: '',
     telefono: '',
+    provincia: '',
+    canton: '',
     descripcion: '',
     estado: true,
     cupo_total: 0,
@@ -41,14 +52,23 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
   useEffect(() => {
     if (license && (mode === 'edit' || mode === 'view')) {
       setFormData(license);
+      // Cargar cantones si hay provincia
+      if (license.provincia) {
+        const prov = provincias.find(p => p.nombre === license.provincia);
+        if (prov) {
+          loadCantones(prov.codigo, false);
+        }
+      }
     } else {
       setFormData({
         numero: '',
         nombre: '',
-        titulo: '', // Nuevo campo
+        titulo: '',
         ruc: '',
         email: '',
         telefono: '',
+        provincia: '',
+        canton: '',
         descripcion: '',
         estado: true,
         cupo_total: 0,
@@ -62,8 +82,9 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
         tipo_cuenta: '',
         cedula_cuenta: ''
       });
+      setAvailableCantons([]);
     }
-  }, [license, mode, isOpen]);
+  }, [license, mode, isOpen, provincias, loadCantones, setAvailableCantons]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,13 +164,48 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
                 <input type="tel" value={formData.telefono || ''} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" maxLength={10} pattern="[0-9]*" disabled={isReadOnly} placeholder="0987654321" />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+                <select
+                  value={formData.provincia || ''}
+                  onChange={(e) => {
+                    const selectedProvincia = e.target.value;
+                    setFormData({ ...formData, provincia: selectedProvincia, canton: '' });
+                    const prov = provincias.find(p => p.nombre === selectedProvincia);
+                    if (prov) {
+                      loadCantones(prov.codigo, false);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  disabled={isReadOnly}
+                >
+                  <option value="">Seleccionar provincia</option>
+                  {provincias.map((prov) => (
+                    <option key={prov.codigo} value={prov.nombre}>{prov.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cantón</label>
+                <select
+                  value={formData.canton || ''}
+                  onChange={(e) => setFormData({ ...formData, canton: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  disabled={isReadOnly || !formData.provincia}
+                >
+                  <option value="">Seleccionar cantón</option>
+                  {availableCantons.map((canton) => (
+                    <option key={canton} value={canton}>{canton}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                 <div className="flex items-center">
                   <input
                     type="checkbox"
                     checked={formData.estado || false}
                     onChange={(e) => setFormData({ ...formData, estado: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded-md"
                     disabled={isReadOnly}
                   />
                   <span className="ml-2 text-sm text-gray-600">

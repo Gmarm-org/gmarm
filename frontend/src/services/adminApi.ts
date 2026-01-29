@@ -45,6 +45,8 @@ export interface License {
   cedula_cuenta?: string;
   email?: string;
   telefono?: string;
+  provincia?: string; // Ubicación geográfica
+  canton?: string;    // Ubicación geográfica
   cupo_total?: number;
   cupo_disponible?: number;
   cupo_civil?: number;

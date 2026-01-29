@@ -26,6 +26,8 @@ public class LicenciaController {
     private final LicenciaRepository licenciaRepository;
     private final LicenciaMapper licenciaMapper;
     private final com.armasimportacion.service.LicenciaService licenciaService;
+    private final com.armasimportacion.repository.ProvinciaRepository provinciaRepository;
+    private final com.armasimportacion.repository.CantonRepository cantonRepository;
 
     @GetMapping
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
@@ -146,6 +148,19 @@ public class LicenciaController {
                     if (licenciaDTO.getTelefono() != null) {
                         existingLicencia.setTelefono(licenciaDTO.getTelefono());
                     }
+                    
+                    // Actualizar provincia y canton (buscar por nombre, igual que Cliente)
+                    if (licenciaDTO.getProvincia() != null && !licenciaDTO.getProvincia().isEmpty()) {
+                        provinciaRepository.findByNombre(licenciaDTO.getProvincia())
+                                .ifPresent(existingLicencia::setProvincia);
+                    }
+                    if (licenciaDTO.getCanton() != null && !licenciaDTO.getCanton().isEmpty()) {
+                        cantonRepository.findAll().stream()
+                                .filter(c -> c.getNombre().equalsIgnoreCase(licenciaDTO.getCanton()))
+                                .findFirst()
+                                .ifPresent(existingLicencia::setCanton);
+                    }
+                    
                     if (licenciaDTO.getFechaVencimiento() != null) {
                         existingLicencia.setFechaVencimiento(licenciaDTO.getFechaVencimiento());
                     }

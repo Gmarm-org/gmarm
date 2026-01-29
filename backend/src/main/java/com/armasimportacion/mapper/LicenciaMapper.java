@@ -2,13 +2,22 @@ package com.armasimportacion.mapper;
 
 import com.armasimportacion.dto.LicenciaDTO;
 import com.armasimportacion.model.Licencia;
+import com.armasimportacion.repository.CantonRepository;
+import com.armasimportacion.repository.ProvinciaRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class LicenciaMapper {
+
+    private final ProvinciaRepository provinciaRepository;
+    private final CantonRepository cantonRepository;
 
     public LicenciaDTO toDTO(Licencia licencia) {
         if (licencia == null) {
@@ -26,6 +35,8 @@ public class LicenciaMapper {
                 .cedulaCuenta(licencia.getCedulaCuenta())
                 .email(licencia.getEmail())
                 .telefono(licencia.getTelefono())
+                .provincia(licencia.getProvincia() != null ? licencia.getProvincia().getNombre() : null)
+                .canton(licencia.getCanton() != null ? licencia.getCanton().getNombre() : null)
                 .descripcion(licencia.getDescripcion())
                 .tipoLicencia("IMPORTACION_ARMAS")
                 .estado(licencia.getEstado())
@@ -70,6 +81,20 @@ public class LicenciaMapper {
         licencia.setCedulaCuenta(dto.getCedulaCuenta());
         licencia.setEmail(dto.getEmail());
         licencia.setTelefono(dto.getTelefono());
+        
+        // Mapear provincia y canton (buscar por nombre, igual que Cliente)
+        if (dto.getProvincia() != null && !dto.getProvincia().isEmpty()) {
+            provinciaRepository.findByNombre(dto.getProvincia())
+                    .ifPresent(licencia::setProvincia);
+        }
+        if (dto.getCanton() != null && !dto.getCanton().isEmpty()) {
+            // Buscar canton por nombre (sin provincia específica, asumiendo nombres únicos)
+            cantonRepository.findAll().stream()
+                    .filter(c -> c.getNombre().equalsIgnoreCase(dto.getCanton()))
+                    .findFirst()
+                    .ifPresent(licencia::setCanton);
+        }
+        
         licencia.setDescripcion(dto.getDescripcion());
         licencia.setObservaciones(dto.getObservaciones());
         // tipoLicencia siempre es IMPORTACION_ARMAS
