@@ -73,23 +73,22 @@
 </head>
 <body>
     <div class="titulo">
-        COTIZACIÓN #<span th:text="${numeroCotizacion}">NM-0001-2026</span>.
+        COTIZACIÓN: <span th:text="${numeroCotizacion}">ML-0001-2026</span>
     </div>
 
     <div class="datos">
+        <div><strong>Fecha:</strong> <span th:text="${fechaCotizacion}">Quito, 27 de enero de 2026</span></div>
         <div>
             <strong>Cliente:</strong>
-            <span th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE CLIENTE</span>
-            - <span th:text="${tipoUniformadoLabel}">POLICIA</span> EN SERVICIO
-            <span th:text="${estadoMilitarUpper}">ACTIVO</span>
+            <span th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.toUpperCase(clienteRango + '. ' + cliente.nombres + ' ' + cliente.apellidos)}">CBOP. QUINTERO CABEZA JOSE LUIS</span><span th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">NOMBRE APELLIDO</span>
+            - POLICIA EN SERVICIO <span th:text="${estadoMilitarUpper}">ACTIVO</span>
         </div>
-        <div><strong>Cédula:</strong> <span th:text="${cliente.numeroIdentificacion}">0000000000</span></div>
-        <div><strong>Fecha:</strong> <span th:text="${fechaCotizacion}">18 de enero de 2026</span></div>
+        <div><strong>Cédula:</strong> <span th:text="${cliente.numeroIdentificacion}">0925588196</span></div>
     </div>
 
     <p>
-        Nos permitimos enviar la Cotización para
-        <strong th:text="${cantidadArmasTexto}">01 arma</strong>
+        Por medio de la presente me permito enviar la Cotización para
+        <strong th:text="${cantidadArmasTexto}">01 pistola(s)</strong>
         de las siguientes características:
     </p>
 
@@ -100,7 +99,7 @@
                 <th>MARCA</th>
                 <th>MODELO</th>
                 <th>CALIBRE</th>
-                <th>ALIMENTADORAS DE FÁBRICA</th>
+                <th>ALIMENTADORA DE FABRICA</th>
                 <th>PRECIO INCLUIDO IVA</th>
             </tr>
         </thead>
@@ -108,16 +107,15 @@
             <tr th:each="arma : ${armasDetalle}">
                 <td th:text="${arma.categoria}">PISTOLA</td>
                 <td th:text="${arma.marca}">CZ</td>
-                <td th:text="${arma.modelo}">P-10F</td>
+                <td th:text="${arma.modelo}">CZ P10 F</td>
                 <td th:text="${arma.calibre}">9MM</td>
                 <td th:text="${arma.alimentadora}">2 (DOS)</td>
-                <td th:text="${arma.precioConIvaFormateado}">$1.800,00</td>
+                <td th:text="${arma.precioConIvaFormateado}">$1.587,00</td>
             </tr>
         </tbody>
     </table>
 
     <p>El arma será cancelada en la siguiente manera:</p>
-    <div class="payment-title">Las partes han acordado que los pagos serán mensualizados de la siguiente manera:</div>
 
     <div class="payment-item" th:if="${pago != null and pago.tipoPago == 'CONTADO'}">
         <span class="label">a).-</span>
@@ -178,21 +176,21 @@
     </div>
 
     <div class="signature-section">
-        <div>Para constancia de aceptación de la proforma firman.</div>
+        <div>Para constancia de aceptación de la cotización firman.</div>
         <table class="signature-table">
             <tr>
                 <td class="signature-cell">
                     <div class="signature-line"></div>
-                    <div th:text="${#strings.toUpperCase(licenciaNombre)}">LICENCIA</div>
+                    <div th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}">MSC LOYAGA CORREA MARCIA NATHALY</div>
                     <div>Distribuidor Autorizado</div>
-                    <div>CZ Ceska Zbrojovka</div>
+                    <div>Česká Zbrojovka</div>
+                    <div>CC. <span th:text="${licenciaCedula}">1725831950</span></div>
                 </td>
                 <td class="signature-spacer"></td>
                 <td class="signature-cell">
                     <div class="signature-line"></div>
-                    <div th:text="${#strings.toUpperCase(cliente.nombres + ' ' + cliente.apellidos)}">CLIENTE</div>
-                    <div>C.C. <span th:text="${cliente.numeroIdentificacion}">0000000000</span></div>
-                    <div>ACEPTO LA COTIZACIÓN</div>
+                    <div th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(clienteRango) + '. ' + #strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Cbop. Quintero Cabeza Jose Luis</div><div th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Nombre Apellido</div>
+                    <div>CC <span th:text="${cliente.numeroIdentificacion}">0925588196</span>.</div>
                 </td>
             </tr>
         </table>
