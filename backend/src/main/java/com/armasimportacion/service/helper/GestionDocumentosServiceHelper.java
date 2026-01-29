@@ -599,7 +599,8 @@ public class GestionDocumentosServiceHelper {
             variables.put("fechaActual", fechaActualEcuador);
 
             Licencia licencia = obtenerLicenciaActiva(cliente);
-            String licenciaTitulo = licencia != null && licencia.getTitulo() != null ? licencia.getTitulo() : "";
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+                ? licencia.getTitulo() : "Sr/Sra";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
             String licenciaCedula = "";
             if (licencia != null) {
