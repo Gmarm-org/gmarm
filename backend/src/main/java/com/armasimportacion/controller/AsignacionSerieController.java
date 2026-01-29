@@ -1,5 +1,6 @@
 package com.armasimportacion.controller;
 
+import com.armasimportacion.dto.ArmaSerieDTO;
 import com.armasimportacion.dto.ReservaPendienteDTO;
 import com.armasimportacion.model.ArmaSerie;
 import com.armasimportacion.model.ClienteArma;
@@ -55,13 +56,13 @@ public class AsignacionSerieController {
      * GET /api/asignacion-series/series-disponibles/{armaId}
      */
     @GetMapping("/series-disponibles/{armaId}")
-    public ResponseEntity<List<ArmaSerie>> obtenerSeriesDisponibles(
+    public ResponseEntity<List<ArmaSerieDTO>> obtenerSeriesDisponibles(
         @PathVariable Long armaId
     ) {
         log.info("🔍 GET /api/asignacion-series/series-disponibles/{} - Obteniendo series disponibles", armaId);
         
         try {
-            List<ArmaSerie> series = asignacionSerieService.obtenerSeriesDisponibles(armaId);
+            List<ArmaSerieDTO> series = asignacionSerieService.obtenerSeriesDisponibles(armaId);
             log.info("✅ Se encontraron {} series disponibles para arma ID: {}", series.size(), armaId);
             return ResponseEntity.ok(series);
         } catch (Exception e) {

@@ -1,5 +1,6 @@
 package com.armasimportacion.service;
 
+import com.armasimportacion.dto.ArmaSerieDTO;
 import com.armasimportacion.dto.ReservaPendienteDTO;
 import com.armasimportacion.model.ArmaSerie;
 import com.armasimportacion.model.ClienteArma;
@@ -65,14 +66,18 @@ public class AsignacionSerieService {
     /**
      * Obtener series disponibles para un arma específica
      */
-    public List<ArmaSerie> obtenerSeriesDisponibles(Long armaId) {
+    public List<ArmaSerieDTO> obtenerSeriesDisponibles(Long armaId) {
         log.info("🔍 Obteniendo series disponibles para arma ID: {}", armaId);
         
         List<ArmaSerie> series = armaSerieRepository
             .findByArmaIdAndEstado(armaId, ArmaSerie.EstadoSerie.DISPONIBLE);
         
         log.info("✅ Se encontraron {} series disponibles", series.size());
-        return series;
+        
+        // Convertir a DTO para evitar referencias circulares
+        return series.stream()
+            .map(ArmaSerieDTO::fromEntity)
+            .collect(Collectors.toList());
     }
 
     /**
