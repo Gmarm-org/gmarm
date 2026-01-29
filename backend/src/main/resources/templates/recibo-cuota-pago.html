@@ -166,14 +166,13 @@
                 <!-- Weapon Information -->
                 <div class="weapon-info" th:if="${armaNombre != null and armaNombre != 'N/A'}">
                     <strong>
-                        <span th:if="${cantidadArmas == 1}">UNA</span>
-                        <span th:if="${cantidadArmas > 1}" th:text="${cantidadArmas}">X</span>
-                        <span th:text="${armaNombre}">MODELO ARMA</span>
-                        <span th:if="${armaModelo != null and !armaModelo.isEmpty()}"> modelo <span th:text="${armaModelo}">MODELO</span></span>
-                        <span th:if="${armaCalibre != null and !armaCalibre.isEmpty()}"> (calibre <span th:text="${armaCalibre}">CALIBRE</span>)</span>
+                        <span th:if="${cantidadArmas == 1}">Un arma</span>
+                        <span th:if="${cantidadArmas > 1}"><span th:text="${cantidadArmas}">2</span> armas</span>
+                        <span th:if="${armaModelo != null and !armaModelo.isEmpty()}"> modelo <span th:text="${armaModelo}">CZ P10 C</span></span>
+                        <span th:if="${armaCalibre != null and !armaCalibre.isEmpty()}"> (calibre <span th:text="${armaCalibre}">9MM</span>)</span>
                     </strong>
-                    cuyo valor es de <strong>(USD <span th:text="${montoTotalPagoFormateado}">$0.00</span> 
-                    UN MIL SEISCIENTOS CINCUENTA CON 00/100 DÓLARES AMERICANOS)</strong> más IVA.
+                    cuyo valor es de <strong>(USD <span th:text="${montoTotalPagoFormateado}">$0.00</span>
+                    <span th:text="${montoEnLetras}">UN MIL SEISCIENTOS CINCUENTA CON 00/100</span> DÓLARES AMERICANOS)</strong> más IVA.
                 </div>
 
                 <!-- Personal Data Section -->
