@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
-    <title>RECIBO DE RESERVA - GMARM</title>
+    <title>RECIBO DE RESERVA</title>
     <style>
         @page {
             margin: 2cm;
@@ -24,17 +24,6 @@
             background-color: white;
             position: relative;
         }
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 120px;
-            color: #E5E7EB;
-            opacity: 0.1;
-            z-index: 0;
-            font-weight: bold;
-        }
         .content {
             position: relative;
             z-index: 1;
@@ -55,22 +44,6 @@
             font-weight: bold;
             color: #1F2937;
             margin-bottom: 5px;
-        }
-        .logo-tagline {
-            font-size: 11px;
-            color: #6B7280;
-            font-style: italic;
-        }
-        .social-section {
-            flex: 1;
-            text-align: right;
-            font-size: 10px;
-            color: #6B7280;
-        }
-        .social-section a {
-            color: #6B7280;
-            text-decoration: none;
-            margin-left: 8px;
         }
         .title {
             text-align: center;
@@ -132,45 +105,6 @@
             border-radius: 4px;
             color: #92400E;
         }
-        .delivery-info {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #EFF6FF;
-            border-left: 4px solid #3B82F6;
-            border-radius: 4px;
-        }
-        .clarification {
-            margin: 25px 0;
-            padding: 15px;
-            background-color: #F9FAFB;
-            border: 1px solid #E5E7EB;
-            border-radius: 4px;
-        }
-        .clarification h4 {
-            color: #1F2937;
-            font-size: 14px;
-            font-weight: bold;
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-        .clarification ul {
-            margin: 10px 0;
-            padding-left: 25px;
-        }
-        .clarification li {
-            margin: 8px 0;
-        }
-        .signature {
-            margin-top: 40px;
-            text-align: left;
-        }
-        .signature p {
-            margin: 5px 0;
-        }
-        .signature-name {
-            font-weight: bold;
-            margin-top: 30px;
-        }
         .footer {
             margin-top: 30px;
             padding-top: 20px;
@@ -195,16 +129,11 @@
 </head>
 <body>
     <div class="container">
-        <div class="watermark">GMARM</div>
         <div class="content">
             <!-- Header -->
             <div class="header">
                 <div class="logo-section">
-                    <div class="logo">GMARM</div>
-                    <div class="logo-tagline">Sistema de Gestión de Armas</div>
-                </div>
-                <div class="social-section">
-                    <div>www.gmarm.com</div>
+                    <div class="logo" th:text="${licenciaNombre}">CZ ECUADOR</div>
                 </div>
             </div>
 
@@ -285,39 +214,6 @@
                     </p>
                 </div>
 
-                <!-- Delivery Information -->
-                <div class="delivery-info">
-                    <p>
-                        <strong>Tiempo estimado de entrega:</strong> El tiempo estimado de entrega será de 
-                        <strong>doscientos días aproximadamente</strong> desde la firma del presente instrumento. 
-                        En virtud de que al ser productos de fabricación Europea y por la naturaleza de estos, 
-                        requieren permisos especiales tanto para su importación como para su exportación desde el 
-                        lugar de origen, el tiempo estimado de entrega podría variar, hecho que las partes lo 
-                        reconocen, sin que esto resulte en algún perjuicio para las mismas.
-                    </p>
-                </div>
-
-                <!-- Clarification Section -->
-                <div class="clarification">
-                    <h4>ACLARACIÓN</h4>
-                    <p>
-                        En caso de incremento en tributos como: ICE, sobre el 30% establecido en la actualidad 
-                        para productos especiales y/o IVA, que al momento se encuentra en <strong><span th:text="${ivaPorcentaje}">15</span>%</strong>, 
-                        las partes de común acuerdo, establecemos que:
-                    </p>
-                    <ul>
-                        <li>
-                            De existir por este motivo una variación en el precio final de las armas, este se 
-                            discutirá con el comprador, de no aceptarse el incremento que se generaría, en caso 
-                            de existir variación en los tributos, la venta quedará insubsistente, sin que las 
-                            partes deban pagar multa alguna o reclamar por la vía judicial o arbitral. 
-                            Devolviéndose el dinero que haya sido pagado hasta la fecha.
-                        </li>
-                        <li>
-                            De igual manera en caso de cambio en el IVA, se procederá a hacer la reliquidación respectiva.
-                        </li>
-                    </ul>
-                </div>
 
                 <!-- Payment Details -->
                 <div style="margin: 20px 0; padding: 15px; background-color: #F0FDF4; border-left: 4px solid #22C55E; border-radius: 4px;">
@@ -338,18 +234,9 @@
                     </table>
                 </div>
 
-                <!-- Signature -->
-                <div class="signature">
-                    <p>Atentamente,</p>
-                    <p class="signature-name">GMARM</p>
-                    <p style="font-size: 11px; color: #6B7280;">Sistema de Gestión de Armas</p>
-                </div>
-
                 <!-- Footer -->
                 <div class="footer">
                     <p><strong>Este documento es válido como comprobante de pago</strong></p>
-                    <p>© 2025 GMARM - Todos los derechos reservados</p>
-                    <p>Este es un documento generado automáticamente</p>
                 </div>
             </div>
         </div>

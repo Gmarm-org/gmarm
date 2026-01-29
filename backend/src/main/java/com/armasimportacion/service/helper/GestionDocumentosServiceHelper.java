@@ -1226,6 +1226,12 @@ public class GestionDocumentosServiceHelper {
             variables.put("clienteDireccion", cliente.getDireccion() != null ? cliente.getDireccion() : "");
             variables.put("clienteTelefono", cliente.getTelefonoPrincipal() != null ? cliente.getTelefonoPrincipal() : "");
             variables.put("clienteEmail", cliente.getEmail() != null ? cliente.getEmail() : "");
+
+            // Obtener licencia para el nombre del importador
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "CZ ECUADOR";
+            variables.put("licenciaNombre", licenciaNombre);
+
             variables.put("numeroCuota", cuota.getNumeroCuota());
             variables.put("monto", cuota.getMonto());
             variables.put("montoFormateado", formatCurrency(cuota.getMonto()));
