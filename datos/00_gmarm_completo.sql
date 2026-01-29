@@ -465,6 +465,23 @@ CREATE TABLE IF NOT EXISTS cuota_pago (
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tablas de localización (DEBEN estar ANTES de licencia)
+CREATE TABLE IF NOT EXISTS provincia (
+    id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    estado BOOLEAN DEFAULT true
+);
+
+-- Tabla de cantones
+CREATE TABLE IF NOT EXISTS canton (
+    id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    codigo VARCHAR(10) NOT NULL,
+    estado BOOLEAN DEFAULT true,
+    provincia_id BIGINT NOT NULL REFERENCES provincia(id) ON DELETE CASCADE
+);
+
 -- Tabla de licencias
 CREATE TABLE IF NOT EXISTS licencia (
     id BIGSERIAL PRIMARY KEY,
@@ -525,23 +542,6 @@ CREATE TABLE IF NOT EXISTS configuracion_sistema (
     editable BOOLEAN DEFAULT true,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabla de provincias
-CREATE TABLE IF NOT EXISTS provincia (
-    id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    codigo VARCHAR(10) UNIQUE NOT NULL,
-    estado BOOLEAN DEFAULT true
-);
-
--- Tabla de cantones
-CREATE TABLE IF NOT EXISTS canton (
-    id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    codigo VARCHAR(10) NOT NULL,
-    estado BOOLEAN DEFAULT true,
-    provincia_id BIGINT NOT NULL REFERENCES provincia(id) ON DELETE CASCADE
 );
 
 -- Tabla de grupos de importación
