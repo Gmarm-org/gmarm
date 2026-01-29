@@ -4,7 +4,10 @@ import com.armasimportacion.dto.LicenciaDTO;
 import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import com.armasimportacion.mapper.LicenciaMapper;
 import com.armasimportacion.model.Licencia;
+import com.armasimportacion.repository.CantonRepository;
 import com.armasimportacion.repository.LicenciaRepository;
+import com.armasimportacion.repository.ProvinciaRepository;
+import com.armasimportacion.service.LicenciaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +28,9 @@ public class LicenciaController {
 
     private final LicenciaRepository licenciaRepository;
     private final LicenciaMapper licenciaMapper;
-    private final com.armasimportacion.service.LicenciaService licenciaService;
-    private final com.armasimportacion.repository.ProvinciaRepository provinciaRepository;
-    private final com.armasimportacion.repository.CantonRepository cantonRepository;
+    private final LicenciaService licenciaService;
+    private final ProvinciaRepository provinciaRepository;
+    private final CantonRepository cantonRepository;
 
     @GetMapping
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
