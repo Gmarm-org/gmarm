@@ -125,7 +125,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         // Obtener orígenes permitidos desde variables de entorno
         String allowedOrigins = System.getenv("SPRING_CORS_ALLOWED_ORIGINS");
         if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
@@ -138,18 +138,16 @@ public class SecurityConfig {
                     originList.add(trimmed);
                 }
             }
-            // Permitir cualquier origen para evitar bloqueos CORS en entornos con múltiples hosts
-            originList.add("*");
-            configuration.setAllowedOriginPatterns(originList);
+            // Si la lista está vacía o contiene "*", permitir todos los orígenes
+            if (originList.isEmpty() || originList.contains("*")) {
+                configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+            } else {
+                // Usar los orígenes específicos configurados
+                configuration.setAllowedOriginPatterns(originList);
+            }
         } else {
-            // Valores por defecto para desarrollo local
-            configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:5173", 
-                "http://localhost:3000", 
-                "http://127.0.0.1:5173", 
-                "http://127.0.0.1:3000",
-                "*"
-            ));
+            // Valores por defecto: permitir todos los orígenes para desarrollo
+            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         }
         
         // Obtener métodos permitidos desde variables de entorno
