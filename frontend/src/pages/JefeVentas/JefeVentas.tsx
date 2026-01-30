@@ -816,7 +816,7 @@ const JefeVentas: React.FC = () => {
                 <p className="text-3xl font-bold mt-1">
                   {loadingDashboard ? '...' : dashboardStats.clientesPendientesContrato}
                 </p>
-                <p className="text-amber-200 text-xs mt-1">Con serie asignada, sin enviar documentos</p>
+                <p className="text-amber-200 text-xs mt-1">Sin contrato generado</p>
               </div>
               <div className="w-14 h-14 bg-amber-400/30 rounded-full flex items-center justify-center">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

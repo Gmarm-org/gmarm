@@ -145,15 +145,22 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     @Query(value = "SELECT COUNT(*) FROM cliente WHERE DATE(fecha_creacion) = CURRENT_DATE", nativeQuery = true)
     Long countClientesDeHoy();
 
-    // Contar clientes con serie asignada que necesitan contrato/solicitud enviado
-    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.estado = com.armasimportacion.enums.EstadoCliente.SERIE_ASIGNADA")
+    // Contar clientes con email verificado que NO tienen contrato generado
+    @Query(value = "SELECT COUNT(*) FROM cliente c " +
+                   "WHERE c.email_verificado = true " +
+                   "AND NOT EXISTS (SELECT 1 FROM documento_generado dg WHERE dg.cliente_id = c.id AND dg.tipo_documento = 'CONTRATO')",
+           nativeQuery = true)
     Long countClientesPendientesContrato();
 
     // Obtener clientes creados hoy (native query para usar DATE())
     @Query(value = "SELECT * FROM cliente WHERE DATE(fecha_creacion) = CURRENT_DATE ORDER BY fecha_creacion DESC", nativeQuery = true)
     List<Cliente> findClientesDeHoy();
 
-    // Obtener clientes con serie asignada (pendientes de enviar contrato/solicitud)
-    @Query("SELECT c FROM Cliente c WHERE c.estado = com.armasimportacion.enums.EstadoCliente.SERIE_ASIGNADA ORDER BY c.fechaCreacion DESC")
+    // Obtener clientes con email verificado que NO tienen contrato generado
+    @Query(value = "SELECT * FROM cliente c " +
+                   "WHERE c.email_verificado = true " +
+                   "AND NOT EXISTS (SELECT 1 FROM documento_generado dg WHERE dg.cliente_id = c.id AND dg.tipo_documento = 'CONTRATO') " +
+                   "ORDER BY c.fecha_creacion DESC",
+           nativeQuery = true)
     List<Cliente> findClientesPendientesContrato();
 } 
