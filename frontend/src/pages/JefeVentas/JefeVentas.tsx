@@ -123,12 +123,12 @@ const JefeVentas: React.FC = () => {
   const [armasReasignadas, setArmasReasignadas] = useState<any[]>([]);
   const [loadingArmasReasignadas, setLoadingArmasReasignadas] = useState(false);
 
-  // Estados para Dashboard
-  const [dashboardStats, setDashboardStats] = useState<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>({
-    clientesNuevosHoy: 0,
-    clientesPendientesContrato: 0
-  });
-  const [loadingDashboard, setLoadingDashboard] = useState(false);
+  // TODO: Estados para Dashboard - Oculto temporalmente, revisar criterios de filtrado
+  // const [dashboardStats, setDashboardStats] = useState<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>({
+  //   clientesNuevosHoy: 0,
+  //   clientesPendientesContrato: 0
+  // });
+  // const [loadingDashboard, setLoadingDashboard] = useState(false);
   
   // Función para cargar armas reasignadas
   const cargarArmasReasignadas = async () => {
@@ -218,24 +218,24 @@ const JefeVentas: React.FC = () => {
     }
   }, [vistaActual]);
 
-  // Cargar estadísticas del dashboard al montar el componente
-  useEffect(() => {
-    const cargarDashboard = async () => {
-      setLoadingDashboard(true);
-      try {
-        console.log('📊 Cargando estadísticas del dashboard...');
-        const stats = await apiService.getDashboardJefeVentas();
-        setDashboardStats(stats);
-        console.log('✅ Dashboard cargado:', stats);
-      } catch (error) {
-        console.error('❌ Error cargando dashboard:', error);
-      } finally {
-        setLoadingDashboard(false);
-      }
-    };
-
-    cargarDashboard();
-  }, []);
+  // TODO: Cargar estadísticas del dashboard - Oculto temporalmente, revisar criterios de filtrado
+  // useEffect(() => {
+  //   const cargarDashboard = async () => {
+  //     setLoadingDashboard(true);
+  //     try {
+  //       console.log('📊 Cargando estadísticas del dashboard...');
+  //       const stats = await apiService.getDashboardJefeVentas();
+  //       setDashboardStats(stats);
+  //       console.log('✅ Dashboard cargado:', stats);
+  //     } catch (error) {
+  //       console.error('❌ Error cargando dashboard:', error);
+  //     } finally {
+  //       setLoadingDashboard(false);
+  //     }
+  //   };
+  //
+  //   cargarDashboard();
+  // }, []);
 
   const cargarStockArmas = async () => {
     setLoadingStock(true);
@@ -788,9 +788,9 @@ const JefeVentas: React.FC = () => {
           </div>
         ) : (
           <>
-        {/* Dashboard de estadísticas */}
+        {/* TODO: Dashboard de estadísticas - Oculto temporalmente, revisar criterios de filtrado */}
+        {/*
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Clientes nuevos de hoy */}
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
@@ -808,7 +808,6 @@ const JefeVentas: React.FC = () => {
             </div>
           </div>
 
-          {/* Clientes pendientes de contrato/solicitud */}
           <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-5 shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
@@ -826,6 +825,7 @@ const JefeVentas: React.FC = () => {
             </div>
           </div>
         </div>
+        */}
 
         {/* Navegación de pestañas */}
         <div className="flex space-x-2 mb-6">
