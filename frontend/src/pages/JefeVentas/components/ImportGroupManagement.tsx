@@ -306,14 +306,19 @@ const ImportGroupManagement: React.FC = () => {
                           👁️ Ver
                         </button>
 
-                        {/* Botón Editar */}
-                        <button
-                          onClick={() => setGrupoAEditar(resumen.grupoId)}
-                          className="text-purple-600 hover:text-purple-900 bg-purple-50 px-3 py-1 rounded-md text-xs font-medium"
-                          title="Editar vendedores y límites del grupo"
-                        >
-                          ✏️ Editar
-                        </button>
+                        {/* Botón Editar - solo visible si el pedido NO está definido */}
+                        {(!grupoCompleto ||
+                          grupoCompleto.estado === 'BORRADOR' ||
+                          grupoCompleto.estado === 'EN_PREPARACION' ||
+                          grupoCompleto.estado === 'EN_PROCESO_ASIGNACION_CLIENTES') && (
+                          <button
+                            onClick={() => setGrupoAEditar(resumen.grupoId)}
+                            className="text-purple-600 hover:text-purple-900 bg-purple-50 px-3 py-1 rounded-md text-xs font-medium"
+                            title="Editar vendedores y límites del grupo"
+                          >
+                            ✏️ Editar
+                          </button>
+                        )}
                         
                         {/* Botón Agregar Clientes - siempre visible, deshabilitado si el estado no lo permite */}
                         {(() => {
