@@ -1546,6 +1546,23 @@ class ApiService {
     return this.request<any[]>('/api/clientes/todos');
   }
 
+  // ==================== DASHBOARD JEFE DE VENTAS ====================
+
+  // Obtener estadísticas del dashboard para Jefe de Ventas
+  async getDashboardJefeVentas(): Promise<{ clientesNuevosHoy: number; clientesPendientesContrato: number }> {
+    return this.request<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>('/api/clientes/dashboard/jefe-ventas');
+  }
+
+  // Obtener lista de clientes creados hoy
+  async getClientesDeHoy(): Promise<any[]> {
+    return this.request<any[]>('/api/clientes/dashboard/clientes-hoy');
+  }
+
+  // Obtener lista de clientes pendientes de enviar contrato/solicitud
+  async getClientesPendientesContrato(): Promise<any[]> {
+    return this.request<any[]>('/api/clientes/dashboard/clientes-pendientes-contrato');
+  }
+
   // Obtener clientes disponibles para asignar a grupos de importación
   async getClientesDisponibles(grupoId?: number): Promise<any[]> {
     const url = grupoId 

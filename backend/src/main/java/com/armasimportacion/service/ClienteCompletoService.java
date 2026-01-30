@@ -804,9 +804,12 @@ public class ClienteCompletoService {
             return;
         }
         
-        // NO enviar correo a compañías de seguridad
+        // NO enviar correo a compañías de seguridad - auto-validar datos
         if (cliente.esEmpresa()) {
-            log.info("📧 Cliente ID {} es compañía de seguridad, no se enviará correo de verificación", cliente.getId());
+            log.info("📧 Cliente ID {} es compañía de seguridad, auto-validando datos sin enviar correo", cliente.getId());
+            cliente.setEmailVerificado(true);
+            clienteRepository.save(cliente);
+            log.info("✅ Datos auto-validados para cliente empresa ID: {}", cliente.getId());
             return;
         }
         

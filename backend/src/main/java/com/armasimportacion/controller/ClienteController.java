@@ -22,6 +22,7 @@ import com.armasimportacion.enums.EstadoDocumentoGenerado;
 import com.armasimportacion.service.EmailService;
 import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
+import com.armasimportacion.mapper.ClienteMapper;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,7 +59,8 @@ public class ClienteController {
     private final com.armasimportacion.service.DocumentoClienteService documentoClienteService;
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
-    
+    private final ClienteMapper clienteMapper;
+
     // ==================== MÉTODOS AUXILIARES ====================
     
     // TODO: Implementar obtención del usuario desde el token JWT cuando se implemente la autenticación completa
@@ -948,6 +950,80 @@ public class ClienteController {
         } catch (Exception e) {
             log.warn("⚠️ No se pudo cargar documento generado {}: {}", documento.getId(), e.getMessage());
             return null;
+        }
+    }
+
+    // ==================== ENDPOINTS DASHBOARD JEFE DE VENTAS ====================
+
+    /**
+     * Obtener estadísticas del dashboard para Jefe de Ventas
+     */
+    @GetMapping("/dashboard/jefe-ventas")
+    @Operation(summary = "Dashboard Jefe de Ventas", description = "Obtiene estadísticas del dashboard para el Jefe de Ventas")
+    public ResponseEntity<Map<String, Object>> getDashboardJefeVentas() {
+        try {
+            log.info("📊 Obteniendo estadísticas del dashboard para Jefe de Ventas");
+
+            Map<String, Object> dashboard = new HashMap<>();
+
+            // Clientes nuevos (creados hoy)
+            Long clientesHoy = clienteRepository.countClientesDeHoy();
+            dashboard.put("clientesNuevosHoy", clientesHoy != null ? clientesHoy : 0L);
+
+            // Clientes con serie asignada pendientes de enviar contrato/solicitud
+            Long clientesPendientesContrato = clienteRepository.countClientesPendientesContrato();
+            dashboard.put("clientesPendientesContrato", clientesPendientesContrato != null ? clientesPendientesContrato : 0L);
+
+            log.info("✅ Dashboard JefeVentas - clientesHoy: {}, pendientesContrato: {}",
+                clientesHoy, clientesPendientesContrato);
+
+            return ResponseEntity.ok(dashboard);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo dashboard jefe de ventas: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Error al obtener dashboard: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Obtener lista de clientes creados hoy
+     */
+    @GetMapping("/dashboard/clientes-hoy")
+    @Operation(summary = "Clientes de hoy", description = "Obtiene la lista de clientes creados hoy")
+    public ResponseEntity<List<ClienteDTO>> getClientesDeHoy() {
+        try {
+            log.info("📊 Obteniendo clientes creados hoy");
+
+            List<Cliente> clientesHoy = clienteRepository.findClientesDeHoy();
+            List<ClienteDTO> clientesDTO = clienteMapper.toDTOList(clientesHoy);
+
+            log.info("✅ Se encontraron {} clientes creados hoy", clientesDTO.size());
+
+            return ResponseEntity.ok(clientesDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo clientes de hoy: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
+     * Obtener lista de clientes pendientes de enviar contrato/solicitud
+     */
+    @GetMapping("/dashboard/clientes-pendientes-contrato")
+    @Operation(summary = "Clientes pendientes contrato", description = "Obtiene la lista de clientes con serie asignada pendientes de enviar contrato/solicitud")
+    public ResponseEntity<List<ClienteDTO>> getClientesPendientesContrato() {
+        try {
+            log.info("📊 Obteniendo clientes pendientes de contrato/solicitud");
+
+            List<Cliente> clientesPendientes = clienteRepository.findClientesPendientesContrato();
+            List<ClienteDTO> clientesDTO = clienteMapper.toDTOList(clientesPendientes);
+
+            log.info("✅ Se encontraron {} clientes pendientes de contrato/solicitud", clientesDTO.size());
+
+            return ResponseEntity.ok(clientesDTO);
+        } catch (Exception e) {
+            log.error("❌ Error obteniendo clientes pendientes de contrato: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

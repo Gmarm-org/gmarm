@@ -122,6 +122,13 @@ const JefeVentas: React.FC = () => {
   // Estados para armas reasignadas
   const [armasReasignadas, setArmasReasignadas] = useState<any[]>([]);
   const [loadingArmasReasignadas, setLoadingArmasReasignadas] = useState(false);
+
+  // Estados para Dashboard
+  const [dashboardStats, setDashboardStats] = useState<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>({
+    clientesNuevosHoy: 0,
+    clientesPendientesContrato: 0
+  });
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
   
   // Función para cargar armas reasignadas
   const cargarArmasReasignadas = async () => {
@@ -210,6 +217,25 @@ const JefeVentas: React.FC = () => {
       cargarArmasReasignadas();
     }
   }, [vistaActual]);
+
+  // Cargar estadísticas del dashboard al montar el componente
+  useEffect(() => {
+    const cargarDashboard = async () => {
+      setLoadingDashboard(true);
+      try {
+        console.log('📊 Cargando estadísticas del dashboard...');
+        const stats = await apiService.getDashboardJefeVentas();
+        setDashboardStats(stats);
+        console.log('✅ Dashboard cargado:', stats);
+      } catch (error) {
+        console.error('❌ Error cargando dashboard:', error);
+      } finally {
+        setLoadingDashboard(false);
+      }
+    };
+
+    cargarDashboard();
+  }, []);
 
   const cargarStockArmas = async () => {
     setLoadingStock(true);
@@ -762,6 +788,45 @@ const JefeVentas: React.FC = () => {
           </div>
         ) : (
           <>
+        {/* Dashboard de estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Clientes nuevos de hoy */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium">Clientes Nuevos Hoy</p>
+                <p className="text-3xl font-bold mt-1">
+                  {loadingDashboard ? '...' : dashboardStats.clientesNuevosHoy}
+                </p>
+                <p className="text-blue-200 text-xs mt-1">Registrados el día de hoy</p>
+              </div>
+              <div className="w-14 h-14 bg-blue-400/30 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Clientes pendientes de contrato/solicitud */}
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-5 shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-amber-100 text-sm font-medium">Pendientes Contrato/Solicitud</p>
+                <p className="text-3xl font-bold mt-1">
+                  {loadingDashboard ? '...' : dashboardStats.clientesPendientesContrato}
+                </p>
+                <p className="text-amber-200 text-xs mt-1">Con serie asignada, sin enviar documentos</p>
+              </div>
+              <div className="w-14 h-14 bg-amber-400/30 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Navegación de pestañas */}
         <div className="flex space-x-2 mb-6">
           <button
@@ -1155,11 +1220,15 @@ const JefeVentas: React.FC = () => {
                               cliente.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
                               cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
                               cliente.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
+                              cliente.estado === 'EN_CURSO_IMPORTACION' ? 'bg-purple-100 text-purple-800' :
+                              cliente.estado === 'SERIE_ASIGNADA' ? 'bg-green-100 text-green-800' :
                               cliente.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
                               {cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
                                cliente.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
+                               cliente.estado === 'EN_CURSO_IMPORTACION' ? 'En curso de importación' :
+                               cliente.estado === 'SERIE_ASIGNADA' ? 'Serie asignada' :
                                cliente.estado === 'EN_PROCESO' ? 'En proceso' :
                                cliente.estado === 'BLOQUEADO' ? 'Bloqueado' :
                                cliente.estado || 'N/A'}
@@ -1483,14 +1552,18 @@ const JefeVentas: React.FC = () => {
                       <p className="text-sm text-gray-600">Estado</p>
                       <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                         clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
+                        clienteSeleccionado.estado === 'SERIE_ASIGNADA' ? 'bg-green-100 text-green-800' :
                         clienteSeleccionado.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
                         clienteSeleccionado.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
                         clienteSeleccionado.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
+                        clienteSeleccionado.estado === 'EN_CURSO_IMPORTACION' ? 'bg-purple-100 text-purple-800' :
                         clienteSeleccionado.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {clienteSeleccionado.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
                          clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
+                         clienteSeleccionado.estado === 'EN_CURSO_IMPORTACION' ? 'En curso de importación' :
+                         clienteSeleccionado.estado === 'SERIE_ASIGNADA' ? 'Serie asignada' :
                          clienteSeleccionado.estado === 'EN_PROCESO' ? 'En proceso' :
                          clienteSeleccionado.estado === 'BLOQUEADO' ? 'Bloqueado' :
                          clienteSeleccionado.estado || 'N/A'}

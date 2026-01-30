@@ -138,4 +138,22 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     // Buscar el primer cliente fantasma del vendedor (el más antiguo)
     @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado = :estado ORDER BY c.fechaCreacion ASC")
     Optional<Cliente> findFirstByUsuarioCreadorIdAndEstadoOrderByFechaCreacionAsc(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
+
+    // ==================== MÉTODOS PARA DASHBOARD JEFE DE VENTAS ====================
+
+    // Contar clientes creados hoy
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE DATE(c.fechaCreacion) = CURRENT_DATE")
+    Long countClientesDeHoy();
+
+    // Contar clientes con serie asignada que necesitan contrato/solicitud enviado
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.estado = 'SERIE_ASIGNADA'")
+    Long countClientesPendientesContrato();
+
+    // Obtener clientes creados hoy
+    @Query("SELECT c FROM Cliente c WHERE DATE(c.fechaCreacion) = CURRENT_DATE ORDER BY c.fechaCreacion DESC")
+    List<Cliente> findClientesDeHoy();
+
+    // Obtener clientes con serie asignada (pendientes de enviar contrato/solicitud)
+    @Query("SELECT c FROM Cliente c WHERE c.estado = 'SERIE_ASIGNADA' ORDER BY c.fechaCreacion DESC")
+    List<Cliente> findClientesPendientesContrato();
 } 

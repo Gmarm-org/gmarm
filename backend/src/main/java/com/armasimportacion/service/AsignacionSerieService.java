@@ -7,7 +7,9 @@ import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ArmaSerieRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
+import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.UsuarioRepository;
+import com.armasimportacion.enums.EstadoCliente;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class AsignacionSerieService {
     private final ClienteArmaRepository clienteArmaRepository;
     private final ArmaSerieRepository armaSerieRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ClienteRepository clienteRepository;
 
     /**
      * Obtener todas las reservas pendientes de asignar serie
@@ -152,7 +155,14 @@ public class AsignacionSerieService {
         armaSerieRepository.save(armaSerie);
         log.info("✅ Arma_serie actualizada a estado ASIGNADO");
 
-        log.info("🎉 Serie asignada exitosamente: {} → Cliente: {} {}", 
+        // 10. Actualizar estado del cliente a SERIE_ASIGNADA
+        var cliente = clienteArma.getCliente();
+        cliente.setEstado(EstadoCliente.SERIE_ASIGNADA);
+        clienteRepository.save(cliente);
+        log.info("✅ Estado del cliente actualizado a SERIE_ASIGNADA: {} {}",
+            cliente.getNombres(), cliente.getApellidos());
+
+        log.info("🎉 Serie asignada exitosamente: {} → Cliente: {} {}",
             armaSerie.getNumeroSerie(),
             clienteArma.getCliente().getNombres(),
             clienteArma.getCliente().getApellidos()

@@ -1780,20 +1780,59 @@ public class GrupoImportacionService {
      */
     public void cambiarEstado(Long grupoId, EstadoGrupoImportacion nuevoEstado, Long usuarioId) {
         log.info("🔄 Cambiando estado del grupo ID: {} a {}", grupoId, nuevoEstado);
-        
+
         GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
-        
+
         if (usuarioId != null) {
             Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
             grupo.setUsuarioActualizador(usuario);
         }
-        
+
         grupo.setEstado(nuevoEstado);
         grupo.setFechaActualizacion(LocalDateTime.now());
-        
+
         grupoImportacionRepository.save(grupo);
-        
+
+        // Actualizar estado de clientes a EN_CURSO_IMPORTACION cuando el grupo avanza
+        // Estados que indican que la importación está en curso
+        Set<EstadoGrupoImportacion> estadosImportacionActiva = Set.of(
+            EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA,
+            EstadoGrupoImportacion.EN_PROCESO_OPERACIONES,
+            EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO,
+            EstadoGrupoImportacion.EN_ESPERA_DOCUMENTOS_CLIENTE
+        );
+
+        if (estadosImportacionActiva.contains(nuevoEstado)) {
+            actualizarEstadoClientesDelGrupo(grupoId, EstadoCliente.EN_CURSO_IMPORTACION);
+        }
+
         log.info("✅ Estado del grupo ID: {} cambiado a {}", grupoId, nuevoEstado);
+    }
+
+    /**
+     * Actualiza el estado de los clientes de un grupo que están en LISTO_IMPORTACION
+     * al nuevo estado especificado
+     */
+    private void actualizarEstadoClientesDelGrupo(Long grupoId, EstadoCliente nuevoEstado) {
+        log.info("📋 Actualizando estado de clientes del grupo {} a {}", grupoId, nuevoEstado);
+
+        List<ClienteGrupoImportacion> clientesGrupo = clienteGrupoRepository.findByGrupoImportacionId(grupoId);
+
+        int clientesActualizados = 0;
+        for (ClienteGrupoImportacion cgi : clientesGrupo) {
+            Cliente cliente = cgi.getCliente();
+            // Solo actualizar si el cliente está en LISTO_IMPORTACION
+            if (cliente.getEstado() == EstadoCliente.LISTO_IMPORTACION) {
+                cliente.setEstado(nuevoEstado);
+                clienteRepository.save(cliente);
+                clientesActualizados++;
+                log.info("✅ Cliente {} {} actualizado a {}",
+                    cliente.getNombres(), cliente.getApellidos(), nuevoEstado);
+            }
+        }
+
+        log.info("✅ {} clientes actualizados a estado {} en grupo {}",
+            clientesActualizados, nuevoEstado, grupoId);
     }
 } 

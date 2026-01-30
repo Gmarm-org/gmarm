@@ -56,7 +56,7 @@ export interface Client {
   vendedorId?: string; // ID del vendedor que creó el cliente
   
   // Estado del cliente (calculado de manera consistente en el backend)
-  estado?: 'ACTIVO' | 'FALTAN_DOCUMENTOS' | 'PENDIENTE_DOCUMENTOS' | 'EN_PROCESO' | 'BLOQUEADO' | 'LISTO_IMPORTACION' | 'INACTIVO' | 'PENDIENTE_ASIGNACION_CLIENTE' | 'INHABILITADO_COMPRA' | 'RECHAZADO' | 'CANCELADO' | 'APROBADO' | 'CONTRATO_ENVIADO' | 'CONTRATO_FIRMADO' | 'PROCESO_COMPLETADO';
+  estado?: 'ACTIVO' | 'FALTAN_DOCUMENTOS' | 'PENDIENTE_DOCUMENTOS' | 'EN_PROCESO' | 'BLOQUEADO' | 'LISTO_IMPORTACION' | 'EN_CURSO_IMPORTACION' | 'SERIE_ASIGNADA' | 'INACTIVO' | 'PENDIENTE_ASIGNACION_CLIENTE' | 'INHABILITADO_COMPRA' | 'RECHAZADO' | 'CANCELADO' | 'APROBADO' | 'CONTRATO_ENVIADO' | 'CONTRATO_FIRMADO' | 'PROCESO_COMPLETADO';
   estadoPago?: string; // IMPAGO, ABONADO, PAGO_COMPLETO
   grupoImportacionNombre?: string; // Nombre del grupo de importación activo
   licenciaNombre?: string; // Nombre de la licencia del grupo de importación

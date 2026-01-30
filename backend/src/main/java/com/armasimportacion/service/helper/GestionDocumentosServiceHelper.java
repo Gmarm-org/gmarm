@@ -1319,6 +1319,14 @@ public class GestionDocumentosServiceHelper {
             variables.put("clienteTelefono", cliente.getTelefonoPrincipal() != null ? cliente.getTelefonoPrincipal() : "");
             variables.put("clienteEmail", cliente.getEmail() != null ? cliente.getEmail() : "");
 
+            // Variables para uniformados (rango)
+            boolean esUniformado = cliente.getTipoCliente() != null && cliente.getTipoCliente().esUniformado();
+            String clienteRango = cliente.getRango() != null && !cliente.getRango().trim().isEmpty()
+                ? cliente.getRango().toUpperCase()
+                : "";
+            variables.put("esUniformado", esUniformado);
+            variables.put("clienteRango", clienteRango);
+
             // Obtener licencia para el nombre del importador
             Licencia licencia = obtenerLicenciaActiva(cliente);
             String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
