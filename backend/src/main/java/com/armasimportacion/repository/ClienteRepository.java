@@ -140,7 +140,9 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findFirstByUsuarioCreadorIdAndEstadoOrderByFechaCreacionAsc(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
 
     // ==================== MÉTODOS PARA DASHBOARD JEFE DE VENTAS ====================
+    // TODO: Oculto temporalmente - revisar criterios de filtrado antes de habilitar
 
+    /*
     // Contar clientes creados hoy (native query para usar DATE())
     @Query(value = "SELECT COUNT(*) FROM cliente WHERE DATE(fecha_creacion) = CURRENT_DATE", nativeQuery = true)
     Long countClientesDeHoy();
@@ -163,4 +165,5 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
                    "ORDER BY c.fecha_creacion DESC",
            nativeQuery = true)
     List<Cliente> findClientesPendientesContrato();
+    */
 } 

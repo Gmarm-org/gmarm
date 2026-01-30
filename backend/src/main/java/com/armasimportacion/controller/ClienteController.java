@@ -954,10 +954,13 @@ public class ClienteController {
     }
 
     // ==================== ENDPOINTS DASHBOARD JEFE DE VENTAS ====================
+    // TODO: Oculto temporalmente - revisar criterios de filtrado antes de habilitar
 
+    /*
     /**
      * Obtener estadísticas del dashboard para Jefe de Ventas
      */
+    /*
     @GetMapping("/dashboard/jefe-ventas")
     @Operation(summary = "Dashboard Jefe de Ventas", description = "Obtiene estadísticas del dashboard para el Jefe de Ventas")
     public ResponseEntity<Map<String, Object>> getDashboardJefeVentas() {
@@ -984,10 +987,13 @@ public class ClienteController {
                 .body(Map.of("error", "Error al obtener dashboard: " + e.getMessage()));
         }
     }
+    */
 
+    /*
     /**
      * Obtener lista de clientes creados hoy
      */
+    /*
     @GetMapping("/dashboard/clientes-hoy")
     @Operation(summary = "Clientes de hoy", description = "Obtiene la lista de clientes creados hoy")
     public ResponseEntity<List<ClienteDTO>> getClientesDeHoy() {
@@ -1005,10 +1011,13 @@ public class ClienteController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+    */
 
+    /*
     /**
      * Obtener lista de clientes pendientes de enviar contrato/solicitud
      */
+    /*
     @GetMapping("/dashboard/clientes-pendientes-contrato")
     @Operation(summary = "Clientes pendientes contrato", description = "Obtiene la lista de clientes con serie asignada pendientes de enviar contrato/solicitud")
     public ResponseEntity<List<ClienteDTO>> getClientesPendientesContrato() {
@@ -1026,5 +1035,6 @@ public class ClienteController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+    */
 
 } 
