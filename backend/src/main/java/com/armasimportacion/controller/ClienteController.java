@@ -118,9 +118,9 @@ public class ClienteController {
             String mensaje = e.getMessage();
             if (mensaje != null && mensaje.contains("duplicate key")) {
                 if (mensaje.contains("numero_identificacion")) {
-                    throw new BadRequestException("Ya existe un cliente con este número de identificación. Por favor, verifique los datos o use la opción de editar cliente existente.");
+                    throw new BadRequestException("El número de cédula/RUC ingresado ya está registrado en el sistema. No es posible crear un nuevo cliente con este número de identificación.");
                 } else if (mensaje.contains("email")) {
-                    throw new BadRequestException("Ya existe un cliente con este email. Por favor, verifique los datos.");
+                    throw new BadRequestException("El email ingresado ya está registrado en el sistema. Por favor, verifique los datos.");
                 } else {
                     throw new BadRequestException("Error de datos duplicados: " + mensaje);
                 }
@@ -145,7 +145,7 @@ public class ClienteController {
             throw e;
         }
     }
-    
+
     @GetMapping
     @Operation(summary = "Listar clientes", description = "Obtiene una lista paginada de clientes filtrada por rol del usuario")
     public ResponseEntity<Page<ClienteDTO>> obtenerClientes(
@@ -231,11 +231,25 @@ public class ClienteController {
     public ResponseEntity<Map<String, Object>> validarIdentificacion(@PathVariable String numero) {
         try {
             boolean existe = clienteService.existsByNumeroIdentificacion(numero);
-            Map<String, Object> response = Map.of(
-                "numeroIdentificacion", numero,
-                "existe", existe,
-                "mensaje", existe ? "La identificación ya existe" : "La identificación está disponible"
-            );
+            Map<String, Object> response = new HashMap<>();
+            response.put("numeroIdentificacion", numero);
+            response.put("existe", existe);
+
+            if (existe) {
+                // Obtener información del cliente existente
+                Optional<Cliente> clienteOpt = clienteRepository.findByNumeroIdentificacion(numero);
+                if (clienteOpt.isPresent()) {
+                    Cliente cliente = clienteOpt.get();
+                    response.put("mensaje", "El número de cédula/RUC " + numero + " ya está registrado a nombre de " + cliente.getNombres() + " " + cliente.getApellidos() + ". No es posible crear un nuevo cliente con este número.");
+                    response.put("clienteId", cliente.getId());
+                    response.put("clienteNombre", cliente.getNombres() + " " + cliente.getApellidos());
+                } else {
+                    response.put("mensaje", "El número de cédula/RUC " + numero + " ya está registrado en el sistema.");
+                }
+            } else {
+                response.put("mensaje", "El número de identificación está disponible");
+            }
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error al validar identificación: {}", e.getMessage(), e);

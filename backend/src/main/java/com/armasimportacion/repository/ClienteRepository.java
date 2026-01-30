@@ -80,6 +80,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     boolean existsByTipoIdentificacionIdAndNumeroIdentificacion(Long tipoIdentificacionId, String numeroIdentificacion);
     boolean existsByTipoIdentificacionIdAndNumeroIdentificacionAndIdNot(Long tipoIdentificacionId, String numeroIdentificacion, Long id);
     boolean existsByNumeroIdentificacion(String numeroIdentificacion);
+    Optional<Cliente> findByNumeroIdentificacion(String numeroIdentificacion);
 
     // Estadísticas
     @Query("SELECT COUNT(c) FROM Cliente c WHERE c.estado = :estado")

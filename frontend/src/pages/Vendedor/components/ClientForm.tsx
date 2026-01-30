@@ -827,6 +827,21 @@ const ClientForm: React.FC<ClientFormProps> = ({
         alert('Por favor, corrija los errores en el formulario antes de continuar.');
         return;
       }
+
+      // Validar si la cédula ya existe (solo en modo crear)
+      if (mode === 'create' && formData.numeroIdentificacion) {
+        try {
+          const validacion = await apiService.validarIdentificacion(formData.numeroIdentificacion);
+          if (validacion.existe) {
+            setIsSubmitting(false);
+            alert(`⚠️ ${validacion.mensaje}\n\nSi desea ver o editar este cliente, búsquelo en la lista de clientes.`);
+            return;
+          }
+        } catch (validacionError) {
+          console.warn('No se pudo validar la identificación, continuando...', validacionError);
+        }
+      }
+
       // Determinar el estado del cliente
       let clientStatus = 'PENDIENTE_DOCUMENTOS';
       
