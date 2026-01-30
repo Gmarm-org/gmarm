@@ -45,9 +45,10 @@ export const useVendedorExport = (user: User | null) => {
           if (clienteData.canton) fila['Cantón'] = clienteData.canton;
           if (clienteData.fechaNacimiento) fila['Fecha Nacimiento'] = new Date(clienteData.fechaNacimiento).toLocaleDateString('es-EC');
           
-          // Campos militares (solo si aplica)
+          // Campos uniformados (solo si aplica)
           if (clienteData.estadoMilitar) fila['Estado Militar'] = clienteData.estadoMilitar;
           if (clienteData.codigoIssfa) fila['Código ISSFA'] = clienteData.codigoIssfa;
+          if (clienteData.codigoIsspol) fila['Código ISSPOL'] = clienteData.codigoIsspol;
           if (clienteData.rango) fila['Rango'] = clienteData.rango;
           
           // Campos de empresa (solo si aplica)
@@ -117,6 +118,7 @@ export const useVendedorExport = (user: User | null) => {
           if (clienteData.fechaNacimiento) fila['Fecha Nacimiento'] = new Date(clienteData.fechaNacimiento).toLocaleDateString('es-EC');
           if (clienteData.estadoMilitar) fila['Estado Militar'] = clienteData.estadoMilitar;
           if (clienteData.codigoIssfa) fila['Código ISSFA'] = clienteData.codigoIssfa;
+          if (clienteData.codigoIsspol) fila['Código ISSPOL'] = clienteData.codigoIsspol;
           if (clienteData.rango) fila['Rango'] = clienteData.rango;
           if (clienteData.representanteLegal) fila['Representante Legal'] = clienteData.representanteLegal;
           if (clienteData.ruc) fila['RUC Empresa'] = clienteData.ruc;

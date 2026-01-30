@@ -121,6 +121,7 @@ export const useVendedorPaymentHandler = (
           cantonEmpresa: clienteDataToSend.cantonEmpresa,
           estadoMilitar: clienteDataToSend.estadoMilitar,
           codigoIssfa: clienteDataToSend.codigoIssfa,
+          codigoIsspol: clienteDataToSend.codigoIsspol,
           rango: clienteDataToSend.rango,
           usuarioCreadorId: user?.id
         },

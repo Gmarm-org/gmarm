@@ -78,8 +78,8 @@ export const useClientFormData = () => {
     } else if (['email', 'correoEmpresa'].includes(field)) {
       // Emails en minúsculas
       processedValue = value.toLowerCase();
-    } else if (['numeroIdentificacion', 'ruc', 'telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia'].includes(field)) {
-      // Solo números para identificación y teléfonos
+    } else if (['numeroIdentificacion', 'ruc', 'telefonoPrincipal', 'telefonoSecundario', 'telefonoReferencia', 'codigoIssfa', 'codigoIsspol'].includes(field)) {
+      // Solo números para identificación, teléfonos y códigos ISSFA/ISSPOL
       let numericValue = value.replace(/\D/g, '');
       
       // Para teléfonos, limitar a máximo 10 dígitos

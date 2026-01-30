@@ -159,12 +159,12 @@ public class PagoService {
         // Actualizar el pago principal con el nuevo monto
         pago.setMontoPagado(pago.getMontoPagado().subtract(montoAnterior).add(montoAPagar));
         pago.setMontoPendiente(pago.getMontoPendiente().add(montoAnterior).subtract(montoAPagar));
-        
-        // Si el monto cambió, RECALCULAR las cuotas pendientes restantes
-        if (montoCambio || montoAnterior.compareTo(BigDecimal.ZERO) > 0) {
-            recalcularCuotasPendientes(pago);
-        }
-        
+
+        // SIEMPRE recalcular las cuotas pendientes para:
+        // 1. Redistribuir el saldo si el monto cambió
+        // 2. CANCELAR las cuotas restantes si el saldo llegó a 0
+        recalcularCuotasPendientes(pago);
+
         // Verificar si el pago está completo
         if (pago.getMontoPendiente().compareTo(BigDecimal.ZERO) <= 0) {
             pago.setEstado(EstadoPago.COMPLETADO);
@@ -363,40 +363,54 @@ public class PagoService {
     /**
      * Recalcula las cuotas pendientes después de registrar un pago con monto variable
      * Divide el saldo pendiente restante entre las cuotas pendientes
+     * Si el saldo es 0 o menor, CANCELA las cuotas pendientes restantes
      */
     private void recalcularCuotasPendientes(Pago pago) {
         log.info("🔄 Recalculando cuotas pendientes para pago ID: {}", pago.getId());
-        
+
         // Obtener todas las cuotas del pago
         List<CuotaPago> todasLasCuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
-        
-        // Separar cuotas pagadas de pendientes
+
+        // Separar cuotas pagadas de pendientes (excluir las ya canceladas)
         List<CuotaPago> cuotasPendientes = todasLasCuotas.stream()
-            .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA &&
+                        c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.CANCELADA)
             .collect(java.util.stream.Collectors.toList());
-        
+
         if (cuotasPendientes.isEmpty()) {
             log.info("ℹ️ No hay cuotas pendientes para recalcular");
             return;
         }
-        
-        // Calcular monto ya pagado (suma de todas las cuotas pagadas)
+
         // El saldo pendiente ya está actualizado en el pago
         BigDecimal saldoPendiente = pago.getMontoPendiente();
-        
+
+        // Si el saldo pendiente es 0 o menor, CANCELAR todas las cuotas pendientes
         if (saldoPendiente.compareTo(BigDecimal.ZERO) <= 0) {
-            log.info("ℹ️ Saldo pendiente es 0 o negativo. No hay nada que recalcular.");
+            log.info("🔄 Saldo pendiente es {} (≤0). Cancelando {} cuotas pendientes restantes.",
+                saldoPendiente, cuotasPendientes.size());
+
+            for (CuotaPago cuotaPendiente : cuotasPendientes) {
+                cuotaPendiente.setEstado(com.armasimportacion.enums.EstadoCuotaPago.CANCELADA);
+                cuotaPendiente.setMonto(BigDecimal.ZERO); // Poner monto en 0 ya que no se debe nada
+                cuotaPendiente.setObservaciones("Cuota cancelada - Saldo total cubierto");
+                cuotaPagoRepository.save(cuotaPendiente);
+                log.info("❌ Cuota #{} cancelada (saldo ya cubierto)", cuotaPendiente.getNumeroCuota());
+            }
+
+            log.info("✅ {} cuotas pendientes fueron canceladas porque el saldo total ya fue cubierto",
+                cuotasPendientes.size());
             return;
         }
-        
+
         // Dividir saldo pendiente entre las cuotas pendientes
         int numeroCuotasPendientes = cuotasPendientes.size();
         BigDecimal montoPorCuota = saldoPendiente.divide(
-            BigDecimal.valueOf(numeroCuotasPendientes), 
-            2, 
+            BigDecimal.valueOf(numeroCuotasPendientes),
+            2,
             java.math.RoundingMode.HALF_UP
         );
-        
+
         // Actualizar montos de cuotas pendientes
         BigDecimal totalRedistribuido = BigDecimal.ZERO;
         for (int i = 0; i < cuotasPendientes.size(); i++) {
@@ -411,8 +425,8 @@ public class PagoService {
             }
             cuotaPagoRepository.save(cuotaPendiente);
         }
-        
-        log.info("✅ Cuotas pendientes recalculadas. Saldo pendiente: {} distribuido en {} cuotas", 
+
+        log.info("✅ Cuotas pendientes recalculadas. Saldo pendiente: {} distribuido en {} cuotas",
             saldoPendiente, numeroCuotasPendientes);
     }
 

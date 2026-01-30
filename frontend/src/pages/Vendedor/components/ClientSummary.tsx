@@ -229,6 +229,12 @@ const ClientSummary: React.FC<ClientSummaryProps> = ({
                     <span className="summary-value">{clienteParaResumen.codigoIssfa}</span>
                   </div>
                 )}
+                {clienteParaResumen.codigoIsspol && (
+                  <div className="summary-row">
+                    <span className="summary-label">Código ISSPOL:</span>
+                    <span className="summary-value">{clienteParaResumen.codigoIsspol}</span>
+                  </div>
+                )}
               </>
             )}
             {clienteParaResumen.tipoClienteEsEmpresa && (

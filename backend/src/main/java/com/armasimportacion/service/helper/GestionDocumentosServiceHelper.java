@@ -145,12 +145,15 @@ public class GestionDocumentosServiceHelper {
         try {
             log.info("📄 GENERANDO CONTRATO CON FLYING SAUCER PARA CLIENTE ID: {}", cliente.getId());
             log.info("🔍 DEBUG: Cliente nombres: {}, apellidos: {}", cliente.getNombres(), cliente.getApellidos());
-            
-                // SOLUCIÓN DEFINITIVA: Usar Flying Saucer con template HTML/CSS
-                log.info("🔧 Generando PDF profesional con Flying Saucer + Thymeleaf");
-                byte[] pdfBytes = generarPDFConFlyingSaucer(cliente, pago);
-                log.info("🔍 DEBUG: PDF profesional generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
-            
+
+            // ELIMINAR CONTRATOS ANTERIORES PARA EVITAR DUPLICADOS
+            eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.CONTRATO);
+
+            // SOLUCIÓN DEFINITIVA: Usar Flying Saucer con template HTML/CSS
+            log.info("🔧 Generando PDF profesional con Flying Saucer + Thymeleaf");
+            byte[] pdfBytes = generarPDFConFlyingSaucer(cliente, pago);
+            log.info("🔍 DEBUG: PDF profesional generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+
             String nombreArchivo = generarNombreArchivoContrato(cliente, pago);
             
             // Guardar archivo usando FileStorageService en documentos_clientes/{numeroIdentificacion}/documentos_generados/
@@ -177,11 +180,14 @@ public class GestionDocumentosServiceHelper {
     public DocumentoGenerado generarYGuardarCotizacion(Cliente cliente, Pago pago) {
         try {
             log.info("📄 GENERANDO COTIZACIÓN PARA CLIENTE ID: {}", cliente.getId());
-            
+
+            // ELIMINAR COTIZACIONES ANTERIORES PARA EVITAR DUPLICADOS
+            eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.COTIZACION);
+
             // Generar PDF de cotización
             byte[] pdfBytes = generarPDFCotizacion(cliente, pago);
             log.info("🔍 DEBUG: PDF de cotización generado, tamaño: {} bytes", pdfBytes.length);
-            
+
             String nombreArchivo = generarNombreArchivoCotizacion(cliente, pago);
             
             // Guardar archivo
@@ -208,11 +214,14 @@ public class GestionDocumentosServiceHelper {
     public DocumentoGenerado generarYGuardarSolicitudCompra(Cliente cliente, Pago pago) {
         try {
             log.info("📄 GENERANDO SOLICITUD DE COMPRA PARA CLIENTE ID: {}", cliente.getId());
-            
+
+            // ELIMINAR SOLICITUDES ANTERIORES PARA EVITAR DUPLICADOS
+            eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.SOLICITUD_COMPRA);
+
             // Generar PDF de solicitud de compra
             byte[] pdfBytes = generarPDFSolicitudCompra(cliente, pago);
             log.info("🔍 DEBUG: PDF de solicitud de compra generado, tamaño: {} bytes", pdfBytes.length);
-            
+
             String nombreArchivo = generarNombreArchivoSolicitudCompra(cliente, pago);
             
             // Guardar archivo
@@ -585,6 +594,10 @@ public class GestionDocumentosServiceHelper {
             // Agregar rango del cliente
             log.info("🎖️ Rango del cliente: '{}'", cliente.getRango());
             variables.put("clienteRango", cliente.getRango());
+
+            // DEBUG: Verificar códigos ISSFA/ISSPOL
+            log.info("🆔 Código ISSFA del cliente: '{}'", cliente.getCodigoIssfa());
+            log.info("🆔 Código ISSPOL del cliente: '{}'", cliente.getCodigoIsspol());
             
             // Agregar estado militar en lowercase para el template
             String estadoMilitarLowercase = "activo"; // Valor por defecto
@@ -1101,6 +1114,54 @@ public class GestionDocumentosServiceHelper {
         return crearDocumentoGenerado(cliente, null, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.AUTORIZACION);
     }
     
+    /**
+     * Elimina documentos anteriores del mismo tipo para evitar duplicados
+     * Borra tanto el archivo físico como el registro en BD
+     * @param clienteId ID del cliente
+     * @param tipoDocumento Tipo de documento a eliminar (CONTRATO, COTIZACION, SOLICITUD_COMPRA)
+     */
+    private void eliminarDocumentosAnterioresDelTipo(Long clienteId, TipoDocumentoGenerado tipoDocumento) {
+        try {
+            List<DocumentoGenerado> documentosAnteriores = documentoGeneradoRepository
+                .findByClienteIdAndTipo(clienteId, tipoDocumento);
+
+            if (!documentosAnteriores.isEmpty()) {
+                log.info("⚠️ Se encontraron {} documento(s) anterior(es) de tipo {} para el cliente ID {}, se eliminarán",
+                    documentosAnteriores.size(), tipoDocumento, clienteId);
+
+                for (DocumentoGenerado documentoAnterior : documentosAnteriores) {
+                    // Eliminar archivo físico si existe
+                    try {
+                        String rutaCompletaAnterior = construirRutaCompletaDocumentoGenerado(
+                            documentoAnterior.getRutaArchivo(),
+                            documentoAnterior.getNombreArchivo()
+                        );
+                        File archivoAnterior = new File(rutaCompletaAnterior);
+                        if (archivoAnterior.exists()) {
+                            archivoAnterior.delete();
+                            log.info("🗑️ Archivo físico anterior eliminado: {}", rutaCompletaAnterior);
+                        } else {
+                            log.debug("⚠️ Archivo físico no existe en: {}", rutaCompletaAnterior);
+                        }
+                    } catch (Exception e) {
+                        log.warn("⚠️ No se pudo eliminar archivo físico anterior: {}", e.getMessage());
+                    }
+
+                    // Eliminar registro de BD
+                    documentoGeneradoRepository.delete(documentoAnterior);
+                    log.info("🗑️ Registro anterior eliminado de BD: ID={}, tipo={}", documentoAnterior.getId(), tipoDocumento);
+                }
+
+                log.info("✅ Se eliminaron {} documento(s) anterior(es) de tipo {}", documentosAnteriores.size(), tipoDocumento);
+            } else {
+                log.debug("ℹ️ No hay documentos anteriores de tipo {} para el cliente ID {}", tipoDocumento, clienteId);
+            }
+        } catch (Exception e) {
+            log.error("❌ Error eliminando documentos anteriores de tipo {}: {}", tipoDocumento, e.getMessage(), e);
+            // Continuar aunque falle la eliminación (puede ser que no existan)
+        }
+    }
+
     /**
      * Construye la ruta completa física para un documento generado (contrato/autorización)
      * Ruta en BD puede ser:

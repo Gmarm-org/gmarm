@@ -1132,7 +1132,7 @@ ON CONFLICT (clave) DO NOTHING;
 --    - numero_cuota: número de la cuota (1, 2, 3, 4, 5, 6)
 --    - monto: Monto espec?fico de esta cuota
 --    - fecha_vencimiento: Cu?ndo vence
---    - estado: 'PENDIENTE', 'PAGADA', 'VENCIDA'
+--    - estado: 'PENDIENTE', 'PAGADA', 'VENCIDA', 'CANCELADA' (cancelada cuando el saldo total ya fue cubierto)
 --    - fecha_pago: Cu?ndo se pag? (NULL si no se ha pagado)
 --    - referencia_pago: Referencia del pago (transferencia, etc.)
 --    - usuario_confirmador_id: Qui?n confirm? el pago
