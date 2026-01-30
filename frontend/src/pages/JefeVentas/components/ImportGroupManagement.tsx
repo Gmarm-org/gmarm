@@ -231,18 +231,6 @@ const ImportGroupManagement: React.FC = () => {
                   ID / Grupo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  # Civiles
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  # Uniformados
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  # Empresas
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  # Deportistas
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Última Actualización
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -284,36 +272,6 @@ const ImportGroupManagement: React.FC = () => {
                         <div className="text-sm text-gray-500">{resumen.grupoNombre}</div>
                         <div className="text-xs text-gray-400">{resumen.grupoCodigo}</div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <div className="text-sm font-semibold text-blue-600">{resumen.clientesCiviles}</div>
-                        {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante <= 5 && resumen.cupoCivilRestante > 0 && (
-                          <div className={`mt-1 px-2 py-0.5 rounded text-xs font-medium ${
-                            resumen.cupoCivilRestante <= 1 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : resumen.cupoCivilRestante <= 3
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'bg-blue-50 text-blue-600'
-                          }`}>
-                            ℹ️ {resumen.cupoCivilRestante === 1 ? 'Casi completo' : `${resumen.cupoCivilRestante} cupos restantes`}
-                          </div>
-                        )}
-                        {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0 && (
-                          <div className="mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                            ✅ Cupo completo
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-green-600">{resumen.clientesUniformados}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-purple-600">{resumen.clientesEmpresas}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-orange-600">{resumen.clientesDeportistas}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {resumen.fechaUltimaActualizacion
