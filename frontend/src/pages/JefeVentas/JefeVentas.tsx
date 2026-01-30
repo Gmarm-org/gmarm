@@ -1284,12 +1284,23 @@ const JefeVentas: React.FC = () => {
                               >
                                 Ver Detalle
                               </button>
-                              <button
-                                onClick={() => handleEditarCliente(cliente)}
-                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
-                              >
-                                Editar
-                              </button>
+                              {/* Deshabilitar edición si el cliente ya tiene serie asignada */}
+                              {['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(cliente.estado || '') ? (
+                                <button
+                                  disabled
+                                  className="px-3 py-1 bg-gray-400 text-white text-xs rounded-lg cursor-not-allowed opacity-60"
+                                  title="No se puede editar un cliente con serie asignada"
+                                >
+                                  Editar
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleEditarCliente(cliente)}
+                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                  Editar
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleAbrirModalReasignarArma(cliente)}
                                 className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors"

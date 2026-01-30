@@ -135,17 +135,23 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const isCivil = isCivilByType || isUniformadoPasivoTratadoComoCivil;
 
   const isClientConfirmed = client?.emailVerificado === true;
+  // Si el cliente tiene serie asignada, NADIE puede editar datos (solo documentos)
+  const hasSerieAsignada = ['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(client?.estado || '');
   const canEditAllInEditMode = Boolean(
     user?.roles?.some((role: any) => {
       const codigo = role.rol?.codigo || (role as any).codigo || role;
       return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
     })
   );
-  const isRestrictedToDocuments = mode === 'edit' && isClientConfirmed && !canEditAllInEditMode;
+  // Restringir a solo documentos si: tiene serie asignada (siempre) O si vendedor y cliente confirmado
+  const isRestrictedToDocuments = mode === 'edit' && (hasSerieAsignada || (isClientConfirmed && !canEditAllInEditMode));
   const personalSectionMode = isRestrictedToDocuments ? 'view' : mode;
   const answersSectionMode = isRestrictedToDocuments ? 'view' : mode;
   const documentsSectionMode = mode;
-  const editButtonLabel = isClientConfirmed && !canEditAllInEditMode ? 'Editar Documentos' : 'Editar Cliente';
+  // Etiqueta del botón según restricciones
+  const editButtonLabel = hasSerieAsignada
+    ? 'Editar Documentos'
+    : (isClientConfirmed && !canEditAllInEditMode ? 'Editar Documentos' : 'Editar Cliente');
   
   // El tipo de proceso real se usa internamente en los hooks useClientDocuments y useClientAnswers
 

@@ -104,20 +104,23 @@ const ClientTable: React.FC<ClientTableProps> = ({
                       >
                         Ver
                       </button>
-                      <button
-                        onClick={() => onOpenClientForm('edit', client)}
-                        style={{
-                          padding: '0.3rem 0.6rem',
-                          fontSize: '0.8rem',
-                          background: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Editar
-                      </button>
+                      {/* Deshabilitar edición si el cliente tiene serie asignada */}
+                      {!['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(client.estado || '') && (
+                        <button
+                          onClick={() => onOpenClientForm('edit', client)}
+                          style={{
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.8rem',
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Editar
+                        </button>
+                      )}
                       {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
                         <button
                           onClick={() => alert('Inhabilitar cliente (simulado)')}
@@ -214,20 +217,23 @@ const ClientTable: React.FC<ClientTableProps> = ({
                     >
                       Ver
                     </button>
-                    <button
-                      onClick={() => onOpenClientForm('edit', client)}
-                      style={{
-                        padding: '0.3rem 0.6rem',
-                        fontSize: '0.8rem',
-                        background: '#10b981',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Editar
-                    </button>
+                    {/* Deshabilitar edición si el cliente tiene serie asignada */}
+                    {!['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(client.estado || '') && (
+                      <button
+                        onClick={() => onOpenClientForm('edit', client)}
+                        style={{
+                          padding: '0.3rem 0.6rem',
+                          fontSize: '0.8rem',
+                          background: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Editar
+                      </button>
+                    )}
                     {(!isCupoCivil(client) || (isCupoCivil(client) && arma)) && (
                       <button
                         onClick={() => alert('Inhabilitar cliente (simulado)')}

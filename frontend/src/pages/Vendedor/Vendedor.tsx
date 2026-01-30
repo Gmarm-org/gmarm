@@ -646,9 +646,10 @@ const Vendedor: React.FC = React.memo(() => {
                               >
                                 Ver
                               </button>
-                              {/* Botón Editar: NO se muestra si es vendedor y el cliente ya confirmó sus datos */}
-                              {/* Solo el Jefe de Ventas puede editar clientes confirmados */}
-                              {!(esVendedor && client.emailVerificado === true) && (
+                              {/* Botón Editar: NO se muestra si el cliente tiene serie asignada o si es vendedor y ya confirmó datos */}
+                              {/* Estados que indican serie asignada: SERIE_ASIGNADA, CONTRATO_ENVIADO, CONTRATO_FIRMADO, PROCESO_COMPLETADO */}
+                              {!['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(client.estado || '') &&
+                               !(esVendedor && client.emailVerificado === true) && (
                                 <button
                                   onClick={() => handleEditClient(client)}
                                   className="text-green-600 hover:text-green-900 font-medium"
