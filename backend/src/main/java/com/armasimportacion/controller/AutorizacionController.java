@@ -37,44 +37,83 @@ public class AutorizacionController {
      * Genera una autorización de venta para un cliente
      */
     @PostMapping("/generar")
-    @Operation(summary = "Generar autorización de venta", 
+    @Operation(summary = "Generar autorización de venta",
                description = "Genera un documento PDF de autorización de venta para un cliente con arma asignada")
     public ResponseEntity<?> generarAutorizacion(@RequestBody Map<String, Object> requestData) {
         try {
             log.info("📄 POST /api/autorizaciones/generar - Generando autorización de venta");
             log.info("🔍 Datos recibidos: {}", requestData);
-            
+
             // Validar datos requeridos
+            if (requestData.get("clienteId") == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "El ID del cliente es requerido"
+                ));
+            }
+            if (requestData.get("numeroFactura") == null || requestData.get("numeroFactura").toString().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "El número de factura es requerido"
+                ));
+            }
+            if (requestData.get("tramite") == null || requestData.get("tramite").toString().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "El número de trámite es requerido"
+                ));
+            }
+
             Long clienteId = Long.valueOf(requestData.get("clienteId").toString());
             String numeroFactura = requestData.get("numeroFactura").toString();
             String tramite = requestData.get("tramite").toString();
-            
+
             // Buscar cliente
-            Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado: " + clienteId));
-            
-            // Buscar ClienteArma asignada al cliente
-            List<ClienteArma> armas = clienteArmaRepository.findByClienteId(clienteId);
-            if (armas.isEmpty()) {
-                throw new RuntimeException("El cliente no tiene armas asignadas");
+            Optional<Cliente> clienteOpt = clienteRepository.findById(clienteId);
+            if (clienteOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "No se encontró el cliente con ID: " + clienteId
+                ));
             }
-            
+            Cliente cliente = clienteOpt.get();
+
+            // Buscar ClienteArma asignada al cliente (con JOIN FETCH para cargar Arma y Categoría)
+            List<ClienteArma> armas = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId);
+            if (armas.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "El cliente " + cliente.getNombres() + " " + cliente.getApellidos() + " no tiene armas asignadas. Primero debe asignar un arma al cliente."
+                ));
+            }
+
             // Usar la primera arma asignada
             ClienteArma clienteArma = armas.get(0);
-            
+
+            // Verificar que el arma tenga número de serie
+            if (clienteArma.getNumeroSerie() == null || clienteArma.getNumeroSerie().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "El arma asignada al cliente no tiene número de serie. Primero debe asignar un número de serie al arma."
+                ));
+            }
+
             log.info("✅ Cliente encontrado: ID={}, Nombre={}", cliente.getId(), cliente.getNombres());
-            log.info("✅ Arma encontrada: ID={}, Modelo={}", clienteArma.getArma().getId(), clienteArma.getArma().getModelo());
-            
+            log.info("✅ Arma encontrada: ID={}, Modelo={}, Serie={}",
+                clienteArma.getArma().getId(),
+                clienteArma.getArma().getModelo(),
+                clienteArma.getNumeroSerie());
+
             // Generar autorización
             DocumentoGenerado documento = documentosHelper.generarYGuardarAutorizacion(
-                cliente, 
-                clienteArma, 
-                numeroFactura, 
+                cliente,
+                clienteArma,
+                numeroFactura,
                 tramite
             );
-            
+
             log.info("✅ Autorización generada exitosamente: ID={}", documento.getId());
-            
+
             // Preparar respuesta
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -82,15 +121,47 @@ public class AutorizacionController {
             response.put("documentoId", documento.getId());
             response.put("nombreArchivo", documento.getNombreArchivo());
             response.put("rutaArchivo", documento.getRutaArchivo());
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
+
         } catch (Exception e) {
             log.error("❌ Error generando autorización: {}", e.getMessage(), e);
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Error generando autorización: " + e.getMessage());
+
+            // Extraer mensaje de error más específico
+            String mensajeError = extraerMensajeErrorLegible(e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", mensajeError);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
+    }
+
+    /**
+     * Extrae un mensaje de error legible para el usuario
+     */
+    private String extraerMensajeErrorLegible(Exception e) {
+        String mensaje = e.getMessage();
+
+        // Si es error de template Thymeleaf
+        if (mensaje != null && mensaje.contains("TemplateProcessingException")) {
+            if (mensaje.contains("cannot be found")) {
+                return "Error al generar el documento: falta información del arma. Verifique que el arma tenga todos los datos completos (modelo, calibre, categoría).";
+            }
+            return "Error al generar el documento PDF. Por favor, contacte al administrador.";
+        }
+
+        // Si es error de Hibernate/JPA
+        if (mensaje != null && mensaje.contains("HibernateProxy")) {
+            return "Error de datos: no se pudo cargar la información completa del arma. Intente nuevamente.";
+        }
+
+        // Mensaje genérico
+        if (mensaje == null || mensaje.isEmpty()) {
+            return "Error inesperado al generar la autorización. Por favor, intente nuevamente.";
+        }
+
+        return "Error generando autorización: " + mensaje;
     }
 
     /**
