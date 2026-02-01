@@ -167,8 +167,7 @@
             <div class="main-content">
                 <p>
                     Hemos recibido del <strong>
-                        <span th:if="${esUniformado and clienteRango != ''}" th:text="${clienteRango + '. '}"></span>
-                        <span th:unless="${esUniformado and clienteRango != ''}">SR./SRA. </span>
+                        <span th:if="${esUniformado and clienteRango != null and !clienteRango.isEmpty()}" th:text="${clienteRango + '. '}"></span>
                         <span th:text="${clienteNombre}">NOMBRE CLIENTE</span></strong>,
                     con C.I./RUC <strong><span th:text="${clienteCedula}">XXXXXXXXX</span></strong>, 
                     con fecha <strong><span th:text="${fechaPago}">DD-MM-YYYY</span></strong>, 

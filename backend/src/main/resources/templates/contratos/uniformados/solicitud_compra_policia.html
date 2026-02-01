@@ -64,8 +64,9 @@
     <div class="fecha" th:text="${fechaSolicitud}">Quito, 27 de enero del 2026</div>
 
     <div class="destinatario">
-        Señor/a,<br/>
-        <span class="nombre" th:text="${licenciaTitulo + ' ' + licenciaNombre}">Sr/Sra Loyaga Correa Marcia Nathaly</span><br/>
+        <span th:if="${licenciaTitulo != null and !licenciaTitulo.isEmpty()}" th:text="${licenciaTitulo + ','}"></span>
+        <span th:unless="${licenciaTitulo != null and !licenciaTitulo.isEmpty()}"></span><br/>
+        <span class="nombre" th:text="${(licenciaTitulo != null and !licenciaTitulo.isEmpty() ? licenciaTitulo + ' ' : '') + licenciaNombre}">Loyaga Correa Marcia Nathaly</span><br/>
         Comerciante Importador y Distribuidor Autorizado de CZ<br/>
         En su despacho. -
     </div>
