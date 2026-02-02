@@ -95,11 +95,18 @@ public class GrupoImportacionService {
             log.info("ℹ️ No se asignó tipo de proceso - el grupo puede tener cualquier tipo de cliente");
         }
         
-        // Calcular cupos desde la licencia
-        int cupoTotal = (licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0) +
-                       (licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0) +
-                       (licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0) +
-                       (licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0);
+        // Calcular cupos: usar valores del DTO o valor por defecto según tipo de grupo
+        // NOTA: Los cupos se manejan a nivel de GrupoImportacion, no de Licencia
+        int cupoTotal;
+        if (dto.getCupoTotal() != null && dto.getCupoTotal() > 0) {
+            cupoTotal = dto.getCupoTotal();
+        } else if ("JUSTIFICATIVO".equalsIgnoreCase(dto.getTipoGrupo())) {
+            // Grupos tipo JUSTIFICATIVO no tienen límite de cupo
+            cupoTotal = 999999;
+        } else {
+            // Valor por defecto para grupos tipo CUPO
+            cupoTotal = 1000; // Valor configurable
+        }
         
         // Fecha de inicio: usar la fecha actual si no se proporciona
         LocalDate fechaInicio = dto.getFechaInicio() != null ? dto.getFechaInicio() : LocalDate.now();
@@ -291,16 +298,9 @@ public class GrupoImportacionService {
                 // Actualizar licencia del grupo
                 grupo.setLicencia(nuevaLicencia);
                 
-                // Recalcular cupos desde la nueva licencia
-                int cupoTotal = (nuevaLicencia.getCupoCivil() != null ? nuevaLicencia.getCupoCivil() : 0) +
-                               (nuevaLicencia.getCupoMilitar() != null ? nuevaLicencia.getCupoMilitar() : 0) +
-                               (nuevaLicencia.getCupoEmpresa() != null ? nuevaLicencia.getCupoEmpresa() : 0) +
-                               (nuevaLicencia.getCupoDeportista() != null ? nuevaLicencia.getCupoDeportista() : 0);
-                grupo.setCupoTotal(cupoTotal);
-                
-                // El cupo disponible se mantiene igual (ya hay clientes asignados)
-                // O se puede recalcular si es necesario
-                log.info("✅ Licencia actualizada. Nuevo cupo total: {}", cupoTotal);
+                // NOTA: Los cupos se mantienen a nivel de GrupoImportacion, no se recalculan desde licencia
+                // El cupo total y disponible del grupo permanecen sin cambios al cambiar de licencia
+                log.info("✅ Licencia actualizada. El cupo del grupo se mantiene: {}", grupo.getCupoTotal());
             }
         }
         
@@ -998,26 +998,20 @@ public class GrupoImportacionService {
             }
         }
         
-        // Calcular cupos civiles desde la licencia asignada al grupo
-        // La licencia tiene los cupos definidos en la BD por tipo de importación
-        Licencia licencia = grupo.getLicencia();
-        int cupoCivilTotal = 0;
+        // Calcular cupos civiles desde el grupo de importación
+        // NOTA: Los cupos se manejan a nivel de GrupoImportacion, no de Licencia
+        int cupoCivilTotal = 25; // Valor por defecto para civiles
         int cupoCivilDisponible = 0;
         int cupoCivilRestante = 0;
-        
-        if (licencia != null && licencia.getCupoCivil() != null) {
-            // Obtener el cupo total civil de la licencia (viene de la BD)
-            cupoCivilTotal = licencia.getCupoCivil();
-            // Calcular cuántos cupos quedan disponibles
-            cupoCivilDisponible = Math.max(0, cupoCivilTotal - civiles);
-            cupoCivilRestante = cupoCivilDisponible;
-        } else {
-            // Fallback: si no hay licencia o no tiene cupo definido, usar valor por defecto
-            log.warn("⚠️ Grupo ID {} no tiene licencia o licencia sin cupo civil definido. Usando valor por defecto.", grupoId);
-            cupoCivilTotal = Licencia.CUPO_FIJO_CIVIL; // 25 como fallback
-            cupoCivilDisponible = Math.max(0, cupoCivilTotal - civiles);
-            cupoCivilRestante = cupoCivilDisponible;
+
+        // Si el grupo tiene cupo definido, usarlo para civiles
+        if (grupo.getCupoTotal() != null && grupo.getCupoTotal() > 0) {
+            // Para grupos tipo CUPO, el cupo civil es típicamente 25
+            // Para grupos tipo JUSTIFICATIVO, no hay límite práctico
+            cupoCivilTotal = Math.min(grupo.getCupoTotal(), 25);
         }
+        cupoCivilDisponible = Math.max(0, cupoCivilTotal - civiles);
+        cupoCivilRestante = cupoCivilDisponible;
         
         // Calcular información de series
         int totalArmasSolicitadas = 0;

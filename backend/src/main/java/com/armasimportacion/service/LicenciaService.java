@@ -16,6 +16,11 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+/**
+ * Servicio para gestión de Licencias.
+ * NOTA: Los cupos se manejan a nivel de Grupo de Importación (tipo CUPO o JUSTIFICATIVO),
+ * no a nivel de licencia.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,20 +36,17 @@ public class LicenciaService {
         if (licenciaRepository.existsByNumero(licencia.getNumero())) {
             throw new RuntimeException("Ya existe una licencia con el número: " + licencia.getNumero());
         }
-        
-        // Inicializar cupos con valores por defecto desde configuración del sistema
-        inicializarCuposPorDefecto(licencia);
-        
+
+        // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
         licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);
-        log.info("✅ Licencia creada con cupos por defecto - Civil: {}, Militar: {}, Empresa: {}, Deportista: {}", 
-            licencia.getCupoCivil(), licencia.getCupoMilitar(), licencia.getCupoEmpresa(), licencia.getCupoDeportista());
+        log.info("✅ Licencia creada: {}", licencia.getNumero());
         return licenciaRepository.save(licencia);
     }
 
     public Licencia actualizarLicencia(Long id, Licencia licencia, Long usuarioId) {
         Licencia licenciaExistente = licenciaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + id));
-        
+
         // Actualizar campos permitidos
         licenciaExistente.setNombre(licencia.getNombre());
         licenciaExistente.setRuc(licencia.getRuc());
@@ -54,12 +56,9 @@ public class LicenciaService {
         licenciaExistente.setCedulaCuenta(licencia.getCedulaCuenta());
         licenciaExistente.setEmail(licencia.getEmail());
         licenciaExistente.setTelefono(licencia.getTelefono());
-        licenciaExistente.setCupoCivil(licencia.getCupoCivil());
-        licenciaExistente.setCupoMilitar(licencia.getCupoMilitar());
-        licenciaExistente.setCupoEmpresa(licencia.getCupoEmpresa());
-        licenciaExistente.setCupoDeportista(licencia.getCupoDeportista());
         licenciaExistente.setFechaVencimiento(licencia.getFechaVencimiento());
-        
+        // NOTA: Los cupos se manejan a nivel de Grupo de Importación
+
         return licenciaRepository.save(licenciaExistente);
     }
 
@@ -88,7 +87,7 @@ public class LicenciaService {
      * Una licencia está disponible si:
      * - Está activa (estado = true)
      * - No está vencida
-     * 
+     *
      * NOTA: Una licencia puede estar en múltiples grupos (tanto CUPO como JUSTIFICATIVO),
      * por lo que NO se filtra por estado de ocupación. La licencia puede estar DISPONIBLE
      * o BLOQUEADA y aún así puede ser asignada a nuevos grupos.
@@ -99,27 +98,12 @@ public class LicenciaService {
         List<Licencia> licenciasDisponibles = todasLasLicencias.stream()
             .filter(licencia -> !licencia.isVencida())
             .collect(java.util.stream.Collectors.toList());
-        log.info("✅ Encontradas {} licencias disponibles de {} totales activas", 
+        log.info("✅ Encontradas {} licencias disponibles de {} totales activas",
             licenciasDisponibles.size(), todasLasLicencias.size());
         if (licenciasDisponibles.isEmpty()) {
             log.warn("⚠️ No se encontraron licencias disponibles. Verificar que existan licencias activas y no vencidas");
         }
         return licenciasDisponibles;
-    }
-
-    public List<Licencia> obtenerLicenciasConCupoCivilDisponible() {
-        return licenciaRepository.findLicenciasConCupoCivilDisponible();
-    }
-
-    public boolean tieneCupoDisponible(Long licenciaId, String tipoCliente) {
-        Licencia licencia = obtenerLicencia(licenciaId);
-        return licencia.tieneCupoDisponible(tipoCliente);
-    }
-
-    public void decrementarCupo(Long licenciaId, String tipoCliente) {
-        Licencia licencia = obtenerLicencia(licenciaId);
-        licencia.decrementarCupo(tipoCliente);
-        licenciaRepository.save(licencia);
     }
 
     public List<Licencia> obtenerLicenciasProximasAVencer(int dias) {
@@ -128,8 +112,8 @@ public class LicenciaService {
         return licenciaRepository.findLicenciasProximasAVencer(fechaInicio, fechaFin);
     }
 
-    public Page<Licencia> buscarLicencias(String numero, String nombre, String ruc, 
-                                        Boolean estado, 
+    public Page<Licencia> buscarLicencias(String numero, String nombre, String ruc,
+                                        Boolean estado,
                                         String tipoCliente, org.springframework.data.domain.Pageable pageable) {
         return licenciaRepository.findWithFilters(numero, nombre, estado, ruc, pageable);
     }
@@ -194,61 +178,12 @@ public class LicenciaService {
     }
 
     /**
-     * Busca licencias disponibles para un tipo de cliente específico
+     * Busca licencias disponibles para asignar a grupos
      */
     public List<Licencia> findLicenciasDisponibles(String tipoCliente) {
-        return licenciaRepository.findByEstadoOcupacionAndTipoClienteDisponible(
-            EstadoOcupacionLicencia.DISPONIBLE, tipoCliente);
-    }
-
-    /**
-     * Asigna cupos de una licencia a un grupo de importación
-     */
-    @Transactional
-    public boolean asignarCuposAGrupo(GrupoImportacion grupo, String tipoCliente, Integer cupoSolicitado) {
-        // Buscar licencia disponible para este tipo de cliente
-        List<Licencia> licenciasDisponibles = findLicenciasDisponibles(tipoCliente);
-        
-        if (licenciasDisponibles.isEmpty()) {
-            log.warn("No hay licencias disponibles para el tipo de cliente: {}", tipoCliente);
-            return false;
-        }
-
-        // Buscar la licencia con más cupos disponibles
-        Licencia licenciaSeleccionada = licenciasDisponibles.stream()
-            .filter(l -> l.getCupoDisponible(tipoCliente) >= cupoSolicitado)
-            .findFirst()
-            .orElse(null);
-
-        if (licenciaSeleccionada == null) {
-            log.warn("No hay licencia con suficientes cupos para {}: solicitado {}, disponible {}", 
-                tipoCliente, cupoSolicitado, licenciasDisponibles.get(0).getCupoDisponible(tipoCliente));
-            return false;
-        }
-
-        // Crear el registro de consumo de cupos
-        GrupoImportacionCupo cupoConsumo = new GrupoImportacionCupo();
-        cupoConsumo.setGrupoImportacion(grupo);
-        cupoConsumo.setLicencia(licenciaSeleccionada);
-        cupoConsumo.setTipoCliente(tipoCliente);
-        cupoConsumo.setCupoConsumido(cupoSolicitado);
-        cupoConsumo.setCupoDisponibleLicencia(
-            licenciaSeleccionada.getCupoDisponible(tipoCliente) - cupoSolicitado);
-
-        // Guardar el consumo
-        grupoImportacionCupoRepository.save(cupoConsumo);
-
-        // Si es la primera vez que se usa esta licencia en este grupo, bloquearla
-        if (grupo.getLicencia() == null) {
-            grupo.setLicencia(licenciaSeleccionada);
-            licenciaSeleccionada.bloquear();
-            licenciaRepository.save(licenciaSeleccionada);
-        }
-
-        log.info("Cupos asignados exitosamente: {} {} a grupo {} usando licencia {}", 
-            cupoSolicitado, tipoCliente, grupo.getId(), licenciaSeleccionada.getNumero());
-        
-        return true;
+        // Ahora los cupos se manejan a nivel de GrupoImportacion, no de Licencia
+        // Retornar todas las licencias activas y no vencidas
+        return obtenerLicenciasDisponibles();
     }
 
     /**
@@ -257,18 +192,18 @@ public class LicenciaService {
     @Transactional
     public void liberarLicencia(Long grupoImportacionId) {
         List<GrupoImportacionCupo> cupos = grupoImportacionCupoRepository.findByGrupoImportacionId(grupoImportacionId);
-        
+
         if (!cupos.isEmpty()) {
             Licencia licencia = cupos.get(0).getLicencia();
-            
+
             // Eliminar todos los registros de consumo
             grupoImportacionCupoRepository.deleteByGrupoImportacionId(grupoImportacionId);
-            
+
             // Liberar la licencia
             licencia.liberar();
             licenciaRepository.save(licencia);
-            
-            log.info("Licencia {} liberada exitosamente del grupo {}", 
+
+            log.info("Licencia {} liberada exitosamente del grupo {}",
                 licencia.getNumero(), grupoImportacionId);
         }
     }
@@ -282,86 +217,38 @@ public class LicenciaService {
     }
 
     /**
-     * Obtiene el resumen de cupos de una licencia
+     * Obtiene el resumen de una licencia
+     * NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
      */
-    public String getResumenCupos(Long licenciaId) {
+    public String getResumenLicencia(Long licenciaId) {
         Optional<Licencia> licenciaOpt = licenciaRepository.findById(licenciaId);
         if (licenciaOpt.isPresent()) {
             Licencia licencia = licenciaOpt.get();
-            return String.format("Licencia %s: Civiles=%d, Militares=%d, Empresas=%d, Deportistas=%d, Estado=%s", 
+            return String.format("Licencia %s: Nombre=%s, Estado=%s, Ocupación=%s",
                 licencia.getNumero(),
-                licencia.getCupoCivil() != null ? licencia.getCupoCivil() : 0,
-                licencia.getCupoMilitar() != null ? licencia.getCupoMilitar() : 0,
-                licencia.getCupoEmpresa() != null ? licencia.getCupoEmpresa() : 0,
-                licencia.getCupoDeportista() != null ? licencia.getCupoDeportista() : 0,
+                licencia.getNombre(),
+                licencia.getEstado() ? "Activa" : "Inactiva",
                 licencia.getEstadoOcupacion());
         }
         return "Licencia no encontrada";
     }
 
     /**
-     * Inicializa los cupos de una licencia con los valores por defecto del sistema.
-     * Los valores se obtienen de configuracion_sistema.
-     * - CUPO_DEFAULT_CIVIL: 25
-     * - CUPO_DEFAULT_MILITAR: 1000
-     * - CUPO_DEFAULT_EMPRESA: 1000
-     * - CUPO_DEFAULT_DEPORTISTA: 1000
-     */
-    private void inicializarCuposPorDefecto(Licencia licencia) {
-        try {
-            int cupoCivil = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_CIVIL"));
-            int cupoMilitar = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_MILITAR"));
-            int cupoEmpresa = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_EMPRESA"));
-            int cupoDeportista = Integer.parseInt(configuracionSistemaService.getValorConfiguracion("CUPO_DEFAULT_DEPORTISTA"));
-            
-            licencia.setCupoCivil(cupoCivil);
-            licencia.setCupoMilitar(cupoMilitar);
-            licencia.setCupoEmpresa(cupoEmpresa);
-            licencia.setCupoDeportista(cupoDeportista);
-            
-            // Calcular cupo total
-            int cupoTotal = cupoCivil + cupoMilitar + cupoEmpresa + cupoDeportista;
-            licencia.setCupoTotal(cupoTotal);
-            licencia.setCupoDisponible(cupoTotal);
-            
-            log.info("✅ Cupos inicializados: Civil={}, Militar={}, Empresa={}, Deportista={}, Total={}", 
-                cupoCivil, cupoMilitar, cupoEmpresa, cupoDeportista, cupoTotal);
-        } catch (Exception e) {
-            log.error("❌ Error al inicializar cupos por defecto. Usando valores fallback.", e);
-            // Valores fallback en caso de error
-            licencia.setCupoCivil(25);
-            licencia.setCupoMilitar(1000);
-            licencia.setCupoEmpresa(1000);
-            licencia.setCupoDeportista(1000);
-            licencia.setCupoTotal(3025);
-            licencia.setCupoDisponible(3025);
-        }
-    }
-
-    /**
-     * Resetea los cupos de una licencia a los valores por defecto del sistema.
-     * Este método se debe llamar cuando una licencia se libera de un grupo de importación
-     * (cuando el grupo está completo y ya no necesita la licencia).
-     * 
-     * @param licenciaId ID de la licencia a resetear
-     * @return La licencia con los cupos reseteados
+     * Resetea el estado de ocupación de una licencia cuando se completa un grupo
      */
     @Transactional
-    public Licencia resetearCuposLicencia(Long licenciaId) {
-        log.info("🔄 Reseteando cupos de licencia ID: {}", licenciaId);
-        
+    public Licencia resetearEstadoLicencia(Long licenciaId) {
+        log.info("🔄 Reseteando estado de licencia ID: {}", licenciaId);
+
         Licencia licencia = licenciaRepository.findById(licenciaId)
             .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + licenciaId));
-        
-        // Reinicializar con valores por defecto
-        inicializarCuposPorDefecto(licencia);
-        
+
         // Cambiar estado a DISPONIBLE
         licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);
-        
+
         Licencia licenciaActualizada = licenciaRepository.save(licencia);
-        
-        log.info("✅ Cupos reseteados exitosamente para licencia: {}. Ahora está DISPONIBLE", licencia.getNumero());
+
+        log.info("✅ Licencia {} ahora está DISPONIBLE", licencia.getNumero());
         return licenciaActualizada;
     }
-} 
+}
