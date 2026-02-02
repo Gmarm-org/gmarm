@@ -42,12 +42,6 @@ public class LicenciaMapper {
                 .estado(licencia.getEstado())
                 .estadoOcupacion(licencia.getEstadoOcupacion())
                 .observaciones(licencia.getObservaciones())
-                .cupoTotal(licencia.getCupoTotal())
-                .cupoDisponible(licencia.getCupoDisponible())
-                .cupoCivil(licencia.getCupoCivil())
-                .cupoMilitar(licencia.getCupoMilitar())
-                .cupoEmpresa(licencia.getCupoEmpresa())
-                .cupoDeportista(licencia.getCupoDeportista())
                 .fechaVencimiento(licencia.getFechaVencimiento())
                 .fechaEmision(licencia.getFechaEmision())
                 .fechaCreacion(licencia.getFechaCreacion())
@@ -104,12 +98,7 @@ public class LicenciaMapper {
         if (dto.getEstadoOcupacion() != null) {
             licencia.setEstadoOcupacion(dto.getEstadoOcupacion());
         }
-        licencia.setCupoTotal(dto.getCupoTotal());
-        licencia.setCupoDisponible(dto.getCupoDisponible());
-        licencia.setCupoCivil(dto.getCupoCivil());
-        licencia.setCupoMilitar(dto.getCupoMilitar());
-        licencia.setCupoEmpresa(dto.getCupoEmpresa());
-        licencia.setCupoDeportista(dto.getCupoDeportista());
+        // NOTA: Los cupos se manejan a nivel de Grupo de Importación
         licencia.setFechaVencimiento(dto.getFechaVencimiento());
         licencia.setFechaEmision(dto.getFechaEmision());
         return licencia;

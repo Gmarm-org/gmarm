@@ -137,20 +137,6 @@ const LicenseList: React.FC = () => {
       )
     },
     {
-      key: 'cupo_total',
-      label: 'Cupo Total',
-      render: (value) => (
-        <div className="text-sm font-semibold text-gray-900">{value || 0}</div>
-      )
-    },
-    {
-      key: 'cupo_disponible',
-      label: 'Disponible',
-      render: (value) => (
-        <div className="text-sm font-semibold text-blue-600">{value || 0}</div>
-      )
-    },
-    {
       key: 'estado',
       label: 'Estado',
       render: (value) => (

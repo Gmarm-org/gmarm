@@ -29,6 +29,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Entidad que representa una Licencia de Importación.
+ * NOTA: Los cupos se manejan a nivel de Grupo de Importación (tipo CUPO o JUSTIFICATIVO),
+ * no a nivel de licencia.
+ */
 @Entity
 @Table(name = "licencia")
 @Data
@@ -37,12 +42,6 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 @EntityListeners(AuditingEntityListener.class)
 public class Licencia {
-
-    // 🔒 CONSTANTES: Valores FIJOS de cupos por tipo de cliente
-    public static final int CUPO_FIJO_CIVIL = 25;
-    public static final int CUPO_FIJO_UNIFORMADO = 1000; // Militar/Policía
-    public static final int CUPO_FIJO_EMPRESA = 1000;
-    public static final int CUPO_FIJO_DEPORTISTA = 1000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,7 +54,7 @@ public class Licencia {
     private String nombre;
 
     @Column(name = "titulo", length = 200)
-    private String titulo; // Nuevo campo
+    private String titulo;
 
     @Column(name = "ruc", length = 20)
     private String ruc;
@@ -89,30 +88,11 @@ public class Licencia {
     @Column(name = "fecha_vencimiento", nullable = false)
     private LocalDate fechaVencimiento;
 
-    // Campos adicionales para el sistema de gestión
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
     @Column(name = "fecha_emision")
     private LocalDate fechaEmision;
-
-    @Column(name = "cupo_total")
-    private Integer cupoTotal;
-
-    @Column(name = "cupo_disponible")
-    private Integer cupoDisponible;
-
-    @Column(name = "cupo_civil")
-    private Integer cupoCivil;
-
-    @Column(name = "cupo_militar")
-    private Integer cupoMilitar;
-
-    @Column(name = "cupo_empresa")
-    private Integer cupoEmpresa;
-
-    @Column(name = "cupo_deportista")
-    private Integer cupoDeportista;
 
     @Column(name = "observaciones", columnDefinition = "TEXT")
     private String observaciones;
@@ -143,48 +123,6 @@ public class Licencia {
     // Relaciones
     @OneToMany(mappedBy = "licencia", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<GrupoImportacion> gruposImportacion = new ArrayList<>();
-
-    // Métodos de utilidad
-    public Integer getCupoDisponible(String tipoCliente) {
-        if (tipoCliente == null) return cupoDisponible;
-        
-        switch (tipoCliente.toLowerCase()) {
-            case "civil":
-                return cupoCivil != null ? cupoCivil : 0;
-            case "militar":
-                return cupoMilitar != null ? cupoMilitar : 0;
-            case "empresa":
-                return cupoEmpresa != null ? cupoEmpresa : 0;
-            case "deportista":
-                return cupoDeportista != null ? cupoDeportista : 0;
-            default:
-                return cupoDisponible != null ? cupoDisponible : 0;
-        }
-    }
-
-    public boolean tieneCupoDisponible(String tipoCliente) {
-        return getCupoDisponible(tipoCliente) > 0;
-    }
-
-    public void decrementarCupo(String tipoCliente) {
-        switch (tipoCliente.toLowerCase()) {
-            case "civil":
-                if (cupoCivil != null && cupoCivil > 0) cupoCivil--;
-                break;
-            case "militar":
-                if (cupoMilitar != null && cupoMilitar > 0) cupoMilitar--;
-                break;
-            case "empresa":
-                if (cupoEmpresa != null && cupoEmpresa > 0) cupoEmpresa--;
-                break;
-            case "deportista":
-                if (cupoDeportista != null && cupoDeportista > 0) cupoDeportista--;
-                break;
-            default:
-                if (cupoDisponible != null && cupoDisponible > 0) cupoDisponible--;
-                break;
-        }
-    }
 
     // Método para determinar si la licencia está vencida
     public boolean isVencida() {
@@ -217,34 +155,10 @@ public class Licencia {
 
     public void liberar() {
         this.estadoOcupacion = EstadoOcupacionLicencia.DISPONIBLE;
-        // 🔄 Al liberar una licencia, resetear los cupos a valores fijos
-        resetearCupos();
-    }
-
-    /**
-     * Inicializa los cupos con valores FIJOS según reglas de negocio.
-     * Se usa al crear una nueva licencia.
-     */
-    public void inicializarCupos() {
-        this.cupoCivil = CUPO_FIJO_CIVIL;
-        this.cupoMilitar = CUPO_FIJO_UNIFORMADO;
-        this.cupoEmpresa = CUPO_FIJO_EMPRESA;
-        this.cupoDeportista = CUPO_FIJO_DEPORTISTA;
-        // El cupo total es la suma de todos los cupos individuales
-        this.cupoTotal = this.cupoCivil + this.cupoMilitar + this.cupoEmpresa + this.cupoDeportista;
-        this.cupoDisponible = this.cupoTotal;
-    }
-
-    /**
-     * Resetea los cupos a valores FIJOS.
-     * Se usa cuando una licencia se libera de un grupo de importación completado.
-     */
-    public void resetearCupos() {
-        inicializarCupos();
     }
 
     // Método para verificar si la licencia puede ser asignada a un nuevo grupo
     public boolean puedeSerAsignada() {
         return isDisponible() && !isVencida() && Boolean.TRUE.equals(estado);
     }
-} 
+}

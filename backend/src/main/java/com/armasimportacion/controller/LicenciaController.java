@@ -100,13 +100,9 @@ public class LicenciaController {
         if (licencia.getFechaCreacion() == null) {
             licencia.setFechaCreacion(LocalDateTime.now());
         }
-        
-        // 🔒 Inicializar cupos con valores FIJOS al crear una licencia
-        licencia.inicializarCupos();
-        log.info("✅ Cupos inicializados: Civil={}, Militar={}, Empresa={}, Deportista={}", 
-                 licencia.getCupoCivil(), licencia.getCupoMilitar(), 
-                 licencia.getCupoEmpresa(), licencia.getCupoDeportista());
-        
+
+        // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
+
         Licencia savedLicencia = licenciaRepository.save(licencia);
         log.info("✅ Licencia creada con ID: {} - Banco: {}, Cuenta: {}", 
                  savedLicencia.getId(), savedLicencia.getNombreBanco(), savedLicencia.getCuentaBancaria());
@@ -118,12 +114,9 @@ public class LicenciaController {
     @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente (soporta PUT y PATCH)")
     public ResponseEntity<LicenciaDTO> updateLicencia(@PathVariable Long id, @RequestBody LicenciaDTO licenciaDTO) {
         log.info("📝 PUT/PATCH /api/licencia/{} - Actualizando licencia", id);
-        log.debug("📦 Datos recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
-                  licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(), 
+        log.debug("📦 Datos recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}",
+                  licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(),
                   licenciaDTO.getTipoCuenta(), licenciaDTO.getCedulaCuenta());
-        log.debug("📦 Cupos recibidos - Civil: {}, Militar: {}, Empresa: {}, Deportista: {}", 
-                  licenciaDTO.getCupoCivil(), licenciaDTO.getCupoMilitar(), 
-                  licenciaDTO.getCupoEmpresa(), licenciaDTO.getCupoDeportista());
         
         return licenciaRepository.findById(id)
                 .map(existingLicencia -> {
@@ -176,17 +169,9 @@ public class LicenciaController {
                     if (licenciaDTO.getFechaEmision() != null) {
                         existingLicencia.setFechaEmision(licenciaDTO.getFechaEmision());
                     }
-                    
-                    // 🔒 NOTA: Los cupos individuales NO deben editarse manualmente
-                    // Se inicializan automáticamente al crear y se resetean al liberar
-                    // Solo permitir actualizar cupo_total y cupo_disponible si es necesario
-                    if (licenciaDTO.getCupoTotal() != null) {
-                        existingLicencia.setCupoTotal(licenciaDTO.getCupoTotal());
-                    }
-                    if (licenciaDTO.getCupoDisponible() != null) {
-                        existingLicencia.setCupoDisponible(licenciaDTO.getCupoDisponible());
-                    }
-                    
+
+                    // NOTA: Los cupos se manejan a nivel de Grupo de Importación
+
                     // Estado y estado de ocupación
                     if (licenciaDTO.getEstado() != null) {
                         existingLicencia.setEstado(licenciaDTO.getEstado());

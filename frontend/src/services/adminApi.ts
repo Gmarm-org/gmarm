@@ -47,12 +47,7 @@ export interface License {
   telefono?: string;
   provincia?: string; // Ubicación geográfica
   canton?: string;    // Ubicación geográfica
-  cupo_total?: number;
-  cupo_disponible?: number;
-  cupo_civil?: number;
-  cupo_militar?: number;
-  cupo_empresa?: number;
-  cupo_deportista?: number;
+  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
   descripcion?: string;
   fecha_emision?: string;
   observaciones?: string;

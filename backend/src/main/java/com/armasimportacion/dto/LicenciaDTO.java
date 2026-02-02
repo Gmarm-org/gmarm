@@ -54,25 +54,9 @@ public class LicenciaDTO {
     private EstadoOcupacionLicencia estadoOcupacion; // DISPONIBLE, BLOQUEADA
     
     private String observaciones;
-    
-    @JsonProperty("cupo_total")
-    private Integer cupoTotal;
-    
-    @JsonProperty("cupo_disponible")
-    private Integer cupoDisponible;
-    
-    @JsonProperty("cupo_civil")
-    private Integer cupoCivil;
-    
-    @JsonProperty("cupo_militar")
-    private Integer cupoMilitar;
-    
-    @JsonProperty("cupo_empresa")
-    private Integer cupoEmpresa;
-    
-    @JsonProperty("cupo_deportista")
-    private Integer cupoDeportista;
-    
+
+    // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
+
     @JsonProperty("fecha_vencimiento")
     private LocalDate fechaVencimiento;
     

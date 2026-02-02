@@ -497,12 +497,6 @@ CREATE TABLE IF NOT EXISTS licencia (
     telefono VARCHAR(20),
     provincia_id BIGINT REFERENCES provincia(id), -- Provincia del importador
     canton_id BIGINT REFERENCES canton(id), -- Cantón del importador
-    cupo_total BIGINT,
-    cupo_disponible BIGINT,
-    cupo_civil BIGINT,
-    cupo_militar BIGINT,
-    cupo_empresa BIGINT,
-    cupo_deportista BIGINT,
     descripcion TEXT,
     fecha_emision DATE,
     observaciones TEXT,
@@ -1066,13 +1060,13 @@ INSERT INTO canton (nombre, codigo, estado, provincia_id) VALUES
 ('Guayaquil', 'GUAY', true, (SELECT id FROM provincia WHERE codigo = 'GUA'))
 ON CONFLICT DO NOTHING;
 
--- Insertar licencias
-INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, provincia_id, canton_id, cupo_total, cupo_disponible, cupo_civil, cupo_militar, cupo_empresa, cupo_deportista, estado, estado_ocupacion, fecha_vencimiento) VALUES
-('DOC-000788583', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922001', '8151263', 'INTERNACIONAL', 'AHORRO', '1707815922', 'joseluis@guerreromartinez.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('DOC-000733517', 'MULLER BENITEZ NICOLE PAMELA', '1713978540001', '2212737882', 'PICHINCHA', 'AHORRO', '1713978540', 'vbenitez@hotmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('DOC-000786211', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632001', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('DOC-000772798', 'LOYAGA CORREA MARCIA NATHALY', '1725831950001', '29282140', 'GUAYAQUIL', 'AHORRO', '1725831950', 'marcia.loyaga@example.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), 25, 25, 25, 0, 0, 0, true, 'DISPONIBLE', '2050-12-31'),
-('DOC-000731081', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORRO', '1314955061', 'simogue.sas@gmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'GUA'), (SELECT id FROM canton WHERE codigo = 'GUAY' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'GUA')), 100, 100, 0, 0, 100, 0, true, 'DISPONIBLE', '2050-12-31')
+-- Insertar licencias (sin cupos - los cupos se manejan a nivel de Grupo de Importación)
+INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_cuenta, cedula_cuenta, email, telefono, provincia_id, canton_id, estado, estado_ocupacion, fecha_vencimiento) VALUES
+('DOC-000788583', 'GUERRERO MARTINEZ JOSE LUIS', '1707815922001', '8151263', 'INTERNACIONAL', 'AHORRO', '1707815922', 'joseluis@guerreromartinez.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), true, 'DISPONIBLE', '2050-12-31'),
+('DOC-000733517', 'MULLER BENITEZ NICOLE PAMELA', '1713978540001', '2212737882', 'PICHINCHA', 'AHORRO', '1713978540', 'vbenitez@hotmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), true, 'DISPONIBLE', '2050-12-31'),
+('DOC-000786211', 'ENDARA UNDA FRANKLIN GEOVANNY', '1721770632001', '2100300998', 'PICHINCHA', 'CORRIENTE', '1721770632', 'f.endara@hotmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), true, 'DISPONIBLE', '2050-12-31'),
+('DOC-000772798', 'LOYAGA CORREA MARCIA NATHALY', '1725831950001', '29282140', 'GUAYAQUIL', 'AHORRO', '1725831950', 'marcia.loyaga@example.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'PIC'), (SELECT id FROM canton WHERE codigo = 'QUIT' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'PIC')), true, 'DISPONIBLE', '2050-12-31'),
+('DOC-000731081', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORRO', '1314955061', 'simogue.sas@gmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'GUA'), (SELECT id FROM canton WHERE codigo = 'GUAY' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'GUA')), true, 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
 -- Insertar configuraci?n del sistema
@@ -1101,12 +1095,8 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
 -- Configuración de EXPOFERIA eliminada - ya no se usa en el sistema
 ('COORDINADOR_NOMBRE', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar', true),
 ('COORDINADOR_CARGO', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar', true),
-('COORDINADOR_DIRECCION', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección cargo del coordinador militar', true),
--- Cupos por defecto de licencias de importación (valores constantes)
-('CUPO_DEFAULT_CIVIL', '25', 'Cupo por defecto para clientes civiles en licencias de importación', false),
-('CUPO_DEFAULT_MILITAR', '1000', 'Cupo por defecto para clientes uniformados (militares) en licencias de importación', false),
-('CUPO_DEFAULT_EMPRESA', '1000', 'Cupo por defecto para empresas de seguridad en licencias de importación', false),
-('CUPO_DEFAULT_DEPORTISTA', '1000', 'Cupo por defecto para deportistas en licencias de importación', false)
+('COORDINADOR_DIRECCION', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección cargo del coordinador militar', true)
+-- NOTA: Los cupos se manejan ahora a nivel de Grupo de Importación (tipo CUPO o JUSTIFICATIVO)
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================
@@ -1147,36 +1137,33 @@ ON CONFLICT (clave) DO NOTHING;
 -- =====================================================
 -- SISTEMA DE CUPOS Y LICENCIAS - EXPLICACI?N
 -- =====================================================
--- El sistema de cupos funciona de la siguiente manera:
--- 
--- 1. TABLA 'licencia': Define los cupos disponibles por tipo de cliente
---    - Todas las licencias son del mismo tipo: IMPORTACION_ARMAS
---    - cupo_civil: máximo 25 armas para clientes civiles
---    - cupo_militar: máximo 1000 armas para uniformados
---    - cupo_empresa: máximo 1000 armas para empresas de seguridad
---    - cupo_deportista: máximo 1000 armas para deportistas
+-- SISTEMA DE IMPORTACIONES - CUPO vs JUSTIFICATIVO
+-- =====================================================
+--
+-- Existen DOS tipos de Grupos de Importación:
+--
+-- 1. TIPO "CUPO": Tiene límites por categoría de cliente
+--    - Civil: máximo 25 armas
+--    - Uniformado: máximo 1000 armas
+--    - Empresa: máximo 1000 armas
+--    - Deportista: máximo 1000 armas
+--    Los límites se manejan en la tabla 'grupo_importacion'
+--
+-- 2. TIPO "JUSTIFICATIVO": Sin límites de cupo
+--    - No tiene restricciones de cantidad
+--    - Se usa para importaciones especiales
+--
+-- TABLA 'licencia': Define solo los datos del importador
 --    - estado_ocupacion: 'DISPONIBLE' o 'BLOQUEADA'
--- 
--- 2. TABLA 'grupo_importacion_cupo': Controla el consumo de cupos por grupo
---    - licencia_id: Qu? licencia se est�? usando
---    - tipo_cliente: Para qu? tipo de cliente se consume
---    - cupo_consumido: Cuánto consume este grupo espec?fico
---    - cupo_disponible_licencia: Cuánto queda disponible en la licencia
--- 
+--    - NO maneja cupos (se manejan a nivel de grupo)
+--
 -- FLUJO DE TRABAJO:
--- 1. Se crea un grupo de importación
--- 2. Se asigna una licencia disponible (estado = 'DISPONIBLE')
+-- 1. Se crea un grupo de importación (tipo CUPO o JUSTIFICATIVO)
+-- 2. Se asigna una licencia disponible
 -- 3. La licencia pasa a estado 'BLOQUEADA'
--- 4. Se registran los cupos consumidos por tipo de cliente
--- 5. Al terminar el proceso, la licencia se libera (estado = 'DISPONIBLE')
--- 6. Los cupos se resetean a sus valores iniciales
--- 
--- EJEMPLO:
--- Licencia "Jose Torres" tiene: 25 civiles, 1000 uniformados, 1000 empresas, 1000 deportistas
--- Grupo consume: 25 civiles, 28 uniformados, 3 empresas, 0 deportistas
--- Durante el proceso: Licencia BLOQUEADA
--- Al terminar: Licencia DISPONIBLE con cupos originales restaurados
--- 
+-- 4. Si es tipo CUPO, se validan los límites por categoría
+-- 5. Al terminar el proceso, la licencia se libera
+--
 -- =====================================================
 
 -- Insertar provincias de Ecuador
