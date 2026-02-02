@@ -1579,7 +1579,7 @@ public class GestionDocumentosServiceHelper {
                 resumen.append(arma.getMarca()).append(" ");
             }
             if (arma.getModelo() != null) {
-                resumen.append(arma.getModelo());
+                resumen.append("MODELO ").append(arma.getModelo());
             }
         }
         return resumen.toString().trim();

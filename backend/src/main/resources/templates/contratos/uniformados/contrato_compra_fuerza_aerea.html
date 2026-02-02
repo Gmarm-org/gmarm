@@ -1,397 +1,720 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>Contrato para Adquisición de Armamento</title>
     <style>
-        @page {
-            size: letter;
-            margin: 1in;
-        }
-        
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            line-height: 1.2;
-            color: #000;
-            font-size: 11pt;
-            text-align: justify;
-        }
-        
-        .container {
-            width: 100%;
-            max-width: 6.5in;
-            margin: 0 auto;
-        }
+      @page {
+        size: letter;
+        margin: 1in;
+      }
 
-        .contract-title {
-            text-align: center;
-            font-family: "Calibri Light", Calibri, sans-serif;
-            font-weight: normal;
-            font-size: 16pt;
-            margin-bottom: 18pt;
-            text-transform: uppercase;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        line-height: 1.2;
+        color: #000;
+        font-size: 11pt;
+        text-align: justify;
+      }
 
-        .parties-section {
-            margin-bottom: 18pt;
-        }
+      .container {
+        width: 100%;
+        max-width: 6.5in;
+        margin: 0 auto;
+      }
 
-        .party-info {
-            margin-bottom: 0;
-            text-align: justify;
-        }
+      .contract-title {
+        text-align: center;
+        font-family: "Calibri Light", Calibri, sans-serif;
+        font-weight: normal;
+        font-size: 16pt;
+        margin-bottom: 18pt;
+        text-transform: uppercase;
+      }
 
-        .section-title {
-            font-weight: bold;
-            margin: 18pt 0 8pt 0;
-            text-transform: uppercase;
-        }
+      .parties-section {
+        margin-bottom: 18pt;
+      }
 
-        .clause-title {
-            font-weight: bold;
-            margin: 14pt 0 6pt 0;
-        }
+      .party-info {
+        margin-bottom: 0;
+        text-align: justify;
+      }
 
-        .clause-content {
-            margin-bottom: 10pt;
-            text-align: justify;
-        }
+      .section-title {
+        font-weight: bold;
+        margin: 18pt 0 8pt 0;
+        text-transform: uppercase;
+      }
 
-        .payment-schedule {
-            margin-left: 18pt;
-        }
+      .clause-title {
+        font-weight: bold;
+        margin: 14pt 0 6pt 0;
+      }
 
-        .payment-item {
-            margin-bottom: 4pt;
-        }
+      .clause-content {
+        margin-bottom: 10pt;
+        text-align: justify;
+      }
 
-        .annex-list {
-            list-style: none;
-            margin-left: 18pt;
-            padding: 0;
-        }
+      .payment-schedule {
+        margin-left: 18pt;
+      }
 
-        .annex-item {
-            margin-bottom: 4pt;
-        }
+      .payment-item {
+        margin-bottom: 4pt;
+      }
 
-        .signature-section {
-            margin-top: 20pt;
-            width: 100%;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            page-break-before: avoid;
-            break-before: avoid;
-        }
-        
-        .signature-table {
-            width: 100%;
-            border-collapse: collapse;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-        
-        .signature-cell {
-            width: 45%;
-            vertical-align: bottom;
-            padding: 0;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-        
-        .signature-spacer {
-            width: 10%;
-        }
+      .annex-list {
+        list-style: none;
+        margin-left: 18pt;
+        padding: 0;
+      }
 
-        .signature-line {
-            border-bottom: 1px solid #000;
-            margin: 45pt 0 8pt 0;
-            height: 1px;
-        }
+      .annex-item {
+        margin-bottom: 4pt;
+      }
 
-        .signature-info {
-            font-size: 11pt;
-            margin-top: 4pt;
-            line-height: 1.1;
-            text-align: left;
-            font-weight: normal;
-            height: 55pt; /* Altura fija para ambas firmas */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-        }
+      .signature-section {
+        margin-top: 20pt;
+        width: 100%;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-before: avoid;
+        break-before: avoid;
+      }
 
-        .closing-statement {
-            margin-top: 15pt;
-            text-align: left;
-            font-size: 11pt;
-            font-weight: normal;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            page-break-after: avoid;
-            break-after: avoid;
-            page-break-before: avoid;
-            break-before: avoid;
-        }
+      .signature-table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
 
-        .highlight {
-            font-weight: bold;
-        }
-        
-        .text-uppercase {
-            text-transform: uppercase;
-        }
-        
-        .indent {
-            text-indent: 15pt;
-        }
-        
-        .italic {
-            font-style: italic;
-        }
-        
-        .nowrap {
-            white-space: nowrap;
-        }
-        
-        .clause-title-bold {
-            font-weight: bold;
-            display: inline;
-        }
-        
-        .clause-content-inline {
-            display: inline;
-            text-align: justify;
-        }
-        
-        .number-format {
-            font-family: Arial, sans-serif;
-        }
-        
-        .text-bold {
-            font-weight: bold;
-        }
-        
-        .clause-italic {
-            font-style: italic;
-            font-weight: normal;
-        }
-        
-        .signature-block {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            page-break-before: avoid;
-            break-before: avoid;
-            margin-top: 15pt;
-        }
+      .signature-cell {
+        width: 45%;
+        vertical-align: bottom;
+        padding: 0;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .signature-spacer {
+        width: 10%;
+      }
+
+      .signature-line {
+        border-bottom: 1px solid #000;
+        margin: 45pt 0 8pt 0;
+        height: 1px;
+      }
+
+      .signature-info {
+        font-size: 11pt;
+        margin-top: 4pt;
+        line-height: 1.1;
+        text-align: left;
+        font-weight: normal;
+        height: 55pt; /* Altura fija para ambas firmas */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .closing-statement {
+        margin-top: 15pt;
+        text-align: left;
+        font-size: 11pt;
+        font-weight: normal;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-after: avoid;
+        break-after: avoid;
+        page-break-before: avoid;
+        break-before: avoid;
+      }
+
+      .highlight {
+        font-weight: bold;
+      }
+
+      .text-uppercase {
+        text-transform: uppercase;
+      }
+
+      .indent {
+        text-indent: 15pt;
+      }
+
+      .italic {
+        font-style: italic;
+      }
+
+      .nowrap {
+        white-space: nowrap;
+      }
+
+      .clause-title-bold {
+        font-weight: bold;
+        display: inline;
+      }
+
+      .clause-content-inline {
+        display: inline;
+        text-align: justify;
+      }
+
+      .number-format {
+        font-family: Arial, sans-serif;
+      }
+
+      .text-bold {
+        font-weight: bold;
+      }
+
+      .clause-italic {
+        font-style: italic;
+        font-weight: normal;
+      }
+
+      .signature-block {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-before: avoid;
+        break-before: avoid;
+        margin-top: 15pt;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="contract-title">contrato para adquisición de armamento</div>
+      <div class="contract-title">contrato para adquisición de armamento</div>
 
-        <div class="parties-section">
-            <div class="party-info">
-                Comparecen a la celebración del presente contrato, por una parte, <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, con RUC No. <span th:text="${licenciaRuc}">0000000000001</span>, en su calidad de Comerciante Importador de Armas y Municiones debidamente acreditado por el Comando Conjunto de las Fuerzas Armadas del Ecuador, por una parte; y, por otra parte, el <span th:if="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">CABO SEGUNDO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="party-name text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, con cédula de ciudadanía No. <span th:text="${cliente.numeroIdentificacion}">20250919007</span> y correo electrónico: <span th:text="${cliente.email}">debug.test@test.com</span>, miembro activo de las Fuerzas Armadas del Ecuador, con código ISSFA No. <span th:text="${cliente.codigoIssfa}">20250919007</span>; domiciliado en: <span th:text="${clienteDireccionCompleta}"></span>, Teléfono: <span th:text="${cliente.telefonoPrincipal}">0999999999</span>; los comparecientes hábiles para contratar, como en efecto lo hacen al tenor de las siguientes cláusulas:
-            </div>
+      <div class="parties-section">
+        <div class="party-info">
+          Comparecen a la celebración del presente contrato, por una parte,
+          <span th:text="${licenciaTitulo + ' ' + licenciaNombre}"
+            >Licenciada Nombre Licencia</span
+          >, con RUC No. <span th:text="${licenciaRuc}">0000000000001</span>, en
+          su calidad de Comerciante Importador de Armas y Municiones debidamente
+          acreditado por el Comando Conjunto de las Fuerzas Armadas del Ecuador,
+          por una parte; y, por otra parte, el
+          <span
+            th:if="${clienteRango != null and clienteRango != ''}"
+            class="party-name text-uppercase"
+            th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}"
+            >CABO SEGUNDO NOMBRE APELLIDO</span
+          ><span
+            th:unless="${clienteRango != null and clienteRango != ''}"
+            class="party-name text-uppercase"
+            th:text="${cliente.nombres + ' ' + cliente.apellidos}"
+            >NOMBRE APELLIDO</span
+          >, con cédula de ciudadanía No.
+          <span th:text="${cliente.numeroIdentificacion}">20250919007</span> y
+          correo electrónico:
+          <span th:text="${cliente.email}">debug.test@test.com</span>, miembro
+          activo de las Fuerzas Armadas del Ecuador, con código ISSFA No.
+          <span th:text="${cliente.codigoIssfa}">20250919007</span>; domiciliado
+          en: <span th:text="${clienteDireccionCompleta}"></span>, Teléfono:
+          <span th:text="${cliente.telefonoPrincipal}">0999999999</span>; los
+          comparecientes hábiles para contratar, como en efecto lo hacen al
+          tenor de las siguientes cláusulas:
         </div>
+      </div>
 
-        <div class="section-title">ANTECEDENTES. - </div>
-        <div class="clause-content">
-            La <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, es comerciante importador de armas y municiones con registro del Comando Conjunto de las Fuerzas Armadas de El Ecuador, <span th:text="${licenciaNumero}">DOC-000772798</span>, cuya copia se apareja al presente instrumento.
-        </div>
-        
-        <div class="clause-content">
-            A la presente fecha, el <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, requiere adquirir un arma para porte personal.
-        </div>
-        
-        <div class="clause-content">
-            Con estos antecedentes las partes acuerdan:
-        </div>
+      <div class="section-title">ANTECEDENTES. -</div>
+      <div class="clause-content">
+        <span th:text="${licenciaTitulo + ' ' + licenciaNombre}"
+          >Licenciada Nombre Licencia</span
+        >, es comerciante importador de armas y municiones con registro del
+        Comando Conjunto de las Fuerzas Armadas de El Ecuador,
+        <span th:text="${licenciaNumero}">DOC-000772798</span>, cuya copia se
+        apareja al presente instrumento.
+      </div>
 
-        <div>
-            <span class="clause-title-bold">PRIMERA. - </span>
-            <span class="clause-content-inline">La <span th:text="${licenciaTitulo + ' ' + licenciaNombre}">Licenciada Nombre Licencia</span>, vende en favor del <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, la cantidad de: <span th:text="${armasResumenTexto}">UNA (1) pistola CZ P 10 F</span>, Total <span th:text="${cantidadArmasTexto}">1 arma</span>.</span>
-        </div>
+      <div class="clause-content">
+        A la presente fecha, el
+        <span
+          th:if="${clienteRango != null and clienteRango != ''}"
+          class="text-uppercase"
+          th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}"
+          >RANGO NOMBRE APELLIDO</span
+        ><span
+          th:unless="${clienteRango != null and clienteRango != ''}"
+          class="text-uppercase"
+          th:text="${cliente.nombres + ' ' + cliente.apellidos}"
+          >NOMBRE APELLIDO</span
+        >, requiere adquirir un arma para porte personal.
+      </div>
 
-        <div class="clause-content">
-            &nbsp;
-        </div>
+      <div class="clause-content">
+        Con estos antecedentes las partes acuerdan:
+      </div>
 
-        <div>
-            <span class="clause-title-bold">SEGUNDA. - PRECIO. - </span>
-            <span class="clause-content-inline">El precio pactado por la venta del arma descrita en la cláusula primera, sin contar el IVA es de USD <span th:text="${#numbers.formatDecimal(pago.subtotal != null ? pago.subtotal : pago.montoTotal, 1, 2)}">1,380.00</span> (<span th:text="${numberToTextService.convertToText(pago.subtotal != null ? pago.subtotal : pago.montoTotal)}">UN MIL TRESCIENTOS OCHENTA CON 00/100</span>, DÓLARES AMERICANOS)</span>
-        </div>
+      <div>
+        <span class="clause-title-bold">PRIMERA. - </span>
+        <span class="clause-content-inline">
+          <span th:text="${licenciaTitulo + ' ' + licenciaNombre}"
+            >Licenciada Nombre Licencia</span
+          >, vende en favor del
+          <span
+            th:if="${clienteRango != null and clienteRango != ''}"
+            class="text-uppercase"
+            th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}"
+            >RANGO NOMBRE APELLIDO</span
+          ><span
+            th:unless="${clienteRango != null and clienteRango != ''}"
+            class="text-uppercase"
+            th:text="${cliente.nombres + ' ' + cliente.apellidos}"
+            >NOMBRE APELLIDO</span
+          >, la cantidad de:
+          <span th:text="${armasResumenTexto}">UNA (1) PISTOLA CZ MODELO CZ P10 F</span>,
+          Total <span th:text="${cantidadArmasTexto}">1 arma</span>.</span
+        >
+      </div>
 
-        <div class="clause-content">
-            &nbsp;
-        </div>
+      <div class="clause-content">&nbsp;</div>
 
-        <div>
-            <span class="clause-title-bold">TERCERA. - </span>
-            <span class="clause-content-inline">El tiempo estimado de entrega será de doscientos días aproximadamente desde la firma del presente instrumento.</span>
-        </div>
-        
-        <div class="clause-content">
-            En virtud de que al ser productos de fabricación europea y por la naturaleza de estos, requieren permisos especiales tanto para su importación como para su exportación, el tiempo estimado de entrega podría variar, hecho que las partes lo reconocen, sin que esto resulte en algún perjuicio para las mismas.
-        </div>
+      <div>
+        <span class="clause-title-bold">SEGUNDA. - PRECIO. - </span>
+        <span class="clause-content-inline"
+          >El precio pactado por la venta del arma descrita en la cláusula
+          primera, sin contar el IVA es de USD
+          <span
+            th:text="${#numbers.formatDecimal(pago.subtotal != null ? pago.subtotal : pago.montoTotal, 1, 2)}"
+            >1,380.00</span
+          >
+          (<span
+            th:text="${numberToTextService.convertToText(pago.subtotal != null ? pago.subtotal : pago.montoTotal)}"
+            >UN MIL TRESCIENTOS OCHENTA CON 00/100</span
+          >, DÓLARES AMERICANOS)</span
+        >
+      </div>
 
-        <div>
-            <span class="clause-title-bold">CUARTA: FORMA DE PAGO. - </span>
-            <span class="clause-content-inline">Las partes han acordado que los pagos serán mensualizados de la siguiente manera:</span>
-        </div>
-        <div class="payment-schedule">
-            <!-- PAGO A CONTADO: Solo item a) -->
-            <div class="payment-item" th:if="${pago.tipoPago == 'CONTADO'}">
-                <span class="text-bold">a). - </span> A las 24 horas después de la suscripción del presente contrato la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(pago.montoTotal, 1, 2)}">1,380.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoTotal)}">UN MIL TRESCIENTOS OCHENTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-            <!-- PAGO A CRÉDITO: Cuotas con letras a), b), c), etc. -->
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO'}">
-                <span class="text-bold">a). - </span>A las 24 horas después de la suscripción del presente contrato la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(pago.montoCuota, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoCuota)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 2}">
-                <span class="text-bold">b). -</span>Hasta el <span th:text="${#temporals.format(cuotas[1].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[1].fechaVencimiento)}">febrero 2026</span>, USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[1].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[1].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 3}">
-                <span class="text-bold">c). -</span>Hasta el <span th:text="${#temporals.format(cuotas[2].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[2].fechaVencimiento)}">marzo 2026</span>, USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[2].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[2].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 4}">
-                <span class="text-bold">d). -</span>Hasta el <span th:text="${#temporals.format(cuotas[3].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[3].fechaVencimiento)}">abril 2026</span>, USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[3].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[3].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 5}">
-                <span class="text-bold">e). -</span>Hasta el <span th:text="${#temporals.format(cuotas[4].fechaVencimiento, 'dd')}">5</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[4].fechaVencimiento)}">mayo 2026</span>, USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[4].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[4].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 6}">
-                <span class="text-bold">f). - </span>Hasta el <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}">05</span> de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[5].fechaVencimiento)}">junio 2026</span>, USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[5].monto, 1, 2)}">230.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[5].monto)}">DOSCIENTOS TREINTA CON 00/100</span> DOLARES AMERICANOS).
-            </div>
-            
-        </div>
-        <div class="clause-content">
-            Una vez cancelada las cuotas anteriores y que el arma haya arribado al país, se emitirá la factura correspondiente, debemos recalcar que la factura es un documento imprescindible para realizar todos los permisos y registro ante las autoridades de control de armas del Comando Conjunto de las Fuerzas Armadas del Ecuador.
-        </div>
-        
-        <div class="clause-content">
-            En el caso de retraso de una de las cuotas establecidas se producirá una aceleración de pago, quedando vencida la obligación y ejecutable en su totalidad.
-        </div>
+      <div class="clause-content">&nbsp;</div>
 
-        <div>
-            <span class="clause-title-bold">QUINTA. - </span>
-            <span class="clause-content-inline">Las partes reconocen la importancia del pago puntual de las cuotas establecidos en la cláusula anterior ya que, sin el pago de esos valores no se podría continuar con los procesos de importación y entrega del arma.</span>
-        </div>
-        
-        <div class="clause-content">
-            El vendedor se reserva el derecho de no aceptar pagos y depósitos en efectivo, de darse el caso, los valores serán rechazados y no contabilizados.
-        </div>
+      <div>
+        <span class="clause-title-bold">TERCERA. - </span>
+        <span class="clause-content-inline"
+          >El tiempo estimado de entrega será de doscientos días aproximadamente
+          desde la firma del presente instrumento.</span
+        >
+      </div>
 
-        <div>
-            <span class="clause-title-bold">SEXTA. - </span>
-            <span class="clause-content-inline">El comprador declara estar consciente que esta arma es intransferible ya que es un tratamiento especial para su uso personal, tomando en cuenta que es miembro de la fuerza pública en servicio activo y que, de acuerdo a la normativa relacionada a la importación de armas en caso de desistimiento en cualquier momento durante la vigencia del presente contrato, el comprador perderá todo el dinero pagado hasta la fecha y el arma será entregada a control de Armas para su disposición.</span>
-        </div>
-        
-        <div>
-            <span class="clause-title-bold">SEPTIMA. - </span>
-            <span class="clause-content-inline">En caso de no poder matricular su arma, el comprador deslinda de toda responsabilidad al importador; ya que, el comprador está consciente que la misma pasará a destrucción sin responsabilidad del vendedor y sin reclamo posterior alguno sobre el arma o el dinero pagado hasta la fecha.</span>
-        </div>
-        
-        <div>
-            <span class="clause-title-bold">OCTAVA. – </span>
-            <span class="clause-content-inline">El comprador declara que todos los pagos para la compra del arma, los realizará a través del Sistema Financiero Ecuatoriano, con fondos que son de origen lícito; comprometiéndose a pagar de la manera descrita.</span>
-        </div>
-        
-        <div>
-            <span class="clause-title-bold">NOVENA. - </span>
-            <span class="clause-content-inline">El comprador autoriza al importador la verificación y revisión de mis datos en las plataformas que considere oportuno incluido el buró de crédito.</span>
-        </div>
+      <div class="clause-content">
+        En virtud de que al ser productos de fabricación europea y por la
+        naturaleza de estos, requieren permisos especiales tanto para su
+        importación como para su exportación, el tiempo estimado de entrega
+        podría variar, hecho que las partes lo reconocen, sin que esto resulte
+        en algún perjuicio para las mismas.
+      </div>
 
-        <div>
-            <span class="clause-title-bold">DECIMA. - </span>
-            <span class="clause-content-inline">En caso de incremento en tributos como Impuesto a los Consumos Especiales ICE, que actualmente se encuentra en el 30% o el Impuesto al Valor Agregado IVA, que al momento se encuentra en <span th:text="${ivaPorcentaje}">15</span>%, las partes de común acuerdo establecemos que:</span>
-        </div>
-        <div class="clause-content">
-            De existir por el motivo antes expuesto una variación en el precio final de las armas por incremento en el ICE, este se discutirá entre las partes, de no aceptarse el incremento que se generaría por la variación en el porcentaje del ICE, la venta quedará insubsistente. Y se devolverá el dinero que haya sido pagado hasta la fecha.
-        </div>
-        <div class="clause-content">
-            En caso de cambio en el porcentaje de IVA, se procederá a realizar el ajuste respectivo y se continuará con el proceso de venta.
-        </div>
-        
-        <div>
-            <span class="clause-title-bold">DECIMA PRIMERA. - </span>
-            <span class="clause-content-inline">El comprador declara estar consciente de que el acompañamiento por parte del vendedor concluye en el momento de la entrega del arma en el rastrillo/bodega del vendedor, la cual se efectuará previa presentación de la Guía de Libre Tránsito manual, trámite que deberá ser gestionado directamente por el comprador ante la autoridad competente. Además, una vez que Control de Armas otorgue la autorización para la migración de la serie al sistema SINCOAR a nombre del comprador, toda gestión posterior será de su exclusiva responsabilidad, incluyendo los trámites relacionados con el permiso de porte y/o tenencia que hubiere solicitado.</span>
-        </div>
-        
-        <div class="clause-content">
-            Se adjunta los siguientes anexos habilitantes:
-        </div>
-
-        <ul class="annex-list">
-            <li class="annex-item"><span class="text-bold">ANEXO 1</span> Detalle armamento.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 2 </span> Autorización de Comerciante Importadora de Armas emitido por el Comando Conjunto de las FF.AA.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 3 </span> Copia color de cédula de ciudadanía actualizada del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 4</span> Copia color del carnet del ISSFA actualizado del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 5</span> Certificado de Antecedentes penales del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 6</span> Carta de intención del comprador para con el importador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 7</span> Cotización del armamento a ser adquirido.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 8</span> Certificado de no presentar violencia intrafamiliar del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 9</span> Certificado de no presentar procesos judiciales del comprador.</li>
-            <li class="annex-item"><span class="text-bold">ANEXO 10</span> Certificado ISSFA de encontrarse servicio activo</li>
-        </ul>
-
-        <div>
-            <span class="clause-title-bold">DECIMA SEGUNDA. - JURISDICCION CONVENCIONAL </span>
-            <span class="clause-content-inline">En caso de controversia o requerirse el concurso de la Función Judicial para el cobro, las partes renuncian a domicilio y se someten a los Jueces de lo Civil de Pichincha con asiento en la ciudad de Quito, de manera particular a los que se encuentran en La Unidad Judicial de Iñaquito y al trámite Ejecutivo, Sumario o Monitorio a elección del acreedor.</span>
-        </div>
-        <div class="clause-content">
-            De manera expresa el <span th:if="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}">RANGO NOMBRE APELLIDO</span><span th:unless="${clienteRango != null and clienteRango != ''}" class="text-uppercase" th:text="${cliente.nombres + ' ' + cliente.apellidos}">NOMBRE APELLIDO</span>, está de acuerdo en ser citado en el correo <span th:text="${cliente.email}">debug.test@test.com</span>, en los términos establecidos en el artículo 55.1 del Código Orgánico General de Procesos
-        </div>
-        <div class="clause-content">
-            Este consentimiento incluye en todas las acciones consecuentes a este contrato, incluso de ser necesario, una acción por concurso de acreedores.
+      <div>
+        <span class="clause-title-bold">CUARTA: FORMA DE PAGO. - </span>
+        <span class="clause-content-inline"
+          >Las partes han acordado que los pagos serán mensualizados de la
+          siguiente manera:</span
+        >
+      </div>
+      <div class="payment-schedule">
+        <!-- PAGO A CONTADO: Solo item a) -->
+        <div class="payment-item" th:if="${pago.tipoPago == 'CONTADO'}">
+          <span class="text-bold">a). - </span> A las 24 horas después de la
+          suscripción del presente contrato la cantidad de USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(pago.montoTotal, 1, 2)}"
+            >1,380.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(pago.montoTotal)}"
+            >UN MIL TRESCIENTOS OCHENTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
         </div>
 
-        <div class="signature-block">
-            <div class="closing-statement">
-                Para constancia de lo acordado, las partes firman por triplicado el presente contrato a los <span th:text="${fechaActual.dayOfMonth}">28</span> días del mes de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM', new java.util.Locale('es', 'ES')).format(fechaActual)}">enero</span> de <span th:text="${fechaActual.year}">2026</span>.
-            </div>
-
-            <div class="signature-section">
-            <table class="signature-table">
-                <tr>
-                    <td class="signature-cell">
-                        <div class="signature-line"></div>
-                        <div class="signature-info">
-                            <span th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}">MSC LOYAGA CORREA MARCIA NATHALY</span><br/>
-                            Distribuidor Autorizado<br/>
-                            Česká Zbrojovka<br/>
-                            CC. <span th:text="${licenciaCedula}">1725831950</span><br/>
-                            &nbsp;<br/>
-                            &nbsp;
-                        </div>
-                    </td>
-                    <td class="signature-spacer">
-                        &nbsp;
-                    </td>
-                    <td class="signature-cell">
-                        <div class="signature-line"></div>
-                        <div class="signature-info">
-                            <span th:if="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(clienteRango) + '. ' + #strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Rango. Nombre Apellido</span><span th:unless="${clienteRango != null and clienteRango != ''}" th:text="${#strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}">Nombre Apellido</span><br/>
-                            CC <span th:text="${cliente.numeroIdentificacion}">0925588196</span>.<br/>
-                            &nbsp;<br/>
-                            &nbsp;<br/>
-                            &nbsp;<br/>
-                            &nbsp;
-                        </div>
-                    </td>
-                </tr>
-            </table>
-            </div>
+        <!-- PAGO A CRÉDITO: Cuotas con letras a), b), c), etc. -->
+        <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO'}">
+          <span class="text-bold">a). - </span>A las 24 horas después de la
+          suscripción del presente contrato la cantidad de USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(pago.montoCuota, 1, 2)}"
+            >230.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(pago.montoCuota)}"
+            >DOSCIENTOS TREINTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
         </div>
+
+        <div
+          class="payment-item"
+          th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 2}"
+        >
+          <span class="text-bold">b). -</span>Hasta el
+          <span th:text="${#temporals.format(cuotas[1].fechaVencimiento, 'dd')}"
+            >5</span
+          >° de
+          <span
+            th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[1].fechaVencimiento)}"
+            >febrero 2026</span
+          >, USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(cuotas[1].monto, 1, 2)}"
+            >230.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(cuotas[1].monto)}"
+            >DOSCIENTOS TREINTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
+        </div>
+
+        <div
+          class="payment-item"
+          th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 3}"
+        >
+          <span class="text-bold">c). -</span>Hasta el
+          <span th:text="${#temporals.format(cuotas[2].fechaVencimiento, 'dd')}"
+            >5</span
+          >° de
+          <span
+            th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[2].fechaVencimiento)}"
+            >marzo 2026</span
+          >, USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(cuotas[2].monto, 1, 2)}"
+            >230.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(cuotas[2].monto)}"
+            >DOSCIENTOS TREINTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
+        </div>
+
+        <div
+          class="payment-item"
+          th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 4}"
+        >
+          <span class="text-bold">d). -</span>Hasta el
+          <span th:text="${#temporals.format(cuotas[3].fechaVencimiento, 'dd')}"
+            >5</span
+          >° de
+          <span
+            th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[3].fechaVencimiento)}"
+            >abril 2026</span
+          >, USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(cuotas[3].monto, 1, 2)}"
+            >230.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(cuotas[3].monto)}"
+            >DOSCIENTOS TREINTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
+        </div>
+
+        <div
+          class="payment-item"
+          th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 5}"
+        >
+          <span class="text-bold">e). -</span>Hasta el
+          <span th:text="${#temporals.format(cuotas[4].fechaVencimiento, 'dd')}"
+            >5</span
+          >° de
+          <span
+            th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[4].fechaVencimiento)}"
+            >mayo 2026</span
+          >, USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(cuotas[4].monto, 1, 2)}"
+            >230.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(cuotas[4].monto)}"
+            >DOSCIENTOS TREINTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
+        </div>
+
+        <div
+          class="payment-item"
+          th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 6}"
+        >
+          <span class="text-bold">f). - </span>Hasta el
+          <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}"
+            >05</span
+          >
+          de
+          <span
+            th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[5].fechaVencimiento)}"
+            >junio 2026</span
+          >, USD
+          <span
+            class="number-format"
+            th:text="${#numbers.formatDecimal(cuotas[5].monto, 1, 2)}"
+            >230.00</span
+          >
+          (<span th:text="${numberToTextService.convertToText(cuotas[5].monto)}"
+            >DOSCIENTOS TREINTA CON 00/100</span
+          >
+          DOLARES AMERICANOS).
+        </div>
+      </div>
+      <div class="clause-content">
+        Una vez cancelada las cuotas anteriores y que el arma haya arribado al
+        país, se emitirá la factura correspondiente, debemos recalcar que la
+        factura es un documento imprescindible para realizar todos los permisos
+        y registro ante las autoridades de control de armas del Comando Conjunto
+        de las Fuerzas Armadas del Ecuador.
+      </div>
+
+      <div class="clause-content">
+        En el caso de retraso de una de las cuotas establecidas se producirá una
+        aceleración de pago, quedando vencida la obligación y ejecutable en su
+        totalidad.
+      </div>
+
+      <div>
+        <span class="clause-title-bold">QUINTA. - </span>
+        <span class="clause-content-inline"
+          >Las partes reconocen la importancia del pago puntual de las cuotas
+          establecidos en la cláusula anterior ya que, sin el pago de esos
+          valores no se podría continuar con los procesos de importación y
+          entrega del arma.</span
+        >
+      </div>
+
+      <div class="clause-content">
+        El vendedor se reserva el derecho de no aceptar pagos y depósitos en
+        efectivo, de darse el caso, los valores serán rechazados y no
+        contabilizados.
+      </div>
+
+      <div>
+        <span class="clause-title-bold">SEXTA. - </span>
+        <span class="clause-content-inline"
+          >El comprador declara estar consciente que esta arma es intransferible
+          ya que es un tratamiento especial para su uso personal, tomando en
+          cuenta que es miembro de la fuerza pública en servicio activo y que,
+          de acuerdo a la normativa relacionada a la importación de armas en
+          caso de desistimiento en cualquier momento durante la vigencia del
+          presente contrato, el comprador perderá todo el dinero pagado hasta la
+          fecha y el arma será entregada a control de Armas para su
+          disposición.</span
+        >
+      </div>
+
+      <div>
+        <span class="clause-title-bold">SEPTIMA. - </span>
+        <span class="clause-content-inline"
+          >En caso de no poder matricular su arma, el comprador deslinda de toda
+          responsabilidad al importador; ya que, el comprador está consciente
+          que la misma pasará a destrucción sin responsabilidad del vendedor y
+          sin reclamo posterior alguno sobre el arma o el dinero pagado hasta la
+          fecha.</span
+        >
+      </div>
+
+      <div>
+        <span class="clause-title-bold">OCTAVA. – </span>
+        <span class="clause-content-inline"
+          >El comprador declara que todos los pagos para la compra del arma, los
+          realizará a través del Sistema Financiero Ecuatoriano, con fondos que
+          son de origen lícito; comprometiéndose a pagar de la manera
+          descrita.</span
+        >
+      </div>
+
+      <div>
+        <span class="clause-title-bold">NOVENA. - </span>
+        <span class="clause-content-inline"
+          >El comprador autoriza al importador la verificación y revisión de mis
+          datos en las plataformas que considere oportuno incluido el buró de
+          crédito.</span
+        >
+      </div>
+
+      <div>
+        <span class="clause-title-bold">DECIMA. - </span>
+        <span class="clause-content-inline"
+          >En caso de incremento en tributos como Impuesto a los Consumos
+          Especiales ICE, que actualmente se encuentra en el 30% o el Impuesto
+          al Valor Agregado IVA, que al momento se encuentra en
+          <span th:text="${ivaPorcentaje}">15</span>%, las partes de común
+          acuerdo establecemos que:</span
+        >
+      </div>
+      <div class="clause-content">
+        De existir por el motivo antes expuesto una variación en el precio final
+        de las armas por incremento en el ICE, este se discutirá entre las
+        partes, de no aceptarse el incremento que se generaría por la variación
+        en el porcentaje del ICE, la venta quedará insubsistente. Y se devolverá
+        el dinero que haya sido pagado hasta la fecha.
+      </div>
+      <div class="clause-content">
+        En caso de cambio en el porcentaje de IVA, se procederá a realizar el
+        ajuste respectivo y se continuará con el proceso de venta.
+      </div>
+
+      <div>
+        <span class="clause-title-bold">DECIMA PRIMERA. - </span>
+        <span class="clause-content-inline"
+          >El comprador declara estar consciente de que el acompañamiento por
+          parte del vendedor concluye en el momento de la entrega del arma en el
+          rastrillo/bodega del vendedor, la cual se efectuará previa
+          presentación de la Guía de Libre Tránsito manual, trámite que deberá
+          ser gestionado directamente por el comprador ante la autoridad
+          competente. Además, una vez que Control de Armas otorgue la
+          autorización para la migración de la serie al sistema SINCOAR a nombre
+          del comprador, toda gestión posterior será de su exclusiva
+          responsabilidad, incluyendo los trámites relacionados con el permiso
+          de porte y/o tenencia que hubiere solicitado.</span
+        >
+      </div>
+
+      <div class="clause-content">
+        Se adjunta los siguientes anexos habilitantes:
+      </div>
+
+      <ul class="annex-list">
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 1</span> Detalle armamento.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 2 </span> Autorización de Comerciante
+          Importadora de Armas emitido por el Comando Conjunto de las FF.AA.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 3 </span> Copia color de cédula de
+          ciudadanía actualizada del comprador.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 4</span> Copia color del carnet del
+          ISSFA actualizado del comprador.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 5</span> Certificado de Antecedentes
+          penales del comprador.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 6</span> Carta de intención del
+          comprador para con el importador.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 7</span> Cotización del armamento a ser
+          adquirido.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 8</span> Certificado de no presentar
+          violencia intrafamiliar del comprador.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 9</span> Certificado de no presentar
+          procesos judiciales del comprador.
+        </li>
+        <li class="annex-item">
+          <span class="text-bold">ANEXO 10</span> Certificado ISSFA de
+          encontrarse servicio activo
+        </li>
+      </ul>
+
+      <div>
+        <span class="clause-title-bold"
+          >DECIMA SEGUNDA. - JURISDICCION CONVENCIONAL
+        </span>
+        <span class="clause-content-inline"
+          >En caso de controversia o requerirse el concurso de la Función
+          Judicial para el cobro, las partes renuncian a domicilio y se someten
+          a los Jueces de lo Civil de Pichincha con asiento en la ciudad de
+          Quito, de manera particular a los que se encuentran en La Unidad
+          Judicial de Iñaquito y al trámite Ejecutivo, Sumario o Monitorio a
+          elección del acreedor.</span
+        >
+      </div>
+      <div class="clause-content">
+        De manera expresa el
+        <span
+          th:if="${clienteRango != null and clienteRango != ''}"
+          class="text-uppercase"
+          th:text="${clienteRango + ' ' + cliente.nombres + ' ' + cliente.apellidos}"
+          >RANGO NOMBRE APELLIDO</span
+        ><span
+          th:unless="${clienteRango != null and clienteRango != ''}"
+          class="text-uppercase"
+          th:text="${cliente.nombres + ' ' + cliente.apellidos}"
+          >NOMBRE APELLIDO</span
+        >, está de acuerdo en ser citado en el correo
+        <span th:text="${cliente.email}">debug.test@test.com</span>, en los
+        términos establecidos en el artículo 55.1 del Código Orgánico General de
+        Procesos
+      </div>
+      <div class="clause-content">
+        Este consentimiento incluye en todas las acciones consecuentes a este
+        contrato, incluso de ser necesario, una acción por concurso de
+        acreedores.
+      </div>
+
+      <div class="signature-block">
+        <div class="closing-statement">
+          Para constancia de lo acordado, las partes firman por triplicado el
+          presente contrato a los
+          <span th:text="${fechaActual.dayOfMonth}">28</span> días del mes de
+          <span
+            th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM', new java.util.Locale('es', 'ES')).format(fechaActual)}"
+            >enero</span
+          >
+          de <span th:text="${fechaActual.year}">2026</span>.
+        </div>
+
+        <div class="signature-section">
+          <table class="signature-table">
+            <tr>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="signature-info">
+                  <span
+                    th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}"
+                    >MSC LOYAGA CORREA MARCIA NATHALY</span
+                  ><br />
+                  Distribuidor Autorizado<br />
+                  Ceská Zbrojovka<br />
+                  CC. <span th:text="${licenciaCedula}">1725831950</span><br />
+                  &nbsp;<br />
+                  &nbsp;
+                </div>
+              </td>
+              <td class="signature-spacer">&nbsp;</td>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="signature-info">
+                  <span
+                    th:if="${clienteRango != null and clienteRango != ''}"
+                    th:text="${#strings.capitalize(clienteRango) + '. ' + #strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}"
+                    >Rango. Nombre Apellido</span
+                  ><span
+                    th:unless="${clienteRango != null and clienteRango != ''}"
+                    th:text="${#strings.capitalize(cliente.nombres) + ' ' + #strings.capitalize(cliente.apellidos)}"
+                    >Nombre Apellido</span
+                  ><br />
+                  CC
+                  <span th:text="${cliente.numeroIdentificacion}"
+                    >0925588196</span
+                  >.<br />
+                  &nbsp;<br />
+                  &nbsp;<br />
+                  &nbsp;<br />
+                  &nbsp;
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
