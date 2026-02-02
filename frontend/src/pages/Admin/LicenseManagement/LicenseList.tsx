@@ -84,9 +84,11 @@ const LicenseList: React.FC = () => {
       setModalOpen(false);
       setSelectedLicense(null);
       alert(modalMode === 'create' ? 'Licencia creada exitosamente' : 'Licencia actualizada exitosamente');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error guardando licencia:', error);
-      alert('Error al guardar la licencia. Verifique que el número sea único.');
+      // Extraer mensaje de error del backend si existe
+      const errorMessage = error?.response?.error || error?.message || 'Error al guardar la licencia';
+      alert(errorMessage);
       throw error;
     }
   };
