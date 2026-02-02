@@ -301,7 +301,7 @@ public class EmailService {
             context.setVariable("nombreCliente", nombreCliente);
             context.setVariable("nombreVendedor", nombreVendedor);
             String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
-                ? licencia.getTitulo() : "Sr/Sra";
+                ? licencia.getTitulo() : "";
             context.setVariable("licenciaTitulo", licenciaTitulo);
             context.setVariable("licenciaNombre", licencia != null ? licencia.getNombre() : "N/A");
             context.setVariable("licenciaBanco", licencia != null ? licencia.getNombreBanco() : "N/A");

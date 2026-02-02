@@ -195,7 +195,7 @@
       <div class="parties-section">
         <div class="party-info">
           Comparecen a la celebración del presente contrato, por una parte,
-          <span th:text="${licenciaTitulo + ' ' + licenciaNombre}"
+          <span th:text="${(licenciaTitulo != null and !licenciaTitulo.isEmpty() ? licenciaTitulo + ' ' : '') + licenciaNombre}"
             >Licenciada Nombre Licencia</span
           >, con RUC No. <span th:text="${licenciaRuc}">0000000000001</span>, en
           su calidad de Comerciante Importador de Armas y Municiones debidamente
@@ -226,7 +226,7 @@
 
       <div class="section-title">ANTECEDENTES. -</div>
       <div class="clause-content">
-        <span th:text="${licenciaTitulo + ' ' + licenciaNombre}"
+        <span th:text="${(licenciaTitulo != null and !licenciaTitulo.isEmpty() ? licenciaTitulo + ' ' : '') + licenciaNombre}"
           >Licenciada Nombre Licencia</span
         >, es comerciante importador de armas y municiones con registro del
         Comando Conjunto de las Fuerzas Armadas de El Ecuador,
@@ -256,7 +256,7 @@
       <div>
         <span class="clause-title-bold">PRIMERA. - </span>
         <span class="clause-content-inline">
-          <span th:text="${licenciaTitulo + ' ' + licenciaNombre}"
+          <span th:text="${(licenciaTitulo != null and !licenciaTitulo.isEmpty() ? licenciaTitulo + ' ' : '') + licenciaNombre}"
             >Licenciada Nombre Licencia</span
           >, vende en favor del
           <span
@@ -678,7 +678,7 @@
                 <div class="signature-line"></div>
                 <div class="signature-info">
                   <span
-                    th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}"
+                    th:text="${#strings.toUpperCase((licenciaTitulo != null and !licenciaTitulo.isEmpty() ? licenciaTitulo + ' ' : '') + licenciaNombre)}"
                     >MSC LOYAGA CORREA MARCIA NATHALY</span
                   ><br />
                   Distribuidor Autorizado<br />

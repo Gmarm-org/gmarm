@@ -166,7 +166,7 @@
           th:if="${pago != null and pago.tipoPago == 'CONTADO'}"
         >
           <span class="text-bold">a). - </span>A las 24 horas después de la
-          suscripción del presente contrato la cantidad de USD
+          suscripción del presente documento la cantidad de USD
           <span th:text="${#numbers.formatDecimal(pago.montoTotal, 1, 2)}"
             >1,380.00</span
           >
@@ -182,7 +182,7 @@
           th:if="${pago != null and pago.tipoPago == 'CREDITO'}"
         >
           <span class="text-bold">a). - </span>A las 24 horas después de la
-          suscripción del presente contrato la cantidad de USD
+          suscripción del presente documento la cantidad de USD
           <span th:text="${#numbers.formatDecimal(pago.montoCuota, 1, 2)}"
             >230.00</span
           >
@@ -318,7 +318,7 @@
           <td class="signature-box">
             <div class="line"></div>
             <strong
-              th:text="${#strings.toUpperCase(licenciaTitulo + ' ' + licenciaNombre)}"
+              th:text="${#strings.toUpperCase((licenciaTitulo != null and !licenciaTitulo.isEmpty() ? licenciaTitulo + ' ' : '') + licenciaNombre)}"
               >MSC LOYAGA CORREA MARCIA NATHALY</strong
             ><br />
             Distribuidor Autorizado<br />

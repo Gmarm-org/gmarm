@@ -613,7 +613,7 @@ public class GestionDocumentosServiceHelper {
 
             Licencia licencia = obtenerLicenciaActiva(cliente);
             String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
-                ? licencia.getTitulo() : "Sr/Sra";
+                ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
             String licenciaCedula = "";
             if (licencia != null) {
@@ -749,7 +749,7 @@ public class GestionDocumentosServiceHelper {
             // Licencia activa del grupo del cliente
             Licencia licencia = obtenerLicenciaActiva(cliente);
             String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
-                ? licencia.getTitulo() : "Sr/Sra";
+                ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
             String licenciaCedula = "";
             if (licencia != null) {
@@ -867,7 +867,7 @@ public class GestionDocumentosServiceHelper {
 
             Licencia licencia = obtenerLicenciaActiva(cliente);
             String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
-                ? licencia.getTitulo() : "Sr/Sra";
+                ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null ? licencia.getNombre() : "";
             // Obtener cantón de la licencia para la fecha (ej: "Quito, 27 de enero del 2026")
             String licenciaCiudad = licencia != null && licencia.getCanton() != null
@@ -1330,7 +1330,7 @@ public class GestionDocumentosServiceHelper {
             // Obtener licencia para el nombre del importador
             Licencia licencia = obtenerLicenciaActiva(cliente);
             String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
-                ? licencia.getTitulo() : "Sr/Sra";
+                ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "CZ ECUADOR";
             variables.put("licenciaTitulo", licenciaTitulo);
             variables.put("licenciaNombre", licenciaNombre);
