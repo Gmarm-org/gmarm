@@ -87,7 +87,8 @@ const LicenseList: React.FC = () => {
     } catch (error: any) {
       console.error('Error guardando licencia:', error);
       // Extraer mensaje de error del backend si existe
-      const errorMessage = error?.response?.error || error?.message || 'Error al guardar la licencia';
+      // El backend envía el error en responseData.error (no response.error)
+      const errorMessage = error?.responseData?.error || error?.message || 'Error al guardar la licencia';
       alert(errorMessage);
       throw error;
     }

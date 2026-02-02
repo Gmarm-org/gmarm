@@ -1694,10 +1694,10 @@ class ApiService {
     });
   }
 
-  // Actualizar licencia
+  // Actualizar licencia (PATCH para actualizaciones parciales)
   async updateLicense(id: number, license: any): Promise<any> {
     return this.request<any>(`/api/licencia/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(license)
     });
   }

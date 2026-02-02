@@ -113,11 +113,11 @@ public class LicenciaController {
         return ResponseEntity.ok(licenciaMapper.toDTO(savedLicencia));
     }
 
-    @PutMapping("/{id}")
+    @RequestMapping(value = "/{id}", method = {RequestMethod.PUT, RequestMethod.PATCH})
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente")
+    @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente (soporta PUT y PATCH)")
     public ResponseEntity<LicenciaDTO> updateLicencia(@PathVariable Long id, @RequestBody LicenciaDTO licenciaDTO) {
-        log.info("📝 PUT /api/licencia/{} - Actualizando licencia", id);
+        log.info("📝 PUT/PATCH /api/licencia/{} - Actualizando licencia", id);
         log.debug("📦 Datos recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
                   licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(), 
                   licenciaDTO.getTipoCuenta(), licenciaDTO.getCedulaCuenta());

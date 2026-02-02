@@ -111,8 +111,9 @@ const LicenseFormModal: React.FC<LicenseFormModalProps> = ({
       await onSave(formData);
       onClose();
     } catch (error) {
+      // El error ya se maneja en handleSave de LicenseList.tsx
+      // No mostrar alert aquí para evitar doble mensaje
       console.error('Error guardando licencia:', error);
-      alert('Error al guardar la licencia');
     } finally {
       setIsSaving(false);
     }
