@@ -16,12 +16,7 @@ interface LicenseForm {
   fechaVencimiento: string;
   descripcion: string;
   fechaEmision: string;
-  cupoTotal: number;
-  cupoDisponible: number;
-  cupoCivil: number;
-  cupoMilitar: number;
-  cupoEmpresa: number;
-  cupoDeportista: number;
+  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
   observaciones: string;
   estado: string;
 }
@@ -190,49 +185,7 @@ const LicenseForm: React.FC<LicenseFormProps> = ({ formData, setFormData, onSubm
         </div>
       </div>
 
-      {/* Cupos */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Civil</label>
-          <input
-            type="number"
-            value={formData.cupoCivil}
-            onChange={(e) => handleInputChange('cupoCivil', parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Militar</label>
-          <input
-            type="number"
-            value={formData.cupoMilitar}
-            onChange={(e) => handleInputChange('cupoMilitar', parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Empresa</label>
-          <input
-            type="number"
-            value={formData.cupoEmpresa}
-            onChange={(e) => handleInputChange('cupoEmpresa', parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cupo Deportista</label>
-          <input
-            type="number"
-            value={formData.cupoDeportista}
-            onChange={(e) => handleInputChange('cupoDeportista', parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-        </div>
-      </div>
+      {/* NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia */}
 
       {/* Descripción y observaciones */}
       <div className="space-y-4">
@@ -305,12 +258,7 @@ const LicenseManagement: React.FC = () => {
     fechaVencimiento: '',
     descripcion: '',
     fechaEmision: '',
-    cupoTotal: 25,
-    cupoDisponible: 25,
-    cupoCivil: 25,
-    cupoMilitar: 1000,
-    cupoEmpresa: 1000,
-    cupoDeportista: 1000,
+    // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
     observaciones: '',
     estado: 'ACTIVA'
   });
@@ -378,17 +326,13 @@ const LicenseManagement: React.FC = () => {
         fechaVencimiento: formData.fechaVencimiento,
         descripcion: formData.descripcion || undefined,
         fechaEmision: formData.fechaEmision || undefined,
-        cupoTotal: formData.cupoTotal,
-        cupoCivil: formData.cupoCivil,
-        cupoMilitar: formData.cupoMilitar,
-        cupoEmpresa: formData.cupoEmpresa,
-        cupoDeportista: formData.cupoDeportista,
+        // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
         observaciones: formData.observaciones || undefined,
         estado: formData.estado
       };
 
       await mockApiService.createLicencia(licenciaData, user.id);
-      
+
       setFormData({
         numero: '',
         nombre: '',
@@ -402,12 +346,6 @@ const LicenseManagement: React.FC = () => {
         fechaVencimiento: '',
         descripcion: '',
         fechaEmision: '',
-        cupoTotal: 25,
-        cupoDisponible: 25,
-        cupoCivil: 25,
-        cupoMilitar: 1000,
-        cupoEmpresa: 1000,
-        cupoDeportista: 1000,
         observaciones: '',
         estado: 'ACTIVA'
       });
@@ -449,17 +387,13 @@ const LicenseManagement: React.FC = () => {
         fechaVencimiento: formData.fechaVencimiento,
         descripcion: formData.descripcion || undefined,
         fechaEmision: formData.fechaEmision || undefined,
-        cupoTotal: formData.cupoTotal,
-        cupoCivil: formData.cupoCivil,
-        cupoMilitar: formData.cupoMilitar,
-        cupoEmpresa: formData.cupoEmpresa,
-        cupoDeportista: formData.cupoDeportista,
+        // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
         observaciones: formData.observaciones || undefined,
         estado: formData.estado
       };
 
       await mockApiService.updateLicencia(selectedLicense.id, licenciaData, user.id);
-      
+
       setFormData({
         numero: '',
         nombre: '',
@@ -473,12 +407,6 @@ const LicenseManagement: React.FC = () => {
         fechaVencimiento: '',
         descripcion: '',
         fechaEmision: '',
-        cupoTotal: 25,
-        cupoDisponible: 25,
-        cupoCivil: 25,
-        cupoMilitar: 1000,
-        cupoEmpresa: 1000,
-        cupoDeportista: 1000,
         observaciones: '',
         estado: 'ACTIVA'
       });
@@ -522,12 +450,7 @@ const LicenseManagement: React.FC = () => {
       fechaVencimiento: license.fechaVencimiento,
       descripcion: license.descripcion || '',
       fechaEmision: license.fechaEmision || '',
-      cupoTotal: license.cupoTotal || 25,
-      cupoDisponible: license.cupoDisponible || 25,
-      cupoCivil: license.cupoCivil || 25,
-      cupoMilitar: license.cupoMilitar || 1000,
-      cupoEmpresa: license.cupoEmpresa || 1000,
-      cupoDeportista: license.cupoDeportista || 1000,
+      // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
       observaciones: license.observaciones || '',
       estado: license.estado || 'ACTIVA'
     });
@@ -633,9 +556,7 @@ const LicenseManagement: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cupos
-                </th>
+                {/* NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -657,26 +578,7 @@ const LicenseManagement: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getStatusBadge(license.estado)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Civil:</span>
-                        <span className="font-semibold text-blue-600">{license.cupoCivil || 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Militar:</span>
-                        <span className="font-semibold text-green-600">{license.cupoMilitar || 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Empresa:</span>
-                        <span className="font-semibold text-purple-600">{license.cupoEmpresa || 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Deportista:</span>
-                        <span className="font-semibold text-orange-600">{license.cupoDeportista || 0}</span>
-                      </div>
-                    </div>
-                  </td>
+                  {/* NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
@@ -888,28 +790,7 @@ const LicenseManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Cupos */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-800 border-b pb-2">Cupos Asignados</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Civil:</span>
-                      <span className="font-semibold text-blue-600">{selectedLicense.cupoCivil || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Militar:</span>
-                      <span className="font-semibold text-green-600">{selectedLicense.cupoMilitar || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Empresa:</span>
-                      <span className="font-semibold text-purple-600">{selectedLicense.cupoEmpresa || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Deportista:</span>
-                      <span className="font-semibold text-orange-600">{selectedLicense.cupoDeportista || 0}</span>
-                    </div>
-                  </div>
-                </div>
+                {/* NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia */}
               </div>
 
               <div className="flex justify-end mt-6">

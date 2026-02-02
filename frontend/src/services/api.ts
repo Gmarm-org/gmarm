@@ -146,12 +146,7 @@ export interface Licencia {
   tipoLicencia?: string;
   descripcion?: string;
   fechaEmision?: string;
-  cupoTotal?: number;
-  cupoDisponible?: number;
-  cupoCivil?: number;
-  cupoMilitar?: number;
-  cupoEmpresa?: number;
-  cupoDeportista?: number;
+  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
   observaciones?: string;
   estado: 'ACTIVA' | 'INACTIVA' | 'VENCIDA' | 'SUSPENDIDA';
   fechaCreacion: string;
@@ -182,11 +177,7 @@ export interface LicenciaCreateRequest {
   tipoLicencia?: string;
   descripcion?: string;
   fechaEmision?: string;
-  cupoTotal?: number;
-  cupoCivil?: number;
-  cupoMilitar?: number;
-  cupoEmpresa?: number;
-  cupoDeportista?: number;
+  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
   observaciones?: string;
   estado?: string;
 }
@@ -579,17 +570,8 @@ class ApiService {
     return this.request<Licencia[]>('/api/licencia/disponibles');
   }
 
-  async getLicenciasConCupoCivil(): Promise<Licencia[]> {
-    return this.request<Licencia[]>('/licencias/cupo-civil-disponible');
-  }
-
-  async decrementarCupoLicencia(id: number, tipoCliente: string): Promise<void> {
-    await this.request(`/licencias/${id}/decrementar-cupo?tipoCliente=${tipoCliente}`, { method: 'POST' });
-  }
-
-  async verificarCupoDisponible(id: number, tipoCliente: string): Promise<{ tieneCupo: boolean; cupoDisponible: number }> {
-    return this.request<{ tieneCupo: boolean; cupoDisponible: number }>(`/licencias/${id}/tiene-cupo?tipoCliente=${tipoCliente}`);
-  }
+  // NOTA: Los métodos de cupos de licencia (getLicenciasConCupoCivil, decrementarCupoLicencia, verificarCupoDisponible)
+  // fueron eliminados - los cupos se manejan a nivel de GrupoImportacion
 
   async getLicenciasProximasAVencer(dias: number = 30): Promise<Licencia[]> {
     return this.request<Licencia[]>(`/licencias/proximas-vencer?dias=${dias}`);

@@ -478,12 +478,7 @@ class MockApiService {
       tipoLicencia: licenciaData.tipoLicencia,
       descripcion: licenciaData.descripcion,
       fechaEmision: licenciaData.fechaEmision,
-      cupoTotal: licenciaData.cupoTotal,
-      cupoDisponible: licenciaData.cupoTotal,
-      cupoCivil: licenciaData.cupoCivil,
-      cupoMilitar: licenciaData.cupoMilitar,
-      cupoEmpresa: licenciaData.cupoEmpresa,
-      cupoDeportista: licenciaData.cupoDeportista,
+      // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
       observaciones: licenciaData.observaciones,
       estado: (licenciaData.estado as 'ACTIVA' | 'INACTIVA' | 'VENCIDA' | 'SUSPENDIDA') || 'ACTIVA',
       fechaCreacion: new Date().toISOString(),
