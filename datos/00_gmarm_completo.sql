@@ -1069,34 +1069,26 @@ INSERT INTO licencia (numero, nombre, ruc, cuenta_bancaria, nombre_banco, tipo_c
 ('DOC-000731081', 'SIMOGUE S.A.S.', '0993392212001', '2212359266', 'PICHINCHA', 'AHORRO', '1314955061', 'simogue.sas@gmail.com', '0999999999', (SELECT id FROM provincia WHERE codigo = 'GUA'), (SELECT id FROM canton WHERE codigo = 'GUAY' AND provincia_id = (SELECT id FROM provincia WHERE codigo = 'GUA')), true, 'DISPONIBLE', '2050-12-31')
 ON CONFLICT (numero) DO NOTHING;
 
--- Insertar configuraci?n del sistema
+-- Insertar configuración del sistema (solo configuraciones que se usan activamente)
 INSERT INTO configuracion_sistema (clave, valor, descripcion, editable) VALUES
-('EMAIL_NOTIFICACIONES', 'gmarm.notificacion@gmail.com', 'Email para enviar notificaciones', true),
--- Configuraci?n SMTP para envío de emails
+-- Configuración SMTP para envío de emails
 ('SMTP_HOST', 'smtp.gmail.com', 'Servidor SMTP para envío de emails', true),
 ('SMTP_PORT', '587', 'Puerto del servidor SMTP (587=TLS, 465=SSL)', true),
 ('SMTP_USERNAME', 'gmarm.notificacion@gmail.com', 'Usuario SMTP (email de la cuenta)', true),
-('SMTP_PASSWORD', 'vxdacadmloeecjiz', 'Contraseña de aplicación SMTP (NO la Contraseña normal)', true),
+('SMTP_PASSWORD', 'vxdacadmloeecjiz', 'Contraseña de aplicación SMTP (NO la contraseña normal)', true),
 ('SMTP_AUTH', 'true', 'Requiere autenticación SMTP (true/false)', true),
 ('SMTP_STARTTLS', 'true', 'Habilitar STARTTLS (true/false)', true),
--- Correos que reciben copia de recibos de pago (adem?s del cliente)
+-- Correos que reciben copia de recibos de pago (además del cliente)
 -- Formato: JSON array de strings, ej: ["email1@example.com", "email2@example.com"]
--- Tambi?n acepta separado por comas: "email1@example.com, email2@example.com"
-('CORREOS_RECIBO', '["joseluis@guerreromartinez.com", "valeria@gmarm.com"]', 'Lista de correos electrónicos que reciben copia automática de los recibos de pago. Se envía además del correo del cliente. Formato: JSON array o separado por comas. Ejemplo: ["email1@example.com", "email2@example.com"] o "email1@example.com, email2@example.com"', true),
-('DIAS_VALIDEZ_DOCUMENTOS', '30', 'días de validez para documentos subidos', true),
-('PORCENTAJE_ANTICIPO', '40', 'Porcentaje de anticipo requerido', true),
+-- También acepta separado por comas: "email1@example.com, email2@example.com"
+('CORREOS_RECIBO', '["joseluis@guerreromartinez.com", "valeria@gmarm.com"]', 'Lista de correos electrónicos que reciben copia automática de los recibos de pago. Se envía además del correo del cliente. Formato: JSON array o separado por comas.', true),
+-- Configuración de negocio
 ('IVA', '15', 'Porcentaje de IVA aplicable', true),
-('EDAD_MINIMA_CLIENTE', '25', 'Edad mínima para clientes', true),
-('MAX_INTENTOS_LOGIN', '3', 'máximo intentos de login antes de bloquear', true),
-('TIPOS_PAGO_VALIDOS', 'CONTADO,CUOTAS', 'Tipos de pago válidos en el sistema', true),
-('MAX_CUOTAS_PERMITIDAS', '6', 'máximo número de cuotas permitidas', true),
-('MIN_MONTO_CUOTA', '100.00', 'Monto minimo por cuota', true),
 ('DIAS_ALERTA_PROCESO_IMPORTACION', '7', 'Días de anticipación para alertas de procesos de importación', true),
--- Configuración de EXPOFERIA eliminada - ya no se usa en el sistema
+-- Configuración del coordinador militar (para documentos legales)
 ('COORDINADOR_NOMBRE', 'TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA', 'Nombre completo del coordinador militar', true),
 ('COORDINADOR_CARGO', 'COORDINADOR MILITAR CENTRO "PICHINCHA"', 'Cargo del coordinador militar', true),
 ('COORDINADOR_DIRECCION', 'COMANDO CONJUNTO DE LAS FUERZA ARMADAS', 'Dirección cargo del coordinador militar', true)
--- NOTA: Los cupos se manejan ahora a nivel de Grupo de Importación (tipo CUPO o JUSTIFICATIVO)
 ON CONFLICT (clave) DO NOTHING;
 
 -- =====================================================

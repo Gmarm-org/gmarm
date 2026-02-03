@@ -172,17 +172,10 @@ public class ConfiguracionSistemaService {
             return;
         }
         
-        // Crear configuraciones por defecto
+        // Crear configuraciones por defecto (solo las que se usan activamente en el código)
+        // NOTA: Las configuraciones SMTP y COORDINADOR se manejan directamente en el SQL maestro
         List<ConfiguracionSistema> configuraciones = List.of(
-            crearConfiguracion("EMAIL_NOTIFICACIONES", "notificaciones@gmarm.com", "Email para enviar notificaciones", true),
-            crearConfiguracion("DIAS_VALIDEZ_DOCUMENTOS", "30", "Días de validez para documentos subidos", true),
-            crearConfiguracion("PORCENTAJE_ANTICIPO", "40", "Porcentaje de anticipo requerido", true),
-            crearConfiguracion("IVA", "15", "Porcentaje de IVA aplicable", false),
-            crearConfiguracion("EDAD_MINIMA_CLIENTE", "25", "Edad mínima para clientes", false),
-            crearConfiguracion("MAX_INTENTOS_LOGIN", "3", "Máximo intentos de login antes de bloquear", false),
-            crearConfiguracion("TIPOS_PAGO_VALIDOS", "CONTADO,CUOTAS", "Tipos de pago válidos en el sistema", false),
-            crearConfiguracion("MAX_CUOTAS_PERMITIDAS", "6", "Máximo número de cuotas permitidas", false),
-            crearConfiguracion("MIN_MONTO_CUOTA", "100.00", "Monto mínimo por cuota", false),
+            crearConfiguracion("IVA", "15", "Porcentaje de IVA aplicable", true),
             crearConfiguracion("DIAS_ALERTA_PROCESO_IMPORTACION", "7", "Días de anticipación para alertas de procesos de importación", true)
         );
         
