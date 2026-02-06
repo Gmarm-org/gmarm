@@ -19,10 +19,9 @@ public class TipoImportacionDTO {
     private Long id;
     private String codigo;
     private String nombre;
-    
-    @JsonProperty("cupo_maximo")
-    private Integer cupoMaximo;
-    
+
+    // NOTA: cupo_maximo eliminado - los cupos se manejan a nivel de GrupoImportacion
+
     private String descripcion;
     private Boolean estado;
     

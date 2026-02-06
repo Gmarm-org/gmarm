@@ -28,7 +28,6 @@ public class TipoClienteImportacionMapper {
                 .tipoClienteNombre(entity.getTipoCliente().getNombre())
                 .tipoImportacionId(entity.getTipoImportacion().getId())
                 .tipoImportacionNombre(entity.getTipoImportacion().getNombre())
-                .cupoMaximo(entity.getTipoImportacion().getCupoMaximo())
                 .build();
     }
 

@@ -17,7 +17,6 @@ public class TipoImportacionMapper {
                 .id(entity.getId())
                 .codigo(entity.getCodigo())
                 .nombre(entity.getNombre())
-                .cupoMaximo(entity.getCupoMaximo())
                 .descripcion(entity.getDescripcion())
                 .estado(entity.getEstado())
                 .fechaCreacion(entity.getFechaCreacion())
@@ -32,10 +31,9 @@ public class TipoImportacionMapper {
         entity.setId(dto.getId());
         entity.setCodigo(dto.getCodigo());
         entity.setNombre(dto.getNombre());
-        entity.setCupoMaximo(dto.getCupoMaximo());
         entity.setDescripcion(dto.getDescripcion());
         entity.setEstado(dto.getEstado());
-        
+
         return entity;
     }
     

@@ -42,8 +42,7 @@ public class TipoImportacion {
     @Column(name = "codigo", unique = true, nullable = false, length = 20)
     private String codigo;
 
-    @Column(name = "cupo_maximo", nullable = false)
-    private Integer cupoMaximo;
+    // NOTA: cupo_maximo eliminado - los cupos se manejan a nivel de GrupoImportacion
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;

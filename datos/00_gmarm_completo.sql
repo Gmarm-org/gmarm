@@ -119,11 +119,11 @@ BEGIN
 END $$;
 
 -- Tabla de tipos de importación
+-- NOTA: cupo_maximo eliminado - los cupos se manejan a nivel de GrupoImportacion
 CREATE TABLE IF NOT EXISTS tipo_importacion (
     id BIGSERIAL PRIMARY KEY,
     codigo VARCHAR(50),
     nombre VARCHAR(100) NOT NULL,
-    cupo_maximo INTEGER NOT NULL,
     descripcion TEXT,
     estado BOOLEAN DEFAULT true,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -820,12 +820,13 @@ ON CONFLICT (codigo) DO NOTHING;
 -- Insertar tipos de importación evitando duplicados
 DO $$
 BEGIN
+    -- NOTA: cupo_maximo eliminado - los cupos se manejan a nivel de GrupoImportacion
     IF NOT EXISTS (SELECT 1 FROM tipo_importacion) THEN
-        INSERT INTO tipo_importacion (nombre, cupo_maximo, descripcion, estado) VALUES
-        ('Cupo Civil', 25, 'importación regular para personas naturales civiles', true),
-        ('Extracupo Uniformado', 1000, 'importación especial para personal uniformado militar y policial', true),
-        ('Extracupo Compania', 1000, 'importación especial para empresas de seguridad', true),
-        ('Cupo Deportista', 1000, 'importación regular para deportistas', true);
+        INSERT INTO tipo_importacion (nombre, descripcion, estado) VALUES
+        ('Cupo Civil', 'importación regular para personas naturales civiles', true),
+        ('Extracupo Uniformado', 'importación especial para personal uniformado militar y policial', true),
+        ('Extracupo Compania', 'importación especial para empresas de seguridad', true),
+        ('Cupo Deportista', 'importación regular para deportistas', true);
     END IF;
 END $$;
 

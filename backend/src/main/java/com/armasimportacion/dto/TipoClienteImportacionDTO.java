@@ -10,12 +10,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TipoClienteImportacionDTO {
-    
+
     private Long id;
     private Long tipoClienteId;
     private String tipoClienteNombre;
     private Long tipoImportacionId;
     private String tipoImportacionNombre;
-    private Integer cupoMaximo;
+    // NOTA: cupoMaximo eliminado - los cupos se manejan a nivel de GrupoImportacion
 }
 
