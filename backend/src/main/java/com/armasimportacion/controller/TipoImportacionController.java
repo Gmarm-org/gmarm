@@ -59,7 +59,7 @@ public class TipoImportacionController {
         var existing = service.findById(id);
         existing.setCodigo(dto.getCodigo());
         existing.setNombre(dto.getNombre());
-        existing.setCupoMaximo(dto.getCupoMaximo());
+        // cupoMaximo eliminado - los cupos se manejan a nivel de GrupoImportacion
         existing.setDescripcion(dto.getDescripcion());
         existing.setEstado(dto.getEstado());
         var updated = service.save(existing);
