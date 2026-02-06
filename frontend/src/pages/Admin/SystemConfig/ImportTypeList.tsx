@@ -28,11 +28,11 @@ const ImportTypeList: React.FC = () => {
     } catch (error) {
       console.error('Error cargando tipos de importación:', error);
       // Fallback a datos mock si la API falla
+      // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Tipo de Importación
       const mockImportTypes: ImportType[] = [
         {
           id: 1,
           nombre: 'CUPO CIVIL',
-          cupo_maximo: 25,
           descripcion: 'Importación regular para personas naturales civiles',
           estado: true,
           fecha_creacion: '2024-01-01'
@@ -40,7 +40,6 @@ const ImportTypeList: React.FC = () => {
         {
           id: 2,
           nombre: 'EXTRACUPO UNIFORMADO',
-          cupo_maximo: 1000,
           descripcion: 'Importación especial para personal uniformado militar y policial',
           estado: true,
           fecha_creacion: '2024-01-01'
@@ -48,7 +47,6 @@ const ImportTypeList: React.FC = () => {
         {
           id: 3,
           nombre: 'EXTRACUPO COMPAÑÍA',
-          cupo_maximo: 1000,
           descripcion: 'Importación especial para empresas de seguridad',
           estado: true,
           fecha_creacion: '2024-01-01'
@@ -56,7 +54,6 @@ const ImportTypeList: React.FC = () => {
         {
           id: 4,
           nombre: 'CUPO DEPORTISTA',
-          cupo_maximo: 1000,
           descripcion: 'Importación regular para deportistas',
           estado: true,
           fecha_creacion: '2024-01-01'
@@ -138,19 +135,13 @@ const ImportTypeList: React.FC = () => {
     }
   };
 
+  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no aquí
   const columns: AdminTableColumn[] = [
     {
       key: 'nombre',
       label: 'Nombre',
       render: (value, _row) => (
         <div className="text-sm font-medium text-gray-900">{value}</div>
-      )
-    },
-    {
-      key: 'cupo_maximo',
-      label: 'Cupo Máximo',
-      render: (value) => (
-        <div className="text-sm text-gray-900 font-mono">{value}</div>
       )
     },
     {
@@ -198,18 +189,18 @@ const ImportTypeList: React.FC = () => {
       description: 'Tipos activos'
     },
     {
-      label: 'Cupo Total',
-      value: importTypes.reduce((sum, t) => sum + t.cupo_maximo, 0),
-      icon: '🔢',
-      color: 'purple',
-      description: 'Cupo máximo total'
+      label: 'Inactivos',
+      value: importTypes.filter(t => !t.estado).length,
+      icon: '❌',
+      color: 'red',
+      description: 'Tipos inactivos'
     }
   ];
 
+  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no aquí
   const formFields = [
     { key: 'nombre', label: 'Nombre', type: 'text' as const, required: true },
     { key: 'codigo', label: 'Código', type: 'text' as const, required: true, placeholder: 'Ej: IMP_CIV, IMP_MIL' },
-    { key: 'cupo_maximo', label: 'Cupo Máximo', type: 'number' as const, required: true },
     { key: 'descripcion', label: 'Descripción', type: 'textarea' as const, required: true },
     { key: 'estado', label: 'Activo', type: 'checkbox' as const }
   ];

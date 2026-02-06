@@ -103,7 +103,8 @@ export interface ClientType {
 export interface ImportType {
   id: number;
   nombre: string;
-  cupo_maximo: number;
+  // NOTA: cupo_maximo ya no se usa - los cupos se manejan a nivel de Grupo de Importación
+  cupo_maximo?: number;
   descripcion: string;
   estado: boolean;
   fecha_creacion: string;

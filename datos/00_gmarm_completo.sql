@@ -829,12 +829,18 @@ BEGIN
     END IF;
 END $$;
 
--- Insertar relación tipos de importacion con tipo de cliente
--- NOTA: La tabla tipo_cliente_importacion fue eliminada
--- Los tipos de cliente ya tienen relación directa con tipo_proceso
--- INSERT INTO tipo_cliente_importacion (tipo_cliente_id, tipo_importacion_id) VALUES
--- (1, 1), (2, 2), (3, 2), (4, 2), (5, 2), (6, 3), (7, 1), (8, 2)
--- ON CONFLICT DO NOTHING;
+-- Insertar relación tipos de importación con tipo de cliente
+-- Usa subqueries para obtener los IDs correctos basándose en los códigos/nombres
+INSERT INTO tipo_cliente_importacion (tipo_cliente_id, tipo_importacion_id)
+SELECT tc.id, ti.id FROM tipo_cliente tc, tipo_importacion ti
+WHERE (tc.codigo = 'CIV' AND ti.nombre = 'Cupo Civil')
+   OR (tc.codigo = 'MIL' AND ti.nombre = 'Extracupo Uniformado')
+   OR (tc.codigo = 'NAV' AND ti.nombre = 'Extracupo Uniformado')
+   OR (tc.codigo = 'AER' AND ti.nombre = 'Extracupo Uniformado')
+   OR (tc.codigo = 'POL' AND ti.nombre = 'Extracupo Uniformado')
+   OR (tc.codigo = 'EMP' AND ti.nombre = 'Extracupo Compania')
+   OR (tc.codigo = 'DEP' AND ti.nombre = 'Cupo Deportista')
+ON CONFLICT (tipo_cliente_id, tipo_importacion_id) DO NOTHING;
 
 -- Insertar tipos de documento
 -- Insertar documentos evitando duplicados con WHERE NOT EXISTS

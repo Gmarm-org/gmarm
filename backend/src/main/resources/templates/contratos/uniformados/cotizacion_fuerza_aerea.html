@@ -17,7 +17,7 @@
         line-height: 1.3;
       }
       .page {
-        max-width: 170mm;
+        max-width: 175mm;
         margin: auto;
         position: relative;
         background: white;
@@ -35,7 +35,7 @@
         margin-bottom: 15px;
       }
       .datos-cliente div {
-        margin: 4px 0;
+        margin: 3px 0;
       }
 
       .tabla {
@@ -58,24 +58,25 @@
         margin-top: 15px;
       }
       .payment-item {
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         text-align: justify;
       }
       .text-bold {
         font-weight: bold;
       }
+      /* Evitar que los montos en texto se corten entre líneas */
       .monto-texto {
         white-space: nowrap;
       }
 
+      /* Sección de banco + firmas: mantener juntos en una página */
       .footer-section {
         page-break-inside: avoid;
         margin-top: 20px;
       }
 
       .bank-details {
-        margin-top: 20px;
-        line-height: 1.4;
+        line-height: 1.5;
       }
 
       .signatures {
@@ -91,7 +92,7 @@
       .line {
         border-top: 1px dotted #000;
         width: 80%;
-        margin: 0 auto 10px auto;
+        margin: 0 auto 8px auto;
       }
 
       @media print {
@@ -311,7 +312,7 @@
           <span th:text="${licenciaCuentaBancaria}">29282140</span>
         </div>
 
-        <div style="margin-top: 20px">
+        <div style="margin-top: 15px">
           Para constancia de aceptación de la cotización firman.
         </div>
 
