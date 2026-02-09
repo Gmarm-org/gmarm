@@ -83,8 +83,15 @@ const GrupoImportacionDetalle: React.FC<GrupoImportacionDetalleProps> = ({ grupo
 
     try {
       setLoading(true);
+
+      // Si ya existe un documento de este tipo, eliminarlo primero
+      const documentoExistente = obtenerDocumentoCargado(tipoDocumentoId);
+      if (documentoExistente) {
+        await apiService.eliminarDocumentoGrupo(grupoId, documentoExistente.id);
+      }
+
       await apiService.cargarDocumentoGrupo(grupoId, tipoDocumentoId, archivoSeleccionado, descripcionDocumento);
-      alert('Documento cargado exitosamente');
+      alert(documentoExistente ? 'Documento reemplazado exitosamente' : 'Documento cargado exitosamente');
       setArchivoSeleccionado(null);
       setDescripcionDocumento('');
       setMostrarCargarDocumento(null);
@@ -338,29 +345,49 @@ const GrupoImportacionDetalle: React.FC<GrupoImportacionDetalleProps> = ({ grupo
                         <p className="text-xs text-gray-500">
                           Cargado: {new Date(documento.fechaCarga).toLocaleDateString('es-ES')}
                         </p>
-                        <button
-                          onClick={() => handleEliminarDocumento(documento.id)}
-                          className="mt-2 text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Eliminar
-                        </button>
                       </div>
                     )}
                   </div>
-                  {!cargado && (
-                    <button
-                      onClick={() => setMostrarCargarDocumento(mostrarFormulario ? null : tipo.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                    >
-                      {mostrarFormulario ? 'Cancelar' : 'Cargar Documento'}
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {cargado && documento ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                            window.open(`${API_BASE_URL}${documento.rutaArchivo}`, '_blank');
+                          }}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        >
+                          Ver Documento
+                        </button>
+                        <button
+                          onClick={() => setMostrarCargarDocumento(mostrarFormulario ? null : tipo.id)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                        >
+                          {mostrarFormulario ? 'Cancelar' : 'Reemplazar'}
+                        </button>
+                        <button
+                          onClick={() => handleEliminarDocumento(documento.id)}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                        >
+                          Eliminar
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setMostrarCargarDocumento(mostrarFormulario ? null : tipo.id)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                      >
+                        {mostrarFormulario ? 'Cancelar' : 'Cargar Documento'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {mostrarFormulario && !cargado && (
+                {mostrarFormulario && (
                   <div className="mt-4 border-t pt-4">
                     <DocumentUpload
-                      label="Seleccionar archivo"
+                      label={cargado ? "Seleccionar nuevo archivo (reemplazará el actual)" : "Seleccionar archivo"}
                       name={`documento-${tipo.id}`}
                       onChange={(file) => setArchivoSeleccionado(file || null)}
                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
@@ -383,7 +410,7 @@ const GrupoImportacionDetalle: React.FC<GrupoImportacionDetalleProps> = ({ grupo
                       disabled={!archivoSeleccionado || loading}
                       className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
                     >
-                      {loading ? 'Cargando...' : 'Subir Documento'}
+                      {loading ? 'Cargando...' : (cargado ? 'Reemplazar Documento' : 'Subir Documento')}
                     </button>
                   </div>
                 )}
