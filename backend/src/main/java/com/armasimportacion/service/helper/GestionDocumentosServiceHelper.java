@@ -945,14 +945,17 @@ public class GestionDocumentosServiceHelper {
             // Obtener año actual
             String anioActual = String.valueOf(java.time.LocalDate.now().getYear());
             
-            // Obtener información de la licencia
-            String licenciaIniciales = "JL";
-            String licenciaRepresentante = "Dr. José Luis Guerrero";
-            String licenciaRUC = "1707815922001";
-            String licenciaTelefono = "0984167983";
-            String licenciaEmail = "joseluis@guerreromartinez.com";
-            
-            // TODO: Obtener dinámicamente desde configuración del sistema o licencia activa
+            // Obtener información de la licencia activa dinámicamente
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+                ? licencia.getTitulo() : "";
+            String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+            String licenciaRUC = licencia != null && licencia.getRuc() != null ? licencia.getRuc() : "";
+            String licenciaTelefono = licencia != null && licencia.getTelefono() != null ? licencia.getTelefono() : "";
+            String licenciaEmail = licencia != null && licencia.getEmail() != null ? licencia.getEmail() : "";
+
+            // Obtener iniciales del nombre de la licencia
+            String licenciaIniciales = obtenerInicialesImportador(cliente);
             
             // Obtener información del coordinador desde configuración (con fallback)
             String coordinadorNombre = "TCRN.EMT.AVC. JULIO VILLALTA ESPINOZA";
@@ -989,7 +992,8 @@ public class GestionDocumentosServiceHelper {
             variables.put("ultimos4NumerosFactura", ultimos4Numeros);
             variables.put("anioActual", anioActual);
             variables.put("fechaActual", fechaActual);
-            variables.put("licenciaRepresentante", licenciaRepresentante);
+            variables.put("licenciaTitulo", licenciaTitulo);
+            variables.put("licenciaNombre", licenciaNombre);
             variables.put("licenciaRUC", licenciaRUC);
             variables.put("licenciaTelefono", licenciaTelefono);
             variables.put("licenciaEmail", licenciaEmail);

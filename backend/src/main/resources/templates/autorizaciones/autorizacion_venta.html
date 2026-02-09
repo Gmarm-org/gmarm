@@ -206,7 +206,7 @@
 
     <!-- Cuerpo del documento -->
     <div class="contenido">
-        Yo, Dr. José Luis Guerrero Martínez con RUC: 1707815922001, en mi calidad de representante y distribuidor autorizado de CZ para Ecuador, muy comedidamente solicito se digne autorizar a quien corresponda, se emita la autorización de venta de la siguiente arma a favor de:
+        Yo, <span th:text="${licenciaTitulo} + ' ' + ${licenciaNombre}">Dr. José Luis Guerrero Martínez</span> con RUC: <span th:text="${licenciaRUC}">1707815922001</span>, en mi calidad de distribuidor autorizado de CZ para Ecuador, muy comedidamente solicito se digne autorizar a quien corresponda, se emita la autorización de venta de la siguiente arma a favor de:
     </div>
 
     <div class="contenido">
@@ -259,12 +259,12 @@
 
     <!-- Firma - Sin línea, texto normal -->
     <div class="firma">
-        <div class="firma-nombre" th:text="${licenciaRepresentante}">
+        <div class="firma-nombre" th:text="${licenciaTitulo} + ' ' + ${licenciaNombre}">
             Dr. José Luis Guerrero
         </div>
         <div class="firma-info">
             RUC. <span th:text="${licenciaRUC}">1707815922001</span><br/>
-            Cel.<span th:text="${licenciaTelefono}">0984167983</span><br/>
+            Cel. <span th:text="${licenciaTelefono}">0984167983</span><br/>
             Email: <span th:text="${licenciaEmail}">joseluis@guerreromartinez.com</span>
         </div>
     </div>
