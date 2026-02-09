@@ -265,7 +265,15 @@ const JefeVentas: React.FC = () => {
         console.log('✅ JefeVentas - Primer cliente:', response[0]);
         console.log('✅ JefeVentas - Vendedor del primer cliente:', response[0].vendedorNombre, response[0].vendedorApellidos);
       }
-      setClientes(response);
+
+      // Excluir clientes que ya tienen armas asignadas (aparecen en la vista "Clientes con Armas Asignadas")
+      const clientesSinArmaAsignada = response.filter(cliente => {
+        const estadosConSerieAsignada = ['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'];
+        return !estadosConSerieAsignada.includes(cliente.estado || '');
+      });
+
+      console.log(`✅ JefeVentas - Clientes filtrados (sin serie asignada): ${clientesSinArmaAsignada.length} de ${response.length}`);
+      setClientes(clientesSinArmaAsignada);
     } catch (error) {
       console.error('❌ JefeVentas - Error cargando clientes:', error);
       alert(`Error cargando la lista de clientes: ${error}`);
@@ -1941,7 +1949,7 @@ const JefeVentas: React.FC = () => {
 
                 <div className="mt-6 flex justify-end space-x-3">
                   {/* Botón Generar Documentos - Solo para JEFE DE VENTAS */}
-                  {/* NO mostrar si estamos en la vista de "Clientes con Armas Asignadas" (documentos ya generados) */}
+                  {/* NO mostrar SOLO si estamos en la vista de "Clientes con Armas Asignadas" (documentos ya generados) */}
                   {vistaActual !== 'clientes-asignados' && user?.roles?.some(role => {
                     const codigo = role.rol?.codigo || (role as any).codigo;
                     return codigo === 'SALES_CHIEF';
