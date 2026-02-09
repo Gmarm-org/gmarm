@@ -1941,7 +1941,8 @@ const JefeVentas: React.FC = () => {
 
                 <div className="mt-6 flex justify-end space-x-3">
                   {/* Botón Generar Documentos - Solo para JEFE DE VENTAS */}
-                  {user?.roles?.some(role => {
+                  {/* NO mostrar si estamos en la vista de "Clientes con Armas Asignadas" (documentos ya generados) */}
+                  {vistaActual !== 'clientes-asignados' && user?.roles?.some(role => {
                     const codigo = role.rol?.codigo || (role as any).codigo;
                     return codigo === 'SALES_CHIEF';
                   }) && (() => {
@@ -1966,7 +1967,7 @@ const JefeVentas: React.FC = () => {
                     }
 
                     const textoBoton = esCivil ? "Generar Solicitud de Compra" : "Generar Documentos";
-                    
+
                     return (
                       <button
                         onClick={(e) => {
