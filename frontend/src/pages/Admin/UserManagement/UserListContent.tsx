@@ -78,9 +78,10 @@ const UserListContent: React.FC = () => {
   const handleDelete = async (user: User) => {
     if (confirm(`¿Desactivar al usuario ${user.username}? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        // No eliminar, solo cambiar estado a false (inactivo)
-        await userApi.update(user.id, { ...user, estado: false });
+        // Usar endpoint específico para cambiar estado (más eficiente y sin validaciones pesadas)
+        await userApi.changeStatus(user.id, false);
         await loadUsers();
+        alert('Usuario desactivado exitosamente');
       } catch (error) {
         console.error('Error desactivando usuario:', error);
         alert('Error al desactivar el usuario');
