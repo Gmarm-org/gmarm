@@ -267,12 +267,26 @@ const JefeVentas: React.FC = () => {
       }
 
       // Excluir clientes que ya tienen armas asignadas (aparecen en la vista "Clientes con Armas Asignadas")
-      const clientesSinArmaAsignada = response.filter(cliente => {
-        const estadosConSerieAsignada = ['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'];
-        return !estadosConSerieAsignada.includes(cliente.estado || '');
-      });
+      // Para esto, necesitamos verificar si alguna arma del cliente tiene estado 'ASIGNADA'
+      const clientesSinArmaAsignada: ClienteConVendedor[] = [];
 
-      console.log(`✅ JefeVentas - Clientes filtrados (sin serie asignada): ${clientesSinArmaAsignada.length} de ${response.length}`);
+      for (const cliente of response) {
+        try {
+          const armasResponse = await apiService.getArmasCliente(cliente.id);
+          // Solo incluir el cliente si NO tiene armas con estado 'ASIGNADA'
+          const tieneArmaAsignada = armasResponse && armasResponse.length > 0 &&
+                                     armasResponse.some((arma: any) => arma.estado === 'ASIGNADA');
+
+          if (!tieneArmaAsignada) {
+            clientesSinArmaAsignada.push(cliente);
+          }
+        } catch (error) {
+          // Si hay error al cargar armas, incluir el cliente (mejor mostrar de más que de menos)
+          clientesSinArmaAsignada.push(cliente);
+        }
+      }
+
+      console.log(`✅ JefeVentas - Clientes filtrados (sin arma asignada): ${clientesSinArmaAsignada.length} de ${response.length}`);
       setClientes(clientesSinArmaAsignada);
     } catch (error) {
       console.error('❌ JefeVentas - Error cargando clientes:', error);
