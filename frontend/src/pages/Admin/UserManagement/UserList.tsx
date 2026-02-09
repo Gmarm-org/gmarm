@@ -12,6 +12,7 @@ const UserList: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false); // Por defecto ocultar inactivos
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,11 +57,17 @@ const UserList: React.FC = () => {
 
   useEffect(() => {
     filterUsers();
-  }, [searchTerm, users]);
+  }, [searchTerm, users, showInactive]);
 
   const filterUsers = () => {
     let filtered = users;
 
+    // Filtrar por estado activo/inactivo
+    if (!showInactive) {
+      filtered = filtered.filter(user => user.estado);
+    }
+
+    // Filtrar por búsqueda
     if (searchTerm) {
       filtered = filtered.filter(user =>
         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,6 +204,21 @@ const UserList: React.FC = () => {
       />
       
       <div className="p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showInactive"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="showInactive" className="text-sm text-gray-700 cursor-pointer">
+              Mostrar usuarios inactivos
+            </label>
+          </div>
+        </div>
+
         <AdminDataTable
           title="Lista de Usuarios"
           description="Gestiona todos los usuarios del sistema"
