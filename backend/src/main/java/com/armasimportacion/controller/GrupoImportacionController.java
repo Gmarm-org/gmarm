@@ -661,13 +661,14 @@ public class GrupoImportacionController {
      * Obtiene todos los vendedores activos (usuarios con rol VENDOR)
      */
     @GetMapping("/vendedores")
-    @Operation(summary = "Obtener vendedores", 
+    @Operation(summary = "Obtener vendedores",
                description = "Obtiene la lista de todos los vendedores activos para asignar a grupos")
     public ResponseEntity<List<Map<String, Object>>> obtenerVendedores() {
         try {
-            log.info("👥 Obteniendo lista de vendedores");
-            
-            List<com.armasimportacion.model.Usuario> vendedores = usuarioService.findByRol("Vendedor");
+            log.info("👥 Obteniendo lista de vendedores activos");
+
+            // Solo retornar vendedores activos (estado = true)
+            List<com.armasimportacion.model.Usuario> vendedores = usuarioService.findVendedoresActivos();
             
             List<Map<String, Object>> vendedoresDTO = vendedores.stream()
                 .map(v -> {
