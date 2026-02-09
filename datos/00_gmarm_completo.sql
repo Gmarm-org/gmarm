@@ -897,6 +897,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM tipo_documento WHERE grupos_importacion = true) THEN
         INSERT INTO tipo_documento (nombre, descripcion, obligatorio, estado, grupos_importacion, tipo_proceso_id) VALUES
         ('Proforma a fabrica para importacion', 'Proforma recibida de la fábrica para la importación', true, true, true, NULL),
+        ('Factura', 'Factura de importación', true, true, true, NULL),
         ('Solicitar carta inspeccion de rastrillo', 'Carta de inspección de rastrillo', true, true, true, NULL),
         ('Documento de resolucion de importacion', 'Resolución de importación', true, true, true, NULL),
         ('Pedido de previa importacion', 'Pedido de previa importación', true, true, true, NULL),
