@@ -208,18 +208,18 @@ const UserListContent: React.FC = () => {
 
   const stats: AdminStat[] = [
     {
-      label: 'Total Usuarios',
-      value: users.length || 0,
+      label: showInactive ? 'Total Usuarios' : 'Mostrando',
+      value: filteredUsers.length || 0,
       icon: '👥',
       color: 'blue',
-      description: 'Usuarios del sistema'
+      description: showInactive ? 'Todos los usuarios' : 'Usuarios activos mostrados'
     },
     {
-      label: 'Usuarios Activos',
-      value: users.filter(u => u?.estado).length || 0,
-      icon: '✅',
-      color: 'green',
-      description: 'Usuarios activos'
+      label: 'Total en Sistema',
+      value: users.length || 0,
+      icon: '📊',
+      color: 'gray',
+      description: 'Total de usuarios (activos + inactivos)'
     },
     {
       label: 'Bloqueados',
