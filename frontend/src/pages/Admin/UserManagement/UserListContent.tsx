@@ -170,9 +170,9 @@ const UserListContent: React.FC = () => {
                   e.stopPropagation();
                   handleUnlock(row);
                 }}
-                className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 rounded-md"
+                className="text-xs px-3 py-1.5 bg-yellow-500 text-white font-semibold hover:bg-yellow-600 rounded-md shadow-sm transition-colors"
               >
-                🔓 Desbloquear
+                🔓 Desbloquear Usuario
               </button>
             </>
           )}
