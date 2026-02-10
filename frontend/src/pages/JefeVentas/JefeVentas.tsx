@@ -66,6 +66,9 @@ const JefeVentas: React.FC = () => {
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteConVendedor | null>(null);
   const [clientesAsignados, setClientesAsignados] = useState<ClienteConVendedor[]>([]);
   const [clientWeaponAssignments, setClientWeaponAssignments] = useState<Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>>({});
+
+  // Estados para autorizaciones (integrado desde ClientesAsignados)
+  const [autorizaciones, setAutorizaciones] = useState<Record<string, any[]>>({});
   
   // Estados para detalle completo del cliente
   const [armasCliente, setArmasCliente] = useState<any[]>([]);
@@ -122,6 +125,13 @@ const JefeVentas: React.FC = () => {
   // Estados para armas reasignadas
   const [armasReasignadas, setArmasReasignadas] = useState<any[]>([]);
   const [loadingArmasReasignadas, setLoadingArmasReasignadas] = useState(false);
+
+  // Estados para modal de generar autorización (integrado desde ClientesAsignados)
+  const [mostrarModalAutorizacion, setMostrarModalAutorizacion] = useState(false);
+  const [clienteAutorizacion, setClienteAutorizacion] = useState<ClienteConVendedor | null>(null);
+  const [numeroFacturaAutorizacion, setNumeroFacturaAutorizacion] = useState('');
+  const [tramiteAutorizacion, setTramiteAutorizacion] = useState('');
+  const [generandoAutorizacion, setGenerandoAutorizacion] = useState(false);
 
   // TODO: Estados para Dashboard - Oculto temporalmente, revisar criterios de filtrado
   // const [dashboardStats, setDashboardStats] = useState<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>({
@@ -302,11 +312,12 @@ const JefeVentas: React.FC = () => {
       console.log('🔄 JefeVentas - Cargando clientes con armas asignadas...');
       const response = await apiService.getTodosClientes();
       console.log('✅ JefeVentas - Total clientes cargados:', response.length);
-      
+
       // Cargar armas para cada cliente y filtrar solo los que tienen armas ASIGNADAS
       const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
       const clientesConArmaAsignada: ClienteConVendedor[] = [];
-      
+      const autorizacionesTemp: Record<string, any[]> = {};
+
       for (const client of response) {
         try {
           const armasResponse = await apiService.getArmasCliente(client.id);
@@ -330,20 +341,30 @@ const JefeVentas: React.FC = () => {
               numeroSerie: arma.numeroSerie,
               estado: arma.estado
             };
-            
+
             // Solo agregar clientes con arma ASIGNADA
             if (arma.estado === 'ASIGNADA') {
               clientesConArmaAsignada.push(client);
+
+              // Cargar autorizaciones del cliente
+              try {
+                const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
+                autorizacionesTemp[client.id] = autorizacionesResponse || [];
+              } catch (error) {
+                console.warn(`No se pudieron cargar autorizaciones para cliente ${client.id}:`, error);
+                autorizacionesTemp[client.id] = [];
+              }
             }
           }
         } catch (error) {
           console.warn(`No se pudieron cargar armas para cliente ${client.id}:`, error);
         }
       }
-      
+
       console.log('✅ JefeVentas - Clientes con armas asignadas:', clientesConArmaAsignada.length);
       setClientesAsignados(clientesConArmaAsignada);
       setClientWeaponAssignments(weaponAssignments);
+      setAutorizaciones(autorizacionesTemp);
     } catch (error) {
       console.error('❌ JefeVentas - Error cargando clientes asignados:', error);
       alert(`Error cargando la lista de clientes asignados: ${error}`);
@@ -414,6 +435,65 @@ const JefeVentas: React.FC = () => {
     setDocumentosCliente([]);
     setContratosCliente([]);
     setPagosCliente([]);
+  };
+
+  // Handlers para autorización (integrado desde ClientesAsignados)
+  const handleGenerarAutorizacion = (cliente: ClienteConVendedor) => {
+    setClienteAutorizacion(cliente);
+    setTramiteAutorizacion('');
+    setNumeroFacturaAutorizacion('');
+    setMostrarModalAutorizacion(true);
+  };
+
+  const handleCerrarModalAutorizacion = () => {
+    setMostrarModalAutorizacion(false);
+    setClienteAutorizacion(null);
+    setNumeroFacturaAutorizacion('');
+    setTramiteAutorizacion('');
+  };
+
+  const handleConfirmarGeneracionAutorizacion = async () => {
+    if (!clienteAutorizacion) return;
+
+    if (!numeroFacturaAutorizacion.trim()) {
+      alert('Por favor ingrese el número de factura');
+      return;
+    }
+
+    if (!tramiteAutorizacion.trim()) {
+      alert('Por favor ingrese el trámite');
+      return;
+    }
+
+    setGenerandoAutorizacion(true);
+    try {
+      console.log('📄 Generando autorización para:', {
+        clienteId: clienteAutorizacion.id,
+        numeroFactura: numeroFacturaAutorizacion,
+        tramite: tramiteAutorizacion
+      });
+
+      const response = await apiService.generarAutorizacion(
+        clienteAutorizacion.id,
+        numeroFacturaAutorizacion,
+        tramiteAutorizacion
+      );
+
+      console.log('✅ Autorización generada:', response);
+
+      alert('✅ Autorización de venta generada exitosamente');
+
+      // Cerrar modal
+      handleCerrarModalAutorizacion();
+
+      // Recargar toda la lista de clientes para actualizar el botón
+      await cargarClientesAsignados();
+    } catch (error) {
+      console.error('Error generando autorización:', error);
+      alert(`Error generando la autorización: ${error}`);
+    } finally {
+      setGenerandoAutorizacion(false);
+    }
   };
 
   // Handler para editar cliente (similar al de Vendedor)
@@ -1505,16 +1585,64 @@ const JefeVentas: React.FC = () => {
                               {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <button
-                                onClick={() => handleVerDetalleCliente(cliente)}
-                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center space-x-2 mx-auto"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                <span>Ver Detalle</span>
-                              </button>
+                              <div className="flex flex-col gap-2 items-center">
+                                {/* Botón Ver Detalle */}
+                                <button
+                                  onClick={() => handleVerDetalleCliente(cliente)}
+                                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  <span>Ver Detalle</span>
+                                </button>
+
+                                {/* Botones de Autorización */}
+                                {(() => {
+                                  const tieneAutorizacion = autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0;
+                                  return tieneAutorizacion;
+                                })() ? (
+                                  <>
+                                    {/* Botón Ver Autorización */}
+                                    <button
+                                      onClick={() => {
+                                        const autorizacion = autorizaciones[cliente.id][0];
+                                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                                        window.open(`${baseUrl}/api/documentos/serve-generated/${autorizacion.id}`, '_blank');
+                                      }}
+                                      className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      <span>Ver Autorización</span>
+                                    </button>
+
+                                    {/* Botón Generar Nuevamente */}
+                                    <button
+                                      onClick={() => handleGenerarAutorizacion(cliente)}
+                                      className="w-full px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
+                                      title="Regenerar autorización (sobrescribirá la actual)"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      </svg>
+                                      <span>Generar Nuevamente</span>
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => handleGenerarAutorizacion(cliente)}
+                                    className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>Generar Autorización</span>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -2607,6 +2735,167 @@ const JefeVentas: React.FC = () => {
                 >
                   {modalClienteReasignado.isLoading ? 'Procesando...' : 'Confirmar Reasignación'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Generar Autorización de Venta */}
+        {mostrarModalAutorizacion && clienteAutorizacion && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8">
+              <div className="p-8">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    {autorizaciones[clienteAutorizacion.id] && autorizaciones[clienteAutorizacion.id].length > 0 ? (
+                      <>
+                        <h2 className="text-2xl font-bold text-gray-800">🔄 Regenerar Autorización de Venta</h2>
+                        <p className="text-amber-600 mt-1 font-medium">⚠️ Esta acción sobrescribirá la autorización existente</p>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-2xl font-bold text-gray-800">📄 Generar Autorización de Venta</h2>
+                        <p className="text-gray-600 mt-1">Complete los datos necesarios para generar el documento</p>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleCerrarModalAutorizacion}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Campos de entrada */}
+                <div className="space-y-6 mb-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nro. Factura <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={numeroFacturaAutorizacion}
+                        onChange={(e) => setNumeroFacturaAutorizacion(e.target.value)}
+                        placeholder="Ej: 001-901-000000326"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Trámite <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={tramiteAutorizacion}
+                        onChange={(e) => setTramiteAutorizacion(e.target.value)}
+                        placeholder="TRA-XXXXXX"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información del Cliente (No editable) */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Datos del Cliente
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Nombre:</span>
+                      <span className="font-medium ml-2">{clienteAutorizacion.nombres} {clienteAutorizacion.apellidos}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">CI:</span>
+                      <span className="font-mono ml-2">{clienteAutorizacion.numeroIdentificacion}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Tipo:</span>
+                      <span className="ml-2">{clienteAutorizacion.tipoClienteNombre || clienteAutorizacion.tipoProcesoNombre}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Email:</span>
+                      <span className="ml-2">{clienteAutorizacion.email || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información del Arma (No editable) */}
+                {clientWeaponAssignments[clienteAutorizacion.id] && (
+                  <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Datos del Arma
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Modelo:</span>
+                        <span className="font-medium ml-2">{clientWeaponAssignments[clienteAutorizacion.id].weapon.modelo || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Calibre:</span>
+                        <span className="ml-2">{clientWeaponAssignments[clienteAutorizacion.id].weapon.calibre}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Serie:</span>
+                        <span className="font-mono ml-2 font-bold text-blue-600">{clientWeaponAssignments[clienteAutorizacion.id].numeroSerie}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Tipo:</span>
+                        <span className="ml-2">PISTOLA</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botones de acción */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={handleCerrarModalAutorizacion}
+                    disabled={generandoAutorizacion}
+                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmarGeneracionAutorizacion}
+                    disabled={generandoAutorizacion}
+                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-md disabled:opacity-50 flex items-center space-x-2"
+                  >
+                    {generandoAutorizacion ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Generando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {autorizaciones[clienteAutorizacion.id] && autorizaciones[clienteAutorizacion.id].length > 0 ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          )}
+                        </svg>
+                        <span>
+                          {autorizaciones[clienteAutorizacion.id] && autorizaciones[clienteAutorizacion.id].length > 0
+                            ? 'Regenerar Documento'
+                            : 'Generar Documento'}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
