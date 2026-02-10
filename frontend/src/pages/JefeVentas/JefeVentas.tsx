@@ -32,6 +32,7 @@ interface ClienteConVendedor extends Client {
   vendedorApellidos?: string;
   fechaCreacion?: string;
   estadoPago?: string;
+  grupoImportacionId?: number; // ID del grupo de importación
   grupoImportacionNombre?: string;
   licenciaNombre?: string; // Nombre de la licencia del grupo de importación
   licenciaNumero?: string; // Número de la licencia del grupo de importación
@@ -438,10 +439,27 @@ const JefeVentas: React.FC = () => {
   };
 
   // Handlers para autorización (integrado desde ClientesAsignados)
-  const handleGenerarAutorizacion = (cliente: ClienteConVendedor) => {
+  const handleGenerarAutorizacion = async (cliente: ClienteConVendedor) => {
     setClienteAutorizacion(cliente);
-    setTramiteAutorizacion('');
     setNumeroFacturaAutorizacion('');
+
+    // Cargar el trámite del grupo de importación si existe
+    if (cliente.grupoImportacionId) {
+      try {
+        const grupo = await apiService.getGrupoImportacion(cliente.grupoImportacionId);
+        if (grupo.tra) {
+          setTramiteAutorizacion(grupo.tra);
+        } else {
+          setTramiteAutorizacion('');
+        }
+      } catch (error) {
+        console.warn('No se pudo cargar el trámite del grupo de importación:', error);
+        setTramiteAutorizacion('');
+      }
+    } else {
+      setTramiteAutorizacion('');
+    }
+
     setMostrarModalAutorizacion(true);
   };
 
@@ -2797,6 +2815,16 @@ const JefeVentas: React.FC = () => {
                         placeholder="TRA-XXXXXX"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
+                      {!tramiteAutorizacion && clienteAutorizacion?.grupoImportacionId && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          ⚠️ El trámite no se ha definido en el grupo de importación
+                        </p>
+                      )}
+                      {tramiteAutorizacion && clienteAutorizacion?.grupoImportacionId && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Trámite cargado desde el grupo de importación
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

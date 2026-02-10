@@ -82,6 +82,7 @@ export interface Client {
   email: string;
   emailVerificado?: boolean | null; // true = Validado, false = Datos incorrectos, null/undefined = Pendiente
   estadoPago?: string; // IMPAGO, ABONADO, PAGO_COMPLETO
+  grupoImportacionId?: number; // ID del grupo de importación activo
   grupoImportacionNombre?: string; // Nombre del grupo de importación activo
   licenciaNombre?: string; // Nombre de la licencia del grupo de importación
   licenciaNumero?: string; // Número de la licencia del grupo de importación
@@ -106,6 +107,7 @@ export interface GrupoImportacion {
   id: number;
   nombre: string;
   descripcion?: string;
+  tra?: string; // TRA-XXXXXXXXXX (número de trámite de importación)
   fechaCreacion: string;
   fechaActualizacion?: string;
   estado: string;
