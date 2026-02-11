@@ -181,20 +181,28 @@ public class GestionDocumentosServiceHelper {
         try {
             log.info("📄 GENERANDO COTIZACIÓN PARA CLIENTE ID: {}", cliente.getId());
 
+            // IMPORTANTE: Extraer número de cotización anterior ANTES de eliminar
+            String numeroCotizacionAnterior = extraerNumeroCotizacionAnterior(cliente.getId());
+
+            // Generar el número de cotización (anterior o nuevo)
+            String numeroCotizacion = determinarNumeroCotizacion(cliente, pago, numeroCotizacionAnterior);
+
             // ELIMINAR COTIZACIONES ANTERIORES PARA EVITAR DUPLICADOS
             eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.COTIZACION);
 
-            // Generar PDF de cotización
-            byte[] pdfBytes = generarPDFCotizacion(cliente, pago);
+            // Generar PDF de cotización con el número determinado
+            byte[] pdfBytes = generarPDFCotizacion(cliente, pago, numeroCotizacion);
             log.info("🔍 DEBUG: PDF de cotización generado, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivoCotizacion(cliente, pago);
-            
+
             // Guardar archivo
             String rutaArchivo = fileStorageService.guardarDocumentoGeneradoCliente(
                 cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
-            
+
             DocumentoGenerado documento = crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.COTIZACION);
+            // Almacenar el número de cotización en el campo 'nombre' para futura trazabilidad
+            documento.setNombre(numeroCotizacion);
             DocumentoGenerado documentoGuardado = documentoGeneradoRepository.save(documento);
             
             log.info("✅ Cotización generada y guardada con ID: {}, archivo: {}", 
@@ -691,9 +699,88 @@ public class GestionDocumentosServiceHelper {
     }
 
     /**
-     * Genera PDF de Cotización usando Flying Saucer con template HTML/CSS
+     * Determina el número de cotización a usar (anterior o nuevo)
+     * @param cliente Cliente para quien se genera la cotización
+     * @param pago Pago asociado
+     * @param numeroCotizacionAnterior Número de cotización anterior (puede ser null)
+     * @return Número de cotización a usar
      */
-    private byte[] generarPDFCotizacion(Cliente cliente, Pago pago) throws Exception {
+    private String determinarNumeroCotizacion(Cliente cliente, Pago pago, String numeroCotizacionAnterior) {
+        // Si existe número anterior, reutilizarlo para mantener trazabilidad
+        if (numeroCotizacionAnterior != null && !numeroCotizacionAnterior.trim().isEmpty()) {
+            log.info("🔄 Reutilizando número de cotización anterior: {}", numeroCotizacionAnterior);
+            return numeroCotizacionAnterior;
+        }
+
+        // Generar nuevo número
+        int year = java.time.LocalDate.now().getYear();
+        String iniciales = obtenerInicialesImportador(cliente);
+        int seq = 1;
+
+        // Obtener licencia para verificar caso especial Marcia Loyaga
+        Licencia licencia = obtenerLicenciaActiva(cliente);
+        String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+
+        // CASO ESPECIAL: Marcia Loyaga - numeración empieza en 9
+        if (licenciaNombre.toLowerCase().contains("marcia") && licenciaNombre.toLowerCase().contains("loyaga")) {
+            log.info("🔢 CASO ESPECIAL: Licencia Marcia Loyaga detectada - numeración empieza en 9");
+            seq = 9;
+        } else {
+            // Lógica normal: usar ID del pago o cliente
+            if (pago != null && pago.getId() != null) {
+                seq = Math.max(pago.getId().intValue(), 1);
+            } else if (cliente.getId() != null) {
+                seq = Math.max(cliente.getId().intValue(), 1);
+            }
+        }
+
+        String numeroCotizacion = String.format("%s-%04d-%d", iniciales, seq, year);
+        log.info("✨ Nueva cotización generada: {}", numeroCotizacion);
+        return numeroCotizacion;
+    }
+
+    /**
+     * Extrae el número de cotización anterior para preservar la trazabilidad
+     * @param clienteId ID del cliente
+     * @return Número de cotización anterior o null si no existe
+     */
+    private String extraerNumeroCotizacionAnterior(Long clienteId) {
+        try {
+            List<DocumentoGenerado> cotizacionesExistentes = documentoGeneradoRepository
+                .findByClienteIdAndTipo(clienteId, TipoDocumentoGenerado.COTIZACION);
+
+            if (!cotizacionesExistentes.isEmpty()) {
+                // Obtener la cotización más reciente
+                DocumentoGenerado cotizacionAnterior = cotizacionesExistentes.get(cotizacionesExistentes.size() - 1);
+
+                // Intentar extraer el número del campo descripcion primero
+                if (cotizacionAnterior.getDescripcion() != null && cotizacionAnterior.getDescripcion().contains("COTIZACIÓN:")) {
+                    String desc = cotizacionAnterior.getDescripcion();
+                    int inicioNum = desc.indexOf("COTIZACIÓN:") + 11;
+                    String numeroExtraido = desc.substring(inicioNum).trim().split("\\s")[0];
+                    log.info("🔄 Número de cotización anterior encontrado en descripción: {}", numeroExtraido);
+                    return numeroExtraido;
+                }
+
+                // Fallback: intentar extraer del nombre field
+                if (cotizacionAnterior.getNombre() != null) {
+                    log.info("🔄 Número de cotización anterior encontrado en nombre: {}", cotizacionAnterior.getNombre());
+                    return cotizacionAnterior.getNombre();
+                }
+
+                log.info("⚠️ No se pudo extraer número de cotización anterior del documento ID: {}", cotizacionAnterior.getId());
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Error extrayendo número de cotización anterior: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Genera PDF de Cotización usando Flying Saucer con template HTML/CSS
+     * @param numeroCotizacionAnterior Número de cotización anterior para preservar trazabilidad (puede ser null)
+     */
+    private byte[] generarPDFCotizacion(Cliente cliente, Pago pago, String numeroCotizacionAnterior) throws Exception {
         log.info("🔧 Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
         
         try {
@@ -764,16 +851,9 @@ public class GestionDocumentosServiceHelper {
             String licenciaCuentaBancaria = licencia != null && licencia.getCuentaBancaria() != null ? licencia.getCuentaBancaria() : "";
             String licenciaTitular = licenciaNombre;
 
-            // Número de cotización: {INICIALES}-{####}-{AÑO}
-            int year = java.time.LocalDate.now().getYear();
-            String iniciales = obtenerInicialesImportador(cliente);
-            int seq = 1;
-            if (pago != null && pago.getId() != null) {
-                seq = Math.max(pago.getId().intValue(), 1);
-            } else if (cliente.getId() != null) {
-                seq = Math.max(cliente.getId().intValue(), 1);
-            }
-            String numeroCotizacion = String.format("%s-%04d-%d", iniciales, seq, year);
+            // Usar el número de cotización determinado (ya sea anterior o nuevo)
+            String numeroCotizacion = numeroCotizacionAnterior;
+            log.info("📋 Usando número de cotización: {}", numeroCotizacion);
 
             // Fecha de cotización con ciudad del cantón de la licencia (ej: "Quito, 27 de enero de 2026")
             String licenciaCiudad = licencia != null && licencia.getCanton() != null 
