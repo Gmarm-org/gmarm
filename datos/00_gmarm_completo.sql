@@ -1527,8 +1527,7 @@ INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_princip
 (false, 0, NOW(), '0987654322', true, 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
 (false, 0, NOW(), '0987654323', true, 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
 (false, 0, NOW(), '0987654324', true, 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654325', true, 'david.guevara', 'Guevara', 'czcorp@hotmail.com', 'David', 'Quito, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654326', true, 'franklin.endara', 'Endara', 'franklin.endara@hotmail.com', 'Franklin', 'Quito, Ecuador', 'admin123')
+(false, 0, NOW(), '0987654325', true, 'david.guevara', 'Guevara', 'czcorp@hotmail.com', 'David', 'Quito, Ecuador', 'admin123')
 ON CONFLICT (username) DO NOTHING;
 
 -- Asignar roles a usuarios
@@ -1538,8 +1537,7 @@ INSERT INTO usuario_rol (usuario_id, rol_id) VALUES
 ((SELECT id FROM usuario WHERE username = 'jefe'), (SELECT id FROM rol WHERE codigo = 'SALES_CHIEF')),
 ((SELECT id FROM usuario WHERE username = 'finanzas'), (SELECT id FROM rol WHERE codigo = 'FINANCE')),
 ((SELECT id FROM usuario WHERE username = 'operaciones'), (SELECT id FROM rol WHERE codigo = 'OPERATIONS')),
-((SELECT id FROM usuario WHERE username = 'david.guevara'), (SELECT id FROM rol WHERE codigo = 'VENDOR')),
-((SELECT id FROM usuario WHERE username = 'franklin.endara'), (SELECT id FROM rol WHERE codigo = 'VENDOR'))
+((SELECT id FROM usuario WHERE username = 'david.guevara'), (SELECT id FROM rol WHERE codigo = 'VENDOR'))
 ON CONFLICT (usuario_id, rol_id) DO NOTHING;
 
 
@@ -1652,12 +1650,12 @@ SET
     apellidos = 'Endara',
     estado = true;
 
--- Asignar roles a franklin.endara (FINANCE y SALES_CHIEF)
+-- Asignar roles a franklin.endara (VENDOR, FINANCE y SALES_CHIEF)
 INSERT INTO usuario_rol (usuario_id, rol_id, activo, fecha_asignacion)
 SELECT u.id, r.id, true, NOW()
 FROM usuario u
 CROSS JOIN rol r
-WHERE u.email = 'franklin.endara@hotmail.com' AND r.codigo IN ('FINANCE', 'SALES_CHIEF')
+WHERE u.email = 'franklin.endara@hotmail.com' AND r.codigo IN ('VENDOR', 'FINANCE', 'SALES_CHIEF')
 ON CONFLICT (usuario_id, rol_id) DO UPDATE SET activo = true;
 
 -- ========================================
