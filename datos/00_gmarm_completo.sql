@@ -1526,7 +1526,8 @@ INSERT INTO usuario (bloqueado, intentos_login, fecha_creacion, telefono_princip
 (false, 0, NOW(), '0987654321', true, 'vendedor', 'Vendedor', 'vendedor@test.com', 'Juan', 'Guayaquil, Ecuador', 'admin123'),
 (false, 0, NOW(), '0987654322', true, 'jefe', 'Jefe Ventas', 'jefe@test.com', 'María', 'Quito, Ecuador', 'admin123'),
 (false, 0, NOW(), '0987654323', true, 'finanzas', 'Finanzas', 'finanzas@test.com', 'Carlos', 'Cuenca, Ecuador', 'admin123'),
-(false, 0, NOW(), '0987654324', true, 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123')
+(false, 0, NOW(), '0987654324', true, 'operaciones', 'Operaciones', 'operaciones@test.com', 'Ana', 'Manta, Ecuador', 'admin123'),
+(false, 0, NOW(), '0987654325', true, 'david.guevara', 'Guevara', 'czcorp@hotmail.com', 'David', 'Quito, Ecuador', 'admin123')
 ON CONFLICT (username) DO NOTHING;
 
 -- Asignar roles a usuarios
@@ -1535,7 +1536,8 @@ INSERT INTO usuario_rol (usuario_id, rol_id) VALUES
 ((SELECT id FROM usuario WHERE username = 'vendedor'), (SELECT id FROM rol WHERE codigo = 'VENDOR')),
 ((SELECT id FROM usuario WHERE username = 'jefe'), (SELECT id FROM rol WHERE codigo = 'SALES_CHIEF')),
 ((SELECT id FROM usuario WHERE username = 'finanzas'), (SELECT id FROM rol WHERE codigo = 'FINANCE')),
-((SELECT id FROM usuario WHERE username = 'operaciones'), (SELECT id FROM rol WHERE codigo = 'OPERATIONS'))
+((SELECT id FROM usuario WHERE username = 'operaciones'), (SELECT id FROM rol WHERE codigo = 'OPERATIONS')),
+((SELECT id FROM usuario WHERE username = 'david.guevara'), (SELECT id FROM rol WHERE codigo = 'VENDOR'))
 ON CONFLICT (usuario_id, rol_id) DO NOTHING;
 
 
