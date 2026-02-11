@@ -16,6 +16,13 @@
 
 set -e  # Salir si hay error
 
+# Validar que existe el SQL maestro ANTES de hacer nada
+if [ ! -f "datos/00_gmarm_completo.sql" ]; then
+    echo "❌ ERROR CRÍTICO: No se encuentra el archivo datos/00_gmarm_completo.sql"
+    echo "   El script no puede continuar sin el SQL maestro."
+    exit 1
+fi
+
 AMBIENTE="${1:-local}"
 
 case "$AMBIENTE" in
@@ -128,9 +135,7 @@ delete_directory_contents "backend/uploads"
 
 # Calcular espacio liberado
 echo ""
-echo "📊 Espacio liberado:"
-SPACE_FREED=$(du -sh documentacion uploads backend/uploads 2>/dev/null | awk '{sum+=$1} END {print sum}' || echo "0")
-echo "   Aproximadamente: $SPACE_FREED"
+echo "📊 Espacio liberado (aproximado)"
 
 echo ""
 echo "🚀 Paso 3/6: Iniciando solo PostgreSQL..."
@@ -296,10 +301,27 @@ echo "🔧 Paso 6/6: Verificando datos cargados..."
 USUARIOS=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM usuario;" 2>/dev/null || echo "0")
 ARMAS=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM arma;" 2>/dev/null || echo "0")
 CLIENTES=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM cliente;" 2>/dev/null || echo "0")
+ROLES=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM rol;" 2>/dev/null || echo "0")
+CATEGORIAS=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM categoria_arma;" 2>/dev/null || echo "0")
+LICENCIAS=$(docker exec "$DB_CONTAINER_ID" psql -U postgres -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM licencia;" 2>/dev/null || echo "0")
 
 echo "   ✅ Usuarios: $USUARIOS"
+echo "   ✅ Roles: $ROLES"
 echo "   ✅ Armas: $ARMAS"
+echo "   ✅ Categorías: $CATEGORIAS"
 echo "   ✅ Clientes: $CLIENTES"
+echo "   ✅ Licencias: $LICENCIAS"
+
+# Validar que los datos críticos existan
+if [ "$USUARIOS" -lt 3 ]; then
+    echo "   ⚠️  Advertencia: Se esperaban al menos 3 usuarios (admin, vendedor, etc.)"
+fi
+if [ "$ROLES" -lt 5 ]; then
+    echo "   ⚠️  Advertencia: Se esperaban al menos 5 roles"
+fi
+if [ "$LICENCIAS" -lt 1 ]; then
+    echo "   ⚠️  Advertencia: Se esperaba al menos 1 licencia"
+fi
 
 echo ""
 echo "🚀 Iniciando todos los servicios..."
@@ -322,7 +344,35 @@ echo "🎯 Base de datos lista desde cero"
 echo "📁 Documentos y uploads eliminados"
 echo ""
 echo "💡 Próximos pasos:"
-echo "   1. Verificar que los servicios estén corriendo: docker-compose -f $DOCKER_COMPOSE_FILE ps"
-echo "   2. Acceder a la aplicación y probar funcionalidades"
+echo "   1. Verificar que los servicios estén corriendo:"
+echo "      docker-compose -f $DOCKER_COMPOSE_FILE ps"
+echo ""
+echo "   2. Acceder a la aplicación:"
+case "$AMBIENTE" in
+  local)
+    echo "      Frontend: http://localhost:5173"
+    echo "      Backend: http://localhost:8080"
+    ;;
+  dev)
+    echo "      Frontend: http://localhost:3000"
+    echo "      Backend: http://localhost:8080"
+    ;;
+  prod)
+    echo "      Verificar configuración de producción"
+    ;;
+esac
+echo ""
+echo "   3. Probar login con usuarios de prueba:"
+echo "      admin@test.com / admin123 (Admin)"
+echo "      vendedor@test.com / admin123 (Vendedor)"
+echo "      david.guevara / czcorp@hotmail.com"
+echo "      franklin.endara / franklin.endara@hotmail.com"
+echo ""
+echo "   4. Verificar que los datos estén correctos:"
+echo "      bash scripts/verificar-datos-prod.sh"
+echo ""
+echo "   5. Si hay problemas, revisar logs:"
+echo "      docker logs $DB_CONTAINER_ID --tail 50"
+echo "      docker logs gmarm-backend-${AMBIENTE} --tail 50"
 echo ""
 
