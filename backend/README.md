@@ -748,19 +748,6 @@ spring.jpa.hibernate.ddl-auto=validate
 cors.allowed.origins=http://localhost:5173
 ```
 
-### **application-docker.properties**
-```properties
-# Profile para Docker (DEV)
-spring.datasource.url=jdbc:postgresql://postgres:5432/gmarm_dev
-spring.datasource.username=postgres
-spring.datasource.password=postgres
-
-# Hibernate
-spring.jpa.hibernate.ddl-auto=validate
-
-# CORS (desde variable de entorno)
-cors.allowed.origins=${FRONTEND_URL:http://localhost:5173}
-```
 
 ### **application-prod.properties**
 ```properties
@@ -859,11 +846,11 @@ User: postgres
 Password: postgres
 ```
 
-**Docker:**
+**Docker (LOCAL):**
 ```
-URL: jdbc:postgresql://postgres:5432/gmarm_dev
+URL: jdbc:postgresql://postgres:5432/gmarm_local
 User: postgres
-Password: postgres
+Password: postgres123
 ```
 
 ### **Hibernate DDL**

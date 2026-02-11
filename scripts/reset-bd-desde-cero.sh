@@ -10,7 +10,7 @@
 #   4. Libera espacio en el servidor
 #
 # Uso:
-#   ./scripts/reset-bd-desde-cero.sh [local|dev|prod]
+#   ./scripts/reset-bd-desde-cero.sh [local|prod]
 #   Si no se especifica ambiente, usa 'local'
 # ========================================
 
@@ -31,11 +31,6 @@ case "$AMBIENTE" in
     DB_NAME="gmarm_local"
     DB_CONTAINER="gmarm-postgres-local"
     ;;
-  dev)
-    DOCKER_COMPOSE_FILE="docker-compose.dev.yml"
-    DB_NAME="gmarm_dev"
-    DB_CONTAINER="gmarm-postgres-dev"
-    ;;
   prod)
     DOCKER_COMPOSE_FILE="docker-compose.prod.yml"
     DB_NAME="gmarm_prod"
@@ -43,7 +38,7 @@ case "$AMBIENTE" in
     ;;
   *)
     echo "❌ Ambiente no válido: $AMBIENTE"
-    echo "   Usa: local, dev o prod"
+    echo "   Usa: local o prod"
     exit 1
     ;;
 esac
@@ -351,10 +346,6 @@ echo "   2. Acceder a la aplicación:"
 case "$AMBIENTE" in
   local)
     echo "      Frontend: http://localhost:5173"
-    echo "      Backend: http://localhost:8080"
-    ;;
-  dev)
-    echo "      Frontend: http://localhost:3000"
     echo "      Backend: http://localhost:8080"
     ;;
   prod)

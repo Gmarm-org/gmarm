@@ -129,12 +129,6 @@ cd "ruta\al\proyecto\gmarm"
 docker-compose -f docker-compose.local.yml restart backend_local
 ```
 
-**En DEV (servidor remoto):**
-```bash
-cd /ruta/al/proyecto/gmarm
-docker-compose -f docker-compose.dev.yml restart backend_dev
-```
-
 **En PROD (producción):**
 ```bash
 cd /ruta/al/proyecto/gmarm

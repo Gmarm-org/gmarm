@@ -193,7 +193,6 @@ gmarm/
 │   │   └── App.tsx                  # Componente raíz
 │   ├── public/                      # Assets públicos
 │   ├── env.local                    # Variables de entorno LOCAL
-│   ├── env.development              # Variables de entorno DEV
 │   ├── .env.prod                    # Variables de entorno PROD
 │   ├── package.json                 # Dependencias npm
 │   └── vite.config.ts               # Configuración Vite
@@ -211,7 +210,6 @@ gmarm/
 │   └── monitor.yml                  # Monitoreo automático
 │
 ├── docker-compose.local.yml          # Docker para desarrollo LOCAL
-├── docker-compose.dev.yml            # Docker para desarrollo DEV
 ├── docker-compose.prod.yml           # Docker para PRODUCCIÓN
 │
 ├── AGENTS.md                         # Guía para agentes de IA
@@ -248,25 +246,6 @@ cd gmarm
 docker-compose -f docker-compose.local.yml up -d --build
 ```
 
-#### **Para DEV** (servidor remoto):
-```powershell
-# PowerShell (Windows)
-$env:BACKEND_URL="http://tu-servidor:8080"
-$env:FRONTEND_URL="http://tu-servidor:5173"
-$env:WS_HOST="tu-servidor"
-$env:WS_PORT="5173"
-docker-compose -f docker-compose.dev.yml up -d --build
-```
-
-```bash
-# Bash (Linux/macOS)
-export BACKEND_URL="http://tu-servidor:8080"
-export FRONTEND_URL="http://tu-servidor:5173"
-export WS_HOST="tu-servidor"
-export WS_PORT="5173"
-docker-compose -f docker-compose.dev.yml up -d --build
-```
-
 ### **3. Acceder a la Aplicación**
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8080
@@ -280,12 +259,11 @@ Ver [Usuarios y Roles](#-usuarios-y-roles) para credenciales de prueba.
 
 ## ⚙️ **Configuración de Entornos**
 
-El proyecto soporta tres entornos configurables:
+El proyecto soporta dos entornos configurables:
 
 | Entorno | Docker Compose | Backend Properties | Frontend Env | Descripción |
 |---------|---------------|-------------------|--------------|-------------|
 | **LOCAL** | `docker-compose.local.yml` | `application-local.properties` | `env.local` | Desarrollo en localhost |
-| **DEV** | `docker-compose.dev.yml` | `application-docker.properties` | `env.development` | Servidor de desarrollo remoto |
 | **PROD** | `docker-compose.prod.yml` | `application-prod.properties` | `.env.prod` | Producción |
 
 ### **Regla de Oro: Coherencia Entre Archivos**

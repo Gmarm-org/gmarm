@@ -96,7 +96,11 @@ echo "  - Swappiness: 10 (conservador)"
 echo "  - Permanente: Sí (en /etc/fstab)"
 echo ""
 echo "⚠️  Ahora reinicia los contenedores:"
-echo "  docker-compose -f docker-compose.dev.yml restart"
+echo "  # Para ambiente local:"
+echo "  docker-compose -f docker-compose.local.yml restart"
+echo ""
+echo "  # Para ambiente producción:"
+echo "  docker-compose -f docker-compose.prod.yml restart"
 echo ""
 
 exit 0
