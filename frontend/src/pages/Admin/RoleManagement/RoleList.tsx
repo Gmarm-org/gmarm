@@ -1,82 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import AdminDataTable from '../components/AdminDataTable';
 import type { AdminTableColumn } from '../components/AdminDataTable';
 import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { roleApi, type Role } from '../../../services/adminApi';
 import RoleFormModal from './RoleFormModal';
+import StatusBadge, { estadoVariant } from '../../../components/common/StatusBadge';
+import { useModalState } from '../../../hooks/useModalState';
+import { useCrudList } from '../../../hooks/useCrudList';
+
+const filterRoles = (roles: Role[], term: string) =>
+  roles.filter(role =>
+    role.nombre.toLowerCase().includes(term.toLowerCase()) ||
+    role.codigo.toLowerCase().includes(term.toLowerCase()) ||
+    role.descripcion.toLowerCase().includes(term.toLowerCase())
+  );
 
 const RoleList: React.FC = () => {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [filteredRoles, setFilteredRoles] = useState<Role[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('view');
-
-  useEffect(() => {
-    loadRoles();
-  }, []);
-
-  const loadRoles = async () => {
-    try {
-      setIsLoading(true);
-      const data = await roleApi.getAll();
-      setRoles(data);
-      setFilteredRoles(data);
-    } catch (error) {
-      console.error('Error cargando roles:', error);
-      setRoles([]);
-      setFilteredRoles([]);
-      alert('Error al cargar roles. Por favor, recarga la página.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    filterRoles();
-  }, [searchTerm, roles]);
-
-  const filterRoles = () => {
-    let filtered = roles;
-
-    if (searchTerm) {
-      filtered = filtered.filter(role =>
-        role.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        role.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        role.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredRoles(filtered);
-  };
-
-  const handleCreate = () => {
-    setSelectedRole(null);
-    setModalMode('create');
-    setModalOpen(true);
-  };
-
-  const handleEdit = (role: Role) => {
-    setSelectedRole(role);
-    setModalMode('edit');
-    setModalOpen(true);
-  };
-
-  const handleView = (role: Role) => {
-    setSelectedRole(role);
-    setModalMode('view');
-    setModalOpen(true);
-  };
+  const fetchRoles = useCallback(() => roleApi.getAll(), []);
+  const { items: roles, filteredItems: filteredRoles, searchTerm, setSearchTerm, isLoading, reload } = useCrudList<Role>({
+    fetchFn: fetchRoles,
+    filterFn: filterRoles,
+  });
+  const modal = useModalState<Role>();
 
   const handleDelete = async (role: Role) => {
     if (window.confirm(`¿Desactivar el rol "${role.nombre}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
       try {
-        // No eliminar, solo cambiar estado a false (inactivo)
         await roleApi.update(role.id, { ...role, estado: false });
-        await loadRoles();
+        await reload();
         alert('Rol desactivado exitosamente');
       } catch (error) {
         console.error('Error desactivando rol:', error);
@@ -87,21 +39,18 @@ const RoleList: React.FC = () => {
 
   const handleSave = async (roleData: Partial<Role>) => {
     try {
-      if (modalMode === 'create') {
+      if (modal.mode === 'create') {
         await roleApi.create(roleData);
-      } else if (modalMode === 'edit' && selectedRole) {
-        await roleApi.update(selectedRole.id, roleData);
+      } else if (modal.mode === 'edit' && modal.selectedItem) {
+        await roleApi.update(modal.selectedItem.id, roleData);
       }
-      // Recargar lista
-      await loadRoles();
-      // Cerrar modal y limpiar selección
-      setModalOpen(false);
-      setSelectedRole(null);
-      alert(modalMode === 'create' ? 'Rol creado exitosamente' : 'Rol actualizado exitosamente');
+      await reload();
+      modal.close();
+      alert(modal.mode === 'create' ? 'Rol creado exitosamente' : 'Rol actualizado exitosamente');
     } catch (error) {
       console.error('Error guardando rol:', error);
       alert('Error al guardar el rol. Verifique que el código sea único.');
-      throw error; // Re-lanzar para que el modal no se cierre
+      throw error;
     }
   };
 
@@ -138,11 +87,7 @@ const RoleList: React.FC = () => {
       render: (value) => (
         <div className="text-sm text-gray-900">
           {value ? (
-            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              value === 'FIJO' ? 'bg-purple-100 text-purple-800' : 'bg-cyan-100 text-cyan-800'
-            }`}>
-              {value === 'FIJO' ? 'Fijo' : 'Libre'}
-            </span>
+            <StatusBadge label={value === 'FIJO' ? 'Fijo' : 'Libre'} variant={value === 'FIJO' ? 'purple' : 'cyan'} />
           ) : (
             <span className="text-gray-400">-</span>
           )}
@@ -153,11 +98,7 @@ const RoleList: React.FC = () => {
       key: 'estado',
       label: 'Estado',
       render: (value) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value ? 'Activo' : 'Inactivo'}
-        </span>
+        <StatusBadge label={value ? 'Activo' : 'Inactivo'} variant={estadoVariant(value)} />
       )
     }
   ];
@@ -196,23 +137,20 @@ const RoleList: React.FC = () => {
         isLoading={isLoading}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        onCreate={handleCreate}
-        onEdit={handleEdit}
+        onCreate={() => modal.openCreate()}
+        onEdit={(role: Role) => modal.openEdit(role)}
         onDelete={handleDelete}
-        onView={handleView}
+        onView={(role: Role) => modal.openView(role)}
         searchPlaceholder="Buscar roles..."
         stats={<AdminStats stats={stats} />}
       />
 
       <RoleFormModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedRole(null);
-        }}
+        isOpen={modal.isOpen}
+        onClose={modal.close}
         onSave={handleSave}
-        role={selectedRole}
-        mode={modalMode}
+        role={modal.selectedItem}
+        mode={modal.mode}
       />
     </>
   );

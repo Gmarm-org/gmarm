@@ -520,24 +520,7 @@ public class ClienteController {
     
     
     
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleResourceNotFoundException(ResourceNotFoundException e) {
-        Map<String, String> error = Map.of("error", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
-    
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<Map<String, String>> handleBadRequestException(BadRequestException e) {
-        Map<String, String> error = Map.of("error", e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-    
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGenericException(Exception e) {
-        log.error("Error inesperado: ", e);
-        Map<String, String> error = Map.of("error", "Error interno del servidor");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-    }
+    // Excepciones manejadas por GlobalExceptionHandler
 
     /**
      * Obtener todos los clientes del sistema (para jefe de ventas)

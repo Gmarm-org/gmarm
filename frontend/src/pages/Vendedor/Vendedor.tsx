@@ -12,6 +12,8 @@ import { ModalValidarDatos } from './components/ModalValidarDatos';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatNombreCompleto } from '../../utils/formatUtils';
+import StatusBadge, { tipoClienteVariant, estadoPagoVariant } from '../../components/common/StatusBadge';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const Vendedor: React.FC = React.memo(() => {
   // Componente Vendedor inicializado
@@ -161,14 +163,7 @@ const Vendedor: React.FC = React.memo(() => {
   } = useTableFilters(clientsByTab);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando módulo vendedor...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   const renderCurrentPage = () => {
@@ -540,15 +535,10 @@ const Vendedor: React.FC = React.memo(() => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
-                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
-                              (client.tipoClienteNombre || client.tipoProcesoNombre) === 'Cupo Deportista' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {client.tipoClienteNombre || client.tipoProcesoNombre || client.tipoCliente}
-                            </span>
+                            <StatusBadge
+                              label={client.tipoClienteNombre || client.tipoProcesoNombre || client.tipoCliente || 'Sin tipo'}
+                              variant={tipoClienteVariant(client.tipoClienteNombre || client.tipoProcesoNombre || '')}
+                            />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {client.numeroIdentificacion}
@@ -557,14 +547,10 @@ const Vendedor: React.FC = React.memo(() => {
                             {client.telefonoPrincipal}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              client.estadoPago === 'PAGO_COMPLETO' ? 'bg-green-100 text-green-800' :
-                              client.estadoPago === 'ABONADO' ? 'bg-yellow-100 text-yellow-800' :
-                              client.estadoPago === 'IMPAGO' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {client.estadoPago || 'N/A'}
-                            </span>
+                            <StatusBadge
+                              label={client.estadoPago || 'N/A'}
+                              variant={estadoPagoVariant(client.estadoPago || '')}
+                            />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {client.grupoImportacionNombre || (
@@ -601,19 +587,10 @@ const Vendedor: React.FC = React.memo(() => {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
-                            {client.emailVerificado === true ? (
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                Validado
-                              </span>
-                            ) : client.emailVerificado === false ? (
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                Datos incorrectos
-                              </span>
-                            ) : (
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                Pendiente
-                              </span>
-                            )}
+                            <StatusBadge
+                              label={client.emailVerificado === true ? 'Validado' : client.emailVerificado === false ? 'Datos incorrectos' : 'Pendiente'}
+                              variant={client.emailVerificado === true ? 'success' : client.emailVerificado === false ? 'danger' : 'warning'}
+                            />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {(() => {

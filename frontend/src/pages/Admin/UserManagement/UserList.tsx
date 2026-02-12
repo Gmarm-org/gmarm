@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminDataTable from '../components/AdminDataTable';
 import type { AdminTableColumn } from '../components/AdminDataTable';
@@ -6,96 +6,44 @@ import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { userApi, type User } from '../../../services/adminApi';
 import Header from '../../../components/Header';
+import StatusBadge, { estadoVariant } from '../../../components/common/StatusBadge';
+import { useCrudList } from '../../../hooks/useCrudList';
+
+const filterUsers = (users: User[], term: string) => {
+  // Filtrar solo usuarios activos + búsqueda
+  let filtered = users.filter(user => user.estado);
+  if (term) {
+    filtered = filtered.filter(user =>
+      user.username.toLowerCase().includes(term.toLowerCase()) ||
+      user.email.toLowerCase().includes(term.toLowerCase()) ||
+      user.nombres.toLowerCase().includes(term.toLowerCase()) ||
+      user.apellidos.toLowerCase().includes(term.toLowerCase())
+    );
+  }
+  return filtered;
+};
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      setIsLoading(true);
-      const data = await userApi.getAll();
-      setUsers(data);
-      setFilteredUsers(data);
-    } catch (error) {
-      console.error('Error cargando usuarios:', error);
-      // Fallback a datos mock si la API falla
-      const mockUsers: User[] = [
-        {
-          id: 1,
-          username: 'admin',
-          email: 'admin@armasimportacion.com',
-          nombres: 'Administrador',
-          apellidos: 'Sistema',
-          estado: true,
-          roles: ['ADMIN']
-        },
-        {
-          id: 2,
-          username: 'vendedor',
-          email: 'vendedor@test.com',
-          nombres: 'Juan',
-          apellidos: 'Vendedor',
-          estado: true,
-          roles: ['VENDEDOR']
-        }
-      ];
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    filterUsers();
-  }, [searchTerm, users]);
-
-  const filterUsers = () => {
-    // Filtrar solo usuarios activos
-    let filtered = users.filter(user => user.estado);
-
-    // Filtrar por búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(user =>
-        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.apellidos.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredUsers(filtered);
-  };
+  const fetchUsers = useCallback(() => userApi.getAll(), []);
+  const { items: users, filteredItems: filteredUsers, searchTerm, setSearchTerm, isLoading } = useCrudList<User>({
+    fetchFn: fetchUsers,
+    filterFn: filterUsers,
+  });
 
   const handleCreate = async () => {
-    console.log('Crear nuevo usuario');
-    // TODO: Implementar modal de creación
     alert('Funcionalidad de creación en desarrollo');
   };
 
-  const handleEdit = async (user: User) => {
-    console.log('Editar usuario:', user);
-    // TODO: Implementar modal de edición
+  const handleEdit = async (_user: User) => {
     alert('Funcionalidad de edición en desarrollo');
   };
 
-  const handleDelete = async (user: User) => {
-    console.log('Eliminar usuario:', user);
-    // TODO: Implementar confirmación de eliminación
+  const handleDelete = async (_user: User) => {
     alert('Funcionalidad de eliminación en desarrollo');
   };
 
-  const handleView = async (user: User) => {
-    console.log('Ver usuario:', user);
-    // TODO: Implementar modal de visualización
+  const handleView = async (_user: User) => {
     alert('Funcionalidad de visualización en desarrollo');
   };
 
@@ -132,11 +80,7 @@ const UserList: React.FC = () => {
       key: 'estado',
       label: 'Estado',
       render: (value) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value ? 'Activo' : 'Inactivo'}
-        </span>
+        <StatusBadge label={value ? 'Activo' : 'Inactivo'} variant={estadoVariant(value)} />
       )
     },
     {
@@ -145,12 +89,7 @@ const UserList: React.FC = () => {
       render: (value) => (
         <div className="flex flex-wrap gap-1">
           {value.map((role: any, index: number) => (
-            <span
-              key={index}
-              className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
-            >
-              {role.nombre}
-            </span>
+            <StatusBadge key={index} label={role.nombre} variant="info" />
           ))}
         </div>
       )
@@ -183,14 +122,14 @@ const UserList: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
-        title="Gestión de Usuarios" 
+      <Header
+        title="Gestión de Usuarios"
         subtitle="Administra los usuarios del sistema"
         showBackButton={true}
         onBack={() => navigate('/admin')}
         backLabel="Volver al Dashboard"
       />
-      
+
       <div className="p-6">
         <AdminDataTable
           title="Lista de Usuarios"

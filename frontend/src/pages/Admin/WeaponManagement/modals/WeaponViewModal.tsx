@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Weapon } from '../../../../services/adminApi';
 import { getWeaponImageUrlWithCacheBusting } from '../../../../utils/imageUtils';
+import StatusBadge, { estadoVariant, categoriaArmaVariant } from '../../../../components/common/StatusBadge';
 
 interface WeaponViewModalProps {
   weapon: Weapon;
@@ -97,11 +98,7 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-gray-700 text-sm">Estado:</label>
-                  <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-                    weapon.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {weapon.estado ? '✅ Activo' : '❌ Inactivo'}
-                  </span>
+                  <StatusBadge label={weapon.estado ? '✅ Activo' : '❌ Inactivo'} variant={estadoVariant(weapon.estado)} />
                 </div>
               </div>
             </div>
@@ -111,14 +108,7 @@ const WeaponViewModal: React.FC<WeaponViewModalProps> = ({
               <div className="space-y-3">
                 <div>
                   <label className="font-semibold text-gray-700 text-sm">Categoría:</label>
-                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                    weapon.categoriaNombre === 'PISTOLA' ? 'bg-blue-100 text-blue-800' :
-                    weapon.categoriaNombre === 'ESCOPETA' ? 'bg-green-100 text-green-800' :
-                    weapon.categoriaNombre === 'RIFLE' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {weapon.categoriaNombre || 'Sin categoría'}
-                  </span>
+                  <StatusBadge label={weapon.categoriaNombre || 'Sin categoría'} variant={categoriaArmaVariant(weapon.categoriaNombre || '')} />
                 </div>
               </div>
             </div>

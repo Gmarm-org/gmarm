@@ -3,6 +3,9 @@ import Header from '../../components/Header';
 import { apiService } from '../../services/api';
 import AsignacionSeries from '../AsignacionSeries';
 import GrupoImportacionDetalle from './components/GrupoImportacionDetalle';
+import StatusBadge, { estadoOperacionVariant, estadoOperacionLabel } from '../../components/common/StatusBadge';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import EmptyState from '../../components/common/EmptyState';
 
 interface GrupoImportacion {
   id: number;
@@ -69,24 +72,6 @@ const Operaciones: React.FC = () => {
   useEffect(() => {
     aplicarFiltros(grupos);
   }, [filtroEstado, busqueda, grupos]);
-
-  const getEstadoBadge = (estado: string) => {
-    const estados: Record<string, { bg: string; text: string; label: string }> = {
-      'SOLICITAR_PROFORMA_FABRICA': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Solicitar Proforma' },
-      'EN_PROCESO_OPERACIONES': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'En Proceso' },
-      'NOTIFICAR_AGENTE_ADUANERO': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Notificar Agente' },
-      'EN_ESPERA_DOCUMENTOS_CLIENTE': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Esperando Documentos' },
-      'COMPLETADO': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completado' },
-    };
-
-    const estadoConfig = estados[estado] || { bg: 'bg-gray-100', text: 'text-gray-800', label: estado };
-    
-    return (
-      <span className={`px-2 py-1 ${estadoConfig.bg} ${estadoConfig.text} text-xs font-medium rounded-full`}>
-        {estadoConfig.label}
-      </span>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -181,22 +166,15 @@ const Operaciones: React.FC = () => {
                 </div>
 
                 {loading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                  </div>
+                  <LoadingSpinner />
                 ) : gruposFiltrados.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 text-lg">
-                      {grupos.length === 0 
-                        ? 'No hay grupos de importación en proceso de operaciones'
-                        : 'No se encontraron grupos con los filtros aplicados'}
-                    </p>
-                    <p className="text-gray-400 text-sm mt-2">
-                      {grupos.length === 0
-                        ? 'Los grupos aparecerán aquí cuando estén en estado "Solicitar Proforma a Fábrica" o "En Proceso de Operaciones"'
-                        : 'Intenta ajustar los filtros de búsqueda'}
-                    </p>
-                  </div>
+                  <EmptyState
+                    message={grupos.length === 0
+                      ? 'No hay grupos de importación en proceso de operaciones'
+                      : undefined}
+                    searchTerm={busqueda || (filtroEstado !== 'TODOS' ? filtroEstado : undefined)}
+                    onClearFilters={() => { setBusqueda(''); setFiltroEstado('TODOS'); }}
+                  />
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -231,7 +209,7 @@ const Operaciones: React.FC = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {getEstadoBadge(grupo.estado)}
+                              <StatusBadge label={estadoOperacionLabel(grupo.estado)} variant={estadoOperacionVariant(grupo.estado)} />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {/* Indicadores de documentos */}

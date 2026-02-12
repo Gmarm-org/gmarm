@@ -5,6 +5,7 @@ import AdminStats from '../components/AdminStats';
 import type { AdminStat } from '../components/AdminStats';
 import { clientTypeApi, importTypeApi, clientImportTypeApi, type ClientType, type ImportType } from '../../../services/adminApi';
 import SimpleFormModal from '../components/SimpleFormModal';
+import StatusBadge, { estadoVariant } from '../../../components/common/StatusBadge';
 
 const ClientTypeList: React.FC = () => {
   const [clientTypes, setClientTypes] = useState<ClientType[]>([]);
@@ -216,11 +217,7 @@ const ClientTypeList: React.FC = () => {
       key: 'estado',
       label: 'Estado',
       render: (value) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value ? 'Activo' : 'Inactivo'}
-        </span>
+        <StatusBadge label={value ? 'Activo' : 'Inactivo'} variant={estadoVariant(value)} />
       )
     }
   ];

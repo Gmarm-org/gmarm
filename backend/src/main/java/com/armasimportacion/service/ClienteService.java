@@ -289,153 +289,103 @@ public class ClienteService {
     }
 
     // ===== MÉTODOS CON DTOs PARA EVITAR PROBLEMAS DE SERIALIZACIÓN =====
-    
+
     public List<ClienteDTO> findAllAsDTO() {
         List<Cliente> clientes = findAll();
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
-        // Calcular estado de pago, grupo de importación y estado calculado para cada cliente
-        dtos.forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-            Cliente cliente = clienteRepository.findById(dto.getId()).orElse(null);
-            if (cliente != null) {
-                dto.setEstado(calcularEstadoCliente(cliente));
-            }
-        });
+        enrichDTOs(dtos, clientes);
         return dtos;
     }
-    
+
     public Page<ClienteDTO> findAllAsDTO(Pageable pageable) {
         Page<Cliente> clientes = clienteRepository.findAllWithUsuarioCreador(pageable);
         Page<ClienteDTO> dtos = clientes.map(clienteMapper::toDTO);
-        // Calcular estado de pago, grupo de importación y estado calculado para cada cliente
-        dtos.getContent().forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-            Cliente cliente = clienteRepository.findById(dto.getId()).orElse(null);
-            if (cliente != null) {
-                dto.setEstado(calcularEstadoCliente(cliente));
-            }
-        });
+        enrichDTOs(dtos.getContent(), clientes.getContent());
         return dtos;
     }
-    
+
     public ClienteDTO findByIdAsDTO(Long id) {
         Cliente cliente = findById(id);
         ClienteDTO dto = clienteMapper.toDTO(cliente);
-        dto.setEstadoPago(calcularEstadoPago(id));
-        dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(id));
-        java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(id);
-        if (licenciaInfo != null) {
-            dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-            dto.setLicenciaNumero(licenciaInfo.get("numero"));
-        }
-        dto.setEstado(calcularEstadoCliente(cliente));
+        enrichDTO(dto, cliente);
         return dto;
     }
-    
+
     public List<ClienteDTO> findByUsuarioCreadorAsDTO(Long usuarioId) {
         List<Cliente> clientes = findByUsuarioCreador(usuarioId);
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
-        // Calcular estado de pago, grupo de importación, licencia y estado calculado para cada cliente
-        dtos.forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-            Cliente cliente = clienteRepository.findById(dto.getId()).orElse(null);
-            if (cliente != null) {
-                EstadoCliente estadoCalculado = calcularEstadoCliente(cliente);
-                log.debug("🔍 Cliente ID {}: estado original={}, estado calculado={}", 
-                    dto.getId(), cliente.getEstado(), estadoCalculado);
-                dto.setEstado(estadoCalculado);
-            }
-        });
+        enrichDTOs(dtos, clientes);
         return dtos;
     }
-    
+
     public Page<ClienteDTO> findByUsuarioCreadorAsDTO(Long usuarioId, Pageable pageable) {
         Page<Cliente> clientes = clienteRepository.findByUsuarioCreadorId(usuarioId, pageable);
         Page<ClienteDTO> dtos = clientes.map(clienteMapper::toDTO);
-        // Calcular estado de pago, grupo de importación y estado calculado para cada cliente
-        dtos.getContent().forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-            Cliente cliente = clienteRepository.findById(dto.getId()).orElse(null);
-            if (cliente != null) {
-                EstadoCliente estadoCalculado = calcularEstadoCliente(cliente);
-                log.debug("🔍 Cliente ID {}: estado original={}, estado calculado={}", 
-                    dto.getId(), cliente.getEstado(), estadoCalculado);
-                dto.setEstado(estadoCalculado);
-            }
-        });
+        enrichDTOs(dtos.getContent(), clientes.getContent());
         return dtos;
     }
-    
+
     public List<ClienteDTO> findByEstadoAsDTO(EstadoCliente estado) {
         List<Cliente> clientes = findByEstado(estado);
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
-        // Calcular estado de pago y grupo de importación para cada cliente
-        dtos.forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-        });
+        enrichDTOs(dtos, clientes);
         return dtos;
     }
-    
+
     public List<ClienteDTO> findClientesAprobadosAsDTO() {
         List<Cliente> clientes = findClientesAprobados();
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
-        // Calcular estado de pago y grupo de importación para cada cliente
-        dtos.forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-        });
+        enrichDTOs(dtos, clientes);
         return dtos;
     }
-    
+
     public List<ClienteDTO> findClientesPendientesAprobacionAsDTO() {
         List<Cliente> clientes = findClientesPendientesAprobacion();
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
-        // Calcular estado de pago y grupo de importación para cada cliente
-        dtos.forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-        });
+        enrichDTOs(dtos, clientes);
         return dtos;
+    }
+
+    // ===== ENRICHMENT DE DTOs (centralizado) =====
+
+    /**
+     * Enriquece un ClienteDTO con campos calculados: estadoPago, grupoImportacion, licencia y estado.
+     * Combina las queries de grupo y licencia en una sola consulta.
+     */
+    private void enrichDTO(ClienteDTO dto, Cliente cliente) {
+        dto.setEstadoPago(calcularEstadoPago(dto.getId()));
+
+        // Una sola query para obtener grupo + licencia (antes eran 2 queries separadas)
+        List<ClienteGrupoImportacion> grupos = clienteGrupoImportacionRepository.findByClienteId(dto.getId());
+        if (grupos != null && !grupos.isEmpty()) {
+            for (ClienteGrupoImportacion cgi : grupos) {
+                EstadoClienteGrupo estado = cgi.getEstado();
+                if (estado != EstadoClienteGrupo.COMPLETADO && estado != EstadoClienteGrupo.CANCELADO) {
+                    dto.setGrupoImportacionNombre(cgi.getGrupoImportacion().getNombre());
+                    GrupoImportacion grupo = cgi.getGrupoImportacion();
+                    if (grupo.getLicencia() != null) {
+                        dto.setLicenciaNombre(grupo.getLicencia().getNombre());
+                        dto.setLicenciaNumero(grupo.getLicencia().getNumero());
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (cliente != null) {
+            dto.setEstado(calcularEstadoCliente(cliente));
+        }
+    }
+
+    /**
+     * Enriquece una lista de DTOs usando los entities correspondientes (evita re-fetch de BD).
+     */
+    private void enrichDTOs(List<ClienteDTO> dtos, List<Cliente> clientes) {
+        java.util.Map<Long, Cliente> clienteMap = clientes.stream()
+            .collect(java.util.stream.Collectors.toMap(Cliente::getId, c -> c, (a, b) -> a));
+        for (ClienteDTO dto : dtos) {
+            enrichDTO(dto, clienteMap.get(dto.getId()));
+        }
     }
 
     // ===== MÉTODOS PRIVADOS =====
@@ -688,14 +638,7 @@ public class ClienteService {
         // Guardar y retornar DTO
         Cliente clienteGuardado = clienteRepository.save(cliente);
         ClienteDTO resultado = clienteMapper.toDTO(clienteGuardado);
-        resultado.setEstadoPago(calcularEstadoPago(clienteGuardado.getId()));
-        resultado.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(clienteGuardado.getId()));
-        java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(clienteGuardado.getId());
-        if (licenciaInfo != null) {
-            resultado.setLicenciaNombre(licenciaInfo.get("nombre"));
-            resultado.setLicenciaNumero(licenciaInfo.get("numero"));
-        }
-        resultado.setEstado(calcularEstadoCliente(clienteGuardado));
+        enrichDTO(resultado, clienteGuardado);
         return resultado;
     }
 
@@ -759,9 +702,7 @@ public class ClienteService {
         // Guardar y retornar DTO
         Cliente clienteActualizado = clienteRepository.save(cliente);
         ClienteDTO resultado = clienteMapper.toDTO(clienteActualizado);
-        resultado.setEstadoPago(calcularEstadoPago(clienteActualizado.getId()));
-        resultado.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(clienteActualizado.getId()));
-        resultado.setEstado(calcularEstadoCliente(clienteActualizado));
+        enrichDTO(resultado, clienteActualizado);
         return resultado;
     }
 
@@ -773,8 +714,7 @@ public class ClienteService {
             throw new ResourceNotFoundException("Cliente no encontrado con identificación: " + numeroIdentificacion);
         }
         ClienteDTO resultado = clienteMapper.toDTO(clientes.get(0));
-        resultado.setEstadoPago(calcularEstadoPago(clientes.get(0).getId()));
-        resultado.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(clientes.get(0).getId()));
+        enrichDTO(resultado, clientes.get(0));
         return resultado;
     }
 
@@ -795,20 +735,7 @@ public class ClienteService {
         // Usar el método existente del repository
         Page<Cliente> clientes = clienteRepository.findByFiltros(null, estado, vendedorId, null, email, nombres, pageable);
         Page<ClienteDTO> dtos = clientes.map(clienteMapper::toDTO);
-        // Calcular estado de pago, grupo de importación y estado calculado para cada cliente
-        dtos.getContent().forEach(dto -> {
-            dto.setEstadoPago(calcularEstadoPago(dto.getId()));
-            dto.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(dto.getId()));
-            java.util.Map<String, String> licenciaInfo = obtenerLicenciaGrupoImportacionActivo(dto.getId());
-            if (licenciaInfo != null) {
-                dto.setLicenciaNombre(licenciaInfo.get("nombre"));
-                dto.setLicenciaNumero(licenciaInfo.get("numero"));
-            }
-            Cliente cliente = clienteRepository.findById(dto.getId()).orElse(null);
-            if (cliente != null) {
-                dto.setEstado(calcularEstadoCliente(cliente));
-            }
-        });
+        enrichDTOs(dtos.getContent(), clientes.getContent());
         return dtos;
     }
 
@@ -822,9 +749,7 @@ public class ClienteService {
         
         Cliente clienteActualizado = clienteRepository.save(cliente);
         ClienteDTO resultado = clienteMapper.toDTO(clienteActualizado);
-        resultado.setEstadoPago(calcularEstadoPago(clienteActualizado.getId()));
-        resultado.setGrupoImportacionNombre(obtenerGrupoImportacionActivo(clienteActualizado.getId()));
-        resultado.setEstado(calcularEstadoCliente(clienteActualizado));
+        enrichDTO(resultado, clienteActualizado);
         return resultado;
     }
 

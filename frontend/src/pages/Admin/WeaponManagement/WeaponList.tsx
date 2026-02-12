@@ -9,6 +9,7 @@ import type { Weapon } from '../../../services/adminApi';
 import { WeaponViewModal, WeaponEditModal, WeaponDeleteModal, WeaponCreateModal } from './modals';
 import { getWeaponImageUrl } from '../../../utils/imageUtils';
 import Header from '../../../components/Header';
+import StatusBadge, { estadoVariant, categoriaArmaVariant } from '../../../components/common/StatusBadge';
 
 const WeaponList: React.FC = () => {
   const navigate = useNavigate();
@@ -155,14 +156,7 @@ const WeaponList: React.FC = () => {
       key: 'categoriaNombre',
       label: 'Categoría',
       render: (value: any) => (
-        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-          value === 'PISTOLA' ? 'bg-blue-100 text-blue-800' :
-          value === 'ESCOPETA' ? 'bg-green-100 text-green-800' :
-          value === 'RIFLE' ? 'bg-purple-100 text-purple-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          {value || 'Sin categoría'}
-        </span>
+        <StatusBadge label={value || 'Sin categoría'} variant={categoriaArmaVariant(value)} />
       )
     },
     {
@@ -194,11 +188,7 @@ const WeaponList: React.FC = () => {
       label: 'Estado',
       render: (value: any, row: any) => (
         <div className="flex items-center space-x-2">
-          <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {value ? '✅ Activo' : '❌ Inactivo'}
-          </span>
+          <StatusBadge label={value ? '✅ Activo' : '❌ Inactivo'} variant={estadoVariant(value)} />
           {!value && (
             <button
               onClick={() => handleReactivate(row)}
