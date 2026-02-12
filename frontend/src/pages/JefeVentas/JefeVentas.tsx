@@ -876,8 +876,8 @@ const JefeVentas: React.FC = () => {
         title="Panel de Jefe de Ventas"
         subtitle="Gestión de inventario, clientes e importaciones"
       />
-      
-      <div className="max-w-7xl mx-auto p-6">
+
+      <div className="w-full px-6 py-6">
 
         {/* Si estamos en modo edición de cliente, mostrar solo el formulario */}
         {currentPage === 'clientForm' && selectedClient ? (
