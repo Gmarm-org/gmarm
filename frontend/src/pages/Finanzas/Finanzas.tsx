@@ -12,7 +12,7 @@ const Finanzas: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Header title="Finanzas" subtitle="Gestión financiera y asignación de series" />
       
-      <div className="w-full px-6 py-6">
+      <div className="w-full px-2 py-4">
         {/* Navegación de pestañas */}
         <div className="flex gap-2 mb-6 w-full">
           <button

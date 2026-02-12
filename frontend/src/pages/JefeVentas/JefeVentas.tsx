@@ -877,7 +877,7 @@ const JefeVentas: React.FC = () => {
         subtitle="Gestión de inventario, clientes e importaciones"
       />
 
-      <div className="w-full px-6 py-6">
+      <div className="w-full px-2 py-4">
 
         {/* Si estamos en modo edición de cliente, mostrar solo el formulario */}
         {currentPage === 'clientForm' && selectedClient ? (
@@ -1306,7 +1306,7 @@ const JefeVentas: React.FC = () => {
                         filterValue={filtersClientes.fechaCreacion || ''}
                         onFilterChange={setFilterClientes}
                       />
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1397,7 +1397,7 @@ const JefeVentas: React.FC = () => {
                           <td className="px-4 py-3 text-center text-sm text-gray-600">
                             {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                             <div className="flex items-center justify-center space-x-2">
                               <button
                                 onClick={() => handleVerDetalleCliente(cliente)}
@@ -1534,7 +1534,7 @@ const JefeVentas: React.FC = () => {
                         filterValue={filtersAsignados.fechaCreacion || ''}
                         onFilterChange={setFilterAsignados}
                       />
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1603,7 +1603,7 @@ const JefeVentas: React.FC = () => {
                             <td className="px-4 py-3 text-center text-sm">
                               {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                               <div className="flex flex-col gap-2 items-center">
                                 {/* Botón Ver Detalle */}
                                 <button
@@ -2424,7 +2424,7 @@ const JefeVentas: React.FC = () => {
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Precio</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Cantidad</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Número de Serie</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2463,7 +2463,7 @@ const JefeVentas: React.FC = () => {
                           <td className="px-4 py-3 text-sm">${arma.precioUnitario?.toFixed(2) || '0.00'}</td>
                           <td className="px-4 py-3 text-center text-sm">{arma.cantidad || 1}</td>
                           <td className="px-4 py-3 text-sm font-mono">{arma.numeroSerie || 'Sin serie'}</td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                             <button
                               onClick={() => handleAbrirModalClienteReasignado(arma)}
                               className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"

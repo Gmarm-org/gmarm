@@ -500,7 +500,7 @@ const Vendedor: React.FC = React.memo(() => {
                         filterValue={filters.estado || ''}
                         onFilterChange={setFilter}
                       />
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                         ACCIONES
                       </th>
                     </tr>
@@ -639,7 +639,7 @@ const Vendedor: React.FC = React.memo(() => {
                               );
                             })()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleViewClient(client)}

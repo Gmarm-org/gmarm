@@ -302,7 +302,7 @@ const ClientesAsignados: React.FC = () => {
                   filterValue={filters.fechaCreacion || ''}
                   onFilterChange={setFilter}
                 />
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">Acciones</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -402,7 +402,7 @@ const ClientesAsignados: React.FC = () => {
                       <td className="px-4 py-3 text-center text-sm">
                         {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                         {(() => {
                           const tieneAutorizacion = autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0;
                           console.log('🔍 DEBUG Cliente:', cliente.id, '- Autorizaciones:', autorizaciones[cliente.id], '- Tiene:', tieneAutorizacion);
