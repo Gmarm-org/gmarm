@@ -143,7 +143,7 @@ const ConfiguracionSistema: React.FC = () => {
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Editable
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                 Acciones
               </th>
             </tr>
@@ -181,7 +181,7 @@ const ConfiguracionSistema: React.FC = () => {
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-6 py-4 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                   {editingKey === config.clave ? (
                     <div className="flex justify-center space-x-2">
                       <button

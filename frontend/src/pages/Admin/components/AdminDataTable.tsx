@@ -123,7 +123,7 @@ const AdminDataTable: React.FC<AdminDataTableProps> = ({
                   </th>
                 ))}
                 {showActions && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                     Acciones
                   </th>
                 )}
@@ -141,7 +141,7 @@ const AdminDataTable: React.FC<AdminDataTableProps> = ({
                     </td>
                   ))}
                   {showActions && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => onView(row)}
