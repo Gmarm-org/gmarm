@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 interface Client {
   id: number;
@@ -250,7 +251,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ onNavigate }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {client.nombres} {client.apellidos}
+                          {formatNombreCompleto(client.nombres, client.apellidos)}
                         </div>
                         <div className="text-sm text-gray-500">{client.cedula}</div>
                         <div className="text-sm text-gray-500">{client.email}</div>
@@ -258,7 +259,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ onNavigate }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {client.vendedor.nombres} {client.vendedor.apellidos}
+                        {formatNombreCompleto(client.vendedor.nombres, client.vendedor.apellidos)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
