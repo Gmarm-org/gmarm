@@ -2,6 +2,7 @@ import React from 'react';
 import type { Client, Weapon, ClientFormMode } from '../types';
 import { isCupoCivil } from '../utils/clientUtils';
 import { getWeaponImageUrlWithCacheBusting } from '../../../utils/imageUtils';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 interface ClientTableProps {
   clients: Client[];
@@ -52,11 +53,11 @@ const ClientTable: React.FC<ClientTableProps> = ({
                       <div>
                         <div><strong>{client.nombreEmpresa}</strong></div>
                         <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                          Rep: {client.nombres} {client.apellidos}
+                          Rep: {formatNombreCompleto(client.nombres, client.apellidos)}
                         </div>
                       </div>
                     ) : (
-                      `${client.nombres} ${client.apellidos}`
+                      formatNombreCompleto(client.nombres, client.apellidos)
                     )}
                   </td>
                   <td>
@@ -159,7 +160,9 @@ const ClientTable: React.FC<ClientTableProps> = ({
               <div key={`card-${client.id}`} className="client-card">
                 <div className="client-card-header">
                   <div className="client-card-name">
-                    {client.nombres} {client.tipoCliente === 'Compañía de Seguridad' ? '' : client.apellidos}
+                    {client.tipoCliente === 'Compañía de Seguridad'
+                      ? client.nombres
+                      : formatNombreCompleto(client.nombres, client.apellidos)}
                   </div>
                   <span className={`client-card-badge badge-${(client.tipoClienteNombre || client.tipoProcesoNombre)?.toLowerCase().replace(/\s+/g, '-') || 'default'}`}>
                     {client.tipoClienteNombre || client.tipoProcesoNombre || 'Sin tipo'}

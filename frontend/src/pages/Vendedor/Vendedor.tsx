@@ -11,6 +11,7 @@ import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters'
 import { ModalValidarDatos } from './components/ModalValidarDatos';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 const Vendedor: React.FC = React.memo(() => {
   // Componente Vendedor inicializado
@@ -533,7 +534,7 @@ const Vendedor: React.FC = React.memo(() => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {client.nombres} {client.apellidos}
+                                {formatNombreCompleto(client.nombres, client.apellidos)}
                               </div>
                               <div className="text-sm text-gray-500">{client.email}</div>
                             </div>

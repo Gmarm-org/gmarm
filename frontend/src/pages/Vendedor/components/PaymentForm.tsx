@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Client } from '../types';
 import type { Arma } from '../hooks/useArmas';
 import { useIVA } from '../../../hooks/useConfiguracion';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 interface PaymentFormProps {
   client: Client;
@@ -228,7 +229,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                     <div className="space-y-2">
                       {client ? (
                         <>
-                          <p><span className="font-medium">Nombre:</span> {client.nombres} {client.apellidos}</p>
+                          <p><span className="font-medium">Nombre:</span> {formatNombreCompleto(client.nombres, client.apellidos)}</p>
                           <p><span className="font-medium">Identificación:</span> {client.numeroIdentificacion}</p>
                           <p><span className="font-medium">Email:</span> {client.email}</p>
                         </>
