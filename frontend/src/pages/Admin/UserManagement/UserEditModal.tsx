@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userApi, roleApi, type User } from '../../../services/adminApi';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 interface UserEditModalProps {
   user?: User | null;
@@ -184,9 +185,9 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
               {mode === 'create' ? '➕ Crear Nuevo Usuario' : '✏️ Editar Usuario'}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              {mode === 'create' 
-                ? 'Complete la información del nuevo usuario' 
-                : `Gestionar roles de: ${user?.nombres} ${user?.apellidos}`}
+              {mode === 'create'
+                ? 'Complete la información del nuevo usuario'
+                : `Gestionar roles de: ${formatNombreCompleto(user?.nombres, user?.apellidos)}`}
             </p>
           </div>
           <button
@@ -355,7 +356,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
                 <div className="mb-6 space-y-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-blue-800">
-                      <strong>Editando usuario:</strong> {user.nombres} {user.apellidos} (ID: {user.id})
+                      <strong>Editando usuario:</strong> {formatNombreCompleto(user.nombres, user.apellidos)} (ID: {user.id})
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 interface ReservaConSerie {
   id: number;
@@ -210,7 +211,7 @@ const AsignacionSeries: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {reserva.cliente.nombres} {reserva.cliente.apellidos}
+                        {formatNombreCompleto(reserva.cliente.nombres, reserva.cliente.apellidos)}
                       </div>
                       <div className="text-sm text-gray-500">
                         {reserva.cliente.numeroIdentificacion}

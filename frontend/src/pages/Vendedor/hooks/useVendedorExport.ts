@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { apiService } from '../../../services/api';
 import type { User } from '../../../types';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 /**
  * Hook para exportar clientes a Excel
@@ -34,8 +35,8 @@ export const useVendedorExport = (user: User | null) => {
           
           // Campos básicos (siempre presentes)
           if (cliente.numeroIdentificacion) fila['CI/RUC'] = cliente.numeroIdentificacion;
-          const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
-          if (nombreCompleto) fila['Nombre Completo'] = nombreCompleto;
+          const nombreCompleto = formatNombreCompleto(cliente.nombres, cliente.apellidos);
+          if (nombreCompleto !== 'Sin nombre') fila['Nombre Completo'] = nombreCompleto;
           if (tipoClienteNombre && tipoClienteNombre !== 'N/A') fila['Tipo Cliente'] = tipoClienteNombre;
           if (cliente.email) fila['Email'] = cliente.email;
           if (cliente.telefonoPrincipal) fila['Teléfono Principal'] = cliente.telefonoPrincipal;
@@ -64,7 +65,7 @@ export const useVendedorExport = (user: User | null) => {
           // Campos generales
           if (cliente.estado) fila['Estado Cliente'] = cliente.estado;
           if (clienteData.fechaCreacion) fila['Fecha Creación'] = new Date(clienteData.fechaCreacion).toLocaleDateString('es-EC');
-          const vendedorNombre = user.nombres && user.apellidos ? `${user.nombres} ${user.apellidos}` : user.email || '';
+          const vendedorNombre = user.nombres && user.apellidos ? formatNombreCompleto(user.nombres, user.apellidos) : user.email || '';
           if (vendedorNombre) fila['Vendedor'] = vendedorNombre;
           
           // Campos de arma (solo si hay arma)
@@ -106,8 +107,8 @@ export const useVendedorExport = (user: User | null) => {
           const fila: Record<string, any> = {};
           
           if (cliente.numeroIdentificacion) fila['CI/RUC'] = cliente.numeroIdentificacion;
-          const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
-          if (nombreCompleto) fila['Nombre Completo'] = nombreCompleto;
+          const nombreCompleto = formatNombreCompleto(cliente.nombres, cliente.apellidos);
+          if (nombreCompleto !== 'Sin nombre') fila['Nombre Completo'] = nombreCompleto;
           if (tipoClienteNombre && tipoClienteNombre !== 'N/A') fila['Tipo Cliente'] = tipoClienteNombre;
           if (cliente.email) fila['Email'] = cliente.email;
           if (cliente.telefonoPrincipal) fila['Teléfono Principal'] = cliente.telefonoPrincipal;

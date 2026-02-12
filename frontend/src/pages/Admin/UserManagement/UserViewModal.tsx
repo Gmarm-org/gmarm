@@ -1,6 +1,7 @@
 import React from 'react';
 import type { User } from '../../../services/adminApi';
 import { formatDateTime } from '../../../utils/dateUtils';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 interface UserViewModalProps {
   user: User | null;
@@ -50,7 +51,7 @@ const UserViewModal: React.FC<UserViewModalProps> = ({ user, isOpen, onClose, on
             )}
             <div className="flex-1">
               <h4 className="text-2xl font-bold text-gray-900">
-                {user.nombres} {user.apellidos}
+                {formatNombreCompleto(user.nombres, user.apellidos)}
               </h4>
               <p className="text-gray-600 mt-1">@{user.username}</p>
               <div className="flex gap-2 mt-3">

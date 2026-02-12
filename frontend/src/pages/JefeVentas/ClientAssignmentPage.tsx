@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { mockClients, mockImportGroups } from './HardcodedData';
 import type { Client, ImportGroup } from './types';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 interface AssignmentDocument {
   id: string;
@@ -379,7 +380,7 @@ const ClientAssignmentPage: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-4">
                       <h4 className="text-lg font-medium text-gray-900">
-                        {assignment.cliente.nombres} {assignment.cliente.apellidos}
+                        {formatNombreCompleto(assignment.cliente.nombres, assignment.cliente.apellidos)}
                       </h4>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         assignment.cliente.tipoCliente === 'CIVIL' ? 'bg-blue-100 text-blue-800' :
@@ -643,7 +644,7 @@ const ClientAssignmentPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900">
-                          {client.nombres} {client.apellidos}
+                          {formatNombreCompleto(client.nombres, client.apellidos)}
                         </div>
                         <div className="text-sm text-gray-500">
                           Cédula: {client.cedula} | {client.tipoCliente}

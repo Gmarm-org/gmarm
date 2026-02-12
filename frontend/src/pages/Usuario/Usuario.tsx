@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { mockApiService } from '../../services/mockApiService';
 import type { User } from '../../types';
 import Header from '../../components/Header';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 const Usuario: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -67,7 +68,7 @@ const Usuario: React.FC = () => {
                     {user.id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.nombres} {user.apellidos}
+                    {formatNombreCompleto(user.nombres, user.apellidos)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.email}
