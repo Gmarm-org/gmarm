@@ -1,10 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const RoleSelection: React.FC = () => {
   const { user, setActiveRole } = useAuth();
-  const navigate = useNavigate();
 
   console.log('🔄 RoleSelection - Componente renderizando');
   console.log('🔄 RoleSelection - user:', user);
