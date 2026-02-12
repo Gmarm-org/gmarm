@@ -171,13 +171,6 @@ const UserList: React.FC = () => {
       description: showInactive ? 'Todos los usuarios' : 'Usuarios activos mostrados'
     },
     {
-      label: 'Total en Sistema',
-      value: users.length,
-      icon: '📊',
-      color: 'gray',
-      description: 'Total de usuarios (activos + inactivos)'
-    },
-    {
       label: 'Administradores',
       value: users.filter(u => u.roles.some((r: any) => r.codigo === 'ADMIN')).length,
       icon: '🛡️',

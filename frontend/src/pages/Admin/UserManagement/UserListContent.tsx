@@ -215,13 +215,6 @@ const UserListContent: React.FC = () => {
       description: showInactive ? 'Todos los usuarios' : 'Usuarios activos mostrados'
     },
     {
-      label: 'Total en Sistema',
-      value: users.length || 0,
-      icon: '📊',
-      color: 'gray',
-      description: 'Total de usuarios (activos + inactivos)'
-    },
-    {
       label: 'Bloqueados',
       value: users.filter(u => u?.bloqueado).length || 0,
       icon: '🔒',
