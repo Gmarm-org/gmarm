@@ -12,6 +12,7 @@ import GestionImportaciones from '../../components/shared/GestionImportaciones';
 import ClientForm from '../Vendedor/components/ClientForm';
 import WeaponListContent from '../Admin/WeaponManagement/WeaponListContent';
 import WeaponCategoryList from '../Admin/WeaponManagement/WeaponCategoryList';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 interface StockArma {
   armaId: number;
@@ -1320,7 +1321,7 @@ const JefeVentas: React.FC = () => {
                         <tr key={cliente.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
                           <td className="px-4 py-3 text-sm font-medium">
-                            {cliente.nombres} {cliente.apellidos}
+                            {formatNombreCompleto(cliente.nombres, cliente.apellidos)}
                           </td>
                           <td className="px-4 py-3 text-sm">{cliente.tipoClienteNombre}</td>
                           <td className="px-4 py-3 text-sm">
@@ -1330,7 +1331,7 @@ const JefeVentas: React.FC = () => {
                                   {cliente.vendedorNombre?.charAt(0)}{cliente.vendedorApellidos?.charAt(0)}
                                 </span>
                               </div>
-                              <span>{cliente.vendedorNombre} {cliente.vendedorApellidos}</span>
+                              <span>{formatNombreCompleto(cliente.vendedorNombre, cliente.vendedorApellidos)}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm">{cliente.email}</td>
@@ -1558,7 +1559,7 @@ const JefeVentas: React.FC = () => {
                           <tr key={cliente.id} className="border-b hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
                             <td className="px-4 py-3 text-sm font-medium">
-                              {cliente.nombres} {cliente.apellidos}
+                              {formatNombreCompleto(cliente.nombres, cliente.apellidos)}
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -1596,7 +1597,7 @@ const JefeVentas: React.FC = () => {
                                     {cliente.vendedorNombre?.charAt(0)}{cliente.vendedorApellidos?.charAt(0)}
                                   </span>
                                 </div>
-                                <span>{cliente.vendedorNombre} {cliente.vendedorApellidos}</span>
+                                <span>{formatNombreCompleto(cliente.vendedorNombre, cliente.vendedorApellidos)}</span>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-center text-sm">
@@ -1682,7 +1683,7 @@ const JefeVentas: React.FC = () => {
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-800">
-                      {clienteSeleccionado.nombres} {clienteSeleccionado.apellidos}
+                      {formatNombreCompleto(clienteSeleccionado.nombres, clienteSeleccionado.apellidos)}
                     </h2>
                     <p className="text-gray-600">CI: {clienteSeleccionado.numeroIdentificacion}</p>
                   </div>
@@ -1724,7 +1725,7 @@ const JefeVentas: React.FC = () => {
                     <div>
                       <p className="text-sm text-gray-600">Vendedor Responsable</p>
                       <p className="font-medium text-blue-600">
-                        {clienteSeleccionado.vendedorNombre} {clienteSeleccionado.vendedorApellidos}
+                        {formatNombreCompleto(clienteSeleccionado.vendedorNombre, clienteSeleccionado.vendedorApellidos)}
                       </p>
                     </div>
                     <div>
@@ -2219,12 +2220,8 @@ const JefeVentas: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-800 mb-4">Datos del Cliente</h3>
                       <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-gray-600">Nombres</p>
-                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.nombres || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Apellidos</p>
-                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.apellidos || 'N/A'}</p>
+                          <p className="text-sm text-gray-600">Nombre Completo</p>
+                          <p className="font-medium">{formatNombreCompleto(modalGenerarContrato.datosContrato.cliente?.nombres, modalGenerarContrato.datosContrato.cliente?.apellidos)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Número de Identificación</p>
@@ -2521,7 +2518,7 @@ const JefeVentas: React.FC = () => {
                 </button>
               </div>
               <p className="text-gray-600 mb-4">
-                Cliente actual: {modalReasignarArma.cliente.nombres} {modalReasignarArma.cliente.apellidos}
+                Cliente actual: {formatNombreCompleto(modalReasignarArma.cliente.nombres, modalReasignarArma.cliente.apellidos)}
               </p>
               <p className="text-gray-600 mb-4">
                 Esta funcionalidad requiere seleccionar un nuevo cliente. Por favor, use la pestaña "REASIGNAR ARMAS" para esta operación.
@@ -2658,7 +2655,7 @@ const JefeVentas: React.FC = () => {
                 </button>
               </div>
               <p className="text-gray-600 mb-4">
-                Cliente: {modalDesistimiento.cliente.nombres} {modalDesistimiento.cliente.apellidos}
+                Cliente: {formatNombreCompleto(modalDesistimiento.cliente.nombres, modalDesistimiento.cliente.apellidos)}
               </p>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2729,7 +2726,7 @@ const JefeVentas: React.FC = () => {
                   <option value="">-- Seleccione un cliente --</option>
                   {clientes.map((cliente) => (
                     <option key={cliente.id} value={cliente.id}>
-                      {cliente.nombres} {cliente.apellidos} - {cliente.numeroIdentificacion}
+                      {formatNombreCompleto(cliente.nombres, cliente.apellidos)} - {cliente.numeroIdentificacion}
                     </option>
                   ))}
                 </select>
@@ -2840,7 +2837,7 @@ const JefeVentas: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-gray-600">Nombre:</span>
-                      <span className="font-medium ml-2">{clienteAutorizacion.nombres} {clienteAutorizacion.apellidos}</span>
+                      <span className="font-medium ml-2">{formatNombreCompleto(clienteAutorizacion.nombres, clienteAutorizacion.apellidos)}</span>
                     </div>
                     <div>
                       <span className="text-gray-600">CI:</span>
