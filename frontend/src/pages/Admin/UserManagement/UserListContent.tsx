@@ -12,7 +12,6 @@ const UserListContent: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showInactive, setShowInactive] = useState(false); // Por defecto ocultar inactivos
   const [isLoading, setIsLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -41,15 +40,11 @@ const UserListContent: React.FC = () => {
 
   useEffect(() => {
     filterUsers();
-  }, [searchTerm, users, showInactive]);
+  }, [searchTerm, users]);
 
   const filterUsers = () => {
-    let filtered = users;
-
-    // Filtrar por estado activo/inactivo
-    if (!showInactive) {
-      filtered = filtered.filter(user => user.estado);
-    }
+    // Filtrar solo usuarios activos
+    let filtered = users.filter(user => user.estado);
 
     // Filtrar por búsqueda
     if (searchTerm) {
@@ -212,7 +207,7 @@ const UserListContent: React.FC = () => {
       value: filteredUsers.length || 0,
       icon: '👥',
       color: 'blue',
-      description: showInactive ? 'Todos los usuarios' : 'Usuarios activos'
+      description: 'Usuarios activos'
     },
     {
       label: 'Bloqueados',
@@ -232,21 +227,6 @@ const UserListContent: React.FC = () => {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="showInactive"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <label htmlFor="showInactive" className="text-sm text-gray-700 cursor-pointer">
-            Mostrar usuarios inactivos
-          </label>
-        </div>
-      </div>
-
       <AdminDataTable
         title="Gestión de Usuarios"
         description="Administra los usuarios del sistema"
