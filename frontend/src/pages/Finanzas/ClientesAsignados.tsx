@@ -3,6 +3,7 @@ import { apiService } from '../../services/api';
 import type { Client } from '../Vendedor/types';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 interface ClienteConVendedor extends Client {
   vendedorNombre?: string;
@@ -326,7 +327,7 @@ const ClientesAsignados: React.FC = () => {
                     <tr key={cliente.id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
                       <td className="px-4 py-3 text-sm font-medium">
-                        {cliente.nombres} {cliente.apellidos}
+                        {formatNombreCompleto(cliente.nombres, cliente.apellidos)}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -364,7 +365,7 @@ const ClientesAsignados: React.FC = () => {
                               {cliente.vendedorNombre?.charAt(0)}{cliente.vendedorApellidos?.charAt(0)}
                             </span>
                           </div>
-                          <span>{cliente.vendedorNombre} {cliente.vendedorApellidos}</span>
+                          <span>{formatNombreCompleto(cliente.vendedorNombre, cliente.vendedorApellidos)}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -579,7 +580,7 @@ const ClientesAsignados: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600">Nombre:</span>
-                    <span className="font-medium ml-2">{clienteSeleccionado.nombres} {clienteSeleccionado.apellidos}</span>
+                    <span className="font-medium ml-2">{formatNombreCompleto(clienteSeleccionado.nombres, clienteSeleccionado.apellidos)}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">CI:</span>
