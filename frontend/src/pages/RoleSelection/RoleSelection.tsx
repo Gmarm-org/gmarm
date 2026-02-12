@@ -18,10 +18,14 @@ const RoleSelection: React.FC = () => {
   const handleRoleSelect = (roleName: string, roleCode: string) => {
     console.log('🔄 RoleSelection - Seleccionando rol:', roleName, 'código:', roleCode);
 
-    // Establecer el rol activo en el contexto (usar el código, no el nombre)
+    // PRIMERO: Guardar directamente en localStorage (síncrono)
+    localStorage.setItem('activeRole', roleCode);
+    console.log('✅ RoleSelection - Rol guardado en localStorage:', roleCode);
+
+    // SEGUNDO: Actualizar el contexto (opcional, ya que vamos a recargar)
     setActiveRole(roleCode);
 
-    // Determinar la ruta según el rol seleccionado
+    // TERCERO: Determinar la ruta según el rol seleccionado
     let targetRoute = '/dashboard';
     switch (roleCode) {
       case 'VENDOR':
@@ -41,8 +45,10 @@ const RoleSelection: React.FC = () => {
         break;
     }
 
-    // Recargar la página para limpiar el caché de React Query y estado
-    // Esto asegura que se carguen los datos correctos para el nuevo rol
+    console.log('🔄 RoleSelection - Recargando página a:', targetRoute);
+
+    // CUARTO: Recargar la página (localStorage ya está actualizado)
+    // Esto limpia el caché de React Query y todo el estado
     window.location.href = targetRoute;
   };
 
