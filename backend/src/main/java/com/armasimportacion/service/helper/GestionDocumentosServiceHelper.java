@@ -181,13 +181,11 @@ public class GestionDocumentosServiceHelper {
         try {
             log.info("📄 GENERANDO COTIZACIÓN PARA CLIENTE ID: {}", cliente.getId());
 
-            // IMPORTANTE: Extraer número de cotización anterior ANTES de eliminar
-            String numeroCotizacionAnterior = extraerNumeroCotizacionAnterior(cliente.getId());
+            // PRIMERO: Calcular el siguiente número secuencial basado en lo que existe en BD
+            // (si ya existe LN-0009, el siguiente será LN-0010)
+            String numeroCotizacion = determinarNumeroCotizacion(cliente, pago);
 
-            // Generar el número de cotización (anterior o nuevo)
-            String numeroCotizacion = determinarNumeroCotizacion(cliente, pago, numeroCotizacionAnterior);
-
-            // ELIMINAR COTIZACIONES ANTERIORES PARA EVITAR DUPLICADOS
+            // LUEGO: Eliminar cotizaciones anteriores del cliente
             eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.COTIZACION);
 
             // Generar PDF de cotización con el número determinado
@@ -699,38 +697,31 @@ public class GestionDocumentosServiceHelper {
     }
 
     /**
-     * Determina el número de cotización a usar (anterior o nuevo)
-     * @param cliente Cliente para quien se genera la cotización
-     * @param pago Pago asociado
-     * @param numeroCotizacionAnterior Número de cotización anterior (puede ser null)
-     * @return Número de cotización a usar
+     * Determina el siguiente número secuencial de cotización.
+     * Busca el máximo existente en BD para las iniciales+año y suma 1.
+     * IMPORTANTE: Las cotizaciones anteriores del cliente deben eliminarse ANTES de llamar este método.
      */
-    private String determinarNumeroCotizacion(Cliente cliente, Pago pago, String numeroCotizacionAnterior) {
-        // Si existe número anterior, reutilizarlo para mantener trazabilidad
-        if (numeroCotizacionAnterior != null && !numeroCotizacionAnterior.trim().isEmpty()) {
-            log.info("🔄 Reutilizando número de cotización anterior: {}", numeroCotizacionAnterior);
-            return numeroCotizacionAnterior;
-        }
-
-        // Generar nuevo número
+    private String determinarNumeroCotizacion(Cliente cliente, Pago pago) {
         int year = java.time.LocalDate.now().getYear();
         String iniciales = obtenerInicialesImportador(cliente);
-        int seq = 1;
 
-        // Obtener licencia para verificar caso especial Marcia Loyaga
-        Licencia licencia = obtenerLicenciaActiva(cliente);
-        String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+        // Buscar el máximo número secuencial existente para estas iniciales + año
+        java.util.Optional<Integer> maxSeq = documentoGeneradoRepository.findMaxSecuenciaCotizacion(iniciales, year);
 
-        // CASO ESPECIAL: Marcia Loyaga - numeración empieza en 9
-        if (licenciaNombre.toLowerCase().contains("marcia") && licenciaNombre.toLowerCase().contains("loyaga")) {
-            log.info("🔢 CASO ESPECIAL: Licencia Marcia Loyaga detectada - numeración empieza en 9");
-            seq = 9;
+        int seq;
+        if (maxSeq.isPresent()) {
+            seq = maxSeq.get() + 1;
+            log.info("🔢 Secuencia encontrada: máx existente = {}, nuevo = {}", maxSeq.get(), seq);
         } else {
-            // Lógica normal: usar ID del pago o cliente
-            if (pago != null && pago.getId() != null) {
-                seq = Math.max(pago.getId().intValue(), 1);
-            } else if (cliente.getId() != null) {
-                seq = Math.max(cliente.getId().intValue(), 1);
+            // No hay cotizaciones previas para esta licencia+año
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
+
+            if (licenciaNombre.toLowerCase().contains("marcia") && licenciaNombre.toLowerCase().contains("loyaga")) {
+                seq = 9;
+                log.info("🔢 Licencia Marcia Loyaga - iniciando numeración en {}", seq);
+            } else {
+                seq = 1;
             }
         }
 
@@ -740,47 +731,9 @@ public class GestionDocumentosServiceHelper {
     }
 
     /**
-     * Extrae el número de cotización anterior para preservar la trazabilidad
-     * @param clienteId ID del cliente
-     * @return Número de cotización anterior o null si no existe
-     */
-    private String extraerNumeroCotizacionAnterior(Long clienteId) {
-        try {
-            List<DocumentoGenerado> cotizacionesExistentes = documentoGeneradoRepository
-                .findByClienteIdAndTipo(clienteId, TipoDocumentoGenerado.COTIZACION);
-
-            if (!cotizacionesExistentes.isEmpty()) {
-                // Obtener la cotización más reciente
-                DocumentoGenerado cotizacionAnterior = cotizacionesExistentes.get(cotizacionesExistentes.size() - 1);
-
-                // Intentar extraer el número del campo descripcion primero
-                if (cotizacionAnterior.getDescripcion() != null && cotizacionAnterior.getDescripcion().contains("COTIZACIÓN:")) {
-                    String desc = cotizacionAnterior.getDescripcion();
-                    int inicioNum = desc.indexOf("COTIZACIÓN:") + 11;
-                    String numeroExtraido = desc.substring(inicioNum).trim().split("\\s")[0];
-                    log.info("🔄 Número de cotización anterior encontrado en descripción: {}", numeroExtraido);
-                    return numeroExtraido;
-                }
-
-                // Fallback: intentar extraer del nombre field
-                if (cotizacionAnterior.getNombre() != null) {
-                    log.info("🔄 Número de cotización anterior encontrado en nombre: {}", cotizacionAnterior.getNombre());
-                    return cotizacionAnterior.getNombre();
-                }
-
-                log.info("⚠️ No se pudo extraer número de cotización anterior del documento ID: {}", cotizacionAnterior.getId());
-            }
-        } catch (Exception e) {
-            log.warn("⚠️ Error extrayendo número de cotización anterior: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    /**
      * Genera PDF de Cotización usando Flying Saucer con template HTML/CSS
-     * @param numeroCotizacionAnterior Número de cotización anterior para preservar trazabilidad (puede ser null)
      */
-    private byte[] generarPDFCotizacion(Cliente cliente, Pago pago, String numeroCotizacionAnterior) throws Exception {
+    private byte[] generarPDFCotizacion(Cliente cliente, Pago pago, String numeroCotizacion) throws Exception {
         log.info("🔧 Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
         
         try {
@@ -851,8 +804,6 @@ public class GestionDocumentosServiceHelper {
             String licenciaCuentaBancaria = licencia != null && licencia.getCuentaBancaria() != null ? licencia.getCuentaBancaria() : "";
             String licenciaTitular = licenciaNombre;
 
-            // Usar el número de cotización determinado (ya sea anterior o nuevo)
-            String numeroCotizacion = numeroCotizacionAnterior;
             log.info("📋 Usando número de cotización: {}", numeroCotizacion);
 
             // Fecha de cotización con ciudad del cantón de la licencia (ej: "Quito, 27 de enero de 2026")

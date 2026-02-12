@@ -15,3 +15,6 @@ uploads/
 .DS_Store
 Thumbs.db
 
+# MCP config (contiene tokens)
+.mcp.json
+

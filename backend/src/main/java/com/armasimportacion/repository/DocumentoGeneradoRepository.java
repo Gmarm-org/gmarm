@@ -56,4 +56,13 @@ public interface DocumentoGeneradoRepository extends JpaRepository<DocumentoGene
     // Documentos recientes
     @Query("SELECT dg FROM DocumentoGenerado dg ORDER BY dg.fechaGeneracion DESC")
     List<DocumentoGenerado> findDocumentosRecientes();
-} 
+
+    // Obtener el máximo número secuencial de cotizaciones por prefijo (iniciales) y año
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(nombre, LENGTH(:prefijo) + 2, 4) AS INTEGER)) " +
+           "FROM documento_generado " +
+           "WHERE tipo_documento = 'COTIZACION' " +
+           "AND nombre LIKE CONCAT(:prefijo, '-%') " +
+           "AND nombre LIKE CONCAT('%-', CAST(:anio AS VARCHAR))",
+           nativeQuery = true)
+    Optional<Integer> findMaxSecuenciaCotizacion(@Param("prefijo") String prefijo, @Param("anio") int anio);
+}
