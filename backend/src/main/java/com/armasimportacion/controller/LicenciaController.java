@@ -127,6 +127,9 @@ public class LicenciaController {
                     if (licenciaDTO.getNombre() != null) {
                         existingLicencia.setNombre(licenciaDTO.getNombre());
                     }
+                    if (licenciaDTO.getTitulo() != null) {
+                        existingLicencia.setTitulo(licenciaDTO.getTitulo());
+                    }
                     if (licenciaDTO.getRuc() != null) {
                         existingLicencia.setRuc(licenciaDTO.getRuc());
                     }

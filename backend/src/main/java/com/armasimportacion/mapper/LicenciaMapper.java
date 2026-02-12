@@ -28,6 +28,7 @@ public class LicenciaMapper {
                 .id(licencia.getId())
                 .numero(licencia.getNumero())
                 .nombre(licencia.getNombre())
+                .titulo(licencia.getTitulo())
                 .ruc(licencia.getRuc())
                 .cuentaBancaria(licencia.getCuentaBancaria())
                 .nombreBanco(licencia.getNombreBanco())
@@ -68,6 +69,7 @@ public class LicenciaMapper {
         licencia.setId(dto.getId());
         licencia.setNumero(dto.getNumero());
         licencia.setNombre(dto.getNombre());
+        licencia.setTitulo(dto.getTitulo());
         licencia.setRuc(dto.getRuc());
         licencia.setCuentaBancaria(dto.getCuentaBancaria());
         licencia.setNombreBanco(dto.getNombreBanco());
