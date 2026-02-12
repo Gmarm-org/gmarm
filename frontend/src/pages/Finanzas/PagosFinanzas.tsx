@@ -719,7 +719,7 @@ const PagosFinanzas: React.FC = () => {
                     filterValue={filters.observaciones || ''}
                     onFilterChange={setFilter}
                   />
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                     Acciones
                   </th>
                 </tr>
@@ -775,7 +775,7 @@ const PagosFinanzas: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 max-w-xs truncate" title={pago.observaciones || ''}>
                       {pago.observaciones || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
                       <div className="flex flex-col gap-1">
                         {(pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') && (
                           <button
