@@ -36,7 +36,7 @@ const RoleSelection: React.FC = () => {
         targetRoute = '/finanzas';
         break;
       case 'ADMIN':
-        targetRoute = '/dashboard';
+        targetRoute = '/admin';
         break;
       case 'OPERATIONS':
         targetRoute = '/operaciones';
