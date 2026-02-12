@@ -4,6 +4,7 @@ import type { Client } from '../Vendedor/types';
 import * as XLSX from 'xlsx';
 import { useTableFilters } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
+import { formatNombreCompleto } from '../../utils/formatUtils';
 
 interface CuotaPago {
   id: number;
@@ -374,8 +375,8 @@ const PagosFinanzas: React.FC = () => {
   }, []);
 
   const crearHojaDetallePago = useCallback(async (pago: PagoCompleto) => {
-    const clienteNombre = pago.cliente 
-      ? `${pago.cliente.nombres} ${pago.cliente.apellidos}`.trim()
+    const clienteNombre = pago.cliente
+      ? formatNombreCompleto(pago.cliente.nombres, pago.cliente.apellidos)
       : 'N/A';
     const clienteCedula = pago.cliente?.numeroIdentificacion || 'N/A';
     const descripcionArma = await obtenerDescripcionArma(pago, clienteNombre);
@@ -524,8 +525,8 @@ const PagosFinanzas: React.FC = () => {
 
       const filas = [];
       for (const pago of pagosFiltrados) {
-        const clienteNombre = pago.cliente 
-          ? `${pago.cliente.nombres} ${pago.cliente.apellidos}`.trim()
+        const clienteNombre = pago.cliente
+          ? formatNombreCompleto(pago.cliente.nombres, pago.cliente.apellidos)
           : 'N/A';
         const clienteCedula = pago.cliente?.numeroIdentificacion || 'N/A';
         const descripcionArma = await obtenerDescripcionArma(pago, clienteNombre);
@@ -734,7 +735,7 @@ const PagosFinanzas: React.FC = () => {
                       {pago.cliente ? (
                         <div>
                           <div className="font-medium text-gray-900">
-                            {pago.cliente.nombres} {pago.cliente.apellidos}
+                            {formatNombreCompleto(pago.cliente.nombres, pago.cliente.apellidos)}
                           </div>
                           <div className="text-gray-500 text-xs">
                             {pago.cliente.numeroIdentificacion}
