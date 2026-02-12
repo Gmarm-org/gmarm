@@ -17,30 +17,33 @@ const RoleSelection: React.FC = () => {
 
   const handleRoleSelect = (roleName: string, roleCode: string) => {
     console.log('🔄 RoleSelection - Seleccionando rol:', roleName, 'código:', roleCode);
-    
+
     // Establecer el rol activo en el contexto (usar el código, no el nombre)
     setActiveRole(roleCode);
-    
-    // Redirigir según el rol seleccionado
+
+    // Determinar la ruta según el rol seleccionado
+    let targetRoute = '/dashboard';
     switch (roleCode) {
       case 'VENDOR':
-        navigate('/vendedor');
+        targetRoute = '/vendedor';
         break;
       case 'SALES_CHIEF':
-        navigate('/jefe-ventas');
+        targetRoute = '/jefe-ventas';
         break;
       case 'FINANCE':
-        navigate('/finanzas');
+        targetRoute = '/finanzas';
         break;
       case 'ADMIN':
-        navigate('/dashboard');
+        targetRoute = '/dashboard';
         break;
       case 'OPERATIONS':
-        navigate('/operaciones');
+        targetRoute = '/operaciones';
         break;
-      default:
-        navigate('/dashboard');
     }
+
+    // Recargar la página para limpiar el caché de React Query y estado
+    // Esto asegura que se carguen los datos correctos para el nuevo rol
+    window.location.href = targetRoute;
   };
 
   const getRoleIcon = (roleName: string) => {
