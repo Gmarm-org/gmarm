@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatNombreCompleto } from '../../../utils/formatUtils';
 
 interface Weapon {
   id: string;
@@ -82,7 +83,7 @@ const WeaponManagement: React.FC<WeaponManagementProps> = ({ onNavigate }) => {
     
     const matchesSearch = weapon.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          weapon.calibre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (weapon.vendedor && `${weapon.vendedor.nombres} ${weapon.vendedor.apellidos}`.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (weapon.vendedor && formatNombreCompleto(weapon.vendedor.nombres, weapon.vendedor.apellidos).toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesFilter && matchesSearch;
   });
@@ -267,7 +268,7 @@ const WeaponManagement: React.FC<WeaponManagementProps> = ({ onNavigate }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {weapon.vendedor ? `${weapon.vendedor.nombres} ${weapon.vendedor.apellidos}` : 'Sin vendedor'}
+                      {weapon.vendedor ? formatNombreCompleto(weapon.vendedor.nombres, weapon.vendedor.apellidos) : 'Sin vendedor'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
