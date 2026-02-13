@@ -4,8 +4,8 @@
 
 **Proyecto**: GMARM - Sistema de Gestión de Armas  
 **Framework**: Spring Boot 3.x + Java 17+  
-**Fecha de Creación**: 9 de Noviembre, 2025  
-**Última Actualización**: 9 de Noviembre, 2025  
+**Fecha de Creación**: 9 de Noviembre, 2025
+**Última Actualización**: 13 de Febrero, 2026
 
 ---
 
@@ -390,45 +390,55 @@ public class ClienteService {
 
 ## 🚨 Deuda Técnica Identificada
 
-### 1. 🟡 Clases Service Grandes
+### 1. 🟢 Clases Service Grandes — MAYORMENTE RESUELTO (Feb 2026)
 
-**Archivos Afectados**:
-```
-- ClienteCompletoService.java (415 líneas) ⚠️ Cerca del límite
-- ClienteArmaService.java (320 líneas) ✅ Aceptable
-- ContratoService.java (?) - Revisar
-- PagoService.java (?) - Revisar
-```
+**Estado**: ✅ Refactorizado con SRP (Fases 10-13)
 
-**Problema**:
-- Algunas clases están cerca o superan las 500 líneas
-- Múltiples responsabilidades en un solo servicio
+Las clases monolíticas se dividieron en servicios especializados:
 
-**Solución**:
-- Aplicar patrón Helper/Delegate para lógica compleja
-- Separar responsabilidades en servicios más pequeños
-- Crear sub-servicios especializados
+| Clase Original | Antes | Después | Acción |
+|---------------|-------|---------|--------|
+| GestionClienteService | 2000+ | Eliminada | → 5 helpers + ClienteCompletoService orquestador |
+| GestionDocumentosServiceHelper | 1623 | 134 | → 5 PDFGenerators en `helper/documentos/` |
+| GrupoImportacionService | 1765 | 817 | → + ClienteService, MatchingService, ProcesoService |
+| ClienteService | 1145 | 612 | → + ClienteQueryService (396 líneas, read-only) |
+| ClienteController | 1038 | 556 | → + ClienteDocumentController (404 líneas) |
 
-**Prioridad**: 🟡 Media
+**Pendiente menor**:
+- `ClienteCompletoService` (834 líneas) — Es un orquestador con helpers bien definidos, no es crítico
+- `GrupoImportacionService` (817 líneas) — Ya dividido en 3 sub-servicios, el principal aún maneja CRUD + consultas
+- `ClienteService` (612 líneas) — Ligeramente por encima del límite de 500
+
+**Prioridad**: 🟢 Baja (mejora incremental)
 
 ---
 
-### 2. 🟢 Uso de Helpers - Patrón Correcto
+### 2. 🟢 Arquitectura de Helpers y Generadores PDF
 
-**Estado**: ✅ Ya Implementado
+**Estado**: ✅ Implementado y expandido
 
 **Ubicación**: `service/helper/`
 ```
-- GestionDocumentosServiceHelper.java
+- GestionDocumentosServiceHelper.java  (orquestador, 134 líneas)
 - GestionPagosServiceHelper.java
 - GestionArmasServiceHelper.java
 - GestionRespuestasServiceHelper.java
 ```
 
+**Generadores PDF**: `service/helper/documentos/`
+```
+- ContratoPDFGenerator.java       (contratos ISSPOL/ISSFA/civil)
+- CotizacionPDFGenerator.java     (cotizaciones)
+- SolicitudCompraPDFGenerator.java (solicitudes de compra)
+- AutorizacionPDFGenerator.java   (autorizaciones de venta)
+- ReciboPDFGenerator.java         (recibos de cuotas)
+- DocumentoPDFUtils.java          (utilidades compartidas)
+```
+
 **Ventaja**:
-- ✅ Separa lógica compleja en módulos reutilizables
-- ✅ Mantiene servicios principales limpios
-- ✅ Facilita testing
+- ✅ Cada generador tiene responsabilidad única
+- ✅ `DocumentoPDFUtils` centraliza lógica común (guardar, formatear, etc.)
+- ✅ Facilita agregar nuevos tipos de documentos
 
 **Recomendación**: Continuar usando este patrón para nueva funcionalidad.
 
@@ -675,9 +685,9 @@ public class ClienteController {
 
 ## 🎯 Plan de Mejora Continua
 
-### Fase 1: Fundamentos (2 semanas)
-- [ ] Revisar todas las clases Service > 400 líneas
-- [ ] Refactorizar servicios grandes usando Helpers
+### Fase 1: Fundamentos ✅ COMPLETADA (Feb 2026)
+- [x] Revisar todas las clases Service > 400 líneas
+- [x] Refactorizar servicios grandes usando Helpers y SRP
 - [ ] Establecer reglas de linting con Checkstyle
 - [ ] Configurar SonarQube o similar
 
@@ -730,6 +740,7 @@ public class ClienteController {
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-11-09 | Documento inicial con reglas de Clean Code y deuda técnica identificada |
+| 1.1 | 2026-02-13 | Actualizar estado post-refactorización SRP (clases grandes resueltas, PDF generators, split services) |
 
 ---
 

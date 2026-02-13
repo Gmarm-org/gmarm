@@ -3,32 +3,29 @@
 ## 📋 Documento de Deuda Técnica y Mejoras Pendientes
 
 **Proyecto**: GMARM - Sistema de Gestión de Armas  
-**Fecha de Creación**: 9 de Noviembre, 2025  
-**Última Actualización**: 9 de Noviembre, 2025  
+**Fecha de Creación**: 9 de Noviembre, 2025
+**Última Actualización**: 13 de Febrero, 2026
 
 ---
 
 ## 🚨 Problemas Críticos
 
-### 1. ❌ ClientForm.tsx - Componente Monolítico (2,623 líneas)
+### 1. 🟡 ClientForm.tsx - Componente Grande (1,843 líneas)
 
 **Ubicación**: `frontend/src/pages/Vendedor/components/ClientForm.tsx`
 
-**Problema**:
-- ❌ **2,623 líneas** de código en un solo archivo
-- ❌ Viola principio de Clean Code (máximo 500 líneas)
-- ❌ Completamente ilegible e insostenible
-- ❌ Mezcla lógica de negocio, UI, validaciones, y estado
-- ❌ Dificulta testing unitario
-- ❌ Alto acoplamiento entre componentes
-- ❌ Duplicación de código
-- ❌ Dificulta onboarding de nuevos desarrolladores
+**Progreso**: Reducido de 2,623 → 1,843 líneas (refactorización parcial)
+
+**Problema actual**:
+- 🟡 **1,843 líneas** — mejor que antes pero aún por encima del límite de 500
+- 🟡 Aún mezcla lógica de negocio, UI, validaciones y estado
+- 🟡 Dificulta testing unitario
 
 **Impacto**:
-- 🔴 **Alto** - Afecta mantenibilidad y escalabilidad del proyecto
-- 🔴 **Crítico** - Bloquea desarrollo ágil de nuevas features
+- 🟡 **Medio** - Funcional pero dificulta mantenimiento
+- La reducción de ~800 líneas ayudó pero la estructura interna aún necesita modularización
 
-**Estado**: 🔴 Pendiente
+**Estado**: 🟡 Parcialmente resuelto — requiere split en hooks + sub-componentes
 
 ---
 
@@ -287,31 +284,54 @@ frontend/src/pages/Vendedor/components/
 
 ## 📊 Métricas
 
-### Antes
-| Métrica | Valor | Estado |
-|---------|-------|--------|
-| Líneas de código | 2,623 | 🔴 Crítico |
-| Archivos | 1 | 🔴 Monolítico |
-| Funciones/Métodos | ~43 | 🔴 Alto |
-| Estados locales | ~20 | 🔴 Alto |
-| Testeable | ❌ | 🔴 No |
-| Mantenible | ❌ | 🔴 No |
-
-### Después (Objetivo)
-| Métrica | Valor | Estado |
-|---------|-------|--------|
-| Líneas por archivo | < 400 | ✅ Óptimo |
-| Archivos | 14 | ✅ Modular |
-| Responsabilidad única | ✅ | ✅ Sí |
-| Hooks reutilizables | 4 | ✅ Sí |
-| Testeable | ✅ | ✅ Sí |
-| Mantenible | ✅ | ✅ Sí |
+### Estado Actual (Feb 2026)
+| Métrica | Antes | Ahora | Objetivo |
+|---------|-------|-------|----------|
+| Líneas de código | 2,623 | 1,843 | < 400 |
+| Archivos | 1 | 1 | 14 |
+| Testeable | ❌ | ❌ | ✅ |
+| Mantenible | ❌ | 🟡 Parcial | ✅ |
 
 ---
 
-## 🔄 Otros Problemas de Deuda Técnica
+## ✅ Deuda Técnica Resuelta (Feb 2026)
 
-### 2. 🟡 Validaciones Duplicadas
+### api.ts Monolítico — RESUELTO
+**Antes**: `api.ts` (2,001 líneas) + `adminApi.ts` (1,014 líneas) — todo en 2 archivos monolíticos.
+
+**Después**: Split en 14 módulos por dominio:
+```
+services/
+├── apiClient.ts       (instancia axios + interceptors)
+├── api.ts             (barrel re-export, compatibilidad)
+├── authApi.ts, clientApi.ts, weaponApi.ts, paymentApi.ts,
+├── licenseApi.ts, importGroupApi.ts, documentApi.ts,
+├── contractApi.ts, catalogApi.ts, configApi.ts, userApi.ts
+└── types.ts           (tipos compartidos)
+```
+
+### Archivo backup eliminado
+- ✅ Eliminado `useVendedorLogic.backup.ts` (1,274 líneas sin referencias)
+
+---
+
+## 🔄 Deuda Técnica Pendiente
+
+### 2. 🟡 Componentes Grandes Pendientes de Split
+
+| Componente | Líneas | Plan |
+|-----------|--------|------|
+| ClientForm.tsx | 1,843 | Split en hooks + sub-componentes |
+| JefeVentas.tsx | 962 | Split en views + hooks (planificado) |
+| WeaponReserve.tsx | 927 | Evaluar split |
+| Vendedor.tsx | 920 | Evaluar split |
+| PagosFinanzas.tsx | 687 | Split en hooks + modales (planificado) |
+
+**Prioridad**: 🟡 Media
+
+---
+
+### 3. 🟡 Validaciones Duplicadas
 
 **Ubicación**: Múltiples componentes
 
@@ -327,32 +347,31 @@ frontend/src/pages/Vendedor/components/
 
 ---
 
-### 3. 🟡 Hardcodeo de Valores de Negocio
+### 4. 🟡 Hardcodeo de Valores de Negocio
 
 **Ubicación**: Varios archivos del frontend
 
 **Problema**:
-- IVA hardcodeado en múltiples lugares (0.15)
-- Edad mínima hardcodeada
-- Valores que deberían venir de `configuracion_sistema`
+- IVA con fallback hardcodeado `|| 15` o `0.15` en múltiples lugares
+- Valores que deberían venir exclusivamente de `configuracion_sistema`
 
-**Archivos Afectados**:
+**Archivos Afectados** (actualizado Feb 2026):
 ```
-- ClientSummary.tsx:71
-- ClientForm.tsx:2004
-- PaymentForm.tsx:42
-- WeaponReserve.tsx:302
+- PagosFinanzas.tsx:220,369       (fallback || 15)
+- useVendedorExport.ts:88-89,95  (fallback 0.15 y * 1.15)
+- useJefeVentasExport.ts:87-88,94 (fallback 0.15 y * 1.15)
+- useConfiguracion.ts:48-49       (fallback aceptable como último recurso)
 ```
 
 **Solución**:
 - ✅ Ya implementado: Hook `useIVA()` en `useConfiguracion.ts`
-- Pendiente: Refactorizar todos los archivos para usar el hook
+- Pendiente: Refactorizar archivos de export para usar el hook y pasar IVA como parámetro
 
-**Prioridad**: 🟡 Media-Alta
+**Prioridad**: 🟡 Media
 
 ---
 
-### 4. 🟢 Falta de Tests Unitarios
+### 5. 🟢 Falta de Tests Unitarios
 
 **Problema**:
 - No hay tests para componentes críticos
@@ -378,7 +397,7 @@ frontend/src/
 
 ---
 
-### 5. 🟢 Optimización de Performance
+### 6. 🟢 Optimización de Performance
 
 **Problema**:
 - Bundle de JavaScript > 1 MB
@@ -404,7 +423,7 @@ const AdminPanel = lazy(() => import('./pages/Admin'));
 
 ---
 
-### 6. 🟡 Gestión de Estado Global
+### 7. 🟡 Gestión de Estado Global
 
 **Problema**:
 - Múltiples contexts con responsabilidades mezcladas
@@ -499,6 +518,7 @@ Component/
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-11-09 | Documento inicial - Identificación de ClientForm.tsx como deuda técnica crítica |
+| 1.1 | 2026-02-13 | Actualizar estado: api.ts split resuelto, ClientForm reducido, agregar componentes grandes pendientes, actualizar archivos afectados por IVA |
 
 ---
 
