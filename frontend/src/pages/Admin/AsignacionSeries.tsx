@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
-import { formatNombreCompleto } from '../../utils/formatUtils';
+import React, { useState, useEffect } from "react";
+import { apiService } from "../../services/api";
+import { formatNombreCompleto } from "../../utils/formatUtils";
 
 interface ReservaConSerie {
   id: number;
@@ -16,7 +16,7 @@ interface ReservaConSerie {
     codigo: string;
   };
   cantidad: number;
-  estado: 'RESERVADA' | 'ASIGNADA';
+  estado: "RESERVADA" | "ASIGNADA";
   numeroSerie?: string;
   fechaAsignacion: string;
 }
@@ -26,22 +26,23 @@ const AsignacionSeries: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingSerie, setEditingSerie] = useState<number | null>(null);
-  const [nuevoNumeroSerie, setNuevoNumeroSerie] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState<'TODAS' | 'RESERVADA' | 'ASIGNADA'>('TODAS');
+  const [nuevoNumeroSerie, setNuevoNumeroSerie] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState<
+    "TODAS" | "RESERVADA" | "ASIGNADA"
+  >("TODAS");
 
   const cargarReservas = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Obtener todas las reservas (esto necesitarías implementar en el backend)
       // Por ahora simulo con datos de ejemplo
       const reservasData = await apiService.getReservasPendientes();
       setReservas(reservasData);
-      
     } catch (error) {
-      console.error('Error cargando reservas:', error);
-      setError('Error cargando reservas');
+      console.error("Error cargando reservas:", error);
+      setError("Error cargando reservas");
     } finally {
       setLoading(false);
     }
@@ -53,39 +54,47 @@ const AsignacionSeries: React.FC = () => {
 
   const handleAsignarSerie = async (reservaId: number) => {
     if (!nuevoNumeroSerie.trim()) {
-      alert('Por favor ingrese un número de serie');
+      alert("Por favor ingrese un número de serie");
       return;
     }
 
     try {
       await apiService.asignarNumeroSerie(reservaId, nuevoNumeroSerie.trim());
-      
+
       // Actualizar la lista local
-      setReservas(prev => prev.map(reserva => 
-        reserva.id === reservaId 
-          ? { ...reserva, estado: 'ASIGNADA' as const, numeroSerie: nuevoNumeroSerie.trim() }
-          : reserva
-      ));
-      
+      setReservas((prev) =>
+        prev.map((reserva) =>
+          reserva.id === reservaId
+            ? {
+                ...reserva,
+                estado: "ASIGNADA" as const,
+                numeroSerie: nuevoNumeroSerie.trim(),
+              }
+            : reserva,
+        ),
+      );
+
       setEditingSerie(null);
-      setNuevoNumeroSerie('');
-      
-      alert('Número de serie asignado exitosamente');
+      setNuevoNumeroSerie("");
+
+      alert("Número de serie asignado exitosamente");
     } catch (error) {
-      console.error('Error asignando número de serie:', error);
-      alert('Error asignando número de serie. Verifique que no esté duplicado.');
+      console.error("Error asignando número de serie:", error);
+      alert(
+        "Error asignando número de serie. Verifique que no esté duplicado.",
+      );
     }
   };
 
-  const reservasFiltradas = reservas.filter(reserva => {
-    if (filtroEstado === 'TODAS') return true;
+  const reservasFiltradas = reservas.filter((reserva) => {
+    if (filtroEstado === "TODAS") return true;
     return reserva.estado === filtroEstado;
   });
 
   const estadisticas = {
     total: reservas.length,
-    reservadas: reservas.filter(r => r.estado === 'RESERVADA').length,
-    asignadas: reservas.filter(r => r.estado === 'ASIGNADA').length
+    reservadas: reservas.filter((r) => r.estado === "RESERVADA").length,
+    asignadas: reservas.filter((r) => r.estado === "ASIGNADA").length,
   };
 
   if (loading) {
@@ -101,7 +110,7 @@ const AsignacionSeries: React.FC = () => {
     return (
       <div className="p-4 bg-red-100 border border-red-300 rounded-lg">
         <p className="text-red-600">{error}</p>
-        <button 
+        <button
           onClick={cargarReservas}
           className="mt-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
         >
@@ -116,27 +125,35 @@ const AsignacionSeries: React.FC = () => {
       {/* Header */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Asignación de Números de Serie</h1>
-          <button 
+          <h1 className="text-2xl font-bold text-gray-900">
+            Asignación de Números de Serie
+          </h1>
+          <button
             onClick={cargarReservas}
             className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
           >
             Actualizar
           </button>
         </div>
-        
+
         {/* Estadísticas */}
         <div className="grid grid-cols-3 gap-4">
           <div className="p-4 bg-blue-50 rounded-lg text-center">
-            <p className="text-2xl font-bold text-blue-600">{estadisticas.total}</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {estadisticas.total}
+            </p>
             <p className="text-sm text-gray-600">Total Reservas</p>
           </div>
           <div className="p-4 bg-yellow-50 rounded-lg text-center">
-            <p className="text-2xl font-bold text-yellow-600">{estadisticas.reservadas}</p>
+            <p className="text-2xl font-bold text-yellow-600">
+              {estadisticas.reservadas}
+            </p>
             <p className="text-sm text-gray-600">Pendientes</p>
           </div>
           <div className="p-4 bg-green-50 rounded-lg text-center">
-            <p className="text-2xl font-bold text-green-600">{estadisticas.asignadas}</p>
+            <p className="text-2xl font-bold text-green-600">
+              {estadisticas.asignadas}
+            </p>
             <p className="text-sm text-gray-600">Asignadas</p>
           </div>
         </div>
@@ -145,31 +162,31 @@ const AsignacionSeries: React.FC = () => {
       {/* Filtros */}
       <div className="flex space-x-2">
         <button
-          onClick={() => setFiltroEstado('TODAS')}
+          onClick={() => setFiltroEstado("TODAS")}
           className={`px-4 py-2 rounded-md text-sm font-medium ${
-            filtroEstado === 'TODAS' 
-              ? 'bg-blue-500 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            filtroEstado === "TODAS"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
           }`}
         >
           Todas ({estadisticas.total})
         </button>
         <button
-          onClick={() => setFiltroEstado('RESERVADA')}
+          onClick={() => setFiltroEstado("RESERVADA")}
           className={`px-4 py-2 rounded-md text-sm font-medium ${
-            filtroEstado === 'RESERVADA' 
-              ? 'bg-yellow-500 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            filtroEstado === "RESERVADA"
+              ? "bg-yellow-500 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
           }`}
         >
           Pendientes ({estadisticas.reservadas})
         </button>
         <button
-          onClick={() => setFiltroEstado('ASIGNADA')}
+          onClick={() => setFiltroEstado("ASIGNADA")}
           className={`px-4 py-2 rounded-md text-sm font-medium ${
-            filtroEstado === 'ASIGNADA' 
-              ? 'bg-green-500 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            filtroEstado === "ASIGNADA"
+              ? "bg-green-500 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
           }`}
         >
           Asignadas ({estadisticas.asignadas})
@@ -211,7 +228,10 @@ const AsignacionSeries: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {formatNombreCompleto(reserva.cliente.nombres, reserva.cliente.apellidos)}
+                        {formatNombreCompleto(
+                          reserva.cliente.nombres,
+                          reserva.cliente.apellidos,
+                        )}
                       </div>
                       <div className="text-sm text-gray-500">
                         {reserva.cliente.numeroIdentificacion}
@@ -232,12 +252,16 @@ const AsignacionSeries: React.FC = () => {
                     {reserva.cantidad}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      reserva.estado === 'RESERVADA'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {reserva.estado === 'RESERVADA' ? 'Pendiente' : 'Asignada'}
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        reserva.estado === "RESERVADA"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {reserva.estado === "RESERVADA"
+                        ? "Pendiente"
+                        : "Asignada"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -252,15 +276,19 @@ const AsignacionSeries: React.FC = () => {
                       />
                     ) : (
                       <span className="text-sm text-gray-900">
-                        {reserva.numeroSerie || 'Sin asignar'}
+                        {reserva.numeroSerie || "Sin asignar"}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {reserva.fechaAsignacion ? new Date(reserva.fechaAsignacion).toLocaleDateString('es-ES') : 'Sin fecha'}
+                    {reserva.fechaAsignacion
+                      ? new Date(reserva.fechaAsignacion).toLocaleDateString(
+                          "es-ES",
+                        )
+                      : "Sin fecha"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
-                    {reserva.estado === 'RESERVADA' ? (
+                    {reserva.estado === "RESERVADA" ? (
                       editingSerie === reserva.id ? (
                         <div className="flex space-x-2">
                           <button
@@ -272,7 +300,7 @@ const AsignacionSeries: React.FC = () => {
                           <button
                             onClick={() => {
                               setEditingSerie(null);
-                              setNuevoNumeroSerie('');
+                              setNuevoNumeroSerie("");
                             }}
                             className="text-gray-600 hover:text-gray-900"
                           >
