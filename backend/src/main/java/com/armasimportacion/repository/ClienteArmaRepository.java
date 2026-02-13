@@ -65,6 +65,13 @@ public interface ClienteArmaRepository extends JpaRepository<ClienteArma, Long> 
     @Query("SELECT ca FROM ClienteArma ca WHERE ca.arma.id = :armaId AND ca.estado IN ('RESERVADA', 'ASIGNADA')")
     List<ClienteArma> findReservasActivasByArmaId(@Param("armaId") Long armaId);
     
+    // Buscar por múltiples clientes (batch) con FETCH JOIN
+    @Query("SELECT ca FROM ClienteArma ca JOIN FETCH ca.arma arma JOIN FETCH arma.categoria WHERE ca.cliente.id IN :clienteIds")
+    List<ClienteArma> findByClienteIdInWithArmaAndCategoria(@Param("clienteIds") List<Long> clienteIds);
+
+    // Buscar por múltiples clientes y estado
+    List<ClienteArma> findByClienteIdInAndEstado(List<Long> clienteIds, ClienteArma.EstadoClienteArma estado);
+
     // Buscar por rango de fechas
     @Query("SELECT ca FROM ClienteArma ca WHERE ca.fechaCreacion BETWEEN :fechaInicio AND :fechaFin")
     List<ClienteArma> findByFechaCreacionBetween(@Param("fechaInicio") java.time.LocalDateTime fechaInicio, 

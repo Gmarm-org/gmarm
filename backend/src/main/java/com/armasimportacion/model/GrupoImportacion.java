@@ -1,6 +1,7 @@
 package com.armasimportacion.model;
 
 import com.armasimportacion.enums.EstadoGrupoImportacion;
+import com.armasimportacion.enums.TipoGrupo;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,8 +57,9 @@ public class GrupoImportacion {
     @JoinColumn(name = "tipo_proceso_id", nullable = true)
     private TipoProceso tipoProceso; // Opcional: los grupos pueden tener cualquier tipo de cliente
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_grupo", nullable = false, length = 20)
-    private String tipoGrupo = "CUPO"; // CUPO o JUSTIFICATIVO
+    private TipoGrupo tipoGrupo = TipoGrupo.CUPO;
 
     @Column(name = "tra", unique = true, length = 20)
     private String tra; // TRA-XXXXXXXXXX

@@ -23,11 +23,13 @@ import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.GrupoImportacionVendedor;
 import com.armasimportacion.model.GrupoImportacionLimiteCategoria;
 import com.armasimportacion.model.CategoriaArma;
+import com.armasimportacion.model.Rol;
 import com.armasimportacion.model.TipoCliente;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.enums.EstadoMilitar;
 import com.armasimportacion.enums.EstadoCliente;
+import com.armasimportacion.enums.TipoGrupo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -71,167 +73,160 @@ public class GrupoImportacionService {
     // CRUD Operations
     public GrupoImportacion crearGrupoDesdeDTO(GrupoImportacionCreateDTO dto, Long usuarioId) {
         log.info("Creando nuevo grupo de importación desde DTO: {}", dto.getNombre());
-        
+
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        
-        Licencia licencia = licenciaRepository.findById(dto.getLicenciaId())
+
+        Licencia licencia = validarLicenciaActiva(dto.getLicenciaId());
+        TipoProceso tipoProceso = obtenerTipoProcesoOpcional(dto.getTipoProcesoId());
+        int cupoTotal = calcularCupoTotal(dto);
+
+        GrupoImportacion grupo = construirGrupoBase(dto, usuario, licencia, tipoProceso, cupoTotal);
+        configurarTipoGrupoYTra(grupo, dto);
+
+        GrupoImportacion grupoGuardado = grupoImportacionRepository.save(grupo);
+
+        asignarVendedoresAlGrupo(grupoGuardado, dto.getVendedores());
+        asignarLimitesPorCategoria(grupoGuardado, dto.getLimitesCategoria());
+
+        return grupoGuardado;
+    }
+
+    private Licencia validarLicenciaActiva(Long licenciaId) {
+        Licencia licencia = licenciaRepository.findById(licenciaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada"));
-        
-        // Verificar que la licencia esté activa y no vencida
-        // NOTA: Una licencia puede estar en múltiples grupos (tanto CUPO como JUSTIFICATIVO)
-        // Por lo tanto, NO bloqueamos la licencia al crear un grupo
         if (Boolean.FALSE.equals(licencia.getEstado()) || licencia.isVencida()) {
             throw new BadRequestException("La licencia seleccionada no está activa o está vencida");
         }
-        
-        // Tipo de proceso: opcional - los grupos pueden tener cualquier tipo de cliente
-        TipoProceso tipoProceso = null;
-        if (dto.getTipoProcesoId() != null) {
-            tipoProceso = tipoProcesoRepository.findById(dto.getTipoProcesoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de proceso no encontrado"));
-            log.info("📋 Tipo de proceso asignado: {}", tipoProceso.getNombre());
-        } else {
-            log.info("ℹ️ No se asignó tipo de proceso - el grupo puede tener cualquier tipo de cliente");
-        }
-        
-        // Calcular cupos: usar valores del DTO o valor por defecto según tipo de grupo
-        // NOTA: Los cupos se manejan a nivel de GrupoImportacion, no de Licencia
-        int cupoTotal;
+        return licencia;
+    }
+
+    private TipoProceso obtenerTipoProcesoOpcional(Long tipoProcesoId) {
+        if (tipoProcesoId == null) return null;
+        return tipoProcesoRepository.findById(tipoProcesoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tipo de proceso no encontrado"));
+    }
+
+    private int calcularCupoTotal(GrupoImportacionCreateDTO dto) {
         if (dto.getCupoTotal() != null && dto.getCupoTotal() > 0) {
-            cupoTotal = dto.getCupoTotal();
-        } else if ("JUSTIFICATIVO".equalsIgnoreCase(dto.getTipoGrupo())) {
-            // Grupos tipo JUSTIFICATIVO no tienen límite de cupo
-            cupoTotal = 999999;
-        } else {
-            // Valor por defecto para grupos tipo CUPO
-            cupoTotal = 1000; // Valor configurable
+            return dto.getCupoTotal();
         }
-        
-        // Fecha de inicio: usar la fecha actual si no se proporciona
+        if (TipoGrupo.JUSTIFICATIVO.name().equalsIgnoreCase(dto.getTipoGrupo())) {
+            return 999999;
+        }
+        return 1000;
+    }
+
+    private GrupoImportacion construirGrupoBase(GrupoImportacionCreateDTO dto, Usuario usuario,
+            Licencia licencia, TipoProceso tipoProceso, int cupoTotal) {
         LocalDate fechaInicio = dto.getFechaInicio() != null ? dto.getFechaInicio() : LocalDate.now();
-        
+
         GrupoImportacion grupo = new GrupoImportacion();
         grupo.setNombre(dto.getNombre());
         grupo.setDescripcion(dto.getDescripcion());
         grupo.setLicencia(licencia);
         grupo.setTipoProceso(tipoProceso);
         grupo.setFechaInicio(fechaInicio);
-        grupo.setFechaFin(dto.getFechaFin()); // Se establecerá automáticamente al finalizar
+        grupo.setFechaFin(dto.getFechaFin());
         grupo.setCupoTotal(cupoTotal);
-        grupo.setCupoDisponible(cupoTotal); // Inicialmente todo el cupo está disponible
+        grupo.setCupoDisponible(cupoTotal);
         grupo.setObservaciones(dto.getObservaciones());
-        
-        // Generar código automático si no se proporciona
+
         if (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) {
             grupo.setCodigo(generarCodigoAutomatico());
         } else {
-            // Validar que el código no exista
             if (grupoImportacionRepository.existsByCodigo(dto.getCodigo())) {
                 throw new BadRequestException("Ya existe un grupo con el código: " + dto.getCodigo());
             }
             grupo.setCodigo(dto.getCodigo());
         }
-        
+
         grupo.setUsuarioCreador(usuario);
         grupo.setEstado(EstadoGrupoImportacion.EN_PREPARACION);
         grupo.setFechaCreacion(LocalDateTime.now());
-        
-        // Nuevos campos: tipo_grupo y tra
+
+        return grupo;
+    }
+
+    private void configurarTipoGrupoYTra(GrupoImportacion grupo, GrupoImportacionCreateDTO dto) {
         if (dto.getTipoGrupo() != null && !dto.getTipoGrupo().trim().isEmpty()) {
-            if (!dto.getTipoGrupo().equals("CUPO") && !dto.getTipoGrupo().equals("JUSTIFICATIVO")) {
+            try {
+                grupo.setTipoGrupo(TipoGrupo.valueOf(dto.getTipoGrupo()));
+            } catch (IllegalArgumentException e) {
                 throw new BadRequestException("El tipo de grupo debe ser 'CUPO' o 'JUSTIFICATIVO'");
             }
-            grupo.setTipoGrupo(dto.getTipoGrupo());
         } else {
-            grupo.setTipoGrupo("CUPO"); // Valor por defecto
+            grupo.setTipoGrupo(TipoGrupo.CUPO);
         }
-        
-        // Generar TRA si se proporciona
+
         if (dto.getTra() != null && !dto.getTra().trim().isEmpty()) {
-            // Validar formato TRA-XXXXXXXXXX
             if (!dto.getTra().matches("TRA-\\d+")) {
                 throw new BadRequestException("El formato de TRA debe ser TRA- seguido de números (ej: TRA-1212121212)");
             }
-            // Verificar que no exista otro grupo con el mismo TRA
             if (grupoImportacionRepository.existsByTra(dto.getTra())) {
                 throw new BadRequestException("Ya existe un grupo con el TRA: " + dto.getTra());
             }
             grupo.setTra(dto.getTra());
         }
-        
-        // NOTA: NO bloqueamos la licencia porque puede estar en múltiples grupos
-        // (tanto CUPO como JUSTIFICATIVO). La licencia se mantiene DISPONIBLE.
-        
-        // Guardar el grupo primero para tener el ID
-        GrupoImportacion grupoGuardado = grupoImportacionRepository.save(grupo);
-        
-        // Asignar vendedores si se proporcionan
-        if (dto.getVendedores() != null && !dto.getVendedores().isEmpty()) {
-            int sumaLimites = 0;
-            
-            Map<Long, Integer> limitesPorVendedor = new LinkedHashMap<>();
-            for (GrupoImportacionCreateDTO.VendedorLimiteDTO vendedorLimite : dto.getVendedores()) {
-                if (vendedorLimite.getVendedorId() == null) {
-                    continue;
-                }
-                Integer limiteArmas = vendedorLimite.getLimiteArmas() != null ? vendedorLimite.getLimiteArmas() : 0;
-                limitesPorVendedor.put(vendedorLimite.getVendedorId(), limiteArmas);
-            }
-            for (Map.Entry<Long, Integer> vendedorEntry : limitesPorVendedor.entrySet()) {
-                Usuario vendedor = usuarioRepository.findById(vendedorEntry.getKey())
-                    .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + vendedorEntry.getKey()));
-                
-                // Verificar que el usuario tenga rol VENDOR
-                boolean esVendedor = vendedor.getRoles().stream()
-                    .anyMatch(rol -> "VENDOR".equals(rol.getCodigo()));
-                
-                if (!esVendedor) {
-                    throw new BadRequestException("El usuario con ID " + vendedorEntry.getKey() + " no es un vendedor");
-                }
-                
-                // Validar límite de armas
-                Integer limiteArmas = vendedorEntry.getValue();
-                if (limiteArmas < 0) {
-                    throw new BadRequestException("El límite de armas no puede ser negativo");
-                }
-                
-                // Si es tipo CUPO, validar que la suma de límites no exceda el cupo total
-                if ("CUPO".equals(grupoGuardado.getTipoGrupo())) {
-                    sumaLimites += limiteArmas;
-                    if (sumaLimites > grupoGuardado.getCupoTotal()) {
-                        throw new BadRequestException(
-                            String.format("La suma de límites de armas por vendedor (%d) excede el cupo total del grupo (%d)", 
-                                sumaLimites, grupoGuardado.getCupoTotal()));
-                    }
-                }
-                
-                GrupoImportacionVendedor grupoVendedor = new GrupoImportacionVendedor();
-                grupoVendedor.setGrupoImportacion(grupoGuardado);
-                grupoVendedor.setVendedor(vendedor);
-                grupoVendedor.setLimiteArmas(limiteArmas);
-                grupoVendedor.setActivo(true);
-                grupoImportacionVendedorRepository.save(grupoVendedor);
-            }
-            log.info("✅ {} vendedor(es) asignado(s) al grupo con límites de armas", dto.getVendedores().size());
+    }
+
+    private void asignarVendedoresAlGrupo(GrupoImportacion grupo, List<GrupoImportacionCreateDTO.VendedorLimiteDTO> vendedoresDTO) {
+        if (vendedoresDTO == null || vendedoresDTO.isEmpty()) return;
+
+        int sumaLimites = 0;
+        Map<Long, Integer> limitesPorVendedor = new LinkedHashMap<>();
+        for (GrupoImportacionCreateDTO.VendedorLimiteDTO vendedorLimite : vendedoresDTO) {
+            if (vendedorLimite.getVendedorId() == null) continue;
+            Integer limiteArmas = vendedorLimite.getLimiteArmas() != null ? vendedorLimite.getLimiteArmas() : 0;
+            limitesPorVendedor.put(vendedorLimite.getVendedorId(), limiteArmas);
         }
-        
-        // Asignar límites por categoría si es tipo CUPO
-        if ("CUPO".equals(grupoGuardado.getTipoGrupo()) && dto.getLimitesCategoria() != null && !dto.getLimitesCategoria().isEmpty()) {
-            for (GrupoImportacionCreateDTO.LimiteCategoriaDTO limiteDTO : dto.getLimitesCategoria()) {
-                CategoriaArma categoria = categoriaArmaRepository.findById(limiteDTO.getCategoriaArmaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría de arma no encontrada con ID: " + limiteDTO.getCategoriaArmaId()));
-                
-                GrupoImportacionLimiteCategoria limite = new GrupoImportacionLimiteCategoria();
-                limite.setGrupoImportacion(grupoGuardado);
-                limite.setCategoriaArma(categoria);
-                limite.setLimiteMaximo(limiteDTO.getLimiteMaximo());
-                grupoImportacionLimiteCategoriaRepository.save(limite);
+
+        for (Map.Entry<Long, Integer> vendedorEntry : limitesPorVendedor.entrySet()) {
+            Usuario vendedor = usuarioRepository.findById(vendedorEntry.getKey())
+                .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + vendedorEntry.getKey()));
+
+            if (vendedor.getRoles().stream().noneMatch(Rol::esVendedor)) {
+                throw new BadRequestException("El usuario con ID " + vendedorEntry.getKey() + " no es un vendedor");
             }
-            log.info("✅ {} límite(s) de categoría asignado(s) al grupo", dto.getLimitesCategoria().size());
+
+            Integer limiteArmas = vendedorEntry.getValue();
+            if (limiteArmas < 0) {
+                throw new BadRequestException("El límite de armas no puede ser negativo");
+            }
+
+            if (grupo.getTipoGrupo() == TipoGrupo.CUPO) {
+                sumaLimites += limiteArmas;
+                if (sumaLimites > grupo.getCupoTotal()) {
+                    throw new BadRequestException(
+                        String.format("La suma de límites de armas por vendedor (%d) excede el cupo total del grupo (%d)",
+                            sumaLimites, grupo.getCupoTotal()));
+                }
+            }
+
+            GrupoImportacionVendedor grupoVendedor = new GrupoImportacionVendedor();
+            grupoVendedor.setGrupoImportacion(grupo);
+            grupoVendedor.setVendedor(vendedor);
+            grupoVendedor.setLimiteArmas(limiteArmas);
+            grupoVendedor.setActivo(true);
+            grupoImportacionVendedorRepository.save(grupoVendedor);
         }
-        
-        return grupoGuardado;
+        log.info("{} vendedor(es) asignado(s) al grupo con límites de armas", vendedoresDTO.size());
+    }
+
+    private void asignarLimitesPorCategoria(GrupoImportacion grupo, List<GrupoImportacionCreateDTO.LimiteCategoriaDTO> limitesDTO) {
+        if (grupo.getTipoGrupo() != TipoGrupo.CUPO || limitesDTO == null || limitesDTO.isEmpty()) return;
+
+        for (GrupoImportacionCreateDTO.LimiteCategoriaDTO limiteDTO : limitesDTO) {
+            CategoriaArma categoria = categoriaArmaRepository.findById(limiteDTO.getCategoriaArmaId())
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría de arma no encontrada con ID: " + limiteDTO.getCategoriaArmaId()));
+
+            GrupoImportacionLimiteCategoria limite = new GrupoImportacionLimiteCategoria();
+            limite.setGrupoImportacion(grupo);
+            limite.setCategoriaArma(categoria);
+            limite.setLimiteMaximo(limiteDTO.getLimiteMaximo());
+            grupoImportacionLimiteCategoriaRepository.save(limite);
+        }
+        log.info("{} límite(s) de categoría asignado(s) al grupo", limitesDTO.size());
     }
     
     public GrupoImportacion crearGrupoImportacion(GrupoImportacion grupo, Long usuarioId) {
@@ -317,10 +312,11 @@ public class GrupoImportacionService {
         
         // Actualizar tipo_grupo si se proporciona
         if (dto.getTipoGrupo() != null && !dto.getTipoGrupo().trim().isEmpty()) {
-            if (!dto.getTipoGrupo().equals("CUPO") && !dto.getTipoGrupo().equals("JUSTIFICATIVO")) {
+            try {
+                grupo.setTipoGrupo(TipoGrupo.valueOf(dto.getTipoGrupo()));
+            } catch (IllegalArgumentException e) {
                 throw new BadRequestException("El tipo de grupo debe ser 'CUPO' o 'JUSTIFICATIVO'");
             }
-            grupo.setTipoGrupo(dto.getTipoGrupo());
         }
         
         // Actualizar TRA si se proporciona
@@ -368,7 +364,7 @@ public class GrupoImportacionService {
                     
                     // Verificar que el usuario tenga rol VENDOR
                     boolean esVendedor = vendedor.getRoles().stream()
-                        .anyMatch(rol -> "VENDOR".equals(rol.getCodigo()));
+                        .anyMatch(Rol::esVendedor);
                     
                     if (!esVendedor) {
                         throw new BadRequestException("El usuario con ID " + vendedorEntry.getKey() + " no es un vendedor");
@@ -381,7 +377,7 @@ public class GrupoImportacionService {
                     }
                     
                     // Si es tipo CUPO, validar que la suma de límites no exceda el cupo total
-                    if ("CUPO".equals(grupoGuardado.getTipoGrupo())) {
+                    if (grupoGuardado.getTipoGrupo() == TipoGrupo.CUPO) {
                         sumaLimites += limiteArmas;
                         if (sumaLimites > grupoGuardado.getCupoTotal()) {
                             throw new BadRequestException(
@@ -428,7 +424,7 @@ public class GrupoImportacionService {
         }
         
         // Actualizar límites por categoría: eliminar todos y crear nuevos (solo para tipo CUPO)
-        if ("CUPO".equals(grupoGuardado.getTipoGrupo()) && dto.getLimitesCategoria() != null) {
+        if (grupoGuardado.getTipoGrupo() == TipoGrupo.CUPO && dto.getLimitesCategoria() != null) {
             // Normalizar límites por categoría para evitar duplicados por categoriaArmaId
             Map<Long, Integer> limitesPorCategoria = new LinkedHashMap<>();
             for (GrupoImportacionCreateDTO.LimiteCategoriaDTO limiteDTO : dto.getLimitesCategoria()) {
@@ -639,14 +635,14 @@ public class GrupoImportacionService {
             .map(GrupoImportacionVendedor::getGrupoImportacion)
             .filter(grupo -> {
                 // Verificar cupos disponibles según tipo
-                if ("CUPO".equals(grupo.getTipoGrupo())) {
+                if (grupo.getTipoGrupo() == TipoGrupo.CUPO) {
                     boolean tieneCupo = grupo.getCupoDisponible() != null && grupo.getCupoDisponible() > 0;
                     if (!tieneCupo) {
                         log.warn("⚠️ Grupo ID={} (CUPO) filtrado: sin cupo disponible (disponible={}, total={})", 
                             grupo.getId(), grupo.getCupoDisponible(), grupo.getCupoTotal());
                     }
                     return tieneCupo;
-                } else if ("JUSTIFICATIVO".equals(grupo.getTipoGrupo())) {
+                } else if (grupo.getTipoGrupo() == TipoGrupo.JUSTIFICATIVO) {
                     // JUSTIFICATIVO siempre disponible (sin límites de cupo)
                     log.debug("✅ Grupo ID={} (JUSTIFICATIVO) disponible", grupo.getId());
                     return true;
@@ -721,37 +717,34 @@ public class GrupoImportacionService {
         }
         
         // VALIDACIÓN CRÍTICA: Verificar que el tipo de cliente sea compatible con el tipo de grupo
-        String tipoGrupo = grupo.getTipoGrupo();
-        if (tipoGrupo == null) {
-            tipoGrupo = "CUPO"; // Valor por defecto si no está definido
-        }
-        
+        TipoGrupo tipoGrupo = grupo.getTipoGrupo() != null ? grupo.getTipoGrupo() : TipoGrupo.CUPO;
+
         TipoCliente tipoCliente = cliente.getTipoCliente();
         if (tipoCliente == null) {
             throw new BadRequestException("El cliente no tiene un tipo de cliente definido");
         }
-        
+
         boolean esCompatible = false;
         String mensajeError = "";
-        
-        if ("CUPO".equals(tipoGrupo)) {
+
+        if (tipoGrupo == TipoGrupo.CUPO) {
             // CUPO: para civiles, deportistas y uniformados en servicio PASIVO
             if (tipoCliente.esCivil()) {
                 esCompatible = true;
             } else if (tipoCliente.esDeportista()) {
                 esCompatible = true;
-            } else if (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                      cliente.getEstadoMilitar().name().equals("PASIVO")) {
+            } else if (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                      cliente.getEstadoMilitar() == EstadoMilitar.PASIVO) {
                 esCompatible = true;
             } else {
                 mensajeError = "Los grupos de tipo CUPO solo pueden incluir: Civiles, Deportistas y Uniformados en servicio PASIVO. " +
-                              "Este cliente es: " + tipoCliente.getNombre() + 
-                              (cliente.getEstadoMilitar() != null ? " (Estado: " + cliente.getEstadoMilitar().name() + ")" : "");
+                              "Este cliente es: " + tipoCliente.getNombre() +
+                              (cliente.getEstadoMilitar() != null ? " (Estado: " + cliente.getEstadoMilitar().getDescripcion() + ")" : "");
             }
-        } else if ("JUSTIFICATIVO".equals(tipoGrupo)) {
+        } else if (tipoGrupo == TipoGrupo.JUSTIFICATIVO) {
             // JUSTIFICATIVO: para uniformados ACTIVOS, compañías de seguridad y deportistas
-            if (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                cliente.getEstadoMilitar().name().equals("ACTIVO")) {
+            if (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                cliente.getEstadoMilitar() == EstadoMilitar.ACTIVO) {
                 esCompatible = true;
             } else if (tipoCliente.esEmpresa()) {
                 esCompatible = true;
@@ -760,8 +753,8 @@ public class GrupoImportacionService {
             } else {
                 mensajeError = "Los grupos de tipo JUSTIFICATIVO solo pueden incluir: Uniformados en servicio ACTIVO, " +
                               "Compañías de Seguridad y Deportistas. " +
-                              "Este cliente es: " + tipoCliente.getNombre() + 
-                              (cliente.getEstadoMilitar() != null ? " (Estado: " + cliente.getEstadoMilitar().name() + ")" : "");
+                              "Este cliente es: " + tipoCliente.getNombre() +
+                              (cliente.getEstadoMilitar() != null ? " (Estado: " + cliente.getEstadoMilitar().getDescripcion() + ")" : "");
             }
         }
         
@@ -818,15 +811,10 @@ public class GrupoImportacionService {
                 grupoId != null ? " (grupo ID: " + grupoId + ")" : "");
         
         // Obtener tipo de grupo si se proporciona grupoId
-        final String tipoGrupoFinal;
+        final TipoGrupo tipoGrupoFinal;
         if (grupoId != null) {
             GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
-            String tipoGrupo = grupo.getTipoGrupo();
-            if (tipoGrupo == null) {
-                tipoGrupoFinal = "CUPO"; // Valor por defecto
-            } else {
-                tipoGrupoFinal = tipoGrupo;
-            }
+            tipoGrupoFinal = grupo.getTipoGrupo() != null ? grupo.getTipoGrupo() : TipoGrupo.CUPO;
             log.info("📋 Filtrando clientes compatibles con tipo de grupo: {}", tipoGrupoFinal);
         } else {
             tipoGrupoFinal = null;
@@ -867,16 +855,16 @@ public class GrupoImportacionService {
                         return false;
                     }
                     
-                    if ("CUPO".equals(tipoGrupoFinal)) {
+                    if (tipoGrupoFinal == TipoGrupo.CUPO) {
                         // CUPO: civiles, deportistas, uniformados PASIVOS
-                        return tipoCliente.esCivil() || 
-                               tipoCliente.esDeportista() || 
-                               (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                                cliente.getEstadoMilitar().name().equals("PASIVO"));
-                    } else if ("JUSTIFICATIVO".equals(tipoGrupoFinal)) {
+                        return tipoCliente.esCivil() ||
+                               tipoCliente.esDeportista() ||
+                               (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                                cliente.getEstadoMilitar() == EstadoMilitar.PASIVO);
+                    } else if (tipoGrupoFinal == TipoGrupo.JUSTIFICATIVO) {
                         // JUSTIFICATIVO: uniformados ACTIVOS, empresas, deportistas
-                        return (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                                cliente.getEstadoMilitar().name().equals("ACTIVO")) ||
+                        return (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                                cliente.getEstadoMilitar() == EstadoMilitar.ACTIVO) ||
                                tipoCliente.esEmpresa() ||
                                tipoCliente.esDeportista();
                     }
@@ -988,7 +976,7 @@ public class GrupoImportacionService {
                     civiles++;
                 } else if (cliente.getTipoCliente().esUniformado() && 
                           cliente.getEstadoMilitar() != null && 
-                          cliente.getEstadoMilitar().name().equals("ACTIVO")) {
+                          cliente.getEstadoMilitar() == EstadoMilitar.ACTIVO) {
                     uniformados++;
                 } else if (cliente.getTipoCliente().esEmpresa()) {
                     empresas++;
@@ -1020,23 +1008,18 @@ public class GrupoImportacionService {
         int seriesAsignadas = 0;
         int armasSinAsignar = 0;
         
-        // Contar total de armas solicitadas y asignadas
-        for (ClienteGrupoImportacion cgi : clientesGrupo) {
-            // Armas RESERVADAS (pendientes de asignar serie)
-            List<ClienteArma> armasReservadas = clienteArmaRepository.findByClienteIdAndEstado(
-                cgi.getCliente().getId(), 
-                ClienteArma.EstadoClienteArma.RESERVADA
-            );
-            armasSinAsignar += armasReservadas.size();
-            
-            // Armas ASIGNADAS (ya tienen serie)
-            List<ClienteArma> armasAsignadas = clienteArmaRepository.findByClienteIdAndEstado(
-                cgi.getCliente().getId(), 
-                ClienteArma.EstadoClienteArma.ASIGNADA
-            );
-            seriesAsignadas += armasAsignadas.size();
-            
-            totalArmasSolicitadas += armasReservadas.size() + armasAsignadas.size();
+        // Contar total de armas solicitadas y asignadas (batch query en vez de N+1)
+        List<Long> clienteIds = clientesGrupo.stream()
+            .map(cgi -> cgi.getCliente().getId())
+            .toList();
+        if (!clienteIds.isEmpty()) {
+            List<ClienteArma> todasReservadas = clienteArmaRepository.findByClienteIdInAndEstado(
+                clienteIds, ClienteArma.EstadoClienteArma.RESERVADA);
+            List<ClienteArma> todasAsignadas = clienteArmaRepository.findByClienteIdInAndEstado(
+                clienteIds, ClienteArma.EstadoClienteArma.ASIGNADA);
+            armasSinAsignar = todasReservadas.size();
+            seriesAsignadas = todasAsignadas.size();
+            totalArmasSolicitadas = armasSinAsignar + seriesAsignadas;
         }
         
         // Contar series cargadas al grupo
@@ -1082,7 +1065,7 @@ public class GrupoImportacionService {
         return tipoCliente.esCivil() ||
                tipoCliente.esDeportista() ||
                (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
-                cliente.getEstadoMilitar().name().equals("PASIVO"));
+                cliente.getEstadoMilitar() == EstadoMilitar.PASIVO);
     }
 
     private boolean esClienteGrupoContable(ClienteGrupoImportacion cgi) {
@@ -1090,6 +1073,28 @@ public class GrupoImportacionService {
                cgi.getEstado() == EstadoClienteGrupo.CONFIRMADO ||
                cgi.getEstado() == EstadoClienteGrupo.APROBADO ||
                cgi.getEstado() == EstadoClienteGrupo.EN_PROCESO;
+    }
+
+    /**
+     * Cuenta el total de armas de una categoría asignadas a clientes civiles/cupo en un grupo.
+     * Usado para verificar límites de cupo por categoría.
+     * Optimizado con batch query para evitar N+1.
+     */
+    private long contarArmasPorCategoriaEnGrupo(Long grupoId, Long categoriaId) {
+        List<Long> clienteIdsCupo = clienteGrupoRepository.findByGrupoImportacionId(grupoId).stream()
+            .filter(this::esClienteGrupoContable)
+            .filter(cgi -> esClienteCivilParaCupo(cgi.getCliente()))
+            .map(cgi -> cgi.getCliente().getId())
+            .toList();
+
+        if (clienteIdsCupo.isEmpty()) {
+            return 0;
+        }
+
+        return clienteArmaRepository.findByClienteIdInWithArmaAndCategoria(clienteIdsCupo).stream()
+            .filter(ca -> ca.getArma().getCategoria().getId().equals(categoriaId))
+            .mapToInt(ca -> ca.getCantidad() != null ? ca.getCantidad() : 1)
+            .sum();
     }
 
     // ============================================================
@@ -1257,126 +1262,97 @@ public class GrupoImportacionService {
      */
     @Transactional(readOnly = true)
     public GrupoImportacion encontrarGrupoDisponibleParaArma(Long vendedorId, Cliente cliente, Long categoriaArmaId, boolean esSegundaArma) {
-        log.info("🔍 Buscando grupo disponible para arma de categoría {} (segunda arma: {})", categoriaArmaId, esSegundaArma);
-        
+        log.info("Buscando grupo disponible para arma de categoría {} (segunda arma: {})", categoriaArmaId, esSegundaArma);
+
         Usuario vendedor = usuarioRepository.findById(vendedorId)
             .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
-        
-        // Obtener todos los grupos donde el vendedor está asignado
+
         List<GrupoImportacionVendedor> asignacionesVendedor = grupoImportacionVendedorRepository.findByVendedor(vendedor);
-        
         if (asignacionesVendedor.isEmpty()) {
-            log.info("📭 No hay grupos asignados para el vendedor ID: {}", vendedorId);
             return null;
         }
-        
-        // Si es segunda arma, obtener grupos donde el cliente YA está asignado para excluirlos
-        Set<Long> gruposYaAsignados = new java.util.HashSet<>();
-        if (esSegundaArma) {
-            List<ClienteGrupoImportacion> asignacionesCliente = clienteGrupoRepository.findByClienteId(cliente.getId());
-            gruposYaAsignados = asignacionesCliente.stream()
-                .filter(cgi -> cgi.getEstado() != EstadoClienteGrupo.CANCELADO && 
-                              cgi.getEstado() != EstadoClienteGrupo.COMPLETADO)
-                .map(cgi -> cgi.getGrupoImportacion().getId())
-                .collect(java.util.stream.Collectors.toSet());
-            log.info("🚫 Excluyendo {} grupo(s) donde el cliente ya está asignado", gruposYaAsignados.size());
-        }
-        
-        // Lista de grupos candidatos con su "puntuación" (prioridad)
-        List<GrupoImportacionConPrioridad> gruposCandidatos = new java.util.ArrayList<>();
-        
-        // Filtrar grupos activos y disponibles
+
+        Set<Long> gruposYaAsignados = obtenerGruposYaAsignadosDelCliente(cliente, esSegundaArma);
+        List<GrupoImportacionConPrioridad> gruposCandidatos = evaluarGruposCandidatos(
+            asignacionesVendedor, cliente, categoriaArmaId, esSegundaArma, gruposYaAsignados);
+
+        return seleccionarMejorGrupo(gruposCandidatos, vendedorId, categoriaArmaId);
+    }
+
+    private Set<Long> obtenerGruposYaAsignadosDelCliente(Cliente cliente, boolean esSegundaArma) {
+        if (!esSegundaArma) return java.util.Collections.emptySet();
+
+        List<ClienteGrupoImportacion> asignacionesCliente = clienteGrupoRepository.findByClienteId(cliente.getId());
+        return asignacionesCliente.stream()
+            .filter(cgi -> cgi.getEstado() != EstadoClienteGrupo.CANCELADO &&
+                          cgi.getEstado() != EstadoClienteGrupo.COMPLETADO)
+            .map(cgi -> cgi.getGrupoImportacion().getId())
+            .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private List<GrupoImportacionConPrioridad> evaluarGruposCandidatos(
+            List<GrupoImportacionVendedor> asignacionesVendedor, Cliente cliente,
+            Long categoriaArmaId, boolean esSegundaArma, Set<Long> gruposYaAsignados) {
+
+        List<GrupoImportacionConPrioridad> candidatos = new java.util.ArrayList<>();
+
         for (GrupoImportacionVendedor asignacion : asignacionesVendedor) {
             GrupoImportacion grupo = asignacion.getGrupoImportacion();
-            
-            // Si es segunda arma, excluir grupos donde ya está asignado
-            if (esSegundaArma && gruposYaAsignados.contains(grupo.getId())) {
-                continue;
-            }
-            
-            // Verificar que el grupo esté en estado válido
+
+            if (esSegundaArma && gruposYaAsignados.contains(grupo.getId())) continue;
             if (grupo.getEstado() != EstadoGrupoImportacion.EN_PREPARACION &&
-                grupo.getEstado() != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES) {
-                continue;
-            }
-            
-            // Verificar compatibilidad del cliente con el tipo de grupo
-            if (!esClienteCompatibleConGrupo(cliente, grupo)) {
-                log.debug("⚠️ Cliente ID {} no es compatible con grupo ID {} (tipo: {})", 
-                    cliente.getId(), grupo.getId(), grupo.getTipoGrupo());
-                continue;
-            }
-            
-            // Verificar cupo disponible por categoría (solo para tipo CUPO)
-            if ("CUPO".equals(grupo.getTipoGrupo())) {
-                // Obtener límites por categoría del grupo
-                List<GrupoImportacionLimiteCategoria> limites = grupoImportacionLimiteCategoriaRepository
-                    .findByGrupoImportacion(grupo);
-                
-                // Buscar límite para esta categoría
-                Optional<GrupoImportacionLimiteCategoria> limiteOpt = limites.stream()
-                    .filter(l -> l.getCategoriaArma().getId().equals(categoriaArmaId))
-                    .findFirst();
-                
-                if (limiteOpt.isPresent()) {
-                    GrupoImportacionLimiteCategoria limite = limiteOpt.get();
-                    Integer limiteMaximo = limite.getLimiteMaximo();
-                    
-                    // Contar clientes CONFIRMADOS con armas de esta categoría en este grupo
-                    long clientesConfirmadosConCategoria = clienteGrupoRepository.findByGrupoImportacionId(grupo.getId()).stream()
-                        .filter(this::esClienteGrupoContable)
-                        .filter(cgi -> esClienteCivilParaCupo(cgi.getCliente()))
-                        .mapToLong(cgi -> clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
-                            .filter(ca -> ca.getArma().getCategoria().getId().equals(categoriaArmaId))
-                            .mapToInt(ca -> ca.getCantidad() != null ? ca.getCantidad() : 1)
-                            .sum())
-                        .sum();
-                    
-                    // Verificar si hay cupo disponible
-                    if (clientesConfirmadosConCategoria >= limiteMaximo) {
-                        log.debug("⚠️ Grupo ID {} no tiene cupo disponible para categoría {} (ocupados: {}, límite: {})", 
-                            grupo.getId(), categoriaArmaId, clientesConfirmadosConCategoria, limiteMaximo);
-                        continue; // No hay cupo disponible
-                    }
-                    
-                    // Calcular prioridad: grupos cerca del límite tienen mayor prioridad
-                    int cupoDisponible = limiteMaximo - (int)clientesConfirmadosConCategoria;
-                    int porcentajeOcupado = (int)((clientesConfirmadosConCategoria * 100) / limiteMaximo);
-                    
-                    // Prioridad: mayor si está más cerca del límite (ej: 24/25 = 96% = alta prioridad)
-                    // Pero aún debe tener espacio (cupoDisponible > 0)
-                    gruposCandidatos.add(new GrupoImportacionConPrioridad(grupo, porcentajeOcupado, cupoDisponible));
-                } else {
-                    // Si no hay límite para esta categoría, grupo no disponible
-                    continue;
-                }
+                grupo.getEstado() != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES) continue;
+            if (!esClienteCompatibleConGrupo(cliente, grupo)) continue;
+
+            if (grupo.getTipoGrupo() == TipoGrupo.CUPO) {
+                evaluarGrupoCupo(grupo, categoriaArmaId, candidatos);
             } else {
-                // Para JUSTIFICATIVO, no hay límites por categoría, solo verificar que el cliente sea compatible
-                gruposCandidatos.add(new GrupoImportacionConPrioridad(grupo, 0, Integer.MAX_VALUE));
+                candidatos.add(new GrupoImportacionConPrioridad(grupo, 0, Integer.MAX_VALUE));
             }
         }
-        
-        // Ordenar grupos por prioridad (mayor porcentaje ocupado primero, pero que tenga cupo disponible)
-        gruposCandidatos.sort((a, b) -> {
-            // Primero: grupos que están cerca del límite pero aún tienen espacio
+        return candidatos;
+    }
+
+    private void evaluarGrupoCupo(GrupoImportacion grupo, Long categoriaArmaId,
+            List<GrupoImportacionConPrioridad> candidatos) {
+        List<GrupoImportacionLimiteCategoria> limites = grupoImportacionLimiteCategoriaRepository
+            .findByGrupoImportacion(grupo);
+
+        Optional<GrupoImportacionLimiteCategoria> limiteOpt = limites.stream()
+            .filter(l -> l.getCategoriaArma().getId().equals(categoriaArmaId))
+            .findFirst();
+
+        if (limiteOpt.isEmpty()) return;
+
+        GrupoImportacionLimiteCategoria limite = limiteOpt.get();
+        Integer limiteMaximo = limite.getLimiteMaximo();
+        long ocupados = contarArmasPorCategoriaEnGrupo(grupo.getId(), categoriaArmaId);
+
+        if (ocupados >= limiteMaximo) return;
+
+        int cupoDisponible = limiteMaximo - (int) ocupados;
+        int porcentajeOcupado = (int) ((ocupados * 100) / limiteMaximo);
+        candidatos.add(new GrupoImportacionConPrioridad(grupo, porcentajeOcupado, cupoDisponible));
+    }
+
+    private GrupoImportacion seleccionarMejorGrupo(List<GrupoImportacionConPrioridad> candidatos,
+            Long vendedorId, Long categoriaArmaId) {
+        candidatos.sort((a, b) -> {
             if (a.cupoDisponible > 0 && b.cupoDisponible > 0) {
-                return Integer.compare(b.porcentajeOcupado, a.porcentajeOcupado); // Mayor porcentaje primero
+                return Integer.compare(b.porcentajeOcupado, a.porcentajeOcupado);
             }
-            // Segundo: si uno tiene cupo y otro no, el que tiene cupo tiene prioridad
             if (a.cupoDisponible > 0) return -1;
             if (b.cupoDisponible > 0) return 1;
             return 0;
         });
-        
-        if (!gruposCandidatos.isEmpty()) {
-            GrupoImportacion grupoSeleccionado = gruposCandidatos.get(0).grupo;
-            log.info("✅ Grupo disponible encontrado: ID={}, nombre={}, ocupado={}%, cupo disponible={}", 
-                grupoSeleccionado.getId(), grupoSeleccionado.getNombre(),
-                gruposCandidatos.get(0).porcentajeOcupado, gruposCandidatos.get(0).cupoDisponible);
-            return grupoSeleccionado;
+
+        if (!candidatos.isEmpty()) {
+            GrupoImportacion seleccionado = candidatos.get(0).grupo;
+            log.info("Grupo disponible encontrado: ID={}, nombre={}", seleccionado.getId(), seleccionado.getNombre());
+            return seleccionado;
         }
-        
-        log.info("📭 No se encontró grupo disponible para vendedor ID: {} y categoría {}", vendedorId, categoriaArmaId);
+
+        log.info("No se encontró grupo disponible para vendedor ID: {} y categoría {}", vendedorId, categoriaArmaId);
         return null;
     }
     
@@ -1442,7 +1418,7 @@ public class GrupoImportacionService {
             // Verificar cupo disponible (solo para tipo CUPO)
             // Los límites por categoría solo aplican para CIVILES, DEPORTISTAS y UNIFORMADOS PASIVOS
             // Para cliente fantasma, se asigna como civil antes de validar categoría
-            if ("CUPO".equals(grupo.getTipoGrupo()) &&
+            if (grupo.getTipoGrupo() == TipoGrupo.CUPO &&
                 cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
                 // Verificar si el cliente tiene armas asignadas y si hay cupo disponible por categoría
                 List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
@@ -1466,32 +1442,8 @@ public class GrupoImportacionService {
                             GrupoImportacionLimiteCategoria limite = limiteOpt.get();
                             Integer limiteMaximo = limite.getLimiteMaximo();
                             
-                            // Contar SOLO clientes CONFIRMADOS (CIVILES, DEPORTISTAS, UNIFORMADOS PASIVOS) 
-                            // con armas de esta categoría
-                            long clientesConfirmadosConCategoria = clienteGrupoRepository.findByGrupoImportacionId(grupo.getId()).stream()
-                                .filter(cgi -> cgi.getEstado() == EstadoClienteGrupo.CONFIRMADO ||
-                                              cgi.getEstado() == EstadoClienteGrupo.APROBADO ||
-                                              cgi.getEstado() == EstadoClienteGrupo.EN_PROCESO)
-                                .filter(cgi -> {
-                                    Cliente c = cgi.getCliente();
-                                    TipoCliente tc = c.getTipoCliente();
-                                    
-                                    // Solo contar CIVILES, DEPORTISTAS y UNIFORMADOS PASIVOS
-                                    if (tc == null) return false;
-                                    if (tc.esCivil()) return true;
-                                    if (tc.esDeportista()) return true;
-                                    if (tc.esUniformado() && c.getEstadoMilitar() != null && 
-                                        c.getEstadoMilitar().name().equals("PASIVO")) {
-                                        return true;
-                                    }
-                                    return false;
-                                })
-                                .filter(cgi -> {
-                                    // Verificar si el cliente tiene armas de esta categoría
-                                    return clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
-                                        .anyMatch(ca -> ca.getArma().getCategoria().getId().equals(categoriaId));
-                                })
-                                .count();
+                            // Contar armas de esta categoría asignadas a clientes civiles/cupo
+                            long clientesConfirmadosConCategoria = contarArmasPorCategoriaEnGrupo(grupo.getId(), categoriaId);
                             
                             // Verificar si hay cupo disponible para esta categoría
                             if (clientesConfirmadosConCategoria >= limiteMaximo) {
@@ -1526,26 +1478,21 @@ public class GrupoImportacionService {
         if (tipoCliente == null) {
             return false;
         }
-        
-        String tipoGrupo = grupo.getTipoGrupo();
-        if (tipoGrupo == null) {
-            tipoGrupo = "CUPO"; // Valor por defecto
-        }
-        
-        if ("CUPO".equals(tipoGrupo)) {
-            // CUPO: civiles, deportistas, uniformados PASIVOS
-            return tipoCliente.esCivil() || 
-                   tipoCliente.esDeportista() || 
-                   (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                    cliente.getEstadoMilitar().name().equals("PASIVO"));
-        } else if ("JUSTIFICATIVO".equals(tipoGrupo)) {
-            // JUSTIFICATIVO: uniformados ACTIVOS, empresas, deportistas
-            return (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null && 
-                    cliente.getEstadoMilitar().name().equals("ACTIVO")) ||
+
+        TipoGrupo tipoGrupo = grupo.getTipoGrupo() != null ? grupo.getTipoGrupo() : TipoGrupo.CUPO;
+
+        if (tipoGrupo == TipoGrupo.CUPO) {
+            return tipoCliente.esCivil() ||
+                   tipoCliente.esDeportista() ||
+                   (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                    cliente.getEstadoMilitar() == EstadoMilitar.PASIVO);
+        } else if (tipoGrupo == TipoGrupo.JUSTIFICATIVO) {
+            return (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
+                    cliente.getEstadoMilitar() == EstadoMilitar.ACTIVO) ||
                    tipoCliente.esEmpresa() ||
                    tipoCliente.esDeportista();
         }
-        
+
         return false;
     }
 
@@ -1554,12 +1501,9 @@ public class GrupoImportacionService {
             return false;
         }
 
-        String tipoGrupo = grupo.getTipoGrupo();
-        if (tipoGrupo == null) {
-            tipoGrupo = "CUPO";
-        }
+        TipoGrupo tipoGrupo = grupo.getTipoGrupo() != null ? grupo.getTipoGrupo() : TipoGrupo.CUPO;
 
-        if ("CUPO".equals(tipoGrupo)) {
+        if (tipoGrupo == TipoGrupo.CUPO) {
             if (tipoCliente.esCivil() || tipoCliente.esDeportista()) {
                 return true;
             }
@@ -1569,7 +1513,7 @@ public class GrupoImportacionService {
             return false;
         }
 
-        if ("JUSTIFICATIVO".equals(tipoGrupo)) {
+        if (tipoGrupo == TipoGrupo.JUSTIFICATIVO) {
             if (tipoCliente.esEmpresa() || tipoCliente.esDeportista()) {
                 return true;
             }
@@ -1600,24 +1544,24 @@ public class GrupoImportacionService {
             .anyMatch(grupo -> esTipoCompatibleConGrupo(tipoCliente, estadoMilitar, grupo));
     }
 
-    public String obtenerTipoGrupoRequerido(TipoCliente tipoCliente, EstadoMilitar estadoMilitar) {
+    public TipoGrupo obtenerTipoGrupoRequerido(TipoCliente tipoCliente, EstadoMilitar estadoMilitar) {
         if (tipoCliente == null) {
             return null;
         }
 
         if (tipoCliente.esEmpresa()) {
-            return "JUSTIFICATIVO";
+            return TipoGrupo.JUSTIFICATIVO;
         }
 
         if (tipoCliente.esUniformado()) {
             if (estadoMilitar == null) {
                 return null;
             }
-            return estadoMilitar == EstadoMilitar.ACTIVO ? "JUSTIFICATIVO" : "CUPO";
+            return estadoMilitar == EstadoMilitar.ACTIVO ? TipoGrupo.JUSTIFICATIVO : TipoGrupo.CUPO;
         }
 
         if (tipoCliente.esCivil() || tipoCliente.esDeportista()) {
-            return "CUPO";
+            return TipoGrupo.CUPO;
         }
 
         return null;
@@ -1713,7 +1657,7 @@ public class GrupoImportacionService {
     public Map<Long, Integer> calcularCuposDisponiblesPorCategoria(Long grupoId) {
         GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
         
-        if (!"CUPO".equals(grupo.getTipoGrupo())) {
+        if (grupo.getTipoGrupo() != TipoGrupo.CUPO) {
             return new HashMap<>(); // No aplica para JUSTIFICATIVO
         }
         
@@ -1727,19 +1671,8 @@ public class GrupoImportacionService {
             Long categoriaId = limite.getCategoriaArma().getId();
             Integer limiteMaximo = limite.getLimiteMaximo();
             
-            // Contar SOLO clientes CONFIRMADOS (no pendientes) con armas de esta categoría
-            // IMPORTANTE: Los límites por categoría solo aplican para:
-            // - CIVILES
-            // - DEPORTISTAS
-            // - UNIFORMADOS en PASIVO
-            long clientesConfirmadosConCategoria = clienteGrupoRepository.findByGrupoImportacionId(grupoId).stream()
-                .filter(this::esClienteGrupoContable)
-                .filter(cgi -> esClienteCivilParaCupo(cgi.getCliente()))
-                .mapToLong(cgi -> clienteArmaRepository.findByClienteId(cgi.getCliente().getId()).stream()
-                    .filter(ca -> ca.getArma().getCategoria().getId().equals(categoriaId))
-                    .mapToInt(ca -> ca.getCantidad() != null ? ca.getCantidad() : 1)
-                    .sum())
-                .sum();
+            // Contar armas de esta categoría asignadas a clientes civiles/cupo
+            long clientesConfirmadosConCategoria = contarArmasPorCategoriaEnGrupo(grupoId, categoriaId);
             
             int disponibles = Math.max(0, limiteMaximo - (int)clientesConfirmadosConCategoria);
             cuposDisponibles.put(categoriaId, disponibles);
@@ -1759,7 +1692,7 @@ public class GrupoImportacionService {
     public Integer calcularCupoTotalDisponible(Long grupoId) {
         GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
         
-        if (!"CUPO".equals(grupo.getTipoGrupo())) {
+        if (grupo.getTipoGrupo() != TipoGrupo.CUPO) {
             return null; // No aplica para JUSTIFICATIVO
         }
         

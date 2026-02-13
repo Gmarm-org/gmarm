@@ -13,6 +13,12 @@ import ClientForm from '../Vendedor/components/ClientForm';
 import WeaponListContent from '../Admin/WeaponManagement/WeaponListContent';
 import WeaponCategoryList from '../Admin/WeaponManagement/WeaponCategoryList';
 import { formatNombreCompleto } from '../../utils/formatUtils';
+import ModalGenerarContrato from './components/ModalGenerarContrato';
+import ModalReasignarArma from './components/ModalReasignarArma';
+import ModalEditarArma from './components/ModalEditarArma';
+import ModalDesistimiento from './components/ModalDesistimiento';
+import ModalClienteReasignado from './components/ModalClienteReasignado';
+import ModalAutorizacion from './components/ModalAutorizacion';
 
 interface StockArma {
   armaId: number;
@@ -51,12 +57,9 @@ const JefeVentas: React.FC = () => {
   const puedeVerAsignacionSeries = user?.roles?.some(
     role => {
       const codigo = role.rol?.codigo || (role as any).codigo;
-      console.log('🔍 JefeVentas - Verificando rol para asignación de series:', codigo);
       return codigo === 'SALES_CHIEF' || codigo === 'FINANCE';
     }
   ) || false;
-  
-  console.log('🔍 JefeVentas - puedeVerAsignacionSeries:', puedeVerAsignacionSeries);
   
   // Estados para Stock de Armas
   const [stockArmas, setStockArmas] = useState<StockArma[]>([]);
@@ -214,18 +217,13 @@ const JefeVentas: React.FC = () => {
 
   // Cargar datos según la vista actual
   useEffect(() => {
-    console.log('🔄 JefeVentas - useEffect ejecutándose, vistaActual:', vistaActual);
     if (vistaActual === 'stock') {
-      console.log('🔄 JefeVentas - Cargando stock de armas...');
       cargarStockArmas();
     } else if (vistaActual === 'clientes') {
-      console.log('🔄 JefeVentas - Cargando clientes...');
       cargarClientes();
     } else if (vistaActual === 'clientes-asignados') {
-      console.log('🔄 JefeVentas - Cargando clientes asignados...');
       cargarClientesAsignados();
     } else if (vistaActual === 'reasignar-armas') {
-      console.log('🔄 JefeVentas - Cargando armas reasignadas...');
       cargarArmasReasignadas();
     }
   }, [vistaActual]);
@@ -252,12 +250,10 @@ const JefeVentas: React.FC = () => {
   const cargarStockArmas = async () => {
     setLoadingStock(true);
     try {
-      console.log('🔄 Cargando stock de armas...');
       const response = await apiService.getStockTodasArmas();
-      console.log('✅ Stock cargado:', response);
       setStockArmas(response);
     } catch (error) {
-      console.error('❌ Error cargando stock:', error);
+      console.error('Error cargando stock:', error);
       alert(`Error cargando el inventario de armas: ${error}`);
     } finally {
       setLoadingStock(false);
@@ -267,25 +263,14 @@ const JefeVentas: React.FC = () => {
   const cargarClientes = async () => {
     setLoadingClientes(true);
     try {
-      console.log('🔄 JefeVentas - Cargando TODOS los clientes del sistema...');
-      console.log('🔄 JefeVentas - Llamando a apiService.getTodosClientes()');
       const response = await apiService.getTodosClientes();
-      console.log('✅ JefeVentas - Clientes cargados:', response);
-      console.log('✅ JefeVentas - Tipo de respuesta:', typeof response);
-      console.log('✅ JefeVentas - Es array?', Array.isArray(response));
-      if (Array.isArray(response) && response.length > 0) {
-        console.log('✅ JefeVentas - Primer cliente:', response[0]);
-        console.log('✅ JefeVentas - Vendedor del primer cliente:', response[0].vendedorNombre, response[0].vendedorApellidos);
-      }
 
       // Excluir clientes que ya tienen armas asignadas (aparecen en la vista "Clientes con Armas Asignadas")
-      // Para esto, necesitamos verificar si alguna arma del cliente tiene estado 'ASIGNADA'
       const clientesSinArmaAsignada: ClienteConVendedor[] = [];
 
       for (const cliente of response) {
         try {
           const armasResponse = await apiService.getArmasCliente(cliente.id);
-          // Solo incluir el cliente si NO tiene armas con estado 'ASIGNADA'
           const tieneArmaAsignada = armasResponse && armasResponse.length > 0 &&
                                      armasResponse.some((arma: any) => arma.estado === 'ASIGNADA');
 
@@ -293,15 +278,13 @@ const JefeVentas: React.FC = () => {
             clientesSinArmaAsignada.push(cliente);
           }
         } catch (error) {
-          // Si hay error al cargar armas, incluir el cliente (mejor mostrar de más que de menos)
           clientesSinArmaAsignada.push(cliente);
         }
       }
 
-      console.log(`✅ JefeVentas - Clientes filtrados (sin arma asignada): ${clientesSinArmaAsignada.length} de ${response.length}`);
       setClientes(clientesSinArmaAsignada);
     } catch (error) {
-      console.error('❌ JefeVentas - Error cargando clientes:', error);
+      console.error('Error cargando clientes:', error);
       alert(`Error cargando la lista de clientes: ${error}`);
     } finally {
       setLoadingClientes(false);
@@ -311,11 +294,8 @@ const JefeVentas: React.FC = () => {
   const cargarClientesAsignados = async () => {
     setLoadingClientes(true);
     try {
-      console.log('🔄 JefeVentas - Cargando clientes con armas asignadas...');
       const response = await apiService.getTodosClientes();
-      console.log('✅ JefeVentas - Total clientes cargados:', response.length);
 
-      // Cargar armas para cada cliente y filtrar solo los que tienen armas ASIGNADAS
       const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
       const clientesConArmaAsignada: ClienteConVendedor[] = [];
       const autorizacionesTemp: Record<string, any[]> = {};
@@ -324,16 +304,16 @@ const JefeVentas: React.FC = () => {
         try {
           const armasResponse = await apiService.getArmasCliente(client.id);
           if (armasResponse && armasResponse.length > 0) {
-            const arma = armasResponse[0]; // Tomar la primera arma
+            const arma = armasResponse[0];
             const armaModelo = arma.armaModelo || arma.armaNombre || 'N/A';
             weaponAssignments[client.id] = {
               weapon: {
                 id: arma.armaId,
                 nombre: armaModelo,
                 modelo: armaModelo,
-                marca: arma.armaMarca, // Nuevo campo
-                alimentadora: arma.armaAlimentadora, // Nuevo campo
-                calibre: arma.armaCalibre || 'N/A', // Corregido: usar armaCalibre, no armaModelo
+                marca: arma.armaMarca,
+                alimentadora: arma.armaAlimentadora,
+                calibre: arma.armaCalibre || 'N/A',
                 codigo: arma.armaCodigo,
                 urlImagen: arma.armaImagen,
                 precioReferencia: parseFloat(arma.precioUnitario) || 0
@@ -344,31 +324,27 @@ const JefeVentas: React.FC = () => {
               estado: arma.estado
             };
 
-            // Solo agregar clientes con arma ASIGNADA
             if (arma.estado === 'ASIGNADA') {
               clientesConArmaAsignada.push(client);
 
-              // Cargar autorizaciones del cliente
               try {
                 const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
                 autorizacionesTemp[client.id] = autorizacionesResponse || [];
-              } catch (error) {
-                console.warn(`No se pudieron cargar autorizaciones para cliente ${client.id}:`, error);
+              } catch {
                 autorizacionesTemp[client.id] = [];
               }
             }
           }
-        } catch (error) {
-          console.warn(`No se pudieron cargar armas para cliente ${client.id}:`, error);
+        } catch {
+          // Si falla cargar armas de un cliente, continuar con el siguiente
         }
       }
 
-      console.log('✅ JefeVentas - Clientes con armas asignadas:', clientesConArmaAsignada.length);
       setClientesAsignados(clientesConArmaAsignada);
       setClientWeaponAssignments(weaponAssignments);
       setAutorizaciones(autorizacionesTemp);
     } catch (error) {
-      console.error('❌ JefeVentas - Error cargando clientes asignados:', error);
+      console.error('Error cargando clientes asignados:', error);
       alert(`Error cargando la lista de clientes asignados: ${error}`);
     } finally {
       setLoadingClientes(false);
@@ -383,17 +359,12 @@ const JefeVentas: React.FC = () => {
       // Cargar armas asignadas
       const armas = await apiService.getArmasCliente(Number(cliente.id));
       setArmasCliente(armas);
-      console.log('🔫 Armas del cliente:', armas);
-      
-      // Cargar documentos
+
       const documentos = await apiService.getDocumentosCliente(Number(cliente.id));
       setDocumentosCliente(documentos);
-      console.log('📄 Documentos del cliente:', documentos);
-      
-      // Cargar contratos
+
       const contratos = await apiService.getContratosCliente(Number(cliente.id));
       setContratosCliente(contratos);
-      console.log('📋 Contratos del cliente:', contratos);
       
       // Cargar pagos y sus cuotas
       const pagos = await apiService.getPagosCliente(Number(cliente.id));
@@ -421,7 +392,6 @@ const JefeVentas: React.FC = () => {
       }
       
       setPagosCliente(cuotasTemp);
-      console.log('💰 Cuotas del cliente:', cuotasTemp);
       
     } catch (error) {
       console.error('Error cargando detalle del cliente:', error);
@@ -486,21 +456,13 @@ const JefeVentas: React.FC = () => {
 
     setGenerandoAutorizacion(true);
     try {
-      console.log('📄 Generando autorización para:', {
-        clienteId: clienteAutorizacion.id,
-        numeroFactura: numeroFacturaAutorizacion,
-        tramite: tramiteAutorizacion
-      });
-
-      const response = await apiService.generarAutorizacion(
+      await apiService.generarAutorizacion(
         clienteAutorizacion.id,
         numeroFacturaAutorizacion,
         tramiteAutorizacion
       );
 
-      console.log('✅ Autorización generada:', response);
-
-      alert('✅ Autorización de venta generada exitosamente');
+      alert('Autorización de venta generada exitosamente');
 
       // Cerrar modal
       handleCerrarModalAutorizacion();
@@ -519,7 +481,6 @@ const JefeVentas: React.FC = () => {
   const handleEditarCliente = async (cliente: ClienteConVendedor) => {
     try {
       const clienteCompleto = await apiService.getCliente(parseInt(cliente.id));
-      console.log('🔍 Cliente completo obtenido del backend:', clienteCompleto);
       
       // Obtener tipos de cliente para el mapeo
       const tiposClienteCompletos = await apiService.getClientTypes();
@@ -528,8 +489,7 @@ const JefeVentas: React.FC = () => {
       let provinciaMapeada = (clienteCompleto as any).provincia || '';
       // Si no es código, buscar en catálogo (lógica simplificada)
       if (provinciaMapeada && !provinciaMapeada.match(/^[0-9]+$/)) {
-        // Es nombre, buscar código (en producción debería usar el catálogo completo)
-        console.log('⚠️ Provincia recibida como nombre:', provinciaMapeada);
+        // Es nombre, no código numérico
       }
       
       // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select
@@ -629,19 +589,14 @@ const JefeVentas: React.FC = () => {
 
   // Handler para navegar a selección de armas (no se usa en edición, pero necesario para ClientForm)
   const handleNavigateToWeaponSelection = useCallback(() => {
-    // En modo edición, no navegamos a selección de armas
-    console.log('Navegación a selección de armas (no implementado en modo edición)');
+    // No aplicable en modo edición
   }, []);
 
-  // Handler para confirmar datos del cliente (no se usa en edición, pero necesario para ClientForm)
   const handleClientDataConfirm = useCallback((_formData: any) => {
-    // En modo edición, no se usa este handler
-    console.log('Confirmación de datos (no implementado en modo edición)');
+    // No aplicable en modo edición
   }, []);
 
-  // Handler para cliente bloqueado (no se usa en edición, pero necesario para ClientForm)
-  const handleClienteBloqueado = useCallback((clientId: string, bloqueado: boolean, motivo: string) => {
-    console.log('Cliente bloqueado:', { clientId, bloqueado, motivo });
+  const handleClienteBloqueado = useCallback((_clientId: string, bloqueado: boolean, _motivo: string) => {
     if (bloqueado && currentPage === 'clientForm') {
       handleCloseForm();
     }
@@ -688,33 +643,22 @@ const JefeVentas: React.FC = () => {
 
   // Handler para confirmar desistimiento
   const handleConfirmarDesistimiento = async () => {
-    if (!modalDesistimiento.cliente) {
-      alert('❌ Error: No hay cliente seleccionado');
-      return;
-    }
-    
+    if (!modalDesistimiento.cliente) return;
+
     setModalDesistimiento(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
-      console.log('🔄 Cambiando estado a DESISTIMIENTO para cliente:', modalDesistimiento.cliente.id);
-      console.log('📝 Observación:', modalDesistimiento.observacion);
-      
-      const response = await apiService.cambiarEstadoDesistimiento(
+      await apiService.cambiarEstadoDesistimiento(
         Number(modalDesistimiento.cliente!.id),
-        modalDesistimiento.observacion || '' // Asegurar que siempre se envíe un string
+        modalDesistimiento.observacion || ''
       );
-      
-      console.log('✅ Respuesta del servidor:', response);
-      
-      alert('✅ Estado del cliente actualizado a DESISTIMIENTO exitosamente');
+
+      alert('Estado del cliente actualizado a DESISTIMIENTO exitosamente');
       setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false });
-      
-      // Recargar clientes para reflejar el cambio
       cargarClientes();
     } catch (error: any) {
-      console.error('❌ Error cambiando estado a DESISTIMIENTO:', error);
-      
-      // Extraer mensaje de error más específico
+      console.error('Error cambiando estado a DESISTIMIENTO:', error);
+
       let errorMessage = 'Error desconocido al cambiar estado';
       if (error?.response?.data?.error) {
         errorMessage = error.response.data.error;
@@ -723,8 +667,8 @@ const JefeVentas: React.FC = () => {
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
-      alert(`❌ Error al cambiar estado: ${errorMessage}`);
+
+      alert(`Error al cambiar estado: ${errorMessage}`);
     } finally {
       setModalDesistimiento(prev => ({ ...prev, isLoading: false }));
     }
@@ -754,7 +698,7 @@ const JefeVentas: React.FC = () => {
   // Handler para confirmar edición de arma
   const handleConfirmarEditarArma = async () => {
     if (!modalEditarArma.clienteArma || !modalEditarArma.armaSeleccionada) {
-      alert('❌ Por favor, selecciona una nueva arma');
+      alert('Por favor, selecciona una nueva arma');
       return;
     }
 
@@ -769,7 +713,7 @@ const JefeVentas: React.FC = () => {
         nuevoPrecio
       );
 
-      alert('✅ Arma actualizada exitosamente. Puedes generar un nuevo contrato si lo deseas.');
+      alert('Arma actualizada exitosamente. Puedes generar un nuevo contrato si lo deseas.');
       
       // Cerrar modal
       setModalEditarArma({
@@ -789,7 +733,7 @@ const JefeVentas: React.FC = () => {
     } catch (error: any) {
       console.error('Error actualizando arma:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Error desconocido';
-      alert(`❌ Error al actualizar arma: ${errorMessage}`);
+      alert(`Error al actualizar arma: ${errorMessage}`);
     } finally {
       setModalEditarArma(prev => ({ ...prev, isLoading: false }));
     }
@@ -797,50 +741,19 @@ const JefeVentas: React.FC = () => {
 
   // Handler para abrir modal de generar contrato
   const handleAbrirModalGenerarContrato = async () => {
-    console.log('🚀 handleAbrirModalGenerarContrato - INICIANDO');
-    if (!clienteSeleccionado) {
-      console.warn('⚠️ handleAbrirModalGenerarContrato - No hay cliente seleccionado');
-      return;
-    }
-    
-    console.log('🚀 handleAbrirModalGenerarContrato - Cliente ID:', clienteSeleccionado.id);
+    if (!clienteSeleccionado) return;
+
     setModalGenerarContrato({ isOpen: true, datosContrato: null, isLoading: true });
-    
+
     try {
-      console.log('🚀 handleAbrirModalGenerarContrato - Llamando a obtenerDatosContrato...');
       const datos = await apiService.obtenerDatosContrato(Number(clienteSeleccionado.id));
-      console.log('📋 Datos del contrato recibidos:', datos);
-      console.log('📋 documentosCompletos:', datos?.documentosCompletos);
-      console.log('📋 emailVerificado:', datos?.cliente?.emailVerificado);
-      console.log('📋 Tipo de documentosCompletos:', typeof datos?.documentosCompletos);
-      console.log('📋 Tipo de emailVerificado:', typeof datos?.cliente?.emailVerificado);
       setModalGenerarContrato({ isOpen: true, datosContrato: datos, isLoading: false });
     } catch (error) {
-      console.error('❌ Error obteniendo datos del contrato:', error);
+      console.error('Error obteniendo datos del contrato:', error);
       alert('Error al obtener datos del contrato. Por favor, intente nuevamente.');
       setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
     }
   };
-
-  // useEffect para loguear cuando cambien los datos del contrato
-  useEffect(() => {
-    if (modalGenerarContrato.datosContrato) {
-      const emailVerificado = modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true;
-      const documentosCompletos = modalGenerarContrato.datosContrato?.documentosCompletos === true;
-      const isDisabled = modalGenerarContrato.isLoading || !emailVerificado || !documentosCompletos;
-      
-      console.log('🔍 useEffect - Estado del botón generar contrato:', {
-        isLoading: modalGenerarContrato.isLoading,
-        emailVerificado,
-        documentosCompletos,
-        isDisabled,
-        datosCompletosRaw: modalGenerarContrato.datosContrato?.documentosCompletos,
-        emailVerificadoRaw: modalGenerarContrato.datosContrato?.cliente?.emailVerificado,
-        tipoDocumentosCompletos: typeof modalGenerarContrato.datosContrato?.documentosCompletos,
-        tipoEmailVerificado: typeof modalGenerarContrato.datosContrato?.cliente?.emailVerificado
-      });
-    }
-  }, [modalGenerarContrato.datosContrato, modalGenerarContrato.isLoading]);
 
   // Handler para generar contrato
   const handleGenerarContrato = async () => {
@@ -852,7 +765,7 @@ const JefeVentas: React.FC = () => {
       const response = await apiService.generarContrato(Number(clienteSeleccionado.id));
       
       if (response.success) {
-        alert('✅ Documento(s) generado(s) exitosamente');
+        alert('Documento(s) generado(s) exitosamente');
         // Recargar contratos del cliente
         const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
         setContratosCliente(contratos);
@@ -1928,7 +1841,7 @@ const JefeVentas: React.FC = () => {
                               setCargandoFirmado(true);
                               try {
                                 await apiService.cargarContratoFirmado(Number(clienteSeleccionado.id), archivoFirmado, contrato.id);
-                                alert('✅ Documento firmado cargado exitosamente');
+                                alert('Documento firmado cargado exitosamente');
                                 // Recargar contratos
                                 const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
                                 setContratosCliente(contratos);
@@ -2140,7 +2053,6 @@ const JefeVentas: React.FC = () => {
                     return (
                       <button
                         onClick={(e) => {
-                          console.log('🟢 CLICK EN BOTÓN GENERAR DOCUMENTOS - Handler ejecutándose');
                           e.preventDefault();
                           e.stopPropagation();
                           handleAbrirModalGenerarContrato();
@@ -2167,220 +2079,11 @@ const JefeVentas: React.FC = () => {
         )}
 
         {/* Modal de Generar Contrato */}
-        {modalGenerarContrato.isOpen && (() => {
-          console.log('🟡 MODAL RENDERIZÁNDOSE - Estado:', {
-            isOpen: modalGenerarContrato.isOpen,
-            isLoading: modalGenerarContrato.isLoading,
-            tieneDatosContrato: !!modalGenerarContrato.datosContrato,
-            datosContrato: modalGenerarContrato.datosContrato
-          });
-          return null;
-        })()}
-        {modalGenerarContrato.isOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    Generar Documento
-                  </h2>
-                  <button
-                    onClick={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {modalGenerarContrato.isLoading ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-                    {(() => {
-                      const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
-                        const textoAccion = esCivil ? "solicitud de compra" : "documentos";
-                      return <p className="mt-4 text-gray-600">Cargando datos para generar {textoAccion}...</p>;
-                    })()}
-                  </div>
-                ) : modalGenerarContrato.datosContrato ? (
-                  <>
-                    {(() => {
-                      const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
-                      const textoAccion = esCivil ? "la solicitud de compra" : "los documentos";
-                      return (
-                        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-800">
-                            ✅ Confirma estos datos antes de generar {textoAccion}.
-                          </p>
-                        </div>
-                      );
-                    })()}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Datos del Cliente</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">Nombre Completo</p>
-                          <p className="font-medium">{formatNombreCompleto(modalGenerarContrato.datosContrato.cliente?.nombres, modalGenerarContrato.datosContrato.cliente?.apellidos)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Número de Identificación</p>
-                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.numeroIdentificacion || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Email</p>
-                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.email || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Teléfono</p>
-                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.telefonoPrincipal || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Dirección</p>
-                          <p className="font-medium">{modalGenerarContrato.datosContrato.cliente?.direccion || 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {modalGenerarContrato.datosContrato.pago && (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Datos del Pago</h3>
-                        <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-gray-600">Monto Total</p>
-                            <p className="font-medium">${parseFloat(modalGenerarContrato.datosContrato.pago.montoTotal || 0).toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Tipo de Pago</p>
-                            <p className="font-medium">{modalGenerarContrato.datosContrato.pago.tipoPago || 'N/A'}</p>
-                          </div>
-                          {modalGenerarContrato.datosContrato.pago.numeroCuotas && (
-                            <div>
-                              <p className="text-sm text-gray-600">Número de Cuotas</p>
-                              <p className="font-medium">{modalGenerarContrato.datosContrato.pago.numeroCuotas}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {modalGenerarContrato.datosContrato.armas && modalGenerarContrato.datosContrato.armas.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Armas Asignadas</h3>
-                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                          {modalGenerarContrato.datosContrato.armas.map((arma: any, index: number) => (
-                            <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                              <p className="font-medium">{arma.modelo || arma.nombre || arma.armaModelo || arma.armaNombre || 'N/A'}</p>
-                              <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                                <div>
-                                  <span className="text-gray-600">Cantidad:</span> {arma.cantidad || 1}
-                                </div>
-                                <div>
-                                  <span className="text-gray-600">Precio Unitario:</span> ${parseFloat(arma.precioUnitario || 0).toFixed(2)}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-                      <button
-                        onClick={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
-                        className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                        disabled={modalGenerarContrato.isLoading}
-                      >
-                        Cancelar
-                      </button>
-                      {(() => {
-                        const emailVerificado = modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true;
-                        const documentosCompletos = modalGenerarContrato.datosContrato?.documentosCompletos === true;
-                        const isDisabled = modalGenerarContrato.isLoading || !emailVerificado || !documentosCompletos;
-                        
-                        // Determinar texto del botón según tipo de cliente
-                        const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
-                        const textoBoton = esCivil ? "Generar Solicitud de Compra" : "Generar Documentos";
-                        
-                        // Log directo en el render para debug
-                        console.log('🔴 RENDER BOTÓN - Estado actual:', {
-                          isLoading: modalGenerarContrato.isLoading,
-                          emailVerificado,
-                          documentosCompletos,
-                          isDisabled,
-                          datosCompletosRaw: modalGenerarContrato.datosContrato?.documentosCompletos,
-                          emailVerificadoRaw: modalGenerarContrato.datosContrato?.cliente?.emailVerificado,
-                          tieneDatosContrato: !!modalGenerarContrato.datosContrato,
-                          datosContratoCompleto: modalGenerarContrato.datosContrato
-                        });
-                        
-                        return (
-                          <button
-                            onClick={handleGenerarContrato}
-                            disabled={isDisabled}
-                            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            title={
-                              modalGenerarContrato.isLoading 
-                                ? 'Cargando...'
-                                : !emailVerificado
-                                ? 'Email no validado'
-                                : !documentosCompletos
-                                ? 'Documentos incompletos'
-                                : textoBoton.toLowerCase()
-                            }
-                          >
-                        {modalGenerarContrato.isLoading ? (
-                          <>
-                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Generando...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            {textoBoton}
-                          </>
-                        )}
-                          </button>
-                        );
-                      })()}
-                    </div>
-                    {(!(modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true) || 
-                      !(modalGenerarContrato.datosContrato?.documentosCompletos === true)) && (
-                      <div className="mt-4 space-y-2">
-                        {!(modalGenerarContrato.datosContrato?.cliente?.emailVerificado === true) && (
-                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-800">
-                              ⚠️ El cliente no tiene su email validado. Debe validar los datos personales del cliente primero.
-                            </p>
-                          </div>
-                        )}
-                        {!(modalGenerarContrato.datosContrato?.documentosCompletos === true) && (
-                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                            {(() => {
-                              const esCivil = modalGenerarContrato.datosContrato?.cliente?.tipoClienteEsCivil ?? false;
-                              const textoAccion = esCivil ? "la solicitud de compra" : "los documentos";
-                              return (
-                                <p className="text-sm text-red-800">
-                                  ⚠️ El cliente no tiene todos sus documentos obligatorios cargados. Debe completar todos los documentos antes de generar {textoAccion}.
-                                </p>
-                              );
-                            })()}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-gray-600">No se pudieron cargar los datos para la generación.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalGenerarContrato
+          state={modalGenerarContrato}
+          onGenerar={handleGenerarContrato}
+          onClose={() => setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false })}
+        />
 
         {/* Contenido: Importaciones */}
         {vistaActual === 'importaciones' && (
@@ -2503,428 +2206,52 @@ const JefeVentas: React.FC = () => {
         )}
 
         {/* Modal de Reasignar Arma */}
-        {modalReasignarArma.isOpen && modalReasignarArma.cliente && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Reasignar Arma</h2>
-                <button
-                  onClick={() => setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <p className="text-gray-600 mb-4">
-                Cliente actual: {formatNombreCompleto(modalReasignarArma.cliente.nombres, modalReasignarArma.cliente.apellidos)}
-              </p>
-              <p className="text-gray-600 mb-4">
-                Esta funcionalidad requiere seleccionar un nuevo cliente. Por favor, use la pestaña "REASIGNAR ARMAS" para esta operación.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false })}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalReasignarArma
+          isOpen={modalReasignarArma.isOpen}
+          cliente={modalReasignarArma.cliente}
+          onClose={() => setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false })}
+        />
 
         {/* Modal de Editar Arma */}
-        {modalEditarArma.isOpen && modalEditarArma.clienteArma && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Editar Arma Asignada</h2>
-                <button
-                  onClick={() => setModalEditarArma({
-                    isOpen: false,
-                    clienteArma: null,
-                    armasDisponibles: [],
-                    armaSeleccionada: null,
-                    nuevoPrecio: '',
-                    isLoading: false
-                  })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Arma Actual</p>
-                <p className="font-semibold text-blue-600">{modalEditarArma.clienteArma.armaModelo || modalEditarArma.clienteArma.armaNombre || 'N/A'}</p>
-                <p className="text-sm text-gray-600 mt-2">Precio Actual</p>
-                <p className="font-medium">${modalEditarArma.clienteArma.precioUnitario?.toFixed(2) || '0.00'}</p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Seleccionar Nueva Arma *
-                </label>
-                <select
-                  value={modalEditarArma.armaSeleccionada?.id || ''}
-                  onChange={(e) => {
-                    const armaSeleccionada = modalEditarArma.armasDisponibles.find(
-                      a => a.id.toString() === e.target.value
-                    );
-                    setModalEditarArma(prev => ({
-                      ...prev,
-                      armaSeleccionada,
-                      nuevoPrecio: armaSeleccionada?.precioReferencia?.toString() || ''
-                    }));
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Selecciona una arma...</option>
-                  {modalEditarArma.armasDisponibles.map((arma: any) => (
-                    <option key={arma.id} value={arma.id}>
-                      {arma.modelo || 'N/A'} - ${arma.precioReferencia?.toFixed(2) || '0.00'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {modalEditarArma.armaSeleccionada && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nuevo Precio Unitario (USD) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={modalEditarArma.nuevoPrecio}
-                    onChange={(e) => setModalEditarArma(prev => ({ ...prev, nuevoPrecio: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0.00"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Precio de referencia: ${modalEditarArma.armaSeleccionada.precioReferencia?.toFixed(2) || '0.00'}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setModalEditarArma({
-                    isOpen: false,
-                    clienteArma: null,
-                    armasDisponibles: [],
-                    armaSeleccionada: null,
-                    nuevoPrecio: '',
-                    isLoading: false
-                  })}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                  disabled={modalEditarArma.isLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmarEditarArma}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  disabled={modalEditarArma.isLoading || !modalEditarArma.armaSeleccionada}
-                >
-                  {modalEditarArma.isLoading ? 'Procesando...' : 'Confirmar Cambio'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalEditarArma
+          state={modalEditarArma}
+          onArmaChange={(arma, nuevoPrecio) => setModalEditarArma(prev => ({ ...prev, armaSeleccionada: arma, nuevoPrecio }))}
+          onPrecioChange={(precio) => setModalEditarArma(prev => ({ ...prev, nuevoPrecio: precio }))}
+          onConfirm={handleConfirmarEditarArma}
+          onClose={() => setModalEditarArma({ isOpen: false, clienteArma: null, armasDisponibles: [], armaSeleccionada: null, nuevoPrecio: '', isLoading: false })}
+        />
 
         {/* Modal de Desistimiento */}
-        {modalDesistimiento.isOpen && modalDesistimiento.cliente && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Cambiar Estado a DESISTIMIENTO</h2>
-                <button
-                  onClick={() => setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <p className="text-gray-600 mb-4">
-                Cliente: {formatNombreCompleto(modalDesistimiento.cliente.nombres, modalDesistimiento.cliente.apellidos)}
-              </p>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Observación (opcional)
-                </label>
-                <textarea
-                  value={modalDesistimiento.observacion}
-                  onChange={(e) => setModalDesistimiento(prev => ({ ...prev, observacion: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  rows={4}
-                  placeholder="Ingrese la observación del desistimiento..."
-                />
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false })}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                  disabled={modalDesistimiento.isLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmarDesistimiento}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                  disabled={modalDesistimiento.isLoading}
-                >
-                  {modalDesistimiento.isLoading ? 'Procesando...' : 'Confirmar Desistimiento'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalDesistimiento
+          state={modalDesistimiento}
+          onObservacionChange={(obs) => setModalDesistimiento(prev => ({ ...prev, observacion: obs }))}
+          onConfirm={handleConfirmarDesistimiento}
+          onClose={() => setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false })}
+        />
 
         {/* Modal de Cliente Reasignado */}
-        {modalClienteReasignado.isOpen && modalClienteReasignado.arma && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Asignar Arma a Nuevo Cliente</h2>
-                <button
-                  onClick={() => setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-800 mb-2">Información del Arma</h3>
-                <p className="text-sm text-gray-600"><strong>Arma:</strong> {modalClienteReasignado.arma.armaModelo || modalClienteReasignado.arma.armaNombre || 'N/A'}</p>
-                {modalClienteReasignado.arma.armaCalibre && (
-                  <p className="text-sm text-gray-600"><strong>Calibre:</strong> {modalClienteReasignado.arma.armaCalibre}</p>
-                )}
-                <p className="text-sm text-gray-600"><strong>Cliente Anterior:</strong> {modalClienteReasignado.arma.clienteNombre}</p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Seleccionar Nuevo Cliente *
-                </label>
-                <select
-                  value={modalClienteReasignado.nuevoClienteId || ''}
-                  onChange={(e) => setModalClienteReasignado(prev => ({ ...prev, nuevoClienteId: Number(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="">-- Seleccione un cliente --</option>
-                  {clientes.map((cliente) => (
-                    <option key={cliente.id} value={cliente.id}>
-                      {formatNombreCompleto(cliente.nombres, cliente.apellidos)} - {cliente.numeroIdentificacion}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  ⚠️ El cliente seleccionado debe tener todos sus documentos aprobados para poder recibir el arma.
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false })}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                  disabled={modalClienteReasignado.isLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmarClienteReasignado}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                  disabled={modalClienteReasignado.isLoading || !modalClienteReasignado.nuevoClienteId}
-                >
-                  {modalClienteReasignado.isLoading ? 'Procesando...' : 'Confirmar Reasignación'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalClienteReasignado
+          state={modalClienteReasignado}
+          clientes={clientes}
+          onClienteChange={(clienteId) => setModalClienteReasignado(prev => ({ ...prev, nuevoClienteId: clienteId }))}
+          onConfirm={handleConfirmarClienteReasignado}
+          onClose={() => setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false })}
+        />
 
         {/* Modal de Generar Autorización de Venta */}
-        {mostrarModalAutorizacion && clienteAutorizacion && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8">
-              <div className="p-8">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    {autorizaciones[clienteAutorizacion.id] && autorizaciones[clienteAutorizacion.id].length > 0 ? (
-                      <>
-                        <h2 className="text-2xl font-bold text-gray-800">🔄 Regenerar Autorización de Venta</h2>
-                        <p className="text-amber-600 mt-1 font-medium">⚠️ Esta acción sobrescribirá la autorización existente</p>
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="text-2xl font-bold text-gray-800">📄 Generar Autorización de Venta</h2>
-                        <p className="text-gray-600 mt-1">Complete los datos necesarios para generar el documento</p>
-                      </>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleCerrarModalAutorizacion}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Campos de entrada */}
-                <div className="space-y-6 mb-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nro. Factura <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={numeroFacturaAutorizacion}
-                        onChange={(e) => setNumeroFacturaAutorizacion(e.target.value)}
-                        placeholder="Ej: 001-901-000000326"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Trámite <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={tramiteAutorizacion}
-                        onChange={(e) => setTramiteAutorizacion(e.target.value)}
-                        placeholder="TRA-XXXXXX"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      />
-                      {!tramiteAutorizacion && clienteAutorizacion?.grupoImportacionId && (
-                        <p className="text-xs text-amber-600 mt-1">
-                          ⚠️ El trámite no se ha definido en el grupo de importación
-                        </p>
-                      )}
-                      {tramiteAutorizacion && clienteAutorizacion?.grupoImportacionId && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Trámite cargado desde el grupo de importación
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Información del Cliente (No editable) */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Datos del Cliente
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-gray-600">Nombre:</span>
-                      <span className="font-medium ml-2">{formatNombreCompleto(clienteAutorizacion.nombres, clienteAutorizacion.apellidos)}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">CI:</span>
-                      <span className="font-mono ml-2">{clienteAutorizacion.numeroIdentificacion}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Tipo:</span>
-                      <span className="ml-2">{clienteAutorizacion.tipoClienteNombre || clienteAutorizacion.tipoProcesoNombre}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Email:</span>
-                      <span className="ml-2">{clienteAutorizacion.email || '-'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Información del Arma (No editable) */}
-                {clientWeaponAssignments[clienteAutorizacion.id] && (
-                  <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Datos del Arma
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-gray-600">Modelo:</span>
-                        <span className="font-medium ml-2">{clientWeaponAssignments[clienteAutorizacion.id].weapon.modelo || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Calibre:</span>
-                        <span className="ml-2">{clientWeaponAssignments[clienteAutorizacion.id].weapon.calibre}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Serie:</span>
-                        <span className="font-mono ml-2 font-bold text-blue-600">{clientWeaponAssignments[clienteAutorizacion.id].numeroSerie}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Tipo:</span>
-                        <span className="ml-2">PISTOLA</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Botones de acción */}
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={handleCerrarModalAutorizacion}
-                    disabled={generandoAutorizacion}
-                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleConfirmarGeneracionAutorizacion}
-                    disabled={generandoAutorizacion}
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-md disabled:opacity-50 flex items-center space-x-2"
-                  >
-                    {generandoAutorizacion ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Generando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {autorizaciones[clienteAutorizacion.id] && autorizaciones[clienteAutorizacion.id].length > 0 ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          )}
-                        </svg>
-                        <span>
-                          {autorizaciones[clienteAutorizacion.id] && autorizaciones[clienteAutorizacion.id].length > 0
-                            ? 'Regenerar Documento'
-                            : 'Generar Documento'}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalAutorizacion
+          isOpen={mostrarModalAutorizacion}
+          cliente={clienteAutorizacion}
+          autorizaciones={autorizaciones}
+          weaponAssignment={clienteAutorizacion ? clientWeaponAssignments[clienteAutorizacion.id] : undefined}
+          numeroFactura={numeroFacturaAutorizacion}
+          onNumeroFacturaChange={setNumeroFacturaAutorizacion}
+          tramite={tramiteAutorizacion}
+          onTramiteChange={setTramiteAutorizacion}
+          generando={generandoAutorizacion}
+          onConfirm={handleConfirmarGeneracionAutorizacion}
+          onClose={handleCerrarModalAutorizacion}
+        />
       </div>
     </div>
   );

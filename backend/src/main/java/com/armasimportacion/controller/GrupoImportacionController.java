@@ -183,7 +183,7 @@ public class GrupoImportacionController {
             }
             
             // Calcular cupos disponibles por categoría (solo para tipo CUPO)
-            if ("CUPO".equals(grupo.getTipoGrupo())) {
+            if (grupo.getTipoGrupo() == com.armasimportacion.enums.TipoGrupo.CUPO) {
                 Map<Long, Integer> cuposDisponibles = grupoImportacionService.calcularCuposDisponiblesPorCategoria(id);
                 grupoDTO.put("cuposDisponiblesPorCategoria", cuposDisponibles);
                 
@@ -533,7 +533,7 @@ public class GrupoImportacionController {
                 estado = EstadoMilitar.valueOf(estadoMilitar.trim().toUpperCase());
             }
 
-            String tipoGrupoRequerido = grupoImportacionService.obtenerTipoGrupoRequerido(tipoClienteOpt.get(), estado);
+            com.armasimportacion.enums.TipoGrupo tipoGrupoRequerido = grupoImportacionService.obtenerTipoGrupoRequerido(tipoClienteOpt.get(), estado);
             boolean disponible;
 
             if (estado == null && tipoClienteOpt.get().esUniformado()) {

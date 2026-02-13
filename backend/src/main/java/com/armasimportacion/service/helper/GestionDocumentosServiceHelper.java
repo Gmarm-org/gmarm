@@ -129,8 +129,8 @@ public class GestionDocumentosServiceHelper {
             com.armasimportacion.enums.EstadoClienteGrupo estado = cgi.getEstado();
             if (estado != com.armasimportacion.enums.EstadoClienteGrupo.COMPLETADO && 
                 estado != com.armasimportacion.enums.EstadoClienteGrupo.CANCELADO) {
-                String tipoGrupo = cgi.getGrupoImportacion().getTipoGrupo();
-                return tipoGrupo != null ? tipoGrupo : "CUPO"; // Valor por defecto
+                com.armasimportacion.enums.TipoGrupo tipoGrupo = cgi.getGrupoImportacion().getTipoGrupo();
+                return tipoGrupo != null ? tipoGrupo.name() : "CUPO"; // Valor por defecto
             }
         }
         

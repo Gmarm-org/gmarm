@@ -31,7 +31,7 @@ public class GrupoImportacionMapper {
                 .cupoTotal(grupoImportacion.getCupoTotal())
                 .cupoDisponible(grupoImportacion.getCupoDisponible())
                 .observaciones(grupoImportacion.getObservaciones())
-                .tipoGrupo(grupoImportacion.getTipoGrupo())
+                .tipoGrupo(grupoImportacion.getTipoGrupo() != null ? grupoImportacion.getTipoGrupo().name() : null)
                 .tra(grupoImportacion.getTra());
         
         // Mapear vendedores
