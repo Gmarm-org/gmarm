@@ -1,1014 +1,193 @@
-import apiService from './api';
-import type { Client } from './api';
+// Barrel module for admin panel CRUD objects
+// Re-exports domain objects and types used by Admin components
 
-// ========================================
-// INTERFACES PARA ENTIDADES DEL SISTEMA
-// ========================================
+import { getApiBaseUrl } from './apiClient';
+import * as weaponFns from './weaponApi';
+import * as licenseFns from './licenseApi';
+import * as catalogFns from './catalogApi';
+import * as configFns from './configApi';
+import * as userFns from './userApi';
+import * as clientFns from './clientApi';
 
-export interface Weapon {
-  id: number;
-  modelo: string; // Cambiado de nombre a modelo
-  marca?: string; // Nuevo campo
-  alimentadora?: string; // Nuevo campo
-  color?: string;
-  calibre: string;
-  capacidad: number;
-  precioReferencia: number;
-  categoriaId: number;
-  categoriaNombre: string;
-  estado: boolean;
-  fechaCreacion?: string;
-  fechaActualizacion?: string;
-  codigo: string;
-  urlImagen?: string;
-  urlProducto?: string;
-  categoriaCodigo?: string;
-}
+// Re-export types
+export type {
+  Weapon, WeaponCategory, License, Role, ClientType, ImportType,
+  IdentificationType, Question, DocumentType, ClientImportType, SystemConfig,
+  TipoProceso, User, Client,
+} from './types';
 
-export interface WeaponCategory {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  estado: boolean;
-  fecha_creacion: string;
-}
-
-export interface License {
-  id: number;
-  numero: string;
-  nombre: string;
-  titulo?: string; // Nuevo campo
-  ruc?: string;
-  cuenta_bancaria?: string;
-  nombre_banco?: string;
-  tipo_cuenta?: string;
-  cedula_cuenta?: string;
-  email?: string;
-  telefono?: string;
-  provincia?: string; // Ubicación geográfica
-  canton?: string;    // Ubicación geográfica
-  // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
-  descripcion?: string;
-  fecha_emision?: string;
-  observaciones?: string;
-  estado: boolean; // true = ACTIVA, false = INACTIVA
-  estado_ocupacion?: string; // DISPONIBLE, BLOQUEADA
-  fecha_vencimiento?: string;
-  fecha_creacion?: string;
-  fecha_actualizacion?: string;
-}
-
-export interface Role {
-  id: number;
-  nombre: string;
-  codigo: string;
-  descripcion: string;
-  estado: boolean;
-  fecha_creacion: string;
-  tipo_rol_vendedor?: string; // FIJO o LIBRE (solo para rol VENDEDOR)
-}
-
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  nombres: string;
-  apellidos: string;
-  telefono_principal?: string;
-  telefono_secundario?: string;
-  direccion?: string;
-  foto?: string;
-  estado: boolean; // true = ACTIVO, false = INACTIVO
-  bloqueado?: boolean;
-  ultimo_login?: string;
-  intentos_login?: number;
-  roles: any[]; // Array de objetos {id, nombre, codigo}
-}
-
-export interface ClientType {
-  id: number;
-  nombre: string;
-  codigo: string;
-  descripcion: string;
-  esCivil: boolean;
-  esMilitar: boolean;
-  esPolicia: boolean;
-  esEmpresa: boolean;
-  esDeportista: boolean;
-  requiereIssfa: boolean;
-  estado: boolean;
-  fecha_creacion: string;
-}
-
-export interface ImportType {
-  id: number;
-  nombre: string;
-  // NOTA: cupo_maximo ya no se usa - los cupos se manejan a nivel de Grupo de Importación
-  cupo_maximo?: number;
-  descripcion: string;
-  estado: boolean;
-  fecha_creacion: string;
-}
-
-export interface IdentificationType {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  estado: boolean;
-  fecha_creacion: string;
-}
-
-// ========================================
-// SERVICIOS PARA ARMAS
-// ========================================
-
+// Weapon CRUD
 export const weaponApi = {
-  // Obtener todas las armas (incluye inactivas para admin)
-  getAll: async (): Promise<Weapon[]> => {
-    try {
-      // Para admin: incluir armas inactivas
-      const response = await apiService.getArmas(true);
-      console.log('🔫 Admin API - Armas obtenidas del backend (incluye inactivas):', response);
-      return response;
-    } catch (error) {
-      console.error('Error fetching weapons:', error);
-      throw error;
-    }
-  },
-
-  // Obtener arma por ID
-  getById: async (id: number): Promise<Weapon> => {
-    try {
-      const response = await apiService.getArmaById(id);
-      return response;
-    } catch (error) {
-      console.error('Error obteniendo arma:', error);
-      throw error;
-    }
-  },
-
-  // Crear nueva arma
-  create: async (weapon: Partial<Weapon>): Promise<Weapon> => {
-    try {
-      const response = await apiService.createArma(weapon);
-      return response;
-    } catch (error) {
-      console.error('Error creando arma:', error);
-      throw error;
-    }
-  },
-
-  // Actualizar arma
-  update: async (id: number, weapon: Partial<Weapon>): Promise<Weapon> => {
-    try {
-      const response = await apiService.updateArma(id, weapon);
-      return response;
-    } catch (error) {
-      console.error('Error actualizando arma:', error);
-      throw error;
-    }
-  },
-
-  // Actualizar arma con imagen
-  updateWithImage: async (id: number, formData: FormData): Promise<Weapon> => {
-    try {
-      const response = await apiService.updateArmaWithImage(id, formData);
-      return response;
-    } catch (error) {
-      console.error('Error actualizando arma con imagen:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar arma
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteArma(id);
-    } catch (error) {
-      console.error('Error deleting weapon:', error);
-      throw error;
-    }
-  },
-
-  // Crear arma con imagen
-  createWithImage: async (formData: FormData): Promise<Weapon> => {
-    try {
-      const response = await apiService.createArmaWithImage(formData);
-      return response;
-    } catch (error) {
-      console.error('Error creando arma con imagen:', error);
-      throw error;
-    }
-  }
+  getAll: async () => weaponFns.getArmas(true),
+  getById: async (id: number) => weaponFns.getArmaById(id),
+  create: async (weapon: any) => weaponFns.createArma(weapon),
+  update: async (id: number, weapon: any) => weaponFns.updateArma(id, weapon),
+  updateWithImage: async (id: number, formData: FormData) => weaponFns.updateArmaWithImage(id, formData),
+  delete: async (id: number) => weaponFns.deleteArma(id),
+  createWithImage: async (formData: FormData) => weaponFns.createArmaWithImage(formData),
 };
 
-// ========================================
-// SERVICIOS PARA CATEGORÍAS DE ARMAS
-// ========================================
-
+// Weapon Category CRUD
 export const weaponCategoryApi = {
-  // Obtener todas las categorías
-  getAll: async (): Promise<WeaponCategory[]> => {
-    try {
-      const response = await apiService.getWeaponCategories();
-      return response;
-    } catch (error) {
-      console.error('Error fetching weapon categories:', error);
-      throw error;
-    }
-  },
-
-  // Obtener categoría por ID
-  getById: async (id: number): Promise<WeaponCategory> => {
-    try {
-      const response = await apiService.getWeaponCategoryById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching weapon category:', error);
-      throw error;
-    }
-  },
-
-  // Crear nueva categoría
-  create: async (category: Partial<WeaponCategory>): Promise<WeaponCategory> => {
-    try {
-      const response = await apiService.createWeaponCategory(category);
-      return response;
-    } catch (error) {
-      console.error('Error creating weapon category:', error);
-      throw error;
-    }
-  },
-
-  // Actualizar categoría
-  update: async (id: number, category: Partial<WeaponCategory>): Promise<WeaponCategory> => {
-    try {
-      const response = await apiService.updateWeaponCategory(id, category);
-      return response;
-    } catch (error) {
-      console.error('Error updating weapon category:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar categoría
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteWeaponCategory(id);
-    } catch (error) {
-      console.error('Error deleting weapon category:', error);
-      throw error;
-    }
-  }
+  getAll: async () => weaponFns.getWeaponCategories(),
+  getById: async (id: number) => weaponFns.getWeaponCategoryById(id),
+  create: async (category: any) => weaponFns.createWeaponCategory(category),
+  update: async (id: number, category: any) => weaponFns.updateWeaponCategory(id, category),
+  delete: async (id: number) => weaponFns.deleteWeaponCategory(id),
 };
 
-// ========================================
-// SERVICIOS PARA LICENCIAS
-// ========================================
-
+// License CRUD
 export const licenseApi = {
-  // Obtener todas las licencias
-  getAll: async (): Promise<License[]> => {
-    try {
-      const response = await apiService.getLicenses();
-      return response;
-    } catch (error) {
-      console.error('Error fetching licenses:', error);
-      throw error;
-    }
-  },
-
-  // Obtener licencia por ID
-  getById: async (id: number): Promise<License> => {
-    try {
-      const response = await apiService.getLicenseById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching license:', error);
-      throw error;
-    }
-  },
-
-  // Crear nueva licencia
-  create: async (license: Partial<License>): Promise<License> => {
-    try {
-      const response = await apiService.createLicense(license);
-      return response;
-    } catch (error) {
-      console.error('Error creating license:', error);
-      throw error;
-    }
-  },
-
-  // Actualizar licencia
-  update: async (id: number, license: Partial<License>): Promise<License> => {
-    try {
-      const response = await apiService.updateLicense(id, license);
-      return response;
-    } catch (error) {
-      console.error('Error updating license:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar licencia
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteLicense(id);
-    } catch (error) {
-      console.error('Error deleting license:', error);
-      throw error;
-    }
-  }
+  getAll: async () => licenseFns.getLicenses(),
+  getById: async (id: number) => licenseFns.getLicenseById(id),
+  create: async (license: any) => licenseFns.createLicense(license),
+  update: async (id: number, license: any) => licenseFns.updateLicense(id, license),
+  delete: async (id: number) => licenseFns.deleteLicense(id),
 };
 
-// ========================================
-// SERVICIOS PARA ROLES
-// ========================================
-
+// Role CRUD
 export const roleApi = {
-  getAll: async (): Promise<Role[]> => {
-    try {
-      const response = await apiService.getRoles();
-      return response;
-    } catch (error) {
-      console.error('Error fetching roles:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<Role> => {
-    try {
-      const response = await apiService.getRoleById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching role:', error);
-      throw error;
-    }
-  },
-
-  create: async (role: Partial<Role>): Promise<Role> => {
-    try {
-      const response = await apiService.createRole(role);
-      return response;
-    } catch (error) {
-      console.error('Error creating role:', error);
-      throw error;
-    }
-  },
-
-  update: async (id: number, role: Partial<Role>): Promise<Role> => {
-    try {
-      const response = await apiService.updateRole(id, role);
-      return response;
-    } catch (error) {
-      console.error('Error updating role:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteRole(id);
-    } catch (error) {
-      console.error('Error deleting role:', error);
-      throw error;
-    }
-  }
+  getAll: async () => catalogFns.getRoles(),
+  getById: async (id: number) => catalogFns.getRoleById(id),
+  create: async (role: any) => catalogFns.createRole(role),
+  update: async (id: number, role: any) => catalogFns.updateRole(id, role),
+  delete: async (id: number) => catalogFns.deleteRole(id),
 };
 
-// ========================================
-// SERVICIOS PARA USUARIOS
-// ========================================
-
+// User CRUD
 export const userApi = {
-  // Obtener todos los usuarios (con paginación)
-  getAll: async (page: number = 0, size: number = 20): Promise<User[]> => {
-    try {
-      const response = await apiService.getUsers(page, size);
-      // El backend retorna directamente el objeto paginado (sin envolver en ApiResponse)
-      if (response && typeof response === 'object' && 'content' in response) {
-        return response.content;
-      }
-      // Fallback por si retorna array directo
-      return Array.isArray(response) ? response : [];
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      throw error;
+  getAll: async (page: number = 0, size: number = 20) => {
+    const response = await userFns.getUsers(page, size);
+    if (response && typeof response === 'object' && 'content' in response) {
+      return response.content;
     }
+    return Array.isArray(response) ? response : [];
   },
-
-  // Obtener usuario por ID
-  getById: async (id: number): Promise<User> => {
-    try {
-      const response = await apiService.getUser(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      throw error;
-    }
+  getById: async (id: number) => userFns.getUser(id),
+  create: async (user: any) => userFns.createUser(user),
+  update: async (id: number, user: any) => userFns.updateUser(id, user),
+  delete: async (id: number) => userFns.deleteUser(id),
+  unlock: async (id: number) => {
+    const API_BASE_URL = getApiBaseUrl();
+    const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}/unlock`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
   },
-
-  // Crear nuevo usuario
-  create: async (user: Partial<User>): Promise<User> => {
-    try {
-      const response = await apiService.createUser(user);
-      return response;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
+  changeStatus: async (id: number, estado: boolean) => {
+    const API_BASE_URL = getApiBaseUrl();
+    const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}/status?estado=${estado}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
   },
-
-  // Actualizar usuario
-  update: async (id: number, user: Partial<User>): Promise<User> => {
-    try {
-      const response = await apiService.updateUser(id, user);
-      return response;
-    } catch (error) {
-      console.error('Error updating user:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar usuario
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteUser(id);
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      throw error;
-    }
-  },
-
-  unlock: async (id: number): Promise<User> => {
-    try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}/unlock`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error unlocking user:', error);
-      throw error;
-    }
-  },
-
-  // Cambiar estado de usuario (activar/desactivar)
-  changeStatus: async (id: number, estado: boolean): Promise<User> => {
-    try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}/status?estado=${estado}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error changing user status:', error);
-      throw error;
-    }
-  },
-
-  // Obtener roles de un usuario
-  getUserRoles: async (userId: number): Promise<any[]> => {
-    try {
-      const response = await apiService.getUserRolesByUserId(userId);
-      return response;
-    } catch (error) {
-      console.error('Error fetching user roles:', error);
-      throw error;
-    }
-  },
-
-  // Asignar roles a un usuario
-  assignRoles: async (userId: number, roleIds: number[]): Promise<void> => {
-    try {
-      await apiService.assignRoles(userId, roleIds);
-    } catch (error) {
-      console.error('Error assigning roles:', error);
-      throw error;
-    }
-  },
-
-  // Remover un rol de un usuario
-  removeRole: async (userId: number, roleId: number): Promise<void> => {
-    try {
-      await apiService.removeUserRole(userId, roleId);
-    } catch (error) {
-      console.error('Error removing role:', error);
-      throw error;
-    }
-  }
+  getUserRoles: async (userId: number) => userFns.getUserRolesByUserId(userId),
+  assignRoles: async (userId: number, roleIds: number[]) => userFns.assignRoles(userId, roleIds),
+  removeRole: async (userId: number, roleId: number) => userFns.removeUserRole(userId, roleId),
 };
 
-// ========================================
-// SERVICIOS PARA CLIENTES
-// ========================================
-
+// Client CRUD
 export const clientApi = {
-  // Obtener todos los clientes
-  getAll: async (): Promise<Client[]> => {
-    try {
-      const response = await apiService.getClientes();
-      return response.content || [];
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      throw error;
-    }
+  getAll: async () => {
+    const response = await clientFns.getClientes();
+    return response.content || [];
   },
-
-  // Obtener cliente por ID
-  getById: async (id: number): Promise<Client> => {
-    try {
-      const response = await apiService.getClienteById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching client:', error);
-      throw error;
-    }
-  },
-
-  // Crear nuevo cliente
-  create: async (client: Partial<Client>): Promise<Client> => {
-    try {
-      const response = await apiService.createCliente(client);
-      return response;
-    } catch (error) {
-      console.error('Error creating client:', error);
-      throw error;
-    }
-  },
-
-  // Actualizar cliente
-  update: async (id: number, client: Partial<Client>): Promise<Client> => {
-    try {
-      const response = await apiService.updateCliente(id, client);
-      return response;
-    } catch (error) {
-      console.error('Error updating client:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar cliente
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteCliente(id);
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      throw error;
-    }
-  }
+  getById: async (id: number) => clientFns.getClienteById(id),
+  create: async (client: any) => clientFns.createCliente(client),
+  update: async (id: number, client: any) => clientFns.updateCliente(id, client),
+  delete: async (id: number) => clientFns.deleteCliente(id),
 };
 
-// ========================================
-// SERVICIOS PARA TIPOS DE CLIENTE
-// ========================================
-
+// Client Type CRUD
 export const clientTypeApi = {
-  getAll: async (): Promise<ClientType[]> => {
-    try {
-      const response = await apiService.getClientTypes();
-      return response;
-    } catch (error) {
-      console.error('Error fetching client types:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<ClientType> => {
-    try {
-      const response = await apiService.getClientTypeById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching client type:', error);
-      throw error;
-    }
-  },
-
-  create: async (clientType: Partial<ClientType>): Promise<ClientType> => {
-    try {
-      const response = await apiService.createClientType(clientType);
-      return response;
-    } catch (error) {
-      console.error('Error creating client type:', error);
-      throw error;
-    }
-  },
-
-  update: async (id: number, clientType: Partial<ClientType>): Promise<ClientType> => {
-    try {
-      const response = await apiService.updateClientType(id, clientType);
-      return response;
-    } catch (error) {
-      console.error('Error updating client type:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteClientType(id);
-    } catch (error) {
-      console.error('Error deleting client type:', error);
-      throw error;
-    }
-  }
+  getAll: async () => catalogFns.getClientTypes(),
+  getById: async (id: number) => catalogFns.getClientTypeById(id),
+  create: async (clientType: any) => catalogFns.createClientType(clientType),
+  update: async (id: number, clientType: any) => catalogFns.updateClientType(id, clientType),
+  delete: async (id: number) => catalogFns.deleteClientType(id),
 };
 
-// ========================================
-// SERVICIOS PARA TIPOS DE IMPORTACIÓN
-// ========================================
-
+// Import Type CRUD
 export const importTypeApi = {
-  getAll: async (): Promise<ImportType[]> => {
-    try {
-      const response = await apiService.getImportTypes();
-      return response;
-    } catch (error) {
-      console.error('Error fetching import types:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<ImportType> => {
-    try {
-      const response = await apiService.getImportTypeById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching import type:', error);
-      throw error;
-    }
-  },
-
-  create: async (importType: Partial<ImportType>): Promise<ImportType> => {
-    try {
-      const response = await apiService.createImportType(importType);
-      return response;
-    } catch (error) {
-      console.error('Error creating import type:', error);
-      throw error;
-    }
-  },
-
-  update: async (id: number, importType: Partial<ImportType>): Promise<ImportType> => {
-    try {
-      const response = await apiService.updateImportType(id, importType);
-      return response;
-    } catch (error) {
-      console.error('Error updating import type:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteImportType(id);
-    } catch (error) {
-      console.error('Error deleting import type:', error);
-      throw error;
-    }
-  }
+  getAll: async () => catalogFns.getImportTypes(),
+  getById: async (id: number) => catalogFns.getImportTypeById(id),
+  create: async (importType: any) => catalogFns.createImportType(importType),
+  update: async (id: number, importType: any) => catalogFns.updateImportType(id, importType),
+  delete: async (id: number) => catalogFns.deleteImportType(id),
 };
 
-// ========================================
-// SERVICIOS PARA TIPOS DE IDENTIFICACIÓN
-// ========================================
-
+// Identification Type CRUD
 export const identificationTypeApi = {
-  getAll: async (): Promise<IdentificationType[]> => {
-    try {
-      const response = await apiService.getIdentificationTypes();
-      return response;
-    } catch (error) {
-      console.error('Error fetching identification types:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<IdentificationType> => {
-    try {
-      const response = await apiService.getIdentificationTypeById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching identification type:', error);
-      throw error;
-    }
-  },
-
-  create: async (identificationType: Partial<IdentificationType>): Promise<IdentificationType> => {
-    try {
-      const response = await apiService.createIdentificationType(identificationType);
-      return response;
-    } catch (error) {
-      console.error('Error creating identification type:', error);
-      throw error;
-    }
-  },
-
-  update: async (id: number, identificationType: Partial<IdentificationType>): Promise<IdentificationType> => {
-    try {
-      const response = await apiService.updateIdentificationType(id, identificationType);
-      return response;
-    } catch (error) {
-      console.error('Error updating identification type:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteIdentificationType(id);
-    } catch (error) {
-      console.error('Error deleting identification type:', error);
-      throw error;
-    }
-  }
+  getAll: async () => catalogFns.getIdentificationTypes(),
+  getById: async (id: number) => catalogFns.getIdentificationTypeById(id),
+  create: async (identificationType: any) => catalogFns.createIdentificationType(identificationType),
+  update: async (id: number, identificationType: any) => catalogFns.updateIdentificationType(id, identificationType),
+  delete: async (id: number) => catalogFns.deleteIdentificationType(id),
 };
 
-// ========================================
-// SERVICIOS PARA PREGUNTAS
-// ========================================
-
-export interface Question {
-  id: number;
-  pregunta: string;
-  obligatoria: boolean;
-  orden: number;
-  tipoProcesoId: number;
-  tipoProcesoNombre: string;
-  tipoRespuesta: string;
-  estado: boolean;
-}
-
+// Question CRUD
 export const questionApi = {
-  getAll: async (): Promise<Question[]> => {
-    try {
-      const response = await apiService.getPreguntas(true);
-      return response;
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<Question> => {
-    try {
-      const response = await apiService.getPreguntaById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching question:', error);
-      throw error;
-    }
-  },
-
-  create: async (question: Partial<Question>): Promise<Question> => {
-    try {
-      const response = await apiService.createPregunta(question);
-      return response;
-    } catch (error) {
-      console.error('Error creating question:', error);
-      throw error;
-    }
-  },
-
-  update: async (id: number, question: Partial<Question>): Promise<Question> => {
-    try {
-      const response = await apiService.updatePregunta(id, question);
-      return response;
-    } catch (error) {
-      console.error('Error updating question:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deletePregunta(id);
-    } catch (error) {
-      console.error('Error deleting question:', error);
-      throw error;
-    }
-  }
+  getAll: async () => configFns.getPreguntas(true),
+  getById: async (id: number) => configFns.getPreguntaById(id),
+  create: async (question: any) => configFns.createPregunta(question),
+  update: async (id: number, question: any) => configFns.updatePregunta(id, question),
+  delete: async (id: number) => configFns.deletePregunta(id),
 };
 
-// ========================================
-// SERVICIOS PARA TIPOS DE DOCUMENTO
-// ========================================
-
-export interface DocumentType {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  obligatorio: boolean;
-  tipoProcesoId?: number;
-  tipoProcesoNombre?: string;
-  estado: boolean;
-  urlDocumento?: string;
-  gruposImportacion?: boolean; // true si es para grupos de importación, false si es para clientes
-}
-
+// Document Type CRUD
 export const documentTypeApi = {
-  getAll: async (): Promise<DocumentType[]> => {
-    try {
-      const response = await apiService.getTiposDocumento(true);
-      return response;
-    } catch (error) {
-      console.error('Error fetching document types:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<DocumentType> => {
-    try {
-      const response = await apiService.getTipoDocumentoById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching document type:', error);
-      throw error;
-    }
-  },
-
-  create: async (documentType: Partial<DocumentType>): Promise<DocumentType> => {
-    try {
-      const response = await apiService.createTipoDocumento(documentType);
-      return response;
-    } catch (error) {
-      console.error('Error creating document type:', error);
-      throw error;
-    }
-  },
-
-  update: async (id: number, documentType: Partial<DocumentType>): Promise<DocumentType> => {
-    try {
-      const response = await apiService.updateTipoDocumento(id, documentType);
-      return response;
-    } catch (error) {
-      console.error('Error updating document type:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteTipoDocumento(id);
-    } catch (error) {
-      console.error('Error deleting document type:', error);
-      throw error;
-    }
-  }
+  getAll: async () => configFns.getTiposDocumento(true),
+  getById: async (id: number) => configFns.getTipoDocumentoById(id),
+  create: async (documentType: any) => configFns.createTipoDocumento(documentType),
+  update: async (id: number, documentType: any) => configFns.updateTipoDocumento(id, documentType),
+  delete: async (id: number) => configFns.deleteTipoDocumento(id),
 };
 
-// ========================================
-// SERVICIOS PARA TIPO CLIENTE IMPORTACIÓN
-// ========================================
-
-export interface ClientImportType {
-  id: number;
-  tipoClienteId: number;
-  tipoClienteNombre: string;
-  tipoImportacionId: number;
-  tipoImportacionNombre: string;
-  cupoMaximo: number;
-}
-
+// Client Import Type CRUD
 export const clientImportTypeApi = {
-  getAll: async (): Promise<ClientImportType[]> => {
-    try {
-      const response = await apiService.getTipoClienteImportacion();
-      return response;
-    } catch (error) {
-      console.error('Error fetching client import types:', error);
-      throw error;
-    }
-  },
-
-  getById: async (id: number): Promise<ClientImportType> => {
-    try {
-      const response = await apiService.getTipoClienteImportacionById(id);
-      return response;
-    } catch (error) {
-      console.error('Error fetching client import type:', error);
-      throw error;
-    }
-  },
-
-  create: async (relacion: Partial<ClientImportType>): Promise<ClientImportType> => {
-    try {
-      const response = await apiService.createTipoClienteImportacion(relacion);
-      return response;
-    } catch (error) {
-      console.error('Error creating client import type:', error);
-      throw error;
-    }
-  },
-
-  delete: async (id: number): Promise<void> => {
-    try {
-      await apiService.deleteTipoClienteImportacion(id);
-    } catch (error) {
-      console.error('Error deleting client import type:', error);
-      throw error;
-    }
-  }
+  getAll: async () => catalogFns.getTipoClienteImportacion(),
+  getById: async (id: number) => catalogFns.getTipoClienteImportacionById(id),
+  create: async (relacion: any) => catalogFns.createTipoClienteImportacion(relacion),
+  delete: async (id: number) => catalogFns.deleteTipoClienteImportacion(id),
 };
 
-// ========================================
-// SERVICIOS PARA CONFIGURACIÓN DEL SISTEMA
-// ========================================
-
-export interface SystemConfig {
-  id: number;
-  clave: string;
-  valor: string;
-  descripcion: string;
-  editable: boolean;
-  fechaCreacion: string;
-  fechaActualizacion?: string;
-}
-
-export interface TipoProceso {
-  id: number;
-  nombre: string;
-  codigo: string;
-  descripcion?: string;
-  estado: boolean;
-}
-
+// Tipo Proceso
 export const tipoProcesoApi = {
-  getAll: async (): Promise<TipoProceso[]> => {
-    return await apiService.getTiposProceso();
-  },
-  getById: async (id: number): Promise<TipoProceso> => {
-    return await apiService.getTipoProcesoById(id);
-  }
+  getAll: async () => configFns.getTiposProceso(),
+  getById: async (id: number) => configFns.getTipoProcesoById(id),
 };
 
+// System Config
 export const systemConfigApi = {
-  getAll: async (): Promise<SystemConfig[]> => {
-    try {
-      const response = await apiService.getConfiguracionCompleta();
-      // Convertir el objeto de configuración a array
-      if (typeof response === 'object' && !Array.isArray(response)) {
-        return Object.entries(response).map(([clave, datos]: [string, any]) => ({
-          id: datos.id || 0,
-          clave,
-          valor: datos.valor || datos,
-          descripcion: datos.descripcion || '',
-          editable: datos.editable !== false,
-          fechaCreacion: datos.fechaCreacion || new Date().toISOString(),
-          fechaActualizacion: datos.fechaActualizacion
-        }));
-      }
-      return response;
-    } catch (error) {
-      console.error('Error fetching system config:', error);
-      throw error;
+  getAll: async () => {
+    const response = await configFns.getConfiguracionCompleta();
+    if (typeof response === 'object' && !Array.isArray(response)) {
+      return Object.entries(response).map(([clave, datos]: [string, any]) => ({
+        id: datos.id || 0,
+        clave,
+        valor: datos.valor || datos,
+        descripcion: datos.descripcion || '',
+        editable: datos.editable !== false,
+        fechaCreacion: datos.fechaCreacion || new Date().toISOString(),
+        fechaActualizacion: datos.fechaActualizacion
+      }));
     }
+    return response;
   },
-
-  getById: async (clave: string): Promise<SystemConfig> => {
-    try {
-      const response = await apiService.getConfiguracion(clave);
-      return response;
-    } catch (error) {
-      console.error('Error fetching config:', error);
-      throw error;
-    }
+  getById: async (clave: string) => configFns.getConfiguracion(clave),
+  update: async (clave: string, config: any) => {
+    const API_BASE_URL = getApiBaseUrl();
+    const response = await fetch(`${API_BASE_URL}/api/configuracion-sistema/${clave}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const text = await response.text();
+    return text ? JSON.parse(text) : config;
   },
-
-  update: async (clave: string, config: Partial<SystemConfig>): Promise<SystemConfig> => {
-    try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      const response = await fetch(`${API_BASE_URL}/api/configuracion-sistema/${clave}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-          // No enviamos Authorization para usar permitAll()
-        },
-        body: JSON.stringify(config)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const text = await response.text();
-      return text ? JSON.parse(text) : (config as SystemConfig);
-    } catch (error) {
-      console.error('Error updating config:', error);
-      throw error;
-    }
-  }
 };

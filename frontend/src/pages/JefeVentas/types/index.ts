@@ -1,4 +1,31 @@
 // Tipos para el módulo de Jefe de Ventas
+import type { Client as VendedorClient } from '../../Vendedor/types';
+
+export interface StockArma {
+  armaId: number;
+  armaNombre?: string;
+  armaModelo?: string;
+  armaMarca?: string;
+  armaAlimentadora?: string;
+  armaCodigo: string;
+  armaCalibre: string;
+  cantidadTotal: number;
+  cantidadDisponible: number;
+  cantidadAsignada?: number;
+  precioVenta: number;
+}
+
+export interface ClienteConVendedor extends VendedorClient {
+  vendedorNombre?: string;
+  vendedorApellidos?: string;
+  fechaCreacion?: string;
+  estadoPago?: string;
+  grupoImportacionId?: number;
+  grupoImportacionNombre?: string;
+  licenciaNombre?: string;
+  licenciaNumero?: string;
+  emailVerificado?: boolean | null;
+}
 
 export interface Client {
   id: number;

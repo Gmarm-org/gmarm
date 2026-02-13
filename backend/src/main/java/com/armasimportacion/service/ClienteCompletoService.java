@@ -4,6 +4,7 @@ import com.armasimportacion.dto.ClienteCreateDTO;
 import com.armasimportacion.dto.ClienteDTO;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.Pago;
+import com.armasimportacion.service.ClienteQueryService;
 import com.armasimportacion.service.helper.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import java.util.Optional;
 public class ClienteCompletoService {
 
     private final ClienteService clienteService;
+    private final ClienteQueryService clienteQueryService;
     private final GestionPagosServiceHelper pagosHelper;
     private final GestionArmasServiceHelper armasHelper;
     private final GestionRespuestasServiceHelper respuestasHelper;
@@ -33,7 +35,7 @@ public class ClienteCompletoService {
     private final com.armasimportacion.repository.TipoClienteRepository tipoClienteRepository;
     private final com.armasimportacion.repository.ClienteRepository clienteRepository;
     private final com.armasimportacion.repository.ClienteArmaRepository clienteArmaRepository;
-    private final GrupoImportacionService grupoImportacionService;
+    private final GrupoImportacionClienteService grupoImportacionClienteService;
 
     /**
      * Actualiza un cliente de forma parcial - solo los campos modificados
@@ -63,11 +65,11 @@ public class ClienteCompletoService {
                 clienteDTOActualizado = actualizarClienteBasicoParcial(clientData, cliente);
             } else {
                 log.info("📝 No hay datos de cliente para actualizar, usando cliente actual");
-                clienteDTOActualizado = clienteService.findByIdAsDTO(cliente.getId());
+                clienteDTOActualizado = clienteQueryService.findByIdAsDTO(cliente.getId());
             }
         } else {
             log.info("📝 No se envió objeto 'cliente' en requestData, manteniendo datos actuales");
-            clienteDTOActualizado = clienteService.findByIdAsDTO(cliente.getId());
+            clienteDTOActualizado = clienteQueryService.findByIdAsDTO(cliente.getId());
         }
         
         // 2. Actualizar respuestas SOLO si vienen en requestData
@@ -276,7 +278,7 @@ public class ClienteCompletoService {
         
         // Guardar cambios
         Cliente clienteActualizado = clienteRepository.save(cliente);
-        ClienteDTO clienteDTO = clienteService.findByIdAsDTO(clienteActualizado.getId());
+        ClienteDTO clienteDTO = clienteQueryService.findByIdAsDTO(clienteActualizado.getId());
         
         log.info("✅ Cliente actualizado parcialmente: ID={}, nombres={}", 
             clienteDTO.getId(), clienteDTO.getNombres());
@@ -379,7 +381,7 @@ public class ClienteCompletoService {
         if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             // VALIDACIÓN OBLIGATORIA: Debe existir un grupo de importación disponible
             com.armasimportacion.model.ClienteGrupoImportacion asignacion = 
-                grupoImportacionService.asignarClienteAGrupoDisponible(cliente, usuarioId);
+                grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, usuarioId);
             
             if (asignacion == null) {
                 log.error("❌ No hay grupo de importación disponible para asignar cliente ID: {}", cliente.getId());
@@ -446,7 +448,7 @@ public class ClienteCompletoService {
         if (clientData == null || clientData.isEmpty()) {
             log.warn("⚠️ No hay datos de cliente para actualizar, retornando cliente actual");
             // Si no hay datos para actualizar, retornar el DTO actual del cliente
-            return clienteService.findByIdAsDTO(cliente.getId());
+            return clienteQueryService.findByIdAsDTO(cliente.getId());
         }
         
         ClienteCreateDTO clienteCreateDTO = construirClienteCreateDTO(clientData);

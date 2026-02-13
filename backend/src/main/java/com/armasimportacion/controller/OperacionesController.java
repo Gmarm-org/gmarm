@@ -8,6 +8,7 @@ import com.armasimportacion.model.Usuario;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.DocumentoGrupoImportacionService;
 import com.armasimportacion.service.GrupoImportacionService;
+import com.armasimportacion.service.GrupoImportacionWorkflowService;
 import com.armasimportacion.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ import java.util.Map;
 public class OperacionesController {
 
     private final GrupoImportacionService grupoImportacionService;
+    private final GrupoImportacionWorkflowService grupoImportacionWorkflowService;
     private final DocumentoGrupoImportacionService documentoGrupoImportacionService;
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
@@ -215,7 +217,7 @@ public class OperacionesController {
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
-            grupoImportacionService.notificarPagoFabrica(grupoId, usuarioId);
+            grupoImportacionWorkflowService.notificarPagoFabrica(grupoId, usuarioId);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Pago a fábrica notificado exitosamente");
@@ -270,7 +272,7 @@ public class OperacionesController {
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
-            grupoImportacionService.registrarFechaLlegada(grupoId, fechaLlegada, usuarioId);
+            grupoImportacionWorkflowService.registrarFechaLlegada(grupoId, fechaLlegada, usuarioId);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Fecha de llegada registrada exitosamente");
@@ -299,7 +301,7 @@ public class OperacionesController {
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
-            grupoImportacionService.registrarNumeroPreviaImportacion(grupoId, numeroPrevia, usuarioId);
+            grupoImportacionWorkflowService.registrarNumeroPreviaImportacion(grupoId, numeroPrevia, usuarioId);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Número de previa importación registrado exitosamente");

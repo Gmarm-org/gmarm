@@ -32,7 +32,8 @@ public class ClienteArmaService {
     private final ClienteRepository clienteRepository;
     private final ArmaRepository armaRepository;
     private final com.armasimportacion.service.DocumentoClienteService documentoClienteService;
-    private final com.armasimportacion.service.GrupoImportacionService grupoImportacionService;
+    private final GrupoImportacionClienteService grupoImportacionClienteService;
+    private final GrupoImportacionMatchingService grupoImportacionMatchingService;
     private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
 
     /**
@@ -173,7 +174,7 @@ public class ClienteArmaService {
                 if (vendedorId != null) {
                     if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
                         com.armasimportacion.model.ClienteGrupoImportacion asignacion =
-                            grupoImportacionService.asignarClienteAGrupoDisponible(cliente, vendedorId);
+                            grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
                         if (asignacion == null) {
                             log.warn("⚠️ No se encontró grupo CUPO disponible para cliente fantasma ID {}", cliente.getId());
                         }
@@ -188,7 +189,7 @@ public class ClienteArmaService {
                         
                         // Buscar grupo disponible para esta categoría de arma
                         com.armasimportacion.model.GrupoImportacion grupoDisponible = 
-                            grupoImportacionService.encontrarGrupoDisponibleParaArma(
+                            grupoImportacionMatchingService.encontrarGrupoDisponibleParaArma(
                                 vendedorId, 
                                 cliente, 
                                 categoriaArmaId,

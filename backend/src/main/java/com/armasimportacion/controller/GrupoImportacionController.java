@@ -15,6 +15,9 @@ import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.GrupoImportacionService;
+import com.armasimportacion.service.GrupoImportacionClienteService;
+import com.armasimportacion.service.GrupoImportacionMatchingService;
+import com.armasimportacion.service.GrupoImportacionWorkflowService;
 import com.armasimportacion.service.GrupoImportacionProcesoService;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.service.DocumentoClienteService;
@@ -43,6 +46,9 @@ import java.util.Map;
 public class GrupoImportacionController {
 
     private final GrupoImportacionService grupoImportacionService;
+    private final GrupoImportacionClienteService grupoImportacionClienteService;
+    private final GrupoImportacionMatchingService grupoImportacionMatchingService;
+    private final GrupoImportacionWorkflowService grupoImportacionWorkflowService;
     private final GrupoImportacionProcesoService grupoImportacionProcesoService;
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
@@ -92,7 +98,7 @@ public class GrupoImportacionController {
             log.info("📋 Definiendo pedido para grupo ID: {}", id);
             Long usuarioId = obtenerUsuarioIdOpcional(authHeader, id);
             
-            DocumentoGenerado documento = grupoImportacionService.definirPedido(id, usuarioId);
+            DocumentoGenerado documento = grupoImportacionWorkflowService.definirPedido(id, usuarioId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Pedido definido exitosamente");
@@ -184,11 +190,11 @@ public class GrupoImportacionController {
             
             // Calcular cupos disponibles por categoría (solo para tipo CUPO)
             if (grupo.getTipoGrupo() == com.armasimportacion.enums.TipoGrupo.CUPO) {
-                Map<Long, Integer> cuposDisponibles = grupoImportacionService.calcularCuposDisponiblesPorCategoria(id);
+                Map<Long, Integer> cuposDisponibles = grupoImportacionMatchingService.calcularCuposDisponiblesPorCategoria(id);
                 grupoDTO.put("cuposDisponiblesPorCategoria", cuposDisponibles);
                 
                 // Calcular cupo total disponible
-                Integer cupoTotalDisponible = grupoImportacionService.calcularCupoTotalDisponible(id);
+                Integer cupoTotalDisponible = grupoImportacionMatchingService.calcularCupoTotalDisponible(id);
                 grupoDTO.put("cupoTotalDisponible", cupoTotalDisponible);
             }
             
@@ -414,7 +420,7 @@ public class GrupoImportacionController {
     public ResponseEntity<Map<String, Object>> puedeDefinirPedido(
             @PathVariable @NotNull @Positive Long id) {
         try {
-            Map<String, Object> response = grupoImportacionService.verificarPuedeDefinirPedidoDetalle(id);
+            Map<String, Object> response = grupoImportacionWorkflowService.verificarPuedeDefinirPedidoDetalle(id);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("❌ Error verificando si puede definir pedido: {}", e.getMessage(), e);
@@ -439,7 +445,7 @@ public class GrupoImportacionController {
                     grupoId != null ? " (grupo ID: " + grupoId + ")" : "");
             
             List<com.armasimportacion.model.Cliente> clientes = 
-                grupoImportacionService.obtenerClientesDisponibles(grupoId);
+                grupoImportacionClienteService.obtenerClientesDisponibles(grupoId);
             
             List<Map<String, Object>> clientesDTO = clientes.stream().map(cliente -> {
                 Map<String, Object> clienteMap = new HashMap<>();
@@ -479,7 +485,7 @@ public class GrupoImportacionController {
             log.info("👥 Obteniendo clientes del grupo ID: {}", id);
             
             List<com.armasimportacion.model.ClienteGrupoImportacion> clientesGrupo = 
-                grupoImportacionService.obtenerClientesPorGrupo(id);
+                grupoImportacionClienteService.obtenerClientesPorGrupo(id);
             
             List<Map<String, Object>> clientesDTO = clientesGrupo.stream().map(cg -> {
                 Map<String, Object> clienteMap = new HashMap<>();
@@ -533,14 +539,14 @@ public class GrupoImportacionController {
                 estado = EstadoMilitar.valueOf(estadoMilitar.trim().toUpperCase());
             }
 
-            com.armasimportacion.enums.TipoGrupo tipoGrupoRequerido = grupoImportacionService.obtenerTipoGrupoRequerido(tipoClienteOpt.get(), estado);
+            com.armasimportacion.enums.TipoGrupo tipoGrupoRequerido = grupoImportacionMatchingService.obtenerTipoGrupoRequerido(tipoClienteOpt.get(), estado);
             boolean disponible;
 
             if (estado == null && tipoClienteOpt.get().esUniformado()) {
-                boolean disponibleActivo = grupoImportacionService.existeGrupoDisponibleParaVendedorPorTipo(
+                boolean disponibleActivo = grupoImportacionMatchingService.existeGrupoDisponibleParaVendedorPorTipo(
                     usuarioId, tipoClienteOpt.get(), EstadoMilitar.ACTIVO
                 );
-                boolean disponiblePasivo = grupoImportacionService.existeGrupoDisponibleParaVendedorPorTipo(
+                boolean disponiblePasivo = grupoImportacionMatchingService.existeGrupoDisponibleParaVendedorPorTipo(
                     usuarioId, tipoClienteOpt.get(), EstadoMilitar.PASIVO
                 );
                 disponible = disponibleActivo || disponiblePasivo;
@@ -548,7 +554,7 @@ public class GrupoImportacionController {
                     tipoGrupoRequerido = null;
                 }
             } else {
-                disponible = grupoImportacionService.existeGrupoDisponibleParaVendedorPorTipo(
+                disponible = grupoImportacionMatchingService.existeGrupoDisponibleParaVendedorPorTipo(
                     usuarioId, tipoClienteOpt.get(), estado
                 );
             }
@@ -590,7 +596,7 @@ public class GrupoImportacionController {
         try {
             log.info("➕ Agregando cliente ID: {} al grupo ID: {}", clienteId, id);
             
-            grupoImportacionService.agregarCliente(id, clienteId);
+            grupoImportacionClienteService.agregarCliente(id, clienteId);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Cliente agregado al grupo exitosamente");
@@ -616,7 +622,7 @@ public class GrupoImportacionController {
         try {
             log.info("➖ Removiendo cliente ID: {} del grupo ID: {}", clienteId, id);
             
-            grupoImportacionService.removerCliente(id, clienteId);
+            grupoImportacionClienteService.removerCliente(id, clienteId);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Cliente removido del grupo exitosamente");
@@ -643,7 +649,7 @@ public class GrupoImportacionController {
             log.info("📢 Notificando agente aduanero para grupo ID: {}", id);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
-            grupoImportacionService.cambiarEstado(id, EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO, usuarioId);
+            grupoImportacionWorkflowService.cambiarEstado(id, EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO, usuarioId);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Estado del grupo cambiado a 'Notificar Agente Aduanero' exitosamente");

@@ -6,53 +6,31 @@ import AsignacionSeries from '../AsignacionSeries';
 import { useAuth } from '../../contexts/AuthContext';
 import { useJefeVentasExport } from './hooks/useJefeVentasExport';
 import { useTableFilters } from '../../hooks/useTableFilters';
-import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import ImportGroupManagement from './components/ImportGroupManagement';
 import GestionImportaciones from '../../components/shared/GestionImportaciones';
 import ClientForm from '../Vendedor/components/ClientForm';
 import WeaponListContent from '../Admin/WeaponManagement/WeaponListContent';
 import WeaponCategoryList from '../Admin/WeaponManagement/WeaponCategoryList';
-import { formatNombreCompleto } from '../../utils/formatUtils';
 import ModalGenerarContrato from './components/ModalGenerarContrato';
 import ModalReasignarArma from './components/ModalReasignarArma';
 import ModalEditarArma from './components/ModalEditarArma';
 import ModalDesistimiento from './components/ModalDesistimiento';
 import ModalClienteReasignado from './components/ModalClienteReasignado';
 import ModalAutorizacion from './components/ModalAutorizacion';
-
-interface StockArma {
-  armaId: number;
-  armaNombre?: string; // Deprecated - usar armaModelo
-  armaModelo?: string; // Nuevo campo (cambiado de nombre a modelo)
-  armaMarca?: string; // Nuevo campo
-  armaAlimentadora?: string; // Nuevo campo
-  armaCodigo: string;
-  armaCalibre: string;
-  cantidadTotal: number;
-  cantidadDisponible: number;
-  cantidadAsignada?: number; // Armas con pago completado
-  precioVenta: number;
-}
-
-interface ClienteConVendedor extends Client {
-  vendedorNombre?: string;
-  vendedorApellidos?: string;
-  fechaCreacion?: string;
-  estadoPago?: string;
-  grupoImportacionId?: number; // ID del grupo de importación
-  grupoImportacionNombre?: string;
-  licenciaNombre?: string; // Nombre de la licencia del grupo de importación
-  licenciaNumero?: string; // Número de la licencia del grupo de importación
-  emailVerificado?: boolean | null; // true = Validado, false = Datos incorrectos, null/undefined = Pendiente
-}
+import type { StockArma, ClienteConVendedor } from './types';
+import StockView from './views/StockView';
+import ClientesListView from './views/ClientesListView';
+import ClientesAsignadosView from './views/ClientesAsignadosView';
+import ReasignarArmasView from './views/ReasignarArmasView';
+import ClientDetailModal from './views/ClientDetailModal';
 
 const JefeVentas: React.FC = () => {
   const { user } = useAuth();
   const [vistaActual, setVistaActual] = useState<'clientes' | 'clientes-asignados' | 'stock' | 'importaciones' | 'gestion-importaciones' | 'series' | 'reasignar-armas' | 'armas' | 'categorias'>('clientes');
-  
+
   // Hook para exportación a Excel
   const { exportarClientesAExcel } = useJefeVentasExport();
-  
+
   // Verificar si el usuario tiene permisos para ver Asignación de Series
   const puedeVerAsignacionSeries = user?.roles?.some(
     role => {
@@ -60,11 +38,11 @@ const JefeVentas: React.FC = () => {
       return codigo === 'SALES_CHIEF' || codigo === 'FINANCE';
     }
   ) || false;
-  
+
   // Estados para Stock de Armas
   const [stockArmas, setStockArmas] = useState<StockArma[]>([]);
   const [loadingStock, setLoadingStock] = useState(false);
-  
+
   // Estados para Clientes
   const [clientes, setClientes] = useState<ClienteConVendedor[]>([]);
   const [loadingClientes, setLoadingClientes] = useState(false);
@@ -74,25 +52,20 @@ const JefeVentas: React.FC = () => {
 
   // Estados para autorizaciones (integrado desde ClientesAsignados)
   const [autorizaciones, setAutorizaciones] = useState<Record<string, any[]>>({});
-  
+
   // Estados para detalle completo del cliente
   const [armasCliente, setArmasCliente] = useState<any[]>([]);
   const [documentosCliente, setDocumentosCliente] = useState<any[]>([]);
   const [contratosCliente, setContratosCliente] = useState<any[]>([]);
   const [pagosCliente, setPagosCliente] = useState<any[]>([]);
   const [loadingDetalleCliente, setLoadingDetalleCliente] = useState(false);
-  
+
   // Estados para modal de generar contrato
   const [modalGenerarContrato, setModalGenerarContrato] = useState<{ isOpen: boolean; datosContrato: any | null; isLoading: boolean }>({
     isOpen: false,
     datosContrato: null,
     isLoading: false
   });
-  
-  // Estados para cargar contrato firmado
-  const [mostrarCargarFirmado, setMostrarCargarFirmado] = useState<number | null>(null);
-  const [archivoFirmado, setArchivoFirmado] = useState<File | null>(null);
-  const [cargandoFirmado, setCargandoFirmado] = useState(false);
 
   // Estados para editar cliente (replicados del módulo Vendedor)
   const [currentPage, setCurrentPage] = useState<string>('clientes');
@@ -138,20 +111,10 @@ const JefeVentas: React.FC = () => {
   const [tramiteAutorizacion, setTramiteAutorizacion] = useState('');
   const [generandoAutorizacion, setGenerandoAutorizacion] = useState(false);
 
-  // TODO: Estados para Dashboard - Oculto temporalmente, revisar criterios de filtrado
-  // const [dashboardStats, setDashboardStats] = useState<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>({
-  //   clientesNuevosHoy: 0,
-  //   clientesPendientesContrato: 0
-  // });
-  // const [loadingDashboard, setLoadingDashboard] = useState(false);
-  
   // Función para cargar armas reasignadas
   const cargarArmasReasignadas = async () => {
     setLoadingArmasReasignadas(true);
     try {
-      // TODO: Implementar endpoint para obtener armas reasignadas
-      // const armas = await apiService.getArmasReasignadas();
-      // setArmasReasignadas(armas);
       setArmasReasignadas([]);
     } catch (error) {
       console.error('Error cargando armas reasignadas:', error);
@@ -159,7 +122,7 @@ const JefeVentas: React.FC = () => {
       setLoadingArmasReasignadas(false);
     }
   };
-  
+
   // Handler para abrir modal de cliente reasignado
   const handleAbrirModalClienteReasignado = (arma: any) => {
     setModalClienteReasignado({
@@ -169,16 +132,14 @@ const JefeVentas: React.FC = () => {
       isLoading: false
     });
   };
-  
+
   // Handler para confirmar reasignación de cliente
   const handleConfirmarClienteReasignado = async () => {
     if (!modalClienteReasignado.arma || !modalClienteReasignado.nuevoClienteId) return;
-    
+
     setModalClienteReasignado(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
-      // TODO: Implementar endpoint para confirmar reasignación
-      // await apiService.confirmarReasignacionCliente(modalClienteReasignado.arma.id, modalClienteReasignado.nuevoClienteId);
       alert('Reasignación confirmada (pendiente de implementar)');
       setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false });
       cargarArmasReasignadas();
@@ -228,25 +189,6 @@ const JefeVentas: React.FC = () => {
     }
   }, [vistaActual]);
 
-  // TODO: Cargar estadísticas del dashboard - Oculto temporalmente, revisar criterios de filtrado
-  // useEffect(() => {
-  //   const cargarDashboard = async () => {
-  //     setLoadingDashboard(true);
-  //     try {
-  //       console.log('📊 Cargando estadísticas del dashboard...');
-  //       const stats = await apiService.getDashboardJefeVentas();
-  //       setDashboardStats(stats);
-  //       console.log('✅ Dashboard cargado:', stats);
-  //     } catch (error) {
-  //       console.error('❌ Error cargando dashboard:', error);
-  //     } finally {
-  //       setLoadingDashboard(false);
-  //     }
-  //   };
-  //
-  //   cargarDashboard();
-  // }, []);
-
   const cargarStockArmas = async () => {
     setLoadingStock(true);
     try {
@@ -265,7 +207,6 @@ const JefeVentas: React.FC = () => {
     try {
       const response = await apiService.getTodosClientes();
 
-      // Excluir clientes que ya tienen armas asignadas (aparecen en la vista "Clientes con Armas Asignadas")
       const clientesSinArmaAsignada: ClienteConVendedor[] = [];
 
       for (const cliente of response) {
@@ -354,9 +295,8 @@ const JefeVentas: React.FC = () => {
   const handleVerDetalleCliente = async (cliente: ClienteConVendedor) => {
     setClienteSeleccionado(cliente);
     setLoadingDetalleCliente(true);
-    
+
     try {
-      // Cargar armas asignadas
       const armas = await apiService.getArmasCliente(Number(cliente.id));
       setArmasCliente(armas);
 
@@ -365,11 +305,9 @@ const JefeVentas: React.FC = () => {
 
       const contratos = await apiService.getContratosCliente(Number(cliente.id));
       setContratosCliente(contratos);
-      
-      // Cargar pagos y sus cuotas
+
       const pagos = await apiService.getPagosCliente(Number(cliente.id));
-      
-      // Para cada pago, cargar sus cuotas
+
       const cuotasTemp: any[] = [];
       for (const pago of pagos) {
         if (pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') {
@@ -380,7 +318,6 @@ const JefeVentas: React.FC = () => {
             console.warn(`No se pudieron cargar cuotas para pago ${pago.id}`);
           }
         } else {
-          // Si es contado, crear una "cuota" única
           cuotasTemp.push({
             numeroCuota: 1,
             monto: pago.montoTotal,
@@ -390,9 +327,9 @@ const JefeVentas: React.FC = () => {
           });
         }
       }
-      
+
       setPagosCliente(cuotasTemp);
-      
+
     } catch (error) {
       console.error('Error cargando detalle del cliente:', error);
     } finally {
@@ -402,7 +339,6 @@ const JefeVentas: React.FC = () => {
 
   const handleCerrarDetalle = () => {
     setClienteSeleccionado(null);
-    // Limpiar datos del detalle
     setArmasCliente([]);
     setDocumentosCliente([]);
     setContratosCliente([]);
@@ -414,7 +350,6 @@ const JefeVentas: React.FC = () => {
     setClienteAutorizacion(cliente);
     setNumeroFacturaAutorizacion('');
 
-    // Cargar el trámite del grupo de importación si existe
     if (cliente.grupoImportacionId) {
       try {
         const grupo = await apiService.getGrupoImportacion(cliente.grupoImportacionId);
@@ -463,11 +398,7 @@ const JefeVentas: React.FC = () => {
       );
 
       alert('Autorización de venta generada exitosamente');
-
-      // Cerrar modal
       handleCerrarModalAutorizacion();
-
-      // Recargar toda la lista de clientes para actualizar el botón
       await cargarClientesAsignados();
     } catch (error) {
       console.error('Error generando autorización:', error);
@@ -481,18 +412,14 @@ const JefeVentas: React.FC = () => {
   const handleEditarCliente = async (cliente: ClienteConVendedor) => {
     try {
       const clienteCompleto = await apiService.getCliente(parseInt(cliente.id));
-      
-      // Obtener tipos de cliente para el mapeo
+
       const tiposClienteCompletos = await apiService.getClientTypes();
-      
-      // Mapear provincia: el backend devuelve código
+
       let provinciaMapeada = (clienteCompleto as any).provincia || '';
-      // Si no es código, buscar en catálogo (lógica simplificada)
       if (provinciaMapeada && !provinciaMapeada.match(/^[0-9]+$/)) {
         // Es nombre, no código numérico
       }
-      
-      // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select
+
       let tipoClienteNombre = (clienteCompleto as any).tipoClienteNombre || '';
       if (!tipoClienteNombre && (clienteCompleto as any).tipoClienteCodigo) {
         const tipoClienteEncontrado = tiposClienteCompletos.find((tc: any) => tc.codigo === (clienteCompleto as any).tipoClienteCodigo);
@@ -500,7 +427,7 @@ const JefeVentas: React.FC = () => {
           tipoClienteNombre = tipoClienteEncontrado.nombre;
         }
       }
-      
+
       const clienteParaMostrar = {
         ...clienteCompleto,
         tipoCliente: tipoClienteNombre,
@@ -508,8 +435,7 @@ const JefeVentas: React.FC = () => {
         provincia: provinciaMapeada,
         canton: (clienteCompleto as any).canton || ''
       };
-      
-      // Cargar arma asignada si existe
+
       const assignment = clientWeaponAssignments[cliente.id];
       if (assignment) {
         setSelectedWeapon(assignment.weapon);
@@ -520,18 +446,17 @@ const JefeVentas: React.FC = () => {
         setPrecioModificado(0);
         setCantidad(1);
       }
-      
+
       setSelectedClient(clienteParaMostrar as any);
       setClientFormMode('edit');
       setCurrentPage('clientForm');
-      
+
     } catch (error) {
-      console.error('❌ Error obteniendo cliente completo:', error);
+      console.error('Error obteniendo cliente completo:', error);
       alert('Error al cargar los datos del cliente para editar');
     }
   };
 
-  // Handler para guardar cliente editado
   const handleClientSaved = async (_client: Client) => {
     try {
       await cargarClientes();
@@ -547,7 +472,6 @@ const JefeVentas: React.FC = () => {
     }
   };
 
-  // Handler para cerrar formulario de edición
   const handleCloseForm = () => {
     setCurrentPage('clientes');
     setSelectedClient(null);
@@ -557,7 +481,6 @@ const JefeVentas: React.FC = () => {
     setCantidad(1);
   };
 
-  // Handler para cambio de precio (wrapper para ClientForm)
   const handlePriceChangeWrapper = useCallback((price: number) => {
     setPrecioModificado(price);
     if (selectedClient && selectedWeapon) {
@@ -572,7 +495,6 @@ const JefeVentas: React.FC = () => {
     }
   }, [selectedClient, selectedWeapon, cantidad]);
 
-  // Handler para cambio de cantidad (wrapper para ClientForm)
   const handleQuantityChangeWrapper = useCallback((quantity: number) => {
     setCantidad(quantity);
     if (selectedClient && selectedWeapon) {
@@ -587,7 +509,6 @@ const JefeVentas: React.FC = () => {
     }
   }, [selectedClient, selectedWeapon, precioModificado]);
 
-  // Handler para navegar a selección de armas (no se usa en edición, pero necesario para ClientForm)
   const handleNavigateToWeaponSelection = useCallback(() => {
     // No aplicable en modo edición
   }, []);
@@ -602,46 +523,14 @@ const JefeVentas: React.FC = () => {
     }
   }, [currentPage]);
 
-  // Handler para abrir modal de reasignar arma
   const handleAbrirModalReasignarArma = (cliente: ClienteConVendedor) => {
     setModalReasignarArma({ isOpen: true, cliente, isLoading: false });
   };
 
-  // Handler para reasignar arma (usado en modal de reasignación)
-  // @ts-ignore - Función usada en modal pero TypeScript no la detecta
-  const handleReasignarArma = async (nuevoClienteId: number) => {
-    if (!modalReasignarArma.cliente) return;
-    
-    setModalReasignarArma(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      // Obtener el clienteArmaId del cliente actual
-      const armas = await apiService.getArmasCliente(Number(modalReasignarArma.cliente!.id));
-      if (armas.length === 0) {
-        alert('El cliente no tiene armas asignadas');
-        return;
-      }
-      
-      const clienteArmaId = armas[0].id;
-      await apiService.reasignarArmaACliente(clienteArmaId, nuevoClienteId);
-      
-      alert('Arma reasignada exitosamente');
-      setModalReasignarArma({ isOpen: false, cliente: null, isLoading: false });
-      cargarClientes();
-    } catch (error: any) {
-      console.error('Error reasignando arma:', error);
-      alert(`Error al reasignar arma: ${error.message || error}`);
-    } finally {
-      setModalReasignarArma(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  // Handler para abrir modal de desistimiento
   const handleAbrirModalDesistimiento = (cliente: ClienteConVendedor) => {
     setModalDesistimiento({ isOpen: true, cliente, observacion: '', isLoading: false });
   };
 
-  // Handler para confirmar desistimiento
   const handleConfirmarDesistimiento = async () => {
     if (!modalDesistimiento.cliente) return;
 
@@ -674,12 +563,10 @@ const JefeVentas: React.FC = () => {
     }
   };
 
-  // Handler para abrir modal de editar arma
   const handleAbrirModalEditarArma = async (clienteArma: any) => {
     if (!clienteArma) return;
-    
+
     try {
-      // Cargar armas disponibles
       const armas = await apiService.getArmas();
       setModalEditarArma({
         isOpen: true,
@@ -695,7 +582,6 @@ const JefeVentas: React.FC = () => {
     }
   };
 
-  // Handler para confirmar edición de arma
   const handleConfirmarEditarArma = async () => {
     if (!modalEditarArma.clienteArma || !modalEditarArma.armaSeleccionada) {
       alert('Por favor, selecciona una nueva arma');
@@ -706,7 +592,7 @@ const JefeVentas: React.FC = () => {
 
     try {
       const nuevoPrecio = modalEditarArma.nuevoPrecio ? parseFloat(modalEditarArma.nuevoPrecio) : undefined;
-      
+
       await apiService.actualizarArmaReserva(
         modalEditarArma.clienteArma.id,
         modalEditarArma.armaSeleccionada.id,
@@ -714,8 +600,7 @@ const JefeVentas: React.FC = () => {
       );
 
       alert('Arma actualizada exitosamente. Puedes generar un nuevo contrato si lo deseas.');
-      
-      // Cerrar modal
+
       setModalEditarArma({
         isOpen: false,
         clienteArma: null,
@@ -725,7 +610,6 @@ const JefeVentas: React.FC = () => {
         isLoading: false
       });
 
-      // Recargar armas del cliente
       if (clienteSeleccionado) {
         const armas = await apiService.getArmasCliente(Number(clienteSeleccionado.id));
         setArmasCliente(armas);
@@ -739,7 +623,6 @@ const JefeVentas: React.FC = () => {
     }
   };
 
-  // Handler para abrir modal de generar contrato
   const handleAbrirModalGenerarContrato = async () => {
     if (!clienteSeleccionado) return;
 
@@ -755,21 +638,18 @@ const JefeVentas: React.FC = () => {
     }
   };
 
-  // Handler para generar contrato
   const handleGenerarContrato = async () => {
     if (!clienteSeleccionado) return;
-    
+
     setModalGenerarContrato(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
       const response = await apiService.generarContrato(Number(clienteSeleccionado.id));
-      
+
       if (response.success) {
         alert('Documento(s) generado(s) exitosamente');
-        // Recargar contratos del cliente
         const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
         setContratosCliente(contratos);
-        // Cerrar modal
         setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
       } else {
         alert('Error al generar documento: ' + (response.message || 'Error desconocido'));
@@ -785,7 +665,7 @@ const JefeVentas: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
+      <Header
         title="Panel de Jefe de Ventas"
         subtitle="Gestión de inventario, clientes e importaciones"
       />
@@ -822,45 +702,6 @@ const JefeVentas: React.FC = () => {
           </div>
         ) : (
           <>
-        {/* TODO: Dashboard de estadísticas - Oculto temporalmente, revisar criterios de filtrado */}
-        {/*
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">Clientes Nuevos Hoy</p>
-                <p className="text-3xl font-bold mt-1">
-                  {loadingDashboard ? '...' : dashboardStats.clientesNuevosHoy}
-                </p>
-                <p className="text-blue-200 text-xs mt-1">Registrados el día de hoy</p>
-              </div>
-              <div className="w-14 h-14 bg-blue-400/30 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-5 shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-amber-100 text-sm font-medium">Pendientes Contrato/Solicitud</p>
-                <p className="text-3xl font-bold mt-1">
-                  {loadingDashboard ? '...' : dashboardStats.clientesPendientesContrato}
-                </p>
-                <p className="text-amber-200 text-xs mt-1">Sin contrato generado</p>
-              </div>
-              <div className="w-14 h-14 bg-amber-400/30 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        */}
-
         {/* Navegación de pestañas */}
         <div className="flex space-x-2 mb-6">
           <button
@@ -873,7 +714,7 @@ const JefeVentas: React.FC = () => {
           >
             👥 Todos los Clientes
           </button>
-          
+
           <button
             onClick={() => setVistaActual('clientes-asignados')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -884,7 +725,7 @@ const JefeVentas: React.FC = () => {
           >
             ✅ Clientes con Serie Asignada
           </button>
-          
+
           <button
             onClick={() => setVistaActual('importaciones')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -906,8 +747,7 @@ const JefeVentas: React.FC = () => {
           >
             ✅ Gestión Importaciones
           </button>
-          
-          {/* Pestaña de Reasignar Armas */}
+
           <button
             onClick={() => setVistaActual('reasignar-armas')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -918,8 +758,7 @@ const JefeVentas: React.FC = () => {
           >
             🔄 Reasignar Armas
           </button>
-          
-          {/* Pestaña de Asignación de Series - Solo para SALES_CHIEF y FINANCE */}
+
           {puedeVerAsignacionSeries && (
             <button
               onClick={() => setVistaActual('series')}
@@ -932,8 +771,7 @@ const JefeVentas: React.FC = () => {
               🔢 Asignación de Series
             </button>
           )}
-          
-          {/* Pestaña de Armas - Para Jefe de Ventas */}
+
           <button
             onClick={() => setVistaActual('armas')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -944,8 +782,7 @@ const JefeVentas: React.FC = () => {
           >
             🔫 Armas
           </button>
-          
-          {/* Pestaña de Categorías - Para Jefe de Ventas */}
+
           <button
             onClick={() => setVistaActual('categorias')}
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -960,1122 +797,66 @@ const JefeVentas: React.FC = () => {
 
         {/* Contenido: Stock de Armas */}
         {vistaActual === 'stock' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Inventario de Armas en Stock</h2>
-              <button
-                onClick={cargarStockArmas}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                🔄 Actualizar
-              </button>
-            </div>
-
-            {loadingStock ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Cargando inventario...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Arma</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Calibre</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Total</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Disponible</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Reservadas</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Asignadas</th>
-                      <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Precio Venta</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stockArmas.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
-                          No hay armas en stock
-                        </td>
-                      </tr>
-                    ) : (
-                      stockArmas.map((stock) => {
-                        const reservadas = stock.cantidadTotal - stock.cantidadDisponible;
-                        const porcentajeDisponible = (stock.cantidadDisponible / stock.cantidadTotal) * 100;
-                        
-                        return (
-                          <tr key={stock.armaId} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium">{stock.armaModelo || 'Sin modelo'}</td>
-                            <td className="px-4 py-3 text-sm">{stock.armaCalibre}</td>
-                            <td className="px-4 py-3 text-center">
-                              <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-bold rounded-full">
-                                {stock.cantidadTotal}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className={`px-3 py-1 text-sm font-bold rounded-full ${
-                                porcentajeDisponible > 50 ? 'bg-green-100 text-green-800' :
-                                porcentajeDisponible > 20 ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {stock.cantidadDisponible}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-bold rounded-full">
-                                {reservadas}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-bold rounded-full">
-                                {stock.cantidadAsignada || 0}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right text-sm font-bold">
-                              ${stock.precioVenta.toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                  {stockArmas.length > 0 && (
-                    <tfoot>
-                      <tr className="bg-gray-50 font-bold">
-                        <td colSpan={2} className="px-4 py-3 text-sm">TOTALES</td>
-                        <td className="px-4 py-3 text-center text-sm">
-                          {stockArmas.reduce((sum, s) => sum + s.cantidadTotal, 0)}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm">
-                          {stockArmas.reduce((sum, s) => sum + s.cantidadDisponible, 0)}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm">
-                          {stockArmas.reduce((sum, s) => sum + (s.cantidadTotal - s.cantidadDisponible), 0)}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm">
-                          {stockArmas.reduce((sum, s) => sum + (s.cantidadAsignada || 0), 0)}
-                        </td>
-                        <td className="px-4 py-3"></td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </div>
-            )}
-          </div>
+          <StockView
+            stockArmas={stockArmas}
+            loadingStock={loadingStock}
+            onRefresh={cargarStockArmas}
+          />
         )}
 
         {/* Contenido: Todos los Clientes */}
         {vistaActual === 'clientes' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Todos los Clientes del Sistema</h2>
-                <p className="text-sm text-gray-600 mt-1">Todos los clientes creados por los vendedores</p>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={exportarClientesAExcel}
-                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md flex items-center space-x-2 text-sm font-semibold"
-                  title="Exportar todos los clientes a Excel"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Exportar a Excel</span>
-                </button>
-                <button
-                  onClick={cargarClientes}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  🔄 Actualizar
-                </button>
-                {Object.keys(filtersClientes).length > 0 && (
-                  <button
-                    onClick={clearFiltersClientes}
-                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
-                    title="Limpiar filtros"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="text-xs">Limpiar filtros</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {loadingClientes ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Cargando clientes...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <TableHeaderWithFilters
-                        column="numeroIdentificacion"
-                        label="CI/RUC"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        filterValue={filtersClientes.numeroIdentificacion || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="nombres"
-                        label="Cliente"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        filterValue={filtersClientes.nombres || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="tipoClienteNombre"
-                        label="Tipo"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        filterValue={filtersClientes.tipoClienteNombre || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="vendedorNombre"
-                        label="Vendedor"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        filterValue={filtersClientes.vendedorNombre || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="email"
-                        label="Email"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        filterValue={filtersClientes.email || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="estado"
-                        label="Estado"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        align="center"
-                        filterValue={filtersClientes.estado || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="estadoPago"
-                        label="Estado de Pago"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        align="center"
-                        filterValue={filtersClientes.estadoPago || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="emailVerificado"
-                        label="Validado por Cliente"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        align="center"
-                        filterValue={filtersClientes.emailVerificado !== undefined ? String(filtersClientes.emailVerificado) : ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="grupoImportacionNombre"
-                        label="Grupo de Importación"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        align="center"
-                        filterValue={filtersClientes.grupoImportacionNombre || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="licenciaNombre"
-                        label="Licencia"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        align="center"
-                        filterValue={filtersClientes.licenciaNombre || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <TableHeaderWithFilters
-                        column="fechaCreacion"
-                        label="Fecha"
-                        sortKey={sortConfigClientes.key}
-                        sortDirection={sortConfigClientes.direction}
-                        onSort={handleSortClientes}
-                        align="center"
-                        filterValue={filtersClientes.fechaCreacion || ''}
-                        onFilterChange={setFilterClientes}
-                      />
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientesFiltrados.length === 0 ? (
-                      <tr>
-                        <td colSpan={12} className="px-4 py-12 text-center text-gray-500">
-                          No hay clientes registrados
-                        </td>
-                      </tr>
-                    ) : (
-                      clientesFiltrados.map((cliente) => (
-                        <tr key={cliente.id} className="border-b hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
-                          <td className="px-4 py-3 text-sm font-medium">
-                            {formatNombreCompleto(cliente.nombres, cliente.apellidos)}
-                          </td>
-                          <td className="px-4 py-3 text-sm">{cliente.tipoClienteNombre}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2">
-                                <span className="text-blue-600 font-bold text-xs">
-                                  {cliente.vendedorNombre?.charAt(0)}{cliente.vendedorApellidos?.charAt(0)}
-                                </span>
-                              </div>
-                              <span>{formatNombreCompleto(cliente.vendedorNombre, cliente.vendedorApellidos)}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm">{cliente.email}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              cliente.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
-                              cliente.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
-                              cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
-                              cliente.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
-                              cliente.estado === 'EN_CURSO_IMPORTACION' ? 'bg-purple-100 text-purple-800' :
-                              cliente.estado === 'SERIE_ASIGNADA' ? 'bg-green-100 text-green-800' :
-                              cliente.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
-                               cliente.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
-                               cliente.estado === 'EN_CURSO_IMPORTACION' ? 'En curso de importación' :
-                               cliente.estado === 'SERIE_ASIGNADA' ? 'Serie asignada' :
-                               cliente.estado === 'EN_PROCESO' ? 'En proceso' :
-                               cliente.estado === 'BLOQUEADO' ? 'Bloqueado' :
-                               cliente.estado || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              cliente.estadoPago === 'PAGO_COMPLETO' ? 'bg-green-100 text-green-800' :
-                              cliente.estadoPago === 'ABONADO' ? 'bg-yellow-100 text-yellow-800' :
-                              cliente.estadoPago === 'IMPAGO' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {cliente.estadoPago || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              cliente.emailVerificado === true ? 'bg-green-100 text-green-800' :
-                              cliente.emailVerificado === false ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {cliente.emailVerificado === true ? 'Validado' :
-                               cliente.emailVerificado === false ? 'Datos incorrectos' :
-                               'Pendiente'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            {cliente.grupoImportacionNombre ? (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                {cliente.grupoImportacionNombre}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 text-xs">Sin asignar</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            {cliente.licenciaNombre ? (
-                              <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                                {cliente.licenciaNombre}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 text-xs">Sin licencia</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm text-gray-600">
-                            {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
-                            <div className="flex items-center justify-center space-x-2">
-                              <button
-                                onClick={() => handleVerDetalleCliente(cliente)}
-                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
-                              >
-                                Ver Detalle
-                              </button>
-                              {/* Deshabilitar edición si el cliente ya tiene serie asignada */}
-                              {['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(cliente.estado || '') ? (
-                                <button
-                                  disabled
-                                  className="px-3 py-1 bg-gray-400 text-white text-xs rounded-lg cursor-not-allowed opacity-60"
-                                  title="No se puede editar un cliente con serie asignada"
-                                >
-                                  Editar
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleEditarCliente(cliente)}
-                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
-                                >
-                                  Editar
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleAbrirModalReasignarArma(cliente)}
-                                className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors"
-                              >
-                                Reasignar Arma
-                              </button>
-                              <button
-                                onClick={() => handleAbrirModalDesistimiento(cliente)}
-                                className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
-                              >
-                                Desistimiento
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ClientesListView
+            clientesFiltrados={clientesFiltrados}
+            loadingClientes={loadingClientes}
+            sortConfig={sortConfigClientes}
+            onSort={handleSortClientes}
+            filters={filtersClientes}
+            setFilter={setFilterClientes}
+            clearFilters={clearFiltersClientes}
+            onRefresh={cargarClientes}
+            onExport={exportarClientesAExcel}
+            onVerDetalle={handleVerDetalleCliente}
+            onEditar={handleEditarCliente}
+            onReasignarArma={handleAbrirModalReasignarArma}
+            onDesistimiento={handleAbrirModalDesistimiento}
+          />
         )}
 
         {/* Contenido: Clientes con Serie Asignada */}
         {vistaActual === 'clientes-asignados' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">✅ Clientes con Armas Asignadas</h2>
-                <p className="text-sm text-gray-600 mt-1">Supervisión de clientes con número de serie asignado</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                {Object.keys(filtersAsignados).length > 0 && (
-                  <button
-                    onClick={clearFiltersAsignados}
-                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
-                    title="Limpiar filtros"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="text-xs">Limpiar filtros</span>
-                  </button>
-                )}
-                <button
-                  onClick={cargarClientesAsignados}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  🔄 Actualizar
-                </button>
-              </div>
-            </div>
-
-            {loadingClientes ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-                <p className="mt-4 text-gray-600">Cargando clientes asignados...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <TableHeaderWithFilters
-                        column="numeroIdentificacion"
-                        label="CI/RUC"
-                        sortKey={sortConfigAsignados.key}
-                        sortDirection={sortConfigAsignados.direction}
-                        onSort={handleSortAsignados}
-                        filterValue={filtersAsignados.numeroIdentificacion || ''}
-                        onFilterChange={setFilterAsignados}
-                      />
-                      <TableHeaderWithFilters
-                        column="nombres"
-                        label="Cliente"
-                        sortKey={sortConfigAsignados.key}
-                        sortDirection={sortConfigAsignados.direction}
-                        onSort={handleSortAsignados}
-                        filterValue={filtersAsignados.nombres || ''}
-                        onFilterChange={setFilterAsignados}
-                      />
-                      <TableHeaderWithFilters
-                        column="tipoClienteNombre"
-                        label="Tipo"
-                        sortKey={sortConfigAsignados.key}
-                        sortDirection={sortConfigAsignados.direction}
-                        onSort={handleSortAsignados}
-                        filterValue={filtersAsignados.tipoClienteNombre || ''}
-                        onFilterChange={setFilterAsignados}
-                      />
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Arma Asignada</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Serie</th>
-                      <TableHeaderWithFilters
-                        column="vendedorNombre"
-                        label="Vendedor"
-                        sortKey={sortConfigAsignados.key}
-                        sortDirection={sortConfigAsignados.direction}
-                        onSort={handleSortAsignados}
-                        filterValue={filtersAsignados.vendedorNombre || ''}
-                        onFilterChange={setFilterAsignados}
-                      />
-                      <TableHeaderWithFilters
-                        column="fechaCreacion"
-                        label="Fecha"
-                        sortKey={sortConfigAsignados.key}
-                        sortDirection={sortConfigAsignados.direction}
-                        onSort={handleSortAsignados}
-                        align="center"
-                        filterValue={filtersAsignados.fechaCreacion || ''}
-                        onFilterChange={setFilterAsignados}
-                      />
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientesAsignadosFiltrados.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-gray-500 text-lg font-medium">
-                              No hay clientes con armas asignadas
-                            </p>
-                            <p className="text-gray-400 text-sm mt-2">Los clientes aparecerán aquí cuando se les asigne un número de serie</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      clientesAsignadosFiltrados.map((cliente) => {
-                        const weaponAssignment = clientWeaponAssignments[cliente.id];
-                        return (
-                          <tr key={cliente.id} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
-                            <td className="px-4 py-3 text-sm font-medium">
-                              {formatNombreCompleto(cliente.nombres, cliente.apellidos)}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Cupo Civil' ? 'bg-blue-100 text-blue-800' :
-                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Uniformado' ? 'bg-orange-100 text-orange-800' :
-                                (cliente.tipoClienteNombre || cliente.tipoProcesoNombre) === 'Extracupo Empresa' ? 'bg-green-100 text-green-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {cliente.tipoClienteNombre || cliente.tipoProcesoNombre}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {weaponAssignment ? (
-                                <div>
-                                  <div className="font-medium">{weaponAssignment.weapon.modelo || 'N/A'}</div>
-                                  <div className="text-xs text-gray-500">{weaponAssignment.weapon.calibre}</div>
-                                </div>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {weaponAssignment?.numeroSerie ? (
-                                <span className="font-mono text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">
-                                  {weaponAssignment.numeroSerie}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              <div className="flex items-center">
-                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-2">
-                                  <span className="text-green-600 font-bold text-xs">
-                                    {cliente.vendedorNombre?.charAt(0)}{cliente.vendedorApellidos?.charAt(0)}
-                                  </span>
-                                </div>
-                                <span>{formatNombreCompleto(cliente.vendedorNombre, cliente.vendedorApellidos)}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-center text-sm">
-                              {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
-                            </td>
-                            <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
-                              <div className="flex flex-col gap-2 items-center">
-                                {/* Botón Ver Detalle */}
-                                <button
-                                  onClick={() => handleVerDetalleCliente(cliente)}
-                                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                  <span>Ver Detalle</span>
-                                </button>
-
-                                {/* Botones de Autorización */}
-                                {(() => {
-                                  const tieneAutorizacion = autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0;
-                                  return tieneAutorizacion;
-                                })() ? (
-                                  <>
-                                    {/* Botón Ver Autorización */}
-                                    <button
-                                      onClick={() => {
-                                        const autorizacion = autorizaciones[cliente.id][0];
-                                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-                                        window.open(`${baseUrl}/api/documentos/serve-generated/${autorizacion.id}`, '_blank');
-                                      }}
-                                      className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      <span>Ver Autorización</span>
-                                    </button>
-
-                                    {/* Botón Generar Nuevamente */}
-                                    <button
-                                      onClick={() => handleGenerarAutorizacion(cliente)}
-                                      className="w-full px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
-                                      title="Regenerar autorización (sobrescribirá la actual)"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                      </svg>
-                                      <span>Generar Nuevamente</span>
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    onClick={() => handleGenerarAutorizacion(cliente)}
-                                    className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm font-semibold shadow-md flex items-center justify-center space-x-2"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <span>Generar Autorización</span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ClientesAsignadosView
+            clientesAsignadosFiltrados={clientesAsignadosFiltrados}
+            loadingClientes={loadingClientes}
+            sortConfig={sortConfigAsignados}
+            onSort={handleSortAsignados}
+            filters={filtersAsignados}
+            setFilter={setFilterAsignados}
+            clearFilters={clearFiltersAsignados}
+            clientWeaponAssignments={clientWeaponAssignments}
+            autorizaciones={autorizaciones}
+            onRefresh={cargarClientesAsignados}
+            onVerDetalle={handleVerDetalleCliente}
+            onGenerarAutorizacion={handleGenerarAutorizacion}
+          />
         )}
 
         {/* Modal de Detalle de Cliente */}
         {clienteSeleccionado && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full my-8 max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      {formatNombreCompleto(clienteSeleccionado.nombres, clienteSeleccionado.apellidos)}
-                    </h2>
-                    <p className="text-gray-600">CI: {clienteSeleccionado.numeroIdentificacion}</p>
-                  </div>
-                  <button
-                    onClick={handleCerrarDetalle}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Datos Personales */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Datos Personales
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                      <p className="text-sm text-gray-600">Tipo de Cliente</p>
-                      <p className="font-medium">{clienteSeleccionado.tipoClienteNombre}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium">{clienteSeleccionado.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Teléfono</p>
-                      <p className="font-medium">{clienteSeleccionado.telefonoPrincipal}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Dirección</p>
-                      <p className="font-medium">{clienteSeleccionado.direccion || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Vendedor Responsable</p>
-                      <p className="font-medium text-blue-600">
-                        {formatNombreCompleto(clienteSeleccionado.vendedorNombre, clienteSeleccionado.vendedorApellidos)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Estado</p>
-                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                        clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'bg-green-100 text-green-800' :
-                        clienteSeleccionado.estado === 'SERIE_ASIGNADA' ? 'bg-green-100 text-green-800' :
-                        clienteSeleccionado.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
-                        clienteSeleccionado.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
-                        clienteSeleccionado.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
-                        clienteSeleccionado.estado === 'EN_CURSO_IMPORTACION' ? 'bg-purple-100 text-purple-800' :
-                        clienteSeleccionado.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {clienteSeleccionado.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
-                         clienteSeleccionado.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
-                         clienteSeleccionado.estado === 'EN_CURSO_IMPORTACION' ? 'En curso de importación' :
-                         clienteSeleccionado.estado === 'SERIE_ASIGNADA' ? 'Serie asignada' :
-                         clienteSeleccionado.estado === 'EN_PROCESO' ? 'En proceso' :
-                         clienteSeleccionado.estado === 'BLOQUEADO' ? 'Bloqueado' :
-                         clienteSeleccionado.estado || 'N/A'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Validado por Cliente</p>
-                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                        clienteSeleccionado.emailVerificado === true ? 'bg-green-100 text-green-800' :
-                        clienteSeleccionado.emailVerificado === false ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {clienteSeleccionado.emailVerificado === true ? 'Validado' :
-                         clienteSeleccionado.emailVerificado === false ? 'Datos incorrectos' :
-                         'Pendiente'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Grupo de Importación</p>
-                      <p className="font-medium text-blue-600">{clienteSeleccionado.grupoImportacionNombre || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Licencia</p>
-                      {clienteSeleccionado.licenciaNombre ? (
-                        <div>
-                          <p className="font-medium text-purple-600">{clienteSeleccionado.licenciaNombre}</p>
-                          {clienteSeleccionado.licenciaNumero && (
-                            <p className="text-xs text-gray-500">Número: {clienteSeleccionado.licenciaNumero}</p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="font-medium text-gray-400">N/A</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {loadingDetalleCliente ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p className="mt-4 text-gray-600">Cargando información completa...</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Armas Asignadas */}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Armas Asignadas ({armasCliente.length})
-                      </h3>
-                      {armasCliente.length === 0 ? (
-                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
-                          No hay armas asignadas
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                          {armasCliente.map((arma, index) => (
-                            <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                                <div>
-                                  <p className="text-sm text-gray-600">Arma</p>
-                                  <p className="font-semibold text-blue-600">{arma.armaModelo || arma.armaNombre || 'N/A'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-600">Número de Serie</p>
-                                  <p className="font-mono font-semibold">{arma.numeroSerie || 'Sin asignar'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-600">Cantidad</p>
-                                  <p className="font-medium">{arma.cantidad || 1}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-600">Precio Unitario</p>
-                                  <p className="font-medium">${arma.precioUnitario?.toFixed(2) || '0.00'}</p>
-                                </div>
-                                <div className="flex items-end">
-                                  {arma.estado !== 'ASIGNADA' && arma.estado !== 'COMPLETADA' ? (
-                                    <button
-                                      onClick={() => handleAbrirModalEditarArma(arma)}
-                                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
-                                      title="Editar arma asignada"
-                                    >
-                                      Editar Arma
-                                    </button>
-                                  ) : (
-                                    <span className="text-xs text-gray-500">No editable</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Documentos */}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Documentos ({documentosCliente.length})
-                      </h3>
-                      {documentosCliente.length === 0 ? (
-                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
-                          No hay documentos subidos
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {documentosCliente.map((doc, index) => (
-                              <div key={index} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
-                                <div className="flex items-center flex-1">
-                                  <svg className="w-8 h-8 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm">{doc.tipoDocumentoNombre || 'Documento'}</p>
-                                    <p className="text-xs text-gray-500">{doc.nombreArchivo || 'archivo.pdf'}</p>
-                                    {doc.descripcion && (
-                                      <p className="text-xs text-gray-400 mt-1">{doc.descripcion}</p>
-                                    )}
-                                  </div>
-                                </div>
-                                {doc.id && (
-                                  <div className="flex space-x-2 ml-3">
-                                    <button
-                                      onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve/${doc.id}`, '_blank')}
-                                      className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs flex items-center"
-                                      title="Ver documento"
-                                    >
-                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                      </svg>
-                                      Ver
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const link = document.createElement('a');
-                                        link.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve/${doc.id}`;
-                                        link.download = doc.nombreArchivo || 'documento.pdf';
-                                        link.click();
-                                      }}
-                                      className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs flex items-center"
-                                      title="Descargar documento"
-                                    >
-                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      Descargar
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Contratos */}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Contratos Generados ({contratosCliente.length})
-                      </h3>
-                      {contratosCliente.length === 0 ? (
-                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
-                          No hay contratos generados
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                          {contratosCliente.map((contrato, index) => {
-                            const handleCargarContratoFirmado = async () => {
-                              if (!archivoFirmado || !clienteSeleccionado) return;
-                              
-                              setCargandoFirmado(true);
-                              try {
-                                await apiService.cargarContratoFirmado(Number(clienteSeleccionado.id), archivoFirmado, contrato.id);
-                                alert('Documento firmado cargado exitosamente');
-                                // Recargar contratos
-                                const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
-                                setContratosCliente(contratos);
-                                setMostrarCargarFirmado(null);
-                                setArchivoFirmado(null);
-                              } catch (error: any) {
-                                console.error('Error cargando contrato firmado:', error);
-                                const errorMessage = error?.responseData?.error || error?.message || 'Error desconocido';
-                                alert('Error al cargar documento firmado: ' + errorMessage);
-                              } finally {
-                                setCargandoFirmado(false);
-                              }
-                            };
-                            
-                            return (
-                              <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div>
-                                    <p className="font-semibold text-blue-600">{contrato.nombreArchivo || 'Contrato de Compra-Venta'}</p>
-                                    {contrato.fechaCreacion && (
-                                      <p className="text-sm text-gray-600">Fecha: {new Date(contrato.fechaCreacion).toLocaleDateString('es-ES')}</p>
-                                    )}
-                                    {contrato.descripcion && (
-                                      <p className="text-sm text-gray-500 mt-1">{contrato.descripcion}</p>
-                                    )}
-                                    {contrato.estado === 'FIRMADO' && (
-                                      <span className="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                        ✅ Firmado
-                                      </span>
-                                    )}
-                                  </div>
-                                  {contrato.id && (
-                                    <div className="flex space-x-2">
-                                      <button
-                                        onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
-                                      >
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                        Ver PDF
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const link = document.createElement('a');
-                                          link.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/documentos/serve-generated/${contrato.id}`;
-                                          link.download = contrato.nombreArchivo || 'contrato.pdf';
-                                          link.click();
-                                        }}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center"
-                                      >
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Descargar
-                                      </button>
-                                      {contrato.estado !== 'FIRMADO' && (
-                                        <button
-                                          onClick={() => setMostrarCargarFirmado(mostrarCargarFirmado === contrato.id ? null : contrato.id)}
-                                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center"
-                                        >
-                                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                          </svg>
-                                          Cargar Documento Firmado
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Formulario para cargar contrato firmado */}
-                                {mostrarCargarFirmado === contrato.id && (
-                                  <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                      Seleccionar Documento Firmado (PDF)
-                                    </label>
-                                    <input
-                                      type="file"
-                                      accept=".pdf"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          setArchivoFirmado(file);
-                                        }
-                                      }}
-                                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-                                    />
-                                    {archivoFirmado && (
-                                      <div className="mt-3 flex justify-end space-x-2">
-                                        <button
-                                          onClick={() => {
-                                            setMostrarCargarFirmado(null);
-                                            setArchivoFirmado(null);
-                                          }}
-                                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
-                                          disabled={cargandoFirmado}
-                                        >
-                                          Cancelar
-                                        </button>
-                                        <button
-                                          onClick={handleCargarContratoFirmado}
-                                          disabled={cargandoFirmado}
-                                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center disabled:opacity-50"
-                                        >
-                                          {cargandoFirmado ? (
-                                            <>
-                                              <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                              Cargando...
-                                            </>
-                                          ) : (
-                                            contrato.nombreArchivo?.toLowerCase().includes('solicitud_compra') || 
-                                            contrato.nombreArchivo?.toLowerCase().includes('solicitud de compra')
-                                              ? 'Cargar Solicitud de Compra Firmada'
-                                              : 'Cargar Contrato Firmado'
-                                          )}
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Plan de Pagos */}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        Plan de Pagos ({pagosCliente.length} cuotas)
-                      </h3>
-                      {pagosCliente.length === 0 ? (
-                        <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
-                          No hay plan de pagos registrado
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="bg-gray-200">
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">Cuota</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">Monto</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">Fecha Vencimiento</th>
-                                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-700">Estado</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {pagosCliente.map((pago, index) => (
-                                  <tr key={index}>
-                                    <td className="px-3 py-2 text-sm">Cuota #{pago.numeroCuota || index + 1}</td>
-                                    <td className="px-3 py-2 text-sm font-semibold">${pago.monto?.toFixed(2) || '0.00'}</td>
-                                    <td className="px-3 py-2 text-sm">{pago.fechaVencimiento ? new Date(pago.fechaVencimiento).toLocaleDateString('es-ES') : 'N/A'}</td>
-                                    <td className="px-3 py-2 text-center">
-                                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                        pago.estado === 'PAGADO' ? 'bg-green-100 text-green-800' :
-                                        pago.estado === 'VENCIDO' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                      }`}>
-                                        {pago.estado || 'PENDIENTE'}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                <div className="mt-6 flex justify-end space-x-3">
-                  {/* Botón Generar Documentos - Solo para JEFE DE VENTAS */}
-                  {/* NO mostrar SOLO si estamos en la vista de "Clientes con Armas Asignadas" (documentos ya generados) */}
-                  {vistaActual !== 'clientes-asignados' && user?.roles?.some(role => {
-                    const codigo = role.rol?.codigo || (role as any).codigo;
-                    return codigo === 'SALES_CHIEF';
-                  }) && (() => {
-                    const esClienteFantasma = clienteSeleccionado?.estado === 'PENDIENTE_ASIGNACION_CLIENTE';
-                    const tieneArmasAsignadas = armasCliente.length > 0;
-                    if (esClienteFantasma || !tieneArmasAsignadas) {
-                      return null;
-                    }
-
-                    // Determinar si es civil o uniformado
-                    const esCivil = clienteSeleccionado?.tipoClienteEsCivil ?? false;
-                    const esUniformado = (clienteSeleccionado?.tipoClienteEsMilitar ?? false) || (clienteSeleccionado?.tipoClienteEsPolicia ?? false);
-                    const solicitudFirmada = contratosCliente.some(doc => doc.tipoDocumento === 'SOLICITUD_COMPRA' && doc.estado === 'FIRMADO');
-                    const contratoFirmado = contratosCliente.some(doc => doc.tipoDocumento === 'CONTRATO' && doc.estado === 'FIRMADO');
-                    const cotizacionFirmada = contratosCliente.some(doc => doc.tipoDocumento === 'COTIZACION' && doc.estado === 'FIRMADO');
-
-                    if (esCivil && solicitudFirmada) {
-                      return null;
-                    }
-                    if (esUniformado && solicitudFirmada && contratoFirmado && cotizacionFirmada) {
-                      return null;
-                    }
-
-                    const textoBoton = esCivil ? "Generar Solicitud de Compra" : "Generar Documentos";
-
-                    return (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleAbrirModalGenerarContrato();
-                        }}
-                        className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-                      >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        {textoBoton}
-                      </button>
-                    );
-                  })()}
-                  <button
-                    onClick={handleCerrarDetalle}
-                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ClientDetailModal
+            cliente={clienteSeleccionado}
+            onClose={handleCerrarDetalle}
+            loadingDetalleCliente={loadingDetalleCliente}
+            armasCliente={armasCliente}
+            documentosCliente={documentosCliente}
+            contratosCliente={contratosCliente}
+            setContratosCliente={setContratosCliente}
+            pagosCliente={pagosCliente}
+            vistaActual={vistaActual}
+            user={user}
+            onAbrirModalGenerarContrato={handleAbrirModalGenerarContrato}
+            onAbrirModalEditarArma={handleAbrirModalEditarArma}
+          />
         )}
 
         {/* Modal de Generar Contrato */}
@@ -2097,91 +878,12 @@ const JefeVentas: React.FC = () => {
 
         {/* Contenido: Reasignar Armas */}
         {vistaActual === 'reasignar-armas' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">🔄 Reasignar Armas</h2>
-                <p className="text-sm text-gray-600 mt-1">Armas con estado REASIGNADO esperando asignación a nuevo cliente</p>
-              </div>
-              <button
-                onClick={cargarArmasReasignadas}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                🔄 Actualizar
-              </button>
-            </div>
-
-            {loadingArmasReasignadas ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-                <p className="mt-4 text-gray-600">Cargando armas reasignadas...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Arma</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Categoría</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Cliente Anterior</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Precio</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Cantidad</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Número de Serie</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {armasReasignadas.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-12 text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-gray-500 text-lg font-medium">
-                              No hay armas reasignadas
-                            </p>
-                            <p className="text-gray-400 text-sm mt-2">Las armas reasignadas aparecerán aquí</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      armasReasignadas.map((arma) => (
-                        <tr key={arma.id} className="border-b hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm">
-                            <div>
-                              <div className="font-medium">{arma.armaModelo || arma.armaNombre || 'N/A'}</div>
-                              {arma.armaCalibre && (
-                                <div className="text-xs text-gray-500">Calibre: {arma.armaCalibre}</div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm">{arma.armaCategoriaNombre || 'N/A'}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <div>
-                              <div className="font-medium">{arma.clienteNombre || 'N/A'}</div>
-                              <div className="text-xs text-gray-500">ID: {arma.clienteId}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm">${arma.precioUnitario?.toFixed(2) || '0.00'}</td>
-                          <td className="px-4 py-3 text-center text-sm">{arma.cantidad || 1}</td>
-                          <td className="px-4 py-3 text-sm font-mono">{arma.numeroSerie || 'Sin serie'}</td>
-                          <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
-                            <button
-                              onClick={() => handleAbrirModalClienteReasignado(arma)}
-                              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
-                            >
-                              Cliente Reasignado
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ReasignarArmasView
+            armasReasignadas={armasReasignadas}
+            loadingArmasReasignadas={loadingArmasReasignadas}
+            onRefresh={cargarArmasReasignadas}
+            onClienteReasignado={handleAbrirModalClienteReasignado}
+          />
         )}
 
         {/* Contenido: Asignación de Series */}

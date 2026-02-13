@@ -30,7 +30,7 @@ public class EmailVerificationService {
     private final EmailService emailService;
     private final RespuestaClienteRepository respuestaClienteRepository;
     private final LocalizacionService localizacionService;
-    private final GrupoImportacionService grupoImportacionService;
+    private final GrupoImportacionClienteService grupoImportacionClienteService;
     
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendBaseUrl;
@@ -152,7 +152,7 @@ public class EmailVerificationService {
         
         // Confirmar asignación al grupo de importación (si tiene una asignación pendiente)
         try {
-            grupoImportacionService.confirmarAsignacionCliente(cliente.getId());
+            grupoImportacionClienteService.confirmarAsignacionCliente(cliente.getId());
             log.info("✅ Asignación al grupo confirmada para cliente ID: {}", cliente.getId());
         } catch (Exception e) {
             log.warn("⚠️ No se pudo confirmar asignación al grupo para cliente ID {}: {}", 

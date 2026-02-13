@@ -10,6 +10,7 @@ import com.armasimportacion.model.Licencia;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.ClienteService;
+import com.armasimportacion.service.ClienteQueryService;
 import com.armasimportacion.service.ClienteCompletoService;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.model.Pago;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 public class ClienteController {
     
     private final ClienteService clienteService;
+    private final ClienteQueryService clienteQueryService;
     private final ClienteCompletoService clienteCompletoService;
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
@@ -56,7 +58,7 @@ public class ClienteController {
     private final GestionDocumentosServiceHelper gestionDocumentosServiceHelper;
     private final DocumentoGeneradoRepository documentoGeneradoRepository;
     private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
-    private final com.armasimportacion.service.GrupoImportacionService grupoImportacionService;
+    private final com.armasimportacion.service.GrupoImportacionClienteService grupoImportacionClienteService;
     private final com.armasimportacion.service.DocumentoClienteService documentoClienteService;
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
@@ -139,7 +141,7 @@ public class ClienteController {
     @Operation(summary = "Obtener cliente por ID", description = "Obtiene un cliente específico por su ID")
     public ResponseEntity<ClienteDTO> obtenerCliente(@PathVariable Long id) {
         try {
-            ClienteDTO cliente = clienteService.findByIdAsDTO(id);
+            ClienteDTO cliente = clienteQueryService.findByIdAsDTO(id);
             return ResponseEntity.ok(cliente);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -153,25 +155,25 @@ public class ClienteController {
             Pageable pageable,
             @RequestHeader("Authorization") String authHeader,
             @RequestHeader(value = "X-Active-Role", required = false) String activeRole) {
-        
+
         try {
             // Extraer token JWT
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 log.error("Token JWT requerido para obtener clientes");
                 return ResponseEntity.badRequest().build();
             }
-            
+
             String token = authHeader.substring(7);
             String email = jwtTokenProvider.getUsernameFromToken(token);
-            
+
             if (email == null) {
                 log.error("Token JWT inválido");
                 return ResponseEntity.badRequest().build();
             }
-            
+
             // Obtener usuario y verificar roles
             Usuario usuario = usuarioService.findByEmail(email);
-            
+
             // Usar el rol activo si se proporciona, sino verificar todos los roles
             boolean esJefeVentas = false;
             if (activeRole != null && !activeRole.isEmpty()) {
@@ -182,16 +184,16 @@ public class ClienteController {
                 esJefeVentas = usuario.getRoles().stream()
                     .anyMatch(rol -> "SALES_CHIEF".equals(rol.getCodigo()));
             }
-            
+
             Page<ClienteDTO> clientes;
             if (esJefeVentas) {
                 // Jefe de Ventas: ver todos los clientes
                 log.info("🔍 Usuario {} es Jefe de Ventas - mostrando todos los clientes", email);
-                clientes = clienteService.findAllAsDTO(pageable);
+                clientes = clienteQueryService.findAllAsDTO(pageable);
             } else {
                 // Vendedor: solo sus clientes
                 log.info("🔍 Usuario {} es Vendedor - mostrando solo sus clientes (ID: {})", email, usuario.getId());
-                clientes = clienteService.findByUsuarioCreadorAsDTO(usuario.getId(), pageable);
+                clientes = clienteQueryService.findByUsuarioCreadorAsDTO(usuario.getId(), pageable);
             }
             
             return ResponseEntity.ok(clientes);
@@ -207,7 +209,7 @@ public class ClienteController {
     @Operation(summary = "Obtener clientes por vendedor", description = "Obtiene todos los clientes de un vendedor específico")
     public ResponseEntity<List<ClienteDTO>> obtenerClientesPorVendedor(@PathVariable Long vendedorId) {
         try {
-            List<ClienteDTO> clientes = clienteService.findByUsuarioCreadorAsDTO(vendedorId);
+            List<ClienteDTO> clientes = clienteQueryService.findByUsuarioCreadorAsDTO(vendedorId);
             return ResponseEntity.ok(clientes);
         } catch (ResourceNotFoundException e) {
             log.error("Vendedor no encontrado: {}", e.getMessage());
@@ -219,7 +221,7 @@ public class ClienteController {
     @Operation(summary = "Buscar cliente por identificación", description = "Busca un cliente por su número de identificación")
     public ResponseEntity<ClienteDTO> buscarPorIdentificacion(@PathVariable String numero) {
         try {
-            ClienteDTO cliente = clienteService.findByNumeroIdentificacionAsDTO(numero);
+            ClienteDTO cliente = clienteQueryService.findByNumeroIdentificacionAsDTO(numero);
             return ResponseEntity.ok(cliente);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -231,7 +233,7 @@ public class ClienteController {
     @Operation(summary = "Validar identificación", description = "Verifica si un número de identificación ya existe")
     public ResponseEntity<Map<String, Object>> validarIdentificacion(@PathVariable String numero) {
         try {
-            boolean existe = clienteService.existsByNumeroIdentificacion(numero);
+            boolean existe = clienteQueryService.existsByNumeroIdentificacion(numero);
             Map<String, Object> response = new HashMap<>();
             response.put("numeroIdentificacion", numero);
             response.put("existe", existe);
@@ -438,7 +440,7 @@ public class ClienteController {
                 
                 try {
                     com.armasimportacion.model.ClienteGrupoImportacion asignacion = 
-                        grupoImportacionService.asignarClienteAGrupoDisponible(cliente, vendedorId);
+                        grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
                     
                     if (asignacion != null) {
                         log.info("✅ Cliente ID {} asignado provisionalmente al grupo ID: {} (estado: PENDIENTE)", 
@@ -503,7 +505,7 @@ public class ClienteController {
             return ResponseEntity.ok(Map.of(
                 "success", true, 
                 "message", "Estado del cliente actualizado a DESISTIMIENTO exitosamente",
-                "cliente", clienteService.findByIdAsDTO(clienteActualizado.getId())
+                "cliente", clienteQueryService.findByIdAsDTO(clienteActualizado.getId())
             ));
         } catch (ResourceNotFoundException e) {
             log.error("❌ Cliente no encontrado: {}", e.getMessage());
@@ -530,7 +532,7 @@ public class ClienteController {
     public ResponseEntity<List<ClienteDTO>> obtenerTodosClientes() {
         log.info("GET /api/clientes/todos - Obteniendo todos los clientes");
         
-        List<ClienteDTO> clientes = clienteService.findAllAsDTO();
+        List<ClienteDTO> clientes = clienteQueryService.findAllAsDTO();
         return ResponseEntity.ok(clientes);
     }
     
@@ -561,7 +563,7 @@ public class ClienteController {
             Usuario usuario = usuarioService.findByEmail(email);
             Cliente clienteFantasma = clienteService.buscarOCrearClienteFantasmaVendedor(usuario.getId());
             
-            return ResponseEntity.ok(clienteService.findByIdAsDTO(clienteFantasma.getId()));
+            return ResponseEntity.ok(clienteQueryService.findByIdAsDTO(clienteFantasma.getId()));
         } catch (Exception e) {
             log.error("❌ Error buscando/creando cliente fantasma: {}", e.getMessage(), e);
             log.error("❌ Stack trace completo:", e);
@@ -709,7 +711,7 @@ public class ClienteController {
             // CONFIRMAR ASIGNACIÓN DEFINITIVA AL GRUPO
             // Si el cliente tiene una asignación PENDIENTE, confirmarla (cambiar a CONFIRMADO)
             try {
-                grupoImportacionService.confirmarAsignacionCliente(id);
+                grupoImportacionClienteService.confirmarAsignacionCliente(id);
                 log.info("✅ Asignación del cliente ID {} confirmada definitivamente al grupo", id);
             } catch (Exception e) {
                 log.warn("⚠️ No se pudo confirmar asignación del cliente al grupo (puede no tener asignación pendiente): {}", e.getMessage());
