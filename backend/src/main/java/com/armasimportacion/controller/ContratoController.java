@@ -1,46 +1,34 @@
 package com.armasimportacion.controller;
 
-
 import com.armasimportacion.dto.DocumentoGeneradoDTO;
 import com.armasimportacion.mapper.DocumentoGeneradoMapper;
 import com.armasimportacion.model.DocumentoGenerado;
-import com.armasimportacion.repository.DocumentoGeneradoRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.armasimportacion.service.ContratoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/contratos")
-@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Contratos", description = "Gestión de contratos de compra")
 public class ContratoController {
-    
-    private static final Logger log = LoggerFactory.getLogger(ContratoController.class);
-    
-    @Autowired
-    private DocumentoGeneradoRepository documentoGeneradoRepository;
-    
-    @Autowired
-    private DocumentoGeneradoMapper documentoGeneradoMapper;
-    
-    /**
-     * Obtener contratos de un cliente
-     */
+
+    private final ContratoService contratoService;
+    private final DocumentoGeneradoMapper documentoGeneradoMapper;
+
     @GetMapping("/cliente/{clienteId}")
-    public List<DocumentoGeneradoDTO> getContratosCliente(@PathVariable Long clienteId) {
-        try {
-            log.info("🔍 DEBUG: Obteniendo contratos para cliente ID: {}", clienteId);
-            
-            List<DocumentoGenerado> contratos = documentoGeneradoRepository.findByClienteId(clienteId);
-            
-            log.info("🔍 DEBUG: Encontrados {} contratos para cliente {}", contratos.size(), clienteId);
-            
-            return documentoGeneradoMapper.toDTOList(contratos);
-        } catch (Exception e) {
-            log.error("❌ Error obteniendo contratos para cliente {}: {}", clienteId, e.getMessage(), e);
-            throw new RuntimeException("Error obteniendo contratos: " + e.getMessage(), e);
-        }
+    @Operation(summary = "Obtener contratos de un cliente")
+    public ResponseEntity<List<DocumentoGeneradoDTO>> getContratosCliente(@PathVariable Long clienteId) {
+        log.info("Obteniendo contratos para cliente ID: {}", clienteId);
+        List<DocumentoGenerado> contratos = contratoService.obtenerContratosPorCliente(clienteId);
+        log.info("Encontrados {} contratos para cliente {}", contratos.size(), clienteId);
+        return ResponseEntity.ok(documentoGeneradoMapper.toDTOList(contratos));
     }
 }
