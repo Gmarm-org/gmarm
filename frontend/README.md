@@ -133,15 +133,22 @@ frontend/
 │   │       ├── Catalog.tsx         # Catálogo público de armas
 │   │       └── Home.tsx            # Página de inicio
 │   │
-│   ├── services/                    # Servicios y APIs
-│   │   ├── api.ts                  # Configuración base de Axios
-│   │   ├── authApi.ts              # Endpoints de autenticación
-│   │   ├── clientApi.ts            # Endpoints de clientes
-│   │   ├── weaponApi.ts            # Endpoints de armas
-│   │   ├── salesApi.ts             # Endpoints de ventas
-│   │   ├── paymentApi.ts           # Endpoints de pagos
-│   │   ├── reservationApi.ts       # Endpoints de reservas
-│   │   └── adminApi.ts             # Endpoints de admin (licencias, config)
+│   ├── services/                    # API modules por dominio
+│   │   ├── apiClient.ts            # Instancia Axios + interceptors
+│   │   ├── api.ts                  # Barrel re-export (compatibilidad)
+│   │   ├── types.ts                # Tipos compartidos de API
+│   │   ├── authApi.ts              # Login, logout, refresh token
+│   │   ├── clientApi.ts            # CRUD clientes, validación, email
+│   │   ├── weaponApi.ts            # Armas, categorías, stock
+│   │   ├── paymentApi.ts           # Pagos, cuotas, facturas
+│   │   ├── licenseApi.ts           # CRUD licencias
+│   │   ├── importGroupApi.ts       # Grupos importación, procesos
+│   │   ├── documentApi.ts          # Upload, download documentos
+│   │   ├── contractApi.ts          # Contratos y documentos legales
+│   │   ├── catalogApi.ts           # Catálogos (provincias, tipos)
+│   │   ├── configApi.ts            # Configuración sistema, IVA
+│   │   ├── userApi.ts              # Gestión de usuarios
+│   │   └── adminApi.ts             # Endpoints admin (legacy, en migración)
 │   │
 │   ├── hooks/                       # Custom React Hooks
 │   │   ├── useAuth.ts              # Hook de autenticación

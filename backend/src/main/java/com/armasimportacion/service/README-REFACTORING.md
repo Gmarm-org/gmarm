@@ -1,110 +1,104 @@
-# Refactorización de GestionClienteService
+# Refactorización de Servicios Backend (SRP)
 
 ## 📋 Resumen
 
-Se ha refactorizado la clase monolítica `GestionClienteService` (2000+ líneas) en una arquitectura modular con servicios especializados.
+Se han refactorizado múltiples clases monolíticas aplicando el Principio de Responsabilidad Única (SRP). Las clases grandes se dividieron en servicios especializados sin alterar funcionalidad.
 
-## 🏗️ Nueva Arquitectura
+---
 
-### Servicios Especializados Creados
+## 🏗️ Fase 1: GestionClienteService → Helpers + Orquestador
 
-1. **`GestionDocumentosServiceHelper`** (114 líneas)
-   - Responsabilidad: Generación y gestión de documentos/contratos
-   - Métodos principales:
-     - `generarYGuardarContrato()`
-     - `validarDatosClienteParaContrato()`
-     - `generarNombreArchivoContrato()`
+La clase monolítica `GestionClienteService` (2000+ líneas) se dividió en servicios especializados.
 
-2. **`GestionPagosServiceHelper`** (194 líneas)
-   - Responsabilidad: Gestión de pagos y cuotas
-   - Métodos principales:
-     - `crearPagoCompleto()`
-     - `crearPagoPorDefecto()`
-     - `crearCuotasAutomaticamente()`
-     - `validarDatosPago()`
+### Servicios Creados
 
-3. **`GestionArmasServiceHelper`** (202 líneas)
-   - Responsabilidad: Asignación y gestión de armas
-   - Métodos principales:
-     - `asignarArmaACliente()`
-     - `calcularPrecioArma()`
-     - `calcularCantidadArma()`
-     - `validarDatosArma()`
+| Servicio | Responsabilidad |
+|----------|----------------|
+| `ClienteCompletoService` | Orquestador: coordina creación/actualización completa |
+| `helper/GestionDocumentosServiceHelper` | Orquestador de generación de documentos |
+| `helper/GestionPagosServiceHelper` | Gestión de pagos y cuotas |
+| `helper/GestionArmasServiceHelper` | Asignación y gestión de armas |
+| `helper/GestionRespuestasServiceHelper` | Respuestas del formulario |
 
-4. **`GestionRespuestasServiceHelper`** (179 líneas)
-   - Responsabilidad: Gestión de respuestas del formulario
-   - Métodos principales:
-     - `guardarRespuestasCliente()`
-     - `procesarRespuestaIndividual()`
-     - `validarDatosRespuestas()`
-     - `verificarRespuestasCompletas()`
+---
 
-5. **`ClienteCompletoService`** (244 líneas)
-   - Responsabilidad: Coordinación de todos los servicios especializados
-   - Métodos principales:
-     - `crearClienteCompleto()` - Método principal coordinador
-     - `crearClienteBasico()`
-     - `guardarRespuestasDelCliente()`
-     - `asignarArmaAlCliente()`
-     - `crearPagoDelCliente()`
-     - `generarContratoDelCliente()`
+## 🏗️ Fase 2: GestionDocumentosServiceHelper → Generadores PDF
 
-## 🔄 Migración Realizada
+El helper de documentos (1623 líneas) se dividió en generadores individuales por tipo de documento.
 
-### Controlador Actualizado
-- **`ClienteController`**: Ahora usa `ClienteCompletoService.crearClienteCompleto()` en lugar de `GestionClienteService`
-- **Endpoint único**: `/api/clientes` maneja toda la funcionalidad de creación completa
+### Generadores en `service/helper/documentos/`
 
-### Endpoints Disponibles
-- `POST /api/clientes` - Crea cliente completo usando `ClienteCompletoService.crearClienteCompleto()`
-- `PUT /api/clientes/{id}` - Actualiza cliente completo usando `ClienteCompletoService.actualizarClienteCompleto()`
-- `GET /api/clientes` - Lista clientes
-- `GET /api/clientes/{id}` - Obtiene cliente por ID
+| Generador | Responsabilidad |
+|-----------|----------------|
+| `ContratoPDFGenerator` | Contratos (ISSPOL/ISSFA/civil) |
+| `CotizacionPDFGenerator` | Cotizaciones |
+| `SolicitudCompraPDFGenerator` | Solicitudes de compra |
+| `AutorizacionPDFGenerator` | Autorizaciones de venta |
+| `ReciboPDFGenerator` | Recibos de pago de cuotas |
+| `DocumentoPDFUtils` | Utilidades compartidas (guardar, formatear, etc.) |
+
+`GestionDocumentosServiceHelper` quedó como orquestador (~134 líneas) que delega al generador correcto.
+
+---
+
+## 🏗️ Fase 3: GrupoImportacionService → 3 Servicios Especializados
+
+`GrupoImportacionService` (1765 líneas) se dividió por sub-dominio.
+
+### Servicios Creados
+
+| Servicio | Responsabilidad |
+|----------|----------------|
+| `GrupoImportacionClienteService` | Gestión de clientes en grupos (agregar, remover, confirmar) |
+| `GrupoImportacionMatchingService` | Lógica de matching y disponibilidad de grupos |
+| `GrupoImportacionProcesoService` | Flujo de trabajo (pedido, pago fábrica, llegada, estados) |
+
+`GrupoImportacionService` conserva: CRUD, consultas generales, resumen, cupos.
+
+---
+
+## 🏗️ Fase 4: ClienteService → ClienteQueryService
+
+`ClienteService` (1145 líneas) se dividió separando consultas de operaciones.
+
+### Servicios
+
+| Servicio | Responsabilidad |
+|----------|----------------|
+| `ClienteService` (~612 líneas) | CRUD, validaciones, cambios de estado, createFromDTO/updateFromDTO |
+| `ClienteQueryService` (~396 líneas) | Consultas read-only (`@Transactional(readOnly = true)`): findAll, findByFiltros, estadísticas, enrichDTO |
+
+---
+
+## 🏗️ Fase 5: ClienteController → ClienteDocumentController
+
+`ClienteController` (1038 líneas) se dividió extrayendo endpoints de documentos.
+
+### Controllers
+
+| Controller | Endpoints |
+|-----------|-----------|
+| `ClienteController` (~581 líneas) | CRUD, búsquedas, validaciones, cambios de estado |
+| `ClienteDocumentController` (~305 líneas) | `datos-contrato`, `generar-contrato`, `cargar-contrato-firmado` |
+
+Ambos comparten base path `/api/clientes`.
+
+---
 
 ## ✅ Beneficios Obtenidos
 
-1. **Principio de Responsabilidad Única**: Cada servicio tiene una responsabilidad específica
-2. **Código más legible**: Métodos con nombres descriptivos y claros
-3. **Mantenibilidad**: Fácil localizar y modificar funcionalidades específicas
+1. **Responsabilidad Única**: Cada servicio tiene una responsabilidad específica
+2. **Queries optimizadas**: `ClienteQueryService` con `@Transactional(readOnly = true)`
+3. **Mantenibilidad**: Fácil localizar y modificar funcionalidades
 4. **Testabilidad**: Cada servicio puede ser probado independientemente
-5. **Escalabilidad**: Fácil agregar nuevas funcionalidades sin afectar otros servicios
-6. **Reutilización**: Los helpers pueden ser usados por otros servicios
+5. **Escalabilidad**: Agregar funcionalidades sin afectar otros servicios
 
-## 📊 Comparación de Líneas
+## 📊 Resumen de Impacto
 
-| Servicio | Líneas | Responsabilidad |
-|----------|--------|-----------------|
-| **Antes** | | |
-| GestionClienteService | 2000+ | Todo (monolítico) |
-| **Después** | | |
-| GestionDocumentosServiceHelper | 114 | Documentos/Contratos |
-| GestionPagosServiceHelper | 194 | Pagos/Cuotas |
-| GestionArmasServiceHelper | 202 | Armas |
-| GestionRespuestasServiceHelper | 179 | Respuestas |
-| ClienteCompletoService | 244 | Coordinación |
-| **Total** | **933** | **Modular** |
-
-## 🚀 Próximos Pasos
-
-1. **Deprecar `GestionClienteService`**: Marcar como `@Deprecated` y agregar comentarios de migración
-2. **Migrar otros controladores**: Actualizar cualquier otro controlador que use `GestionClienteService`
-3. **Eliminar código obsoleto**: Después de confirmar que todo funciona, eliminar `GestionClienteService`
-4. **Documentar APIs**: Actualizar documentación de Swagger con los nuevos endpoints
-
-## 🔧 Uso del Nuevo Servicio
-
-```java
-// Inyección de dependencias
-@Autowired
-private ClienteCompletoService clienteCompletoService;
-
-// Uso
-Map<String, Object> resultado = clienteCompletoService.crearClienteCompleto(requestData);
-```
-
-## 📝 Notas Importantes
-
-- El nuevo servicio mantiene la misma interfaz pública que el original
-- Los datos del frontend no requieren cambios
-- La respuesta del API es compatible con el formato anterior
-- Se mantiene la funcionalidad completa de creación de clientes
+| Clase Original | Líneas Antes | → | Clases Resultado | Líneas Después |
+|---------------|-------------|---|-----------------|----------------|
+| GestionClienteService | 2000+ | → | 5 helpers + orquestador | ~933 total |
+| GestionDocumentosServiceHelper | 1623 | → | 5 generadores + orquestador + utils | ~134 orquestador |
+| GrupoImportacionService | 1765 | → | 3 servicios especializados | ~500 principal |
+| ClienteService | 1145 | → | Service + QueryService | ~612 + ~396 |
+| ClienteController | 1038 | → | Controller + DocumentController | ~581 + ~305 |

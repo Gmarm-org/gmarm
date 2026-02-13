@@ -23,7 +23,24 @@ gmarm/
 ├── backend/          # Spring Boot API (Java 17+)
 │   ├── src/main/java/com/armasimportacion/
 │   │   ├── controller/    # REST Controllers
-│   │   ├── service/       # Lógica de negocio
+│   │   │   ├── ClienteController.java          # CRUD, búsquedas, estado
+│   │   │   ├── ClienteDocumentController.java  # Contratos, documentos
+│   │   │   └── GrupoImportacionController.java # Grupos de importación
+│   │   ├── service/       # Lógica de negocio (SRP)
+│   │   │   ├── ClienteService.java             # CRUD + validaciones
+│   │   │   ├── ClienteQueryService.java        # Consultas read-only
+│   │   │   ├── ClienteCompletoService.java     # Orquestador creación completa
+│   │   │   ├── GrupoImportacionService.java    # CRUD grupos
+│   │   │   ├── GrupoImportacionClienteService.java   # Clientes en grupos
+│   │   │   ├── GrupoImportacionMatchingService.java   # Matching/disponibilidad
+│   │   │   ├── GrupoImportacionProcesoService.java    # Flujo de trabajo
+│   │   │   └── helper/documentos/              # Generadores PDF
+│   │   │       ├── ContratoPDFGenerator.java
+│   │   │       ├── CotizacionPDFGenerator.java
+│   │   │       ├── SolicitudCompraPDFGenerator.java
+│   │   │       ├── AutorizacionPDFGenerator.java
+│   │   │       ├── ReciboPDFGenerator.java
+│   │   │       └── DocumentoPDFUtils.java
 │   │   ├── repository/    # JPA Repositories
 │   │   ├── model/         # Entidades JPA
 │   │   ├── dto/           # Data Transfer Objects
@@ -36,7 +53,20 @@ gmarm/
 │   ├── src/
 │   │   ├── components/    # Componentes reutilizables
 │   │   ├── pages/         # Páginas principales
-│   │   ├── services/      # APIs
+│   │   ├── services/      # API modules por dominio
+│   │   │   ├── apiClient.ts      # Instancia axios + interceptors
+│   │   │   ├── api.ts            # Barrel re-export (compatibilidad)
+│   │   │   ├── authApi.ts        # Login, logout, refresh
+│   │   │   ├── clientApi.ts      # CRUD clientes
+│   │   │   ├── weaponApi.ts      # Armas, categorías, stock
+│   │   │   ├── paymentApi.ts     # Pagos, cuotas
+│   │   │   ├── licenseApi.ts     # Licencias
+│   │   │   ├── importGroupApi.ts # Grupos importación
+│   │   │   ├── documentApi.ts    # Upload/download documentos
+│   │   │   ├── contractApi.ts    # Contratos
+│   │   │   ├── catalogApi.ts     # Catálogos (provincias, tipos)
+│   │   │   ├── configApi.ts      # Configuración sistema
+│   │   │   └── userApi.ts        # Usuarios
 │   │   ├── hooks/         # Custom hooks
 │   │   └── types/         # TypeScript types
 │   └── env.*              # Variables de entorno
@@ -243,7 +273,7 @@ ${numberToTextService.convertToText(monto)}  <!-- "UN MIL DOSCIENTOS..." -->
 
 ## 🧠 **PATRONES DE CÓDIGO**
 
-### **Backend - Repository-Service-Controller**
+### **Backend - Repository-Service-Controller (SRP)**
 
 ```
 Controller (REST) → Service (lógica) → Repository (BD)
@@ -251,26 +281,34 @@ Controller (REST) → Service (lógica) → Repository (BD)
      Mapper (Entity ↔ DTO)
 ```
 
+**Principio SRP aplicado**: Los servicios grandes se dividen por responsabilidad:
+- **`*Service`** — CRUD y operaciones de escritura
+- **`*QueryService`** — Consultas read-only (`@Transactional(readOnly = true)`)
+- **`*ClienteService / *MatchingService / *ProcesoService`** — Sub-dominios específicos
+- **`*Controller` / `*DocumentController`** — Endpoints separados por dominio
+
 **Ejemplo:**
 ```java
 @RestController
 @RequestMapping("/api/clientes")
 public class ClienteController {
-    private final ClienteService service;
-    
+    private final ClienteService clienteService;          // CRUD + validaciones
+    private final ClienteQueryService clienteQueryService; // Consultas read-only
+
     @GetMapping("/{id}")
     public ResponseEntity<ClienteDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.findById(id));
+        return ResponseEntity.ok(clienteQueryService.findByIdAsDTO(id));
     }
 }
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class ClienteService {
+public class ClienteQueryService {
     private final ClienteRepository repository;
     private final ClienteMapper mapper;
-    
-    public ClienteDTO findById(Long id) {
+
+    public ClienteDTO findByIdAsDTO(Long id) {
         Cliente entity = repository.findById(id)
             .orElseThrow(() -> new NotFoundException("Cliente no encontrado"));
         return mapper.toDTO(entity);
@@ -358,16 +396,23 @@ const ClientList: React.FC = () => {
 ### **Crear un Nuevo Documento Legal**
 
 1. **Crear plantilla Thymeleaf** en `backend/src/main/resources/templates/contratos/`
-2. **Agregar variables al modelo** en `GestionDocumentosServiceHelper.java`
-3. **Crear método de generación**:
+2. **Crear generador PDF** en `service/helper/documentos/NuevoDocPDFGenerator.java`:
    ```java
-   public byte[] generarNuevoDocumento(Long ventaId) {
-       // Preparar datos
-       // Renderizar template
-       // Convertir a PDF
+   @Component
+   @RequiredArgsConstructor
+   public class NuevoDocPDFGenerator {
+       private final DocumentoPDFUtils utils;
+
+       public DocumentoGenerado generarYGuardar(Cliente cliente, Pago pago) {
+           Map<String, Object> variables = new HashMap<>();
+           // Preparar variables para template
+           byte[] pdfBytes = utils.generarPdf("template-name", variables);
+           // Guardar archivo y documento
+       }
    }
    ```
-4. **Agregar endpoint** en `VentaController.java`
+3. **Registrar en orquestador** `GestionDocumentosServiceHelper.java`
+4. **Agregar endpoint** en `ClienteDocumentController.java`
 5. **Reiniciar backend**:
    ```bash
    docker-compose -f docker-compose.local.yml restart backend_local
@@ -401,7 +446,7 @@ docker-compose -f docker-compose.local.yml build backend_local --no-cache
 ```
 
 ### **Template no genera correctamente**
-1. Verificar variables en `GestionDocumentosServiceHelper`
+1. Verificar variables en el generador PDF correspondiente (`service/helper/documentos/*PDFGenerator.java`)
 2. Verificar sintaxis Thymeleaf
 3. Reiniciar backend
 4. Ver logs: `docker logs gmarm-backend-local`
@@ -543,4 +588,4 @@ Si eres una IA trabajando en GMARM y has leído este documento:
 
 ---
 
-**Última actualización**: Enero 2026
+**Última actualización**: Febrero 2026
