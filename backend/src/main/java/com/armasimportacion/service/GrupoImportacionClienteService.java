@@ -21,8 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 
 /**
  * Servicio responsable de la gestión de clientes dentro de grupos de importación.
@@ -172,25 +171,9 @@ public class GrupoImportacionClienteService {
             tipoGrupoFinal = null;
         }
 
-        List<Cliente> todosClientes = clienteRepository.findAll();
+        List<Cliente> clientesPreFiltrados = clienteRepository.findClientesDisponiblesParaGrupo();
 
-        List<ClienteGrupoImportacion> asignacionesActivas = clienteGrupoRepository.findAll().stream()
-                .filter(cgi -> cgi.getEstado() != EstadoClienteGrupo.COMPLETADO
-                            && cgi.getEstado() != EstadoClienteGrupo.CANCELADO)
-                .toList();
-
-        Set<Long> idsClientesOcupados = asignacionesActivas.stream()
-                .map(cgi -> cgi.getCliente().getId())
-                .collect(Collectors.toSet());
-
-        List<ClienteArma> armasAsignadas = clienteArmaRepository.findByEstado(ClienteArma.EstadoClienteArma.ASIGNADA);
-        Set<Long> idsClientesConArmasAsignadas = armasAsignadas.stream()
-                .map(ca -> ca.getCliente().getId())
-                .collect(Collectors.toSet());
-
-        List<Cliente> clientesDisponibles = todosClientes.stream()
-                .filter(cliente -> !idsClientesOcupados.contains(cliente.getId()))
-                .filter(cliente -> !idsClientesConArmasAsignadas.contains(cliente.getId()))
+        List<Cliente> clientesDisponibles = clientesPreFiltrados.stream()
                 .filter(cliente -> {
                     if (tipoGrupoFinal == null) {
                         return true;
@@ -217,9 +200,9 @@ public class GrupoImportacionClienteService {
                 })
                 .toList();
 
-        log.info("✅ Encontrados {} clientes disponibles de {} totales (excluyendo {} con armas asignadas{})",
-                clientesDisponibles.size(), todosClientes.size(), idsClientesConArmasAsignadas.size(),
-                tipoGrupoFinal != null ? ", filtrados por tipo " + tipoGrupoFinal : "");
+        log.info("✅ Encontrados {} clientes disponibles de {} pre-filtrados{}",
+                clientesDisponibles.size(), clientesPreFiltrados.size(),
+                tipoGrupoFinal != null ? " (filtrados por tipo " + tipoGrupoFinal + ")" : "");
 
         return clientesDisponibles;
     }

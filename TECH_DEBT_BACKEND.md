@@ -507,100 +507,44 @@ void deberiaRechazarCedulaInvalida() {
 
 ---
 
-### 5. 🟢 Hardcodeo de Valores de Negocio
+### 5. 🟢 Hardcodeo de Valores de Negocio — RESUELTO (Feb 2026)
 
-**Estado**: ⚠️ Parcialmente Resuelto
+**Estado**: ✅ Resuelto
 
 **Implementado**:
-- ✅ Tabla `configuracion_sistema`
-- ✅ `ConfiguracionSistemaService`
-- ✅ Endpoints para gestión
+- ✅ Tabla `configuracion_sistema` con claves `EDAD_MINIMA_CLIENTE` y `NUMERO_MAXIMO_CUOTAS`
+- ✅ `ConfiguracionSistemaService` con helpers `getValorEntero()` y `getValorNumerico()`
+- ✅ `ClienteService.validateEdadMinima()` lee de config con fallback 25
+- ✅ `GestionPagosServiceHelper` lee max cuotas de config con fallback 12
+- ✅ `Cliente.java` y `ClienteDTO.java` aceptan `edadMinima` como parámetro
+- ✅ Script de migración: `datos/migrations/0001-Script-AgregarConfiguracionesEdadMinimaCuotas.sql`
+- ✅ IVA ya tenía fallback aceptable como safety net (no requirió cambio)
 
-**Pendiente**:
-- Verificar que todos los valores estén en BD
-- Eliminar constantes hardcodeadas
-- Usar servicio de configuración consistentemente
-
-**Valores a Validar**:
-```java
-// Estos NO deben estar hardcodeados
-private static final double IVA = 0.15; // ❌
-private static final int EDAD_MINIMA = 25; // ❌
-private static final int MAX_CUOTAS = 12; // ❌
-
-// Deben venir de configuracion_sistema
-configuracionService.getValorNumerico("IVA"); // ✅
-configuracionService.getValorEntero("EDAD_MINIMA_COMPRA"); // ✅
-configuracionService.getValorEntero("MAX_CUOTAS"); // ✅
-```
-
-**Prioridad**: 🟡 Media
+**Prioridad**: ✅ Completado
 
 ---
 
-### 6. 🟡 Documentación JavaDoc Inconsistente
+### 6. 🟢 Documentación JavaDoc Inconsistente — POSPUESTO
 
-**Problema**:
-- Algunos servicios tienen JavaDoc completo
-- Otros no tienen documentación
-- Métodos complejos sin explicación
+**Estado**: Pospuesto — Bajo valor vs esfuerzo. Los servicios principales tienen logging descriptivo.
 
-**Solución**:
-```java
-/**
- * Crea un nuevo cliente en el sistema
- * 
- * Validaciones realizadas:
- * - Edad mínima: 25 años
- * - Identificación única (no duplicada)
- * - Email válido y único
- * - Documentos requeridos según tipo de cliente
- * 
- * @param dto Datos del cliente a crear
- * @return Cliente creado con ID asignado
- * @throws BadRequestException si los datos son inválidos
- * @throws DuplicateResourceException si ya existe un cliente con la misma identificación
- */
-@Transactional
-public ClienteDTO crear(ClienteCreateDTO dto) {
-    // implementación
-}
-```
-
-**Prioridad**: 🟢 Baja
+**Prioridad**: 🟢 Baja (pospuesto indefinidamente)
 
 ---
 
-### 7. 🟡 Queries N+1 Potenciales
+### 7. 🟢 Queries N+1 Potenciales — RESUELTO (Feb 2026)
 
-**Problema**:
-- Posibles queries N+1 en relaciones lazy
-- Falta de uso de `@EntityGraph`
-- Falta de DTOs con proyecciones
+**Estado**: ✅ Resuelto
 
-**Solución**:
-```java
-// ✅ BIEN - Usar JOIN FETCH
-@Query("SELECT c FROM Cliente c " +
-       "LEFT JOIN FETCH c.documentos " +
-       "LEFT JOIN FETCH c.respuestas " +
-       "WHERE c.id = :id")
-Optional<Cliente> findByIdWithDetails(@Param("id") Long id);
+**Fixes aplicados**:
+- ✅ `ClienteQueryService.existsByNumeroIdentificacion()`: Reemplazado `findAll()` + stream con `clienteRepository.existsByNumeroIdentificacion()` directo
+- ✅ `ClienteQueryService.getDetalleCompleto()`: Usa `findByIdWithCollections()` con `@EntityGraph` en vez de `findById()`
+- ✅ `ClienteQueryService.findByEstado()`: Usa `findByEstadoWithRelations()` con `@EntityGraph`
+- ✅ `ClienteQueryService.findByUsuarioCreador()`: Usa `findWithRelationsByUsuarioCreadorId()` con `@EntityGraph`
+- ✅ `GrupoImportacionClienteService.obtenerClientesDisponibles()`: Reemplazado 3x `findAll()` con query JPQL `findClientesDisponiblesParaGrupo()`
+- ✅ `ClienteRepository`: Agregados 4 métodos optimizados con `@EntityGraph` y `@Query`
 
-// ✅ BIEN - Usar @EntityGraph
-@EntityGraph(attributePaths = {"documentos", "respuestas"})
-Optional<Cliente> findById(Long id);
-
-// ✅ BIEN - Proyecciones para listados
-public interface ClienteListProjection {
-    Long getId();
-    String getNombres();
-    String getApellidos();
-    String getNumeroIdentificacion();
-}
-```
-
-**Prioridad**: 🟡 Media
+**Prioridad**: ✅ Completado
 
 ---
 
@@ -698,7 +642,7 @@ public class ClienteController {
 - [ ] CI/CD con tests automáticos
 
 ### Fase 3: Optimización (2 semanas)
-- [ ] Revisar y optimizar queries N+1
+- [x] Revisar y optimizar queries N+1 ✅ Resuelto (Feb 2026)
 - [ ] Implementar caché donde aplique
 - [ ] Optimizar endpoints lentos
 - [ ] Monitoreo de performance
@@ -741,6 +685,7 @@ public class ClienteController {
 |---------|-------|---------|
 | 1.0 | 2025-11-09 | Documento inicial con reglas de Clean Code y deuda técnica identificada |
 | 1.1 | 2026-02-13 | Actualizar estado post-refactorización SRP (clases grandes resueltas, PDF generators, split services) |
+| 1.2 | 2026-02-13 | Marcar hardcoded values y N+1 queries como RESUELTOS, JavaDoc como POSPUESTO |
 
 ---
 

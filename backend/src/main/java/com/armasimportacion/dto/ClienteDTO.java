@@ -143,9 +143,9 @@ public class ClienteDTO {
         return tipoClienteEsDeportista != null && tipoClienteEsDeportista;
     }
     
-    public boolean tieneEdadMinima() {
+    public boolean tieneEdadMinima(int edadMinima) {
         if (fechaNacimiento == null) return false;
-        LocalDate fechaMinima = LocalDate.now().minusYears(25);
+        LocalDate fechaMinima = LocalDate.now().minusYears(edadMinima);
         return fechaNacimiento.isBefore(fechaMinima);
     }
     
@@ -161,17 +161,17 @@ public class ClienteDTO {
         return edad;
     }
     
-    public String getMensajeErrorEdad() {
+    public String getMensajeErrorEdad(int edadMinima) {
         if (fechaNacimiento == null) return "Fecha de nacimiento no especificada";
-        
+
         int edad = getEdad();
-        if (edad >= 25) return null;
-        
-        int añosFaltantes = 25 - edad;
+        if (edad >= edadMinima) return null;
+
+        int añosFaltantes = edadMinima - edad;
         if (añosFaltantes == 1) {
-            return "El cliente debe tener al menos 25 años para comprar armas. Le falta 1 año.";
+            return "El cliente debe tener al menos " + edadMinima + " años para comprar armas. Le falta 1 año.";
         } else {
-            return "El cliente debe tener al menos 25 años para comprar armas. Le faltan " + añosFaltantes + " años.";
+            return "El cliente debe tener al menos " + edadMinima + " años para comprar armas. Le faltan " + añosFaltantes + " años.";
         }
     }
     

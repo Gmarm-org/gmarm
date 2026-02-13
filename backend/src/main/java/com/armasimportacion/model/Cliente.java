@@ -208,15 +208,15 @@ public class Cliente {
         return new ArrayList<>();
     }
 
-    public String getMensajeErrorEdad() {
+    public String getMensajeErrorEdad(int edadMinima) {
         if (fechaNacimiento != null) {
             LocalDate hoy = LocalDate.now();
             int edad = hoy.getYear() - fechaNacimiento.getYear();
             if (hoy.getDayOfYear() < fechaNacimiento.getDayOfYear()) {
                 edad--;
             }
-            if (edad < 25) {
-                return "El cliente debe tener al menos 25 años. Edad actual: " + edad;
+            if (edad < edadMinima) {
+                return "El cliente debe tener al menos " + edadMinima + " años. Edad actual: " + edad;
             }
         }
         return null;

@@ -61,12 +61,22 @@ public class ConfiguracionSistemaService {
 
     public String getValorConfiguracion(String clave) {
         log.info("Obteniendo valor de configuración para clave: {}", clave);
-        
+
         ConfiguracionSistema configuracion = repository.findByClave(clave)
                 .orElseThrow(() -> new ResourceNotFoundException("Configuración no encontrada con clave: " + clave));
-        
+
         log.info("Valor obtenido para clave {}: {}", clave, configuracion.getValor());
         return configuracion.getValor();
+    }
+
+    public Integer getValorEntero(String clave) {
+        String valor = getValorConfiguracion(clave);
+        return Integer.parseInt(valor);
+    }
+
+    public Double getValorNumerico(String clave) {
+        String valor = getValorConfiguracion(clave);
+        return Double.parseDouble(valor);
     }
 
     /**

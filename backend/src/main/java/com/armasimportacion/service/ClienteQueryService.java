@@ -46,7 +46,7 @@ public class ClienteQueryService {
     // ===== BÚSQUEDAS POR ENTIDAD =====
 
     public List<Cliente> findByUsuarioCreador(Long usuarioId) {
-        return clienteRepository.findByUsuarioCreadorId(usuarioId);
+        return clienteRepository.findWithRelationsByUsuarioCreadorId(usuarioId);
     }
 
     public Page<Cliente> findByUsuarioCreador(Long usuarioId, Pageable pageable) {
@@ -54,7 +54,7 @@ public class ClienteQueryService {
     }
 
     public List<Cliente> findByEstado(EstadoCliente estado) {
-        return clienteRepository.findByEstado(estado);
+        return clienteRepository.findByEstadoWithRelations(estado);
     }
 
     public List<Cliente> findByTipoCliente(Long tipoClienteId) {
@@ -103,7 +103,7 @@ public class ClienteQueryService {
     }
 
     public Map<String, Object> getDetalleCompleto(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
+        Cliente cliente = clienteRepository.findByIdWithCollections(clienteId)
             .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + clienteId));
         Map<String, Object> detalle = new HashMap<>();
 
@@ -229,13 +229,11 @@ public class ClienteQueryService {
     }
 
     public boolean existsByNumeroIdentificacion(String numeroIdentificacion) {
-        List<Cliente> clientesRuc = clienteRepository.findByRuc(numeroIdentificacion);
-        if (!clientesRuc.isEmpty()) {
+        if (clienteRepository.existsByNumeroIdentificacion(numeroIdentificacion)) {
             return true;
         }
-
-        List<Cliente> clientes = clienteRepository.findAll();
-        return clientes.stream().anyMatch(c -> numeroIdentificacion.equals(c.getNumeroIdentificacion()));
+        List<Cliente> clientesRuc = clienteRepository.findByRuc(numeroIdentificacion);
+        return !clientesRuc.isEmpty();
     }
 
     public Page<ClienteDTO> findByFiltrosAsDTO(String nombres, EstadoCliente estado, Long vendedorId,

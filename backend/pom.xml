@@ -41,6 +41,16 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Flyway - Migraciones de BD automáticas -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<!-- Validación -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

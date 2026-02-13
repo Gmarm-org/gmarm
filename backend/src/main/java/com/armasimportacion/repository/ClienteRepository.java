@@ -5,6 +5,7 @@ import com.armasimportacion.enums.EstadoMilitar;
 import com.armasimportacion.model.Cliente;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -139,6 +140,24 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     // Buscar el primer cliente fantasma del vendedor (el más antiguo)
     @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado = :estado ORDER BY c.fechaCreacion ASC")
     Optional<Cliente> findFirstByUsuarioCreadorIdAndEstadoOrderByFechaCreacionAsc(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
+
+    // ==================== QUERIES OPTIMIZADAS (N+1 FIX) ====================
+
+    @EntityGraph(attributePaths = {"documentos", "respuestas", "armas", "usuarioCreador", "tipoCliente"})
+    @Query("SELECT c FROM Cliente c WHERE c.id = :id")
+    Optional<Cliente> findByIdWithCollections(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente"})
+    @Query("SELECT c FROM Cliente c WHERE c.estado = :estado")
+    List<Cliente> findByEstadoWithRelations(@Param("estado") EstadoCliente estado);
+
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente"})
+    List<Cliente> findWithRelationsByUsuarioCreadorId(Long usuarioCreadorId);
+
+    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.tipoCliente " +
+           "WHERE c.id NOT IN (SELECT cgi.cliente.id FROM ClienteGrupoImportacion cgi WHERE cgi.estado NOT IN ('COMPLETADO','CANCELADO')) " +
+           "AND c.id NOT IN (SELECT ca.cliente.id FROM ClienteArma ca WHERE ca.estado = 'ASIGNADA')")
+    List<Cliente> findClientesDisponiblesParaGrupo();
 
     // ==================== MÉTODOS PARA DASHBOARD JEFE DE VENTAS ====================
     // TODO: Oculto temporalmente - revisar criterios de filtrado antes de habilitar

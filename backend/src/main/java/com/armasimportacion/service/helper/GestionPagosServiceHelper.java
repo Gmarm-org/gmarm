@@ -132,7 +132,7 @@ public class GestionPagosServiceHelper {
         // Establecer número de cuotas desde los datos o calcular basado en tipo de pago
         Integer numeroCuotas = Optional.ofNullable(pagoData.get("numeroCuotas"))
             .map(obj -> Integer.valueOf(obj.toString()))
-            .orElse("CONTADO".equals(tipoPagoNormalizado) ? 1 : 12);
+            .orElse("CONTADO".equals(tipoPagoNormalizado) ? 1 : getMaxCuotasConfig());
         pago.setNumeroCuotas(numeroCuotas);
         
         // Calcular monto por cuota
@@ -248,6 +248,18 @@ public class GestionPagosServiceHelper {
             cuotaPagoRepository.save(cuota);
             log.info("✅ Cuota {} creada automáticamente: monto={}, vencimiento={}", 
                 i, montoPorCuota, fechaVencimiento.plusMonths(i - 1));
+        }
+    }
+
+    /**
+     * Obtiene el número máximo de cuotas desde configuración
+     */
+    private int getMaxCuotasConfig() {
+        try {
+            return configuracionService.getValorEntero("NUMERO_MAXIMO_CUOTAS");
+        } catch (Exception e) {
+            log.warn("⚠️ Error obteniendo NUMERO_MAXIMO_CUOTAS, usando fallback 12: {}", e.getMessage());
+            return 12;
         }
     }
 

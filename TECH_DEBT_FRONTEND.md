@@ -10,22 +10,24 @@
 
 ## 🚨 Problemas Críticos
 
-### 1. 🟡 ClientForm.tsx - Componente Grande (1,843 líneas)
+### 1. 🟡 ClientForm.tsx - Componente Grande (1,053 líneas)
 
 **Ubicación**: `frontend/src/pages/Vendedor/components/ClientForm.tsx`
 
-**Progreso**: Reducido de 2,623 → 1,843 líneas (refactorización parcial)
+**Progreso**: Reducido de 2,623 → 1,843 → **1,053 líneas** (Feb 2026)
 
-**Problema actual**:
-- 🟡 **1,843 líneas** — mejor que antes pero aún por encima del límite de 500
-- 🟡 Aún mezcla lógica de negocio, UI, validaciones y estado
-- 🟡 Dificulta testing unitario
+**Extractos realizados (Feb 2026)**:
+- ✅ `useClientSubmit.ts` (~560 líneas) — handleSubmit completo (create + edit), document upload, weapon assignment
+- ✅ `clientFormValidation.ts` (~120 líneas) — validateClientForm, canContinueWithWeapons (funciones puras)
+- ✅ Hooks previos: useClientFormData, useClientCatalogs, useClientDocuments, useClientAnswers
+- ✅ 7 section components: ClientPersonalDataSection, ClientCompanyDataSection, etc.
 
-**Impacto**:
-- 🟡 **Medio** - Funcional pero dificulta mantenimiento
-- La reducción de ~800 líneas ayudó pero la estructura interna aún necesita modularización
+**Problema residual**:
+- 🟡 **1,053 líneas** — aún por encima del límite de 500 pero mejorado significativamente
+- La mayoría del contenido restante es: useEffects de inicialización (~400 líneas), mapeo de datos del cliente (~200 líneas), y JSX (~300 líneas)
+- Split adicional posible pero con rendimientos decrecientes
 
-**Estado**: 🟡 Parcialmente resuelto — requiere split en hooks + sub-componentes
+**Estado**: 🟡 Mejora significativa — split adicional es opcional
 
 ---
 
@@ -285,12 +287,13 @@ frontend/src/pages/Vendedor/components/
 ## 📊 Métricas
 
 ### Estado Actual (Feb 2026)
-| Métrica | Antes | Ahora | Objetivo |
-|---------|-------|-------|----------|
-| Líneas de código | 2,623 | 1,843 | < 400 |
-| Archivos | 1 | 1 | 14 |
-| Testeable | ❌ | ❌ | ✅ |
-| Mantenible | ❌ | 🟡 Parcial | ✅ |
+| Métrica | Original | Antes | Ahora | Objetivo |
+|---------|----------|-------|-------|----------|
+| ClientForm.tsx | 2,623 | 1,843 | **1,053** | < 500 |
+| JefeVentas.tsx | 962 | 962 | **357** | < 500 ✅ |
+| PagosFinanzas.tsx | 687 | 687 | **229** | < 500 ✅ |
+| Code Splitting | ❌ | ❌ | ✅ React.lazy | ✅ |
+| Hooks extraídos | 0 | 6 | **13** | Continuo |
 
 ---
 
@@ -319,15 +322,15 @@ services/
 
 ### 2. 🟡 Componentes Grandes Pendientes de Split
 
-| Componente | Líneas | Plan |
-|-----------|--------|------|
-| ClientForm.tsx | 1,843 | Split en hooks + sub-componentes |
-| JefeVentas.tsx | 962 | Split en views + hooks (planificado) |
-| WeaponReserve.tsx | 927 | Evaluar split |
-| Vendedor.tsx | 920 | Evaluar split |
-| PagosFinanzas.tsx | 687 | Split en hooks + modales (planificado) |
+| Componente | Antes | Ahora | Estado |
+|-----------|-------|-------|--------|
+| ClientForm.tsx | 1,843 | **1,053** | ✅ handleSubmit + validaciones extraídos |
+| JefeVentas.tsx | 962 | **357** | ✅ Split en 3 hooks (State/Data/Handlers) |
+| PagosFinanzas.tsx | 687 | **229** | ✅ Split en 2 hooks (Data/Export) |
+| WeaponReserve.tsx | 927 | 927 | Pendiente — evaluar split |
+| Vendedor.tsx | 920 | 920 | Pendiente — evaluar split |
 
-**Prioridad**: 🟡 Media
+**Prioridad**: 🟢 Baja (los componentes críticos ya fueron splitteados)
 
 ---
 
@@ -397,45 +400,29 @@ frontend/src/
 
 ---
 
-### 6. 🟢 Optimización de Performance
+### 6. 🟢 Optimización de Performance — RESUELTO (Feb 2026)
 
-**Problema**:
-- Bundle de JavaScript > 1 MB
-- No hay code splitting
-- No hay lazy loading de rutas
+**Estado**: ✅ Resuelto
 
-**Solución Propuesta**:
-```typescript
-// Implementar lazy loading
-const ClientForm = lazy(() => import('./pages/Vendedor/components/ClientForm'));
-const AdminPanel = lazy(() => import('./pages/Admin'));
+**Implementado**:
+- ✅ `React.lazy()` para todas las páginas excepto Login en `App.tsx`
+- ✅ `<Suspense fallback={<LoadingSpinner />}>` envolviendo Routes
+- ✅ Vite genera chunks separados por página (verificado en build output)
+- ✅ Login se carga eager (entry point), resto lazy
 
-// Code splitting por rutas
-<Suspense fallback={<Loading />}>
-  <Routes>
-    <Route path="/vendedor" element={<ClientForm />} />
-    <Route path="/admin" element={<AdminPanel />} />
-  </Routes>
-</Suspense>
-```
-
-**Prioridad**: 🟢 Baja
+**Prioridad**: ✅ Completado
 
 ---
 
-### 7. 🟡 Gestión de Estado Global
+### 7. 🟡 Gestión de Estado Global — POSPUESTO
+
+**Estado**: Pospuesto — Requiere decisión arquitectónica mayor (Zustand vs Redux Toolkit vs Context optimizado).
 
 **Problema**:
 - Múltiples contexts con responsabilidades mezcladas
 - Props drilling en componentes profundos
-- Re-renders innecesarios
 
-**Solución Propuesta**:
-- Considerar usar Zustand o Redux Toolkit
-- Implementar memoization con `useMemo` y `useCallback`
-- Optimizar contextos
-
-**Prioridad**: 🟡 Media
+**Prioridad**: 🟡 Pospuesto (requiere evaluación técnica)
 
 ---
 
@@ -519,6 +506,7 @@ Component/
 |---------|-------|---------|
 | 1.0 | 2025-11-09 | Documento inicial - Identificación de ClientForm.tsx como deuda técnica crítica |
 | 1.1 | 2026-02-13 | Actualizar estado: api.ts split resuelto, ClientForm reducido, agregar componentes grandes pendientes, actualizar archivos afectados por IVA |
+| 1.2 | 2026-02-13 | React.lazy code splitting RESUELTO, JefeVentas (962→357) y PagosFinanzas (687→229) splits RESUELTOS, ClientForm (1843→1053) handleSubmit extraído, estado global POSPUESTO |
 
 ---
 

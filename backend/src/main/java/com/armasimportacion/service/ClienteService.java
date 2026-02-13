@@ -42,6 +42,7 @@ public class ClienteService {
     private final TipoClienteRepository tipoClienteRepository;
     private final UsuarioRepository usuarioRepository;
     private final ClienteQueryService clienteQueryService;
+    private final ConfiguracionSistemaService configuracionSistemaService;
 
     // ===== OPERACIONES CRUD =====
 
@@ -99,8 +100,18 @@ public class ClienteService {
 
     public boolean validateEdadMinima(LocalDate fechaNacimiento) {
         if (fechaNacimiento == null) return false;
-        LocalDate fechaMinima = LocalDate.now().minusYears(25);
+        int edadMinima = getEdadMinimaConfig();
+        LocalDate fechaMinima = LocalDate.now().minusYears(edadMinima);
         return fechaNacimiento.isBefore(fechaMinima) || fechaNacimiento.isEqual(fechaMinima);
+    }
+
+    private int getEdadMinimaConfig() {
+        try {
+            return configuracionSistemaService.getValorEntero("EDAD_MINIMA_CLIENTE");
+        } catch (Exception e) {
+            log.warn("⚠️ Error obteniendo EDAD_MINIMA_CLIENTE, usando fallback 25: {}", e.getMessage());
+            return 25;
+        }
     }
 
     public boolean validateCedula(String cedula) {
@@ -505,8 +516,9 @@ public class ClienteService {
         }
 
         if (cliente.getFechaNacimiento() != null && !validateEdadMinima(cliente.getFechaNacimiento())) {
-            String mensajeError = cliente.getMensajeErrorEdad();
-            throw new BadRequestException(mensajeError != null ? mensajeError : "El cliente debe tener al menos 25 años");
+            int edadMinima = getEdadMinimaConfig();
+            String mensajeError = cliente.getMensajeErrorEdad(edadMinima);
+            throw new BadRequestException(mensajeError != null ? mensajeError : "El cliente debe tener al menos " + edadMinima + " años");
         }
 
         if (cliente.getTipoIdentificacion().esCedula() && !validateCedula(cliente.getNumeroIdentificacion())) {
@@ -546,8 +558,9 @@ public class ClienteService {
         }
 
         if (clienteUpdate.getFechaNacimiento() != null && !validateEdadMinima(clienteUpdate.getFechaNacimiento())) {
-            String mensajeError = clienteUpdate.getMensajeErrorEdad();
-            throw new BadRequestException(mensajeError != null ? mensajeError : "El cliente debe tener al menos 25 años");
+            int edadMinima = getEdadMinimaConfig();
+            String mensajeError = clienteUpdate.getMensajeErrorEdad(edadMinima);
+            throw new BadRequestException(mensajeError != null ? mensajeError : "El cliente debe tener al menos " + edadMinima + " años");
         }
 
         validateCamposEspecificos(clienteUpdate);
