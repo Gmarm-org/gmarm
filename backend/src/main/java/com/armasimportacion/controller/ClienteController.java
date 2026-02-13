@@ -3,12 +3,16 @@ package com.armasimportacion.controller;
 import com.armasimportacion.dto.ClienteDTO;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.exception.ResourceNotFoundException;
+import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.model.Cliente;
+import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.Usuario;
+import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.ClienteQueryService;
 import com.armasimportacion.service.ClienteCompletoService;
+import com.armasimportacion.service.GrupoImportacionClienteService;
 import com.armasimportacion.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -36,8 +42,8 @@ public class ClienteController {
     private final ClienteCompletoService clienteCompletoService;
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final com.armasimportacion.repository.ClienteRepository clienteRepository;
-    private final com.armasimportacion.service.GrupoImportacionClienteService grupoImportacionClienteService;
+    private final ClienteRepository clienteRepository;
+    private final GrupoImportacionClienteService grupoImportacionClienteService;
 
     // ==================== MÉTODOS AUXILIARES ====================
     
@@ -414,7 +420,7 @@ public class ClienteController {
                 log.info("🔍 Intentando asignar cliente ID {} a grupo disponible del vendedor ID: {}", id, vendedorId);
                 
                 try {
-                    com.armasimportacion.model.ClienteGrupoImportacion asignacion = 
+                    ClienteGrupoImportacion asignacion =
                         grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
                     
                     if (asignacion != null) {
@@ -431,7 +437,7 @@ public class ClienteController {
                 log.warn("⚠️ Cliente ID {} no tiene vendedor creador, no se puede asignar a grupo", id);
             }
             
-            Map<String, Object> response = new java.util.HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Datos personales validados exitosamente");
             response.put("clienteId", id);
@@ -461,7 +467,7 @@ public class ClienteController {
             Cliente cliente = clienteService.findById(id);
             
             // Cambiar estado a DESISTIMIENTO
-            cliente.setEstado(com.armasimportacion.enums.EstadoCliente.DESISTIMIENTO);
+            cliente.setEstado(EstadoCliente.DESISTIMIENTO);
             
             // Usar motivoRechazo para almacenar la observación del desistimiento
             Object observacionObj = request.get("observacion");
@@ -471,7 +477,7 @@ public class ClienteController {
             }
             
             // Establecer fecha de rechazo (usamos este campo también para desistimiento)
-            cliente.setFechaRechazo(java.time.LocalDateTime.now());
+            cliente.setFechaRechazo(LocalDateTime.now());
             
             Cliente clienteActualizado = clienteRepository.save(cliente);
             log.info("✅ Estado del cliente ID {} cambiado a DESISTIMIENTO con observación: {}", 
@@ -543,7 +549,7 @@ public class ClienteController {
             log.error("❌ Error buscando/creando cliente fantasma: {}", e.getMessage(), e);
             log.error("❌ Stack trace completo:", e);
             // Retornar mensaje de error para debugging
-            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error al buscar/crear cliente fantasma: " + e.getMessage());
             errorResponse.put("exception", e.getClass().getSimpleName());
             if (e.getCause() != null) {

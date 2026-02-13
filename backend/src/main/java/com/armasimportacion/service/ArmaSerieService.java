@@ -4,12 +4,17 @@ import com.armasimportacion.dto.ArmaSerieDTO;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Arma;
 import com.armasimportacion.model.ArmaSerie;
+import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.ArmaSerie.EstadoSerie;
 import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ArmaRepository;
+import com.armasimportacion.model.ClienteGrupoImportacion;
+import com.armasimportacion.model.GrupoImportacion;
+import com.armasimportacion.model.Licencia;
 import com.armasimportacion.repository.ArmaSerieRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
+import com.armasimportacion.repository.GrupoImportacionRepository;
 import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +44,7 @@ public class ArmaSerieService {
     private final ArmaRepository armaRepository;
     private final ClienteArmaRepository clienteArmaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final com.armasimportacion.repository.GrupoImportacionRepository grupoImportacionRepository;
+    private final GrupoImportacionRepository grupoImportacionRepository;
     private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
     // private final EmailService emailService;  // TODO: Configurar cuando se implemente envío de correos
 
@@ -200,8 +205,8 @@ public class ArmaSerieService {
 
         // Validar que el cliente esté en el mismo grupo de importación que la serie
         if (serie.getGrupoImportacion() != null) {
-            com.armasimportacion.model.Cliente cliente = clienteArma.getCliente();
-            List<com.armasimportacion.model.ClienteGrupoImportacion> gruposCliente = 
+            Cliente cliente = clienteArma.getCliente();
+            List<ClienteGrupoImportacion> gruposCliente = 
                 clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
             
             boolean clienteEnGrupo = gruposCliente.stream()
@@ -384,10 +389,10 @@ public class ArmaSerieService {
         log.info("📤 Iniciando carga masiva de {} series desde JSON para grupo de importación ID: {}", seriesData.size(), grupoImportacionId);
         
         // Obtener el grupo de importación y su licencia
-        com.armasimportacion.model.GrupoImportacion grupoImportacion = grupoImportacionRepository.findById(grupoImportacionId)
+        GrupoImportacion grupoImportacion = grupoImportacionRepository.findById(grupoImportacionId)
             .orElseThrow(() -> new IllegalArgumentException("Grupo de importación no encontrado con ID: " + grupoImportacionId));
         
-        com.armasimportacion.model.Licencia licencia = grupoImportacion.getLicencia();
+        Licencia licencia = grupoImportacion.getLicencia();
         if (licencia == null) {
             throw new IllegalArgumentException("El grupo de importación no tiene una licencia asociada");
         }

@@ -3,11 +3,14 @@ package com.armasimportacion.controller;
 import com.armasimportacion.dto.DatosContratoDTO;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
+import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.model.Licencia;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.model.Pago;
+import com.armasimportacion.enums.EstadoCliente;
+import com.armasimportacion.enums.TipoDocumentoGenerado;
 import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.DocumentoClienteService;
 import com.armasimportacion.service.EmailService;
@@ -15,6 +18,7 @@ import com.armasimportacion.service.FileStorageService;
 import com.armasimportacion.service.GrupoImportacionClienteService;
 import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
+import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.enums.EstadoClienteGrupo;
@@ -29,6 +33,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +60,7 @@ public class ClienteDocumentController {
     private final DocumentoClienteService documentoClienteService;
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
-    private final com.armasimportacion.repository.ClienteRepository clienteRepository;
+    private final ClienteRepository clienteRepository;
 
     @GetMapping("/{id}/datos-contrato")
     @Operation(summary = "Obtener datos del contrato", description = "Obtiene los datos del cliente, pago y armas para mostrar en el popup de generación de contrato")
@@ -66,7 +72,7 @@ public class ClienteDocumentController {
             List<Pago> pagos = pagoRepository.findByClienteId(id);
             Pago pago = pagos != null && !pagos.isEmpty() ? pagos.get(0) : null;
 
-            List<com.armasimportacion.model.ClienteArma> armas = cliente.getAsignacionesArma() != null ? cliente.getAsignacionesArma() : new java.util.ArrayList<>();
+            List<ClienteArma> armas = cliente.getAsignacionesArma() != null ? cliente.getAsignacionesArma() : new ArrayList<>();
 
             boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(id);
 
@@ -140,7 +146,7 @@ public class ClienteDocumentController {
 
             Cliente cliente = clienteService.findById(id);
 
-            if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+            if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "No se puede generar contrato para clientes fantasma (vendedores). Los vendedores no requieren contrato."));
             }
@@ -238,9 +244,9 @@ public class ClienteDocumentController {
                         .body(Map.of("error", "No se encontró un documento generado para este cliente. Debe generar la solicitud o documentos primero."));
                 }
 
-                com.armasimportacion.enums.TipoDocumentoGenerado tipoPreferido = esCivil
-                    ? com.armasimportacion.enums.TipoDocumentoGenerado.SOLICITUD_COMPRA
-                    : com.armasimportacion.enums.TipoDocumentoGenerado.CONTRATO;
+                TipoDocumentoGenerado tipoPreferido = esCivil
+                    ? TipoDocumentoGenerado.SOLICITUD_COMPRA
+                    : TipoDocumentoGenerado.CONTRATO;
 
                 List<DocumentoGenerado> documentosFiltrados = documentosCliente.stream()
                     .filter(doc -> doc.getTipoDocumento() == tipoPreferido)
@@ -263,7 +269,7 @@ public class ClienteDocumentController {
                 contratoGenerado = candidatos.get(0);
             }
 
-            String prefijoArchivo = contratoGenerado.getTipoDocumento() == com.armasimportacion.enums.TipoDocumentoGenerado.SOLICITUD_COMPRA
+            String prefijoArchivo = contratoGenerado.getTipoDocumento() == TipoDocumentoGenerado.SOLICITUD_COMPRA
                 ? "solicitud_firmada_"
                 : "contrato_firmado_";
             String nombreArchivoFirmado = prefijoArchivo + cliente.getApellidos().replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase()
@@ -277,13 +283,13 @@ public class ClienteDocumentController {
             contratoGenerado.setNombreArchivo(nombreArchivoFirmado);
             contratoGenerado.setRutaArchivo(rutaArchivo);
             contratoGenerado.setTamanioBytes(archivo.getSize());
-            contratoGenerado.setFechaFirma(java.time.LocalDateTime.now());
+            contratoGenerado.setFechaFirma(LocalDateTime.now());
             contratoGenerado.setEstado(EstadoDocumentoGenerado.FIRMADO);
             contratoGenerado.setDescripcion("Documento firmado por el cliente");
 
             documentoGeneradoRepository.save(contratoGenerado);
 
-            cliente.setEstado(com.armasimportacion.enums.EstadoCliente.CONTRATO_FIRMADO);
+            cliente.setEstado(EstadoCliente.CONTRATO_FIRMADO);
             clienteRepository.save(cliente);
 
             Map<String, Object> response = new HashMap<>();
@@ -376,8 +382,8 @@ public class ClienteDocumentController {
                     if (aConfirmado != bConfirmado) {
                         return aConfirmado ? -1 : 1;
                     }
-                    java.time.LocalDateTime fa = a.getFechaAsignacion() != null ? a.getFechaAsignacion() : a.getFechaCreacion();
-                    java.time.LocalDateTime fb = b.getFechaAsignacion() != null ? b.getFechaAsignacion() : b.getFechaCreacion();
+                    LocalDateTime fa = a.getFechaAsignacion() != null ? a.getFechaAsignacion() : a.getFechaCreacion();
+                    LocalDateTime fb = b.getFechaAsignacion() != null ? b.getFechaAsignacion() : b.getFechaCreacion();
                     if (fa == null && fb == null) return 0;
                     if (fa == null) return 1;
                     if (fb == null) return -1;

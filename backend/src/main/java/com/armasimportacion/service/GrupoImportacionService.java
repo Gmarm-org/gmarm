@@ -20,7 +20,11 @@ import com.armasimportacion.dto.GrupoImportacionCreateDTO;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.GrupoImportacionCupoRepository;
+import com.armasimportacion.repository.ArmaSerieRepository;
+import com.armasimportacion.repository.CategoriaArmaRepository;
 import com.armasimportacion.repository.GrupoImportacionRepository;
+import com.armasimportacion.repository.LicenciaRepository;
+import com.armasimportacion.repository.TipoProcesoRepository;
 import com.armasimportacion.repository.UsuarioRepository;
 import com.armasimportacion.repository.GrupoImportacionVendedorRepository;
 import com.armasimportacion.repository.GrupoImportacionLimiteCategoriaRepository;
@@ -57,12 +61,12 @@ public class GrupoImportacionService {
     private final GrupoImportacionCupoRepository cupoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ClienteArmaRepository clienteArmaRepository;
-    private final com.armasimportacion.repository.LicenciaRepository licenciaRepository;
-    private final com.armasimportacion.repository.TipoProcesoRepository tipoProcesoRepository;
+    private final LicenciaRepository licenciaRepository;
+    private final TipoProcesoRepository tipoProcesoRepository;
     private final GrupoImportacionVendedorRepository grupoImportacionVendedorRepository;
     private final GrupoImportacionLimiteCategoriaRepository grupoImportacionLimiteCategoriaRepository;
-    private final com.armasimportacion.repository.CategoriaArmaRepository categoriaArmaRepository;
-    private final com.armasimportacion.repository.ArmaSerieRepository armaSerieRepository;
+    private final CategoriaArmaRepository categoriaArmaRepository;
+    private final ArmaSerieRepository armaSerieRepository;
     private final GrupoImportacionWorkflowService workflowService;
 
     // ============================================================

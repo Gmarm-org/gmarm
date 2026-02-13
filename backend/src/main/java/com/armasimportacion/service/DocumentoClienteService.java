@@ -9,6 +9,7 @@ import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.DocumentoClienteRepository;
 import com.armasimportacion.repository.TipoDocumentoRepository;
+import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -212,7 +213,7 @@ public class DocumentoClienteService {
         
         // Si el cliente es fantasma, no requiere documentos obligatorios (es temporal)
         // Los clientes fantasma son para almacenar armas del vendedor sin cliente específico
-        if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+        if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             log.debug("⚠️ Cliente fantasma detectado - no requiere documentos obligatorios");
             return true;
         }

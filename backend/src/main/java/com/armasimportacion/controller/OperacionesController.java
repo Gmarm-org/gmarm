@@ -4,6 +4,7 @@ import com.armasimportacion.dto.DocumentoGrupoImportacionDTO;
 import com.armasimportacion.dto.GrupoImportacionDTO;
 import com.armasimportacion.dto.GrupoImportacionResumenDTO;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
+import com.armasimportacion.model.GrupoImportacion;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.DocumentoGrupoImportacionService;
@@ -71,11 +72,11 @@ public class OperacionesController {
             
             // TODO: Implementar filtrado por estado en el repositorio
             // Por ahora retornamos todos, el frontend filtrará
-            List<com.armasimportacion.model.GrupoImportacion> grupos = 
+            List<GrupoImportacion> grupos = 
                 grupoImportacionService.obtenerGruposActivos();
             
             // Filtrar solo los que están en proceso de operaciones
-            List<com.armasimportacion.model.GrupoImportacion> gruposOperaciones = grupos.stream()
+            List<GrupoImportacion> gruposOperaciones = grupos.stream()
                 .filter(g -> g.getEstado() == EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA ||
                             g.getEstado() == EstadoGrupoImportacion.EN_PROCESO_OPERACIONES)
                 .toList();

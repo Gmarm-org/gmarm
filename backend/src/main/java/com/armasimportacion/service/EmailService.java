@@ -80,7 +80,7 @@ public class EmailService {
      * @param verificationUrl URL de verificación con token
      * @param noTieneCuentaSicoar true si el cliente respondió NO a tener cuenta en Sicoar
      */
-    public void sendVerificationEmail(com.armasimportacion.model.Cliente cliente, String verificationUrl, boolean noTieneCuentaSicoar) {
+    public void sendVerificationEmail(Cliente cliente, String verificationUrl, boolean noTieneCuentaSicoar) {
         log.info("📧 Enviando correo de verificación a: {}", cliente.getEmail());
 
         try {

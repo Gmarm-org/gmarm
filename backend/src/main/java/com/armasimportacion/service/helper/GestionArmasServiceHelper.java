@@ -6,7 +6,10 @@ import com.armasimportacion.model.ArmaSerie;
 import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.repository.ArmaRepository;
 import com.armasimportacion.repository.ArmaSerieRepository;
+import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ClienteArmaRepository;
+import com.armasimportacion.service.ConfiguracionSistemaService;
+import com.armasimportacion.service.InventarioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,8 +31,8 @@ public class GestionArmasServiceHelper {
     private final ArmaRepository armaRepository;
     private final ClienteArmaRepository clienteArmaRepository;
     private final ArmaSerieRepository armaSerieRepository;
-    private final com.armasimportacion.service.ConfiguracionSistemaService configuracionService;
-    private final com.armasimportacion.service.InventarioService inventarioService;
+    private final ConfiguracionSistemaService configuracionService;
+    private final InventarioService inventarioService;
 
     /**
      * Asigna una arma a un cliente con todos los detalles necesarios
@@ -191,7 +194,7 @@ public class GestionArmasServiceHelper {
             
             // Obtener usuario asignador (vendedor) desde el cliente
             // El vendedor es el usuario_creador del cliente
-            com.armasimportacion.model.Usuario vendedor = clienteArma.getCliente().getUsuarioCreador();
+            Usuario vendedor = clienteArma.getCliente().getUsuarioCreador();
             
             // Usar el método asignar() del modelo para establecer todas las relaciones correctamente
             serie.asignar(clienteArma, vendedor);

@@ -2,8 +2,18 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.dto.ClienteCreateDTO;
 import com.armasimportacion.dto.ClienteDTO;
+import com.armasimportacion.enums.EstadoCliente;
+import com.armasimportacion.enums.EstadoMilitar;
+import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
+import com.armasimportacion.model.ClienteArma;
+import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.Pago;
+import com.armasimportacion.repository.ClienteArmaRepository;
+import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.repository.TipoClienteRepository;
+import com.armasimportacion.repository.TipoIdentificacionRepository;
 import com.armasimportacion.service.ClienteQueryService;
 import com.armasimportacion.service.helper.*;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +41,10 @@ public class ClienteCompletoService {
     private final GestionArmasServiceHelper armasHelper;
     private final GestionRespuestasServiceHelper respuestasHelper;
     private final EmailVerificationService emailVerificationService;
-    private final com.armasimportacion.repository.TipoIdentificacionRepository tipoIdentificacionRepository;
-    private final com.armasimportacion.repository.TipoClienteRepository tipoClienteRepository;
-    private final com.armasimportacion.repository.ClienteRepository clienteRepository;
-    private final com.armasimportacion.repository.ClienteArmaRepository clienteArmaRepository;
+    private final TipoIdentificacionRepository tipoIdentificacionRepository;
+    private final TipoClienteRepository tipoClienteRepository;
+    private final ClienteRepository clienteRepository;
+    private final ClienteArmaRepository clienteArmaRepository;
     private final GrupoImportacionClienteService grupoImportacionClienteService;
 
     /**
@@ -210,7 +220,7 @@ public class ClienteCompletoService {
             String estadoMilitarStr = (String) clientData.get("estadoMilitar");
             if (estadoMilitarStr != null && !estadoMilitarStr.isEmpty()) {
                 try {
-                    cliente.setEstadoMilitar(com.armasimportacion.enums.EstadoMilitar.valueOf(estadoMilitarStr.toUpperCase()));
+                    cliente.setEstadoMilitar(EstadoMilitar.valueOf(estadoMilitarStr.toUpperCase()));
                 } catch (IllegalArgumentException e) {
                     log.warn("⚠️ Estado militar inválido: {}", estadoMilitarStr);
                 }
@@ -229,7 +239,7 @@ public class ClienteCompletoService {
             String estadoStr = (String) clientData.get("estado");
             if (estadoStr != null && !estadoStr.isEmpty()) {
                 try {
-                    cliente.setEstado(com.armasimportacion.enums.EstadoCliente.valueOf(estadoStr.toUpperCase()));
+                    cliente.setEstado(EstadoCliente.valueOf(estadoStr.toUpperCase()));
                 } catch (IllegalArgumentException e) {
                     log.warn("⚠️ Estado cliente inválido: {}", estadoStr);
                 }
@@ -259,7 +269,7 @@ public class ClienteCompletoService {
             if (codigo != null && !codigo.isEmpty()) {
                 var tipoIdentificacion = tipoIdentificacionRepository
                     .findByCodigo(codigo)
-                    .orElseThrow(() -> new com.armasimportacion.exception.ResourceNotFoundException(
+                    .orElseThrow(() -> new ResourceNotFoundException(
                         "Tipo de identificación no encontrado con código: " + codigo));
                 cliente.setTipoIdentificacion(tipoIdentificacion);
             }
@@ -270,7 +280,7 @@ public class ClienteCompletoService {
             if (codigo != null && !codigo.isEmpty()) {
                 var tipoCliente = tipoClienteRepository
                     .findByCodigo(codigo)
-                    .orElseThrow(() -> new com.armasimportacion.exception.ResourceNotFoundException(
+                    .orElseThrow(() -> new ResourceNotFoundException(
                         "Tipo de cliente no encontrado con código: " + codigo));
                 cliente.setTipoCliente(tipoCliente);
             }
@@ -378,14 +388,14 @@ public class ClienteCompletoService {
         
         // 6. Asignar automáticamente a grupo de importación disponible (provisional)
         // Solo si el cliente no es fantasma (PENDIENTE_ASIGNACION_CLIENTE)
-        if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+        if (cliente.getEstado() != EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             // VALIDACIÓN OBLIGATORIA: Debe existir un grupo de importación disponible
-            com.armasimportacion.model.ClienteGrupoImportacion asignacion = 
+            ClienteGrupoImportacion asignacion = 
                 grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, usuarioId);
             
             if (asignacion == null) {
                 log.error("❌ No hay grupo de importación disponible para asignar cliente ID: {}", cliente.getId());
-                throw new com.armasimportacion.exception.BadRequestException(
+                throw new BadRequestException(
                     "No hay grupos de importación disponibles. Por favor, comuníquese con el jefe de ventas para crear un grupo de importación antes de crear clientes."
                 );
             }
@@ -553,11 +563,11 @@ public class ClienteCompletoService {
         }
         
         // Buscar relación cliente_arma existente (reservada o asignada)
-        java.util.List<com.armasimportacion.model.ClienteArma> reservasActivas = 
+        List<ClienteArma> reservasActivas = 
             clienteArmaRepository.findReservasActivasByClienteId(cliente.getId());
         
         // Buscar la reserva que corresponde al armaId
-        com.armasimportacion.model.ClienteArma reservaExistente = reservasActivas.stream()
+        ClienteArma reservaExistente = reservasActivas.stream()
             .filter(ca -> ca.getArma().getId().equals(armaId))
             .findFirst()
             .orElse(null);
@@ -801,7 +811,7 @@ public class ClienteCompletoService {
      */
     private void enviarCorreoVerificacion(Cliente cliente) {
         // NO enviar correo a clientes fantasma (vendedores)
-        if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+        if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             log.info("📧 Cliente ID {} es cliente fantasma (vendedor), no se enviará correo de verificación", cliente.getId());
             return;
         }

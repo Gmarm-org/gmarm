@@ -6,6 +6,7 @@ import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
 import com.armasimportacion.enums.EstadoPago;
 import com.armasimportacion.enums.EstadoCuotaPago;
+import com.armasimportacion.service.ConfiguracionSistemaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,7 @@ public class GestionPagosServiceHelper {
 
     private final PagoRepository pagoRepository;
     private final CuotaPagoRepository cuotaPagoRepository;
-    private final com.armasimportacion.service.ConfiguracionSistemaService configuracionService;
+    private final ConfiguracionSistemaService configuracionService;
 
     /**
      * Crea un pago completo con todos los datos necesarios

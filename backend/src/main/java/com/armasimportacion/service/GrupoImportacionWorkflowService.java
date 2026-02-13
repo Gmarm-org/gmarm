@@ -9,6 +9,7 @@ import com.armasimportacion.model.Usuario;
 import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
+import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.GrupoImportacionRepository;
@@ -47,7 +48,7 @@ public class GrupoImportacionWorkflowService {
      * Define el pedido para un grupo de importación
      * Genera el PDF "Pedido_Armas_Grupo_Importacion_AAAA_MM_DD" y cambia el estado
      */
-    public com.armasimportacion.model.DocumentoGenerado definirPedido(Long grupoId, Long usuarioId) {
+    public DocumentoGenerado definirPedido(Long grupoId, Long usuarioId) {
         log.info("📋 Definiendo pedido para grupo de importación ID: {}", grupoId);
 
         Map<String, Object> validacion = verificarPuedeDefinirPedidoDetalle(grupoId);

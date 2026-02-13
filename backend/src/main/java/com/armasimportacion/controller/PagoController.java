@@ -5,6 +5,8 @@ import com.armasimportacion.dto.CuotaPagoCreateDTO;
 import com.armasimportacion.dto.PagarCuotaDTO;
 import com.armasimportacion.enums.EstadoPago;
 import com.armasimportacion.mapper.CuotaPagoMapper;
+import com.armasimportacion.enums.TipoDocumentoGenerado;
+import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.CuotaPago;
 import com.armasimportacion.model.DocumentoGenerado;
@@ -22,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -192,7 +195,7 @@ public class PagoController {
                 // Buscar el recibo generado para esta cuota
                 List<DocumentoGenerado> recibos = documentoGeneradoRepository.findByClienteIdAndTipo(
                     cuota.getPago().getClienteId(),
-                    com.armasimportacion.enums.TipoDocumentoGenerado.RECIBO
+                    TipoDocumentoGenerado.RECIBO
                 );
                 
                 recibo = recibos.stream()
@@ -248,12 +251,12 @@ public class PagoController {
         try {
             CuotaPago cuota = cuotaPagoRepository.findById(cuotaId)
                 .orElseThrow(() -> new RuntimeException("Cuota no encontrada"));
-            com.armasimportacion.model.Cliente cliente = clienteRepository.findById(
+            Cliente cliente = clienteRepository.findById(
                 cuota.getPago().getClienteId()
             ).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
             // Construir lista de correos: cliente + correos configurados en sistema
-            List<String> emails = new java.util.ArrayList<>();
+            List<String> emails = new ArrayList<>();
             
             // Agregar correo del cliente si existe
             if (cliente.getEmail() != null && !cliente.getEmail().trim().isEmpty()) {
@@ -292,7 +295,7 @@ public class PagoController {
             DocumentoGenerado recibo;
             List<DocumentoGenerado> recibosExistentes = documentoGeneradoRepository.findByClienteId(cliente.getId());
             recibo = recibosExistentes.stream()
-                .filter(doc -> doc.getTipoDocumento() == com.armasimportacion.enums.TipoDocumentoGenerado.RECIBO)
+                .filter(doc -> doc.getTipoDocumento() == TipoDocumentoGenerado.RECIBO)
                 .filter(doc -> doc.getNombreArchivo().contains("REC-" + cuotaId) || 
                               doc.getNombreArchivo().contains("recibo_"))
                 .findFirst()

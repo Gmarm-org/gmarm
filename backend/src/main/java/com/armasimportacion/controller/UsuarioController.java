@@ -2,6 +2,7 @@ package com.armasimportacion.controller;
 
 import com.armasimportacion.dto.UsuarioSimpleDTO;
 import com.armasimportacion.mapper.UsuarioMapper;
+import com.armasimportacion.model.Rol;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.exception.ResourceNotFoundException;
@@ -122,7 +123,7 @@ public class UsuarioController {
     // ===== GESTIÓN DE ROLES =====
 
     @GetMapping("/{id}/roles")
-    public ResponseEntity<Set<com.armasimportacion.model.Rol>> getUserRoles(@PathVariable Long id) {
+    public ResponseEntity<Set<Rol>> getUserRoles(@PathVariable Long id) {
         log.info("📋 GET /api/usuarios/{}/roles - Obteniendo roles del usuario", id);
         try {
             Usuario usuario = usuarioService.findById(id);

@@ -8,7 +8,12 @@ import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.ArmaRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
+import com.armasimportacion.enums.EstadoCliente;
+import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.model.ClienteGrupoImportacion;
+import com.armasimportacion.model.GrupoImportacion;
+import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,10 +36,10 @@ public class ClienteArmaService {
     private final ClienteArmaRepository clienteArmaRepository;
     private final ClienteRepository clienteRepository;
     private final ArmaRepository armaRepository;
-    private final com.armasimportacion.service.DocumentoClienteService documentoClienteService;
+    private final DocumentoClienteService documentoClienteService;
     private final GrupoImportacionClienteService grupoImportacionClienteService;
     private final GrupoImportacionMatchingService grupoImportacionMatchingService;
-    private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
+    private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
 
     /**
      * Verifica si un cliente tiene armas asignadas (en estado ASIGNADA)
@@ -143,7 +148,7 @@ public class ClienteArmaService {
         // Validar que el cliente tenga todos sus documentos obligatorios completos y aprobados
         // EXCEPCIÓN: Los clientes fantasma (PENDIENTE_ASIGNACION_CLIENTE) no requieren documentos
         // ya que son temporales y solo sirven para almacenar armas del vendedor
-        if (cliente.getEstado() != com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+        if (cliente.getEstado() != EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(clienteId);
             if (!documentosCompletos) {
                 throw new BadRequestException("El cliente no tiene todos sus documentos obligatorios completos. " +
@@ -172,8 +177,8 @@ public class ClienteArmaService {
                 Long vendedorId = cliente.getUsuarioCreador() != null ? cliente.getUsuarioCreador().getId() : null;
                 
                 if (vendedorId != null) {
-                    if (cliente.getEstado() == com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
-                        com.armasimportacion.model.ClienteGrupoImportacion asignacion =
+                    if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+                        ClienteGrupoImportacion asignacion =
                             grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
                         if (asignacion == null) {
                             log.warn("⚠️ No se encontró grupo CUPO disponible para cliente fantasma ID {}", cliente.getId());
@@ -188,7 +193,7 @@ public class ClienteArmaService {
                         boolean esSegundaArma = reservasActivas.size() >= 1; // Si ya había 1 reserva activa, esta es la segunda
                         
                         // Buscar grupo disponible para esta categoría de arma
-                        com.armasimportacion.model.GrupoImportacion grupoDisponible = 
+                        GrupoImportacion grupoDisponible = 
                             grupoImportacionMatchingService.encontrarGrupoDisponibleParaArma(
                                 vendedorId, 
                                 cliente, 
@@ -203,11 +208,11 @@ public class ClienteArmaService {
                             
                             if (!yaAsignado) {
                                 // Crear asignación al grupo (estado PENDIENTE)
-                                com.armasimportacion.model.ClienteGrupoImportacion clienteGrupo = 
-                                    new com.armasimportacion.model.ClienteGrupoImportacion();
+                                ClienteGrupoImportacion clienteGrupo = 
+                                    new ClienteGrupoImportacion();
                                 clienteGrupo.setCliente(cliente);
                                 clienteGrupo.setGrupoImportacion(grupoDisponible);
-                                clienteGrupo.setEstado(com.armasimportacion.enums.EstadoClienteGrupo.PENDIENTE);
+                                clienteGrupo.setEstado(EstadoClienteGrupo.PENDIENTE);
                                 clienteGrupo.setFechaAsignacion(java.time.LocalDateTime.now());
                                 
                                 clienteGrupoImportacionRepository.save(clienteGrupo);
@@ -437,7 +442,7 @@ public class ClienteArmaService {
         // Buscar clientes fantasma del vendedor
         List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
             usuarioId,
-            com.armasimportacion.enums.EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
+            EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
         );
         
         if (clientesFantasma.isEmpty()) {

@@ -6,6 +6,7 @@ import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.enums.TipoDocumentoGenerado;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,7 +32,7 @@ public class AutorizacionController {
     private final ClienteRepository clienteRepository;
     private final ClienteArmaRepository clienteArmaRepository;
     private final GestionDocumentosServiceHelper documentosHelper;
-    private final com.armasimportacion.repository.DocumentoGeneradoRepository documentoGeneradoRepository;
+    private final DocumentoGeneradoRepository documentoGeneradoRepository;
     
     /**
      * Genera una autorización de venta para un cliente

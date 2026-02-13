@@ -11,6 +11,7 @@ import com.armasimportacion.model.Notificacion;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.GrupoImportacionProcesoRepository;
 import com.armasimportacion.repository.GrupoImportacionRepository;
+import com.armasimportacion.enums.TipoNotificacion;
 import com.armasimportacion.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -136,7 +137,7 @@ public class GrupoImportacionProcesoService {
             Notificacion notificacion = new Notificacion();
             notificacion.setTitulo("Alertas de procesos de importación");
             notificacion.setMensaje(mensaje);
-            notificacion.setTipo(com.armasimportacion.enums.TipoNotificacion.SISTEMA);
+            notificacion.setTipo(TipoNotificacion.SISTEMA);
             notificacion.setUsuarioDestinatario(usuario);
             notificacionService.crearNotificacion(notificacion);
         }

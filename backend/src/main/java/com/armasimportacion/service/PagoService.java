@@ -8,7 +8,13 @@ import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
+import com.armasimportacion.enums.EstadoCuotaPago;
+import com.armasimportacion.enums.EstadoGrupoImportacion;
+import com.armasimportacion.model.ClienteGrupoImportacion;
+import com.armasimportacion.model.Usuario;
+import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,9 +37,9 @@ public class PagoService {
     private final PagoRepository pagoRepository;
     private final CuotaPagoRepository cuotaPagoRepository;
     private final ClienteRepository clienteRepository;
-    private final com.armasimportacion.service.helper.GestionDocumentosServiceHelper gestionDocumentosServiceHelper;
-    private final com.armasimportacion.service.EmailService emailService;
-    private final com.armasimportacion.repository.ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
+    private final GestionDocumentosServiceHelper gestionDocumentosServiceHelper;
+    private final EmailService emailService;
+    private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
     private final LicenciaService licenciaService;
     private final FileStorageService fileStorageService;
 
@@ -128,7 +134,7 @@ public class PagoService {
         
         // Si la cuota ya estaba pagada, revertir el monto anterior
         BigDecimal montoAnterior = BigDecimal.ZERO;
-        if (cuota.getEstado() == com.armasimportacion.enums.EstadoCuotaPago.PAGADA) {
+        if (cuota.getEstado() == EstadoCuotaPago.PAGADA) {
             montoAnterior = cuota.getMonto();
             pago.setMontoPagado(pago.getMontoPagado().subtract(montoAnterior));
             pago.setMontoPendiente(pago.getMontoPendiente().add(montoAnterior));
@@ -143,7 +149,7 @@ public class PagoService {
         boolean montoCambio = montoAPagar.compareTo(montoAnteriorCuota) != 0;
         
         cuota.setMonto(montoAPagar);
-        cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PAGADA);
+        cuota.setEstado(EstadoCuotaPago.PAGADA);
         cuota.setFechaPago(LocalDateTime.now());
         cuota.setReferenciaPago(referenciaPago);
         if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().trim().isEmpty()) {
@@ -201,7 +207,7 @@ public class PagoService {
             cuota.setNumeroCuota(i);
             cuota.setMonto(montoPorCuota);
             cuota.setFechaVencimiento(fechaVencimiento.plusMonths(i - 1));
-            cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PENDIENTE);
+            cuota.setEstado(EstadoCuotaPago.PENDIENTE);
             
             cuotaPagoRepository.save(cuota);
         }
@@ -223,15 +229,15 @@ public class PagoService {
 
     private String obtenerInicialesImportador(Cliente cliente) {
         try {
-            List<com.armasimportacion.model.ClienteGrupoImportacion> gruposCliente =
+            List<ClienteGrupoImportacion> gruposCliente =
                 clienteGrupoImportacionRepository.findByClienteId(cliente.getId());
-            for (com.armasimportacion.model.ClienteGrupoImportacion cgi : gruposCliente) {
+            for (ClienteGrupoImportacion cgi : gruposCliente) {
                 if (cgi.getGrupoImportacion() == null) {
                     continue;
                 }
-                com.armasimportacion.enums.EstadoGrupoImportacion estado = cgi.getGrupoImportacion().getEstado();
-                if (estado != com.armasimportacion.enums.EstadoGrupoImportacion.COMPLETADO &&
-                    estado != com.armasimportacion.enums.EstadoGrupoImportacion.CANCELADO) {
+                EstadoGrupoImportacion estado = cgi.getGrupoImportacion().getEstado();
+                if (estado != EstadoGrupoImportacion.COMPLETADO &&
+                    estado != EstadoGrupoImportacion.CANCELADO) {
                     String iniciales = licenciaService.obtenerInicialesImportadorDesdeLicencia(
                         cgi.getGrupoImportacion().getLicencia());
                     if (!iniciales.isEmpty()) {
@@ -266,11 +272,11 @@ public class PagoService {
         
         // Separar cuotas pagadas de cuotas pendientes
         List<CuotaPago> cuotasPagadas = cuotasExistentes.stream()
-            .filter(c -> c.getEstado() == com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .filter(c -> c.getEstado() == EstadoCuotaPago.PAGADA)
             .collect(java.util.stream.Collectors.toList());
         
         List<CuotaPago> cuotasPendientes = cuotasExistentes.stream()
-            .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA)
+            .filter(c -> c.getEstado() != EstadoCuotaPago.PAGADA)
             .collect(java.util.stream.Collectors.toList());
         
         // Calcular monto ya pagado
@@ -303,12 +309,12 @@ public class PagoService {
         cuota.setNumeroCuota(dto.getNumeroCuota() != null ? dto.getNumeroCuota() : siguienteNumeroCuota);
         cuota.setFechaVencimiento(dto.getFechaVencimiento());
         cuota.setMonto(montoCuotaNueva); // RESPETAR el monto especificado
-        cuota.setEstado(com.armasimportacion.enums.EstadoCuotaPago.PENDIENTE);
+        cuota.setEstado(EstadoCuotaPago.PENDIENTE);
         cuota.setReferenciaPago(dto.getReferenciaPago());
         
         if (dto.getUsuarioConfirmadorId() != null) {
             // Crear usuario con solo el ID
-            com.armasimportacion.model.Usuario usuario = new com.armasimportacion.model.Usuario();
+            Usuario usuario = new Usuario();
             usuario.setId(dto.getUsuarioConfirmadorId());
             cuota.setUsuarioConfirmador(usuario);
         }
@@ -373,8 +379,8 @@ public class PagoService {
 
         // Separar cuotas pagadas de pendientes (excluir las ya canceladas)
         List<CuotaPago> cuotasPendientes = todasLasCuotas.stream()
-            .filter(c -> c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.PAGADA &&
-                        c.getEstado() != com.armasimportacion.enums.EstadoCuotaPago.CANCELADA)
+            .filter(c -> c.getEstado() != EstadoCuotaPago.PAGADA &&
+                        c.getEstado() != EstadoCuotaPago.CANCELADA)
             .collect(java.util.stream.Collectors.toList());
 
         if (cuotasPendientes.isEmpty()) {
@@ -391,7 +397,7 @@ public class PagoService {
                 saldoPendiente, cuotasPendientes.size());
 
             for (CuotaPago cuotaPendiente : cuotasPendientes) {
-                cuotaPendiente.setEstado(com.armasimportacion.enums.EstadoCuotaPago.CANCELADA);
+                cuotaPendiente.setEstado(EstadoCuotaPago.CANCELADA);
                 cuotaPendiente.setMonto(BigDecimal.ZERO); // Poner monto en 0 ya que no se debe nada
                 cuotaPendiente.setObservaciones("Cuota cancelada - Saldo total cubierto");
                 cuotaPagoRepository.save(cuotaPendiente);

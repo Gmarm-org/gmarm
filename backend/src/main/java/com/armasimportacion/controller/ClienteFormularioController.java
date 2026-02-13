@@ -3,6 +3,7 @@ package com.armasimportacion.controller;
 import com.armasimportacion.dto.PreguntaClienteDTO;
 import com.armasimportacion.dto.TipoDocumentoDTO;
 import com.armasimportacion.enums.TipoProceso;
+import com.armasimportacion.model.TipoCliente;
 import com.armasimportacion.service.PreguntaClienteService;
 import com.armasimportacion.service.TipoDocumentoService;
 import com.armasimportacion.service.TipoClienteService;
@@ -110,7 +111,7 @@ public class ClienteFormularioController {
      * Determina el tipo de proceso considerando el estado militar/policial
      * Si es uniformado PASIVO, se trata como civil
      */
-    private Long determinarTipoProcesoConEstadoMilitar(com.armasimportacion.model.TipoCliente tipoCliente, String estadoMilitar) {
+    private Long determinarTipoProcesoConEstadoMilitar(TipoCliente tipoCliente, String estadoMilitar) {
         boolean esPasivo = "PASIVO".equals(estadoMilitar);
         
         // Si es uniformado pero está PASIVO, se trata como civil
@@ -132,9 +133,9 @@ public class ClienteFormularioController {
             Map<String, Object> config = new HashMap<>();
             
             // Obtener todos los tipos de cliente desde la base de datos
-            List<com.armasimportacion.model.TipoCliente> tiposCliente = tipoClienteService.findAll();
-            
-            for (com.armasimportacion.model.TipoCliente tipo : tiposCliente) {
+            List<TipoCliente> tiposCliente = tipoClienteService.findAll();
+
+            for (TipoCliente tipo : tiposCliente) {
                 Map<String, Object> tipoConfig = new HashMap<>();
                 tipoConfig.put("codigo", tipo.getCodigo());
                 tipoConfig.put("tipoProcesoId", tipo.getTipoProcesoId());
