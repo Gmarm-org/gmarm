@@ -130,7 +130,7 @@ const ClienteForm: React.FC = () => {
       setTiposIdentificacion(tiposIdentificacionRes);
       setTiposProceso(tiposProcesoRes);
     } catch (error) {
-      console.error('Error cargando datos de referencia:', error);
+      console.error('Error cargando datos de referencia:', error instanceof Error ? error.message : 'Unknown error');
       setError('Error cargando datos de referencia');
     }
   };
@@ -147,7 +147,7 @@ const ClienteForm: React.FC = () => {
       setPreguntas(preguntasRes);
       setDocumentosObligatorios(documentosRes);
     } catch (error) {
-      console.error('Error cargando preguntas y documentos:', error);
+      console.error('Error cargando preguntas y documentos:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -245,15 +245,13 @@ const ClienteForm: React.FC = () => {
         );
       }
 
-      // 4. Enviar email de confirmación
       // TODO: Implement email confirmation endpoint
-      console.log('Email confirmation would be sent for client:', cliente.id);
 
-      // 5. Redirigir al dashboard
+      // Redirigir al dashboard
       navigate('/vendedor');
       
     } catch (error) {
-      console.error('Error creando cliente:', error);
+      console.error('Error creando cliente:', error instanceof Error ? error.message : 'Unknown error');
       setError('Error creando el cliente. Por favor intenta de nuevo.');
     } finally {
       setIsLoading(false);

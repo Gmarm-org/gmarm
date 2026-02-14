@@ -55,9 +55,7 @@ public class ClienteController {
             @RequestBody Map<String, Object> requestData,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("ClienteController: Recibiendo solicitud completa: {}", requestData);
-            log.info("ClienteController: requestData keys: {}", requestData.keySet());
-            log.info("ClienteController: cliente data: {}", requestData.get("cliente"));
+            log.info("ClienteController: Recibiendo solicitud completa, keys: {}", requestData.keySet());
             
             // Obtener usuario actual desde JWT
             Long usuarioId = null;

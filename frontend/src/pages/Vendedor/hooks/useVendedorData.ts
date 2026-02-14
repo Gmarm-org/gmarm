@@ -79,13 +79,13 @@ export const useVendedorData = (
             };
           }
         } catch (error) {
-          console.warn(`No se pudieron cargar armas para cliente ${client.id}:`, error);
+          // No se pudieron cargar armas para este cliente
         }
       }
       
       setClientWeaponAssignments(weaponAssignments);
     } catch (error) {
-      console.error('Error al cargar clientes:', error);
+      console.error('Error al cargar clientes:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setClientsLoading(false);
     }
@@ -97,22 +97,12 @@ export const useVendedorData = (
       const armas = await apiService.getArmas();
       
       if (Array.isArray(armas)) {
-        const armasSinModelo = armas.filter(arma => !arma.modelo);
-        if (armasSinModelo.length > 0) {
-          console.error('🔫 Vendedor - ❌ ARMAS SIN MODELO ENCONTRADAS:', armasSinModelo);
-        }
-        
-        const armasSinId = armas.filter(arma => !arma.id);
-        if (armasSinId.length > 0) {
-          console.error('🔫 Vendedor - ❌ ARMAS SIN ID ENCONTRADAS:', armasSinId);
-        }
-        
         setAvailableWeapons(armas);
       } else {
-        console.error('🔫 Vendedor - ❌ RESPUESTA NO ES ARRAY:', armas);
+        console.error('Respuesta de armas no es un array');
       }
     } catch (error) {
-      console.error('❌ Error al cargar armas:', error);
+      console.error('Error al cargar armas:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setWeaponsLoading(false);
     }

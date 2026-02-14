@@ -6,10 +6,10 @@ export async function getArmas(incluirInactivas: boolean = false): Promise<any[]
     const url = incluirInactivas ? '/api/arma?incluirInactivas=true' : '/api/arma';
     const response = await request<any>(url);
     if (Array.isArray(response)) return response;
-    console.error('API Service: Respuesta de armas no es array:', response);
+    console.error('API Service: Respuesta de armas no es array, tipo recibido:', typeof response);
     return [];
   } catch (error) {
-    console.error('Error obteniendo armas:', error);
+    console.error('Error obteniendo armas:', error instanceof Error ? error.message : 'Error desconocido');
     throw error;
   }
 }

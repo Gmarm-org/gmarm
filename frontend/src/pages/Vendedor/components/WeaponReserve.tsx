@@ -53,7 +53,7 @@ const WeaponReserve: React.FC<WeaponReserveProps> = ({
  
   // Validando estructura de armas recibidas
   if (!Array.isArray(weapons)) {
-    console.error('WeaponReserve: weapons no es un array:', weapons);
+    console.error('WeaponReserve: weapons no es un array, tipo recibido:', typeof weapons);
   }
   
   // Obtener IVA dinámicamente desde la BD

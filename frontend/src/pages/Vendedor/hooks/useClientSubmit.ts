@@ -126,7 +126,7 @@ export function useClientSubmit(props: UseClientSubmitProps) {
       const { tipoDocumentoId, documentNombre } = resolveDocumentoId(key, file);
 
       if (!tipoDocumentoId) {
-        console.warn(`No se pudo determinar el ID del documento: ${key}`);
+        // No se pudo determinar el ID del documento
         if (requiredDocuments.length > 0) {
           documentErrors.push(`Documento ${documentNombre}`);
         }
@@ -246,7 +246,7 @@ export function useClientSubmit(props: UseClientSubmitProps) {
       }
       setLoadedDocuments(documentosMap);
     } catch (err) {
-      console.error('Error recargando documentos:', err);
+      console.error('Error recargando documentos:', err instanceof Error ? err.message : 'Unknown error');
     }
   }, [setLoadedDocuments]);
 
@@ -402,7 +402,7 @@ export function useClientSubmit(props: UseClientSubmitProps) {
           if (errorMessage.includes('documentos obligatorios') || errorMessage.includes('documentos completos')) {
             alert(`No se pudo reasignar el arma del stock:\n\n${errorMessage}\n\nPor favor, carga todos los documentos obligatorios del cliente y vuelve a intentar.`);
           } else {
-            console.warn('El arma del stock no se pudo reasignar, pero el cliente se creó correctamente.');
+            // El arma del stock no se pudo reasignar, pero el cliente se creo correctamente
           }
         }
       }
@@ -436,10 +436,10 @@ export function useClientSubmit(props: UseClientSubmitProps) {
               alert(`Cliente creado exitosamente, pero faltan documentos por subir: ${nombres}. Puedes subirlos más tarde.`);
             }
           } catch (verificarError) {
-            console.error('Error verificando documentos después de la carga:', verificarError);
+            console.error('Error verificando documentos despues de la carga:', verificarError instanceof Error ? verificarError.message : 'Unknown error');
           }
         } else if (documentErrors.length > 0) {
-          console.warn('Hubo errores al subir documentos:', documentErrors);
+          // Hubo errores al subir algunos documentos
         }
       }
 
@@ -472,8 +472,8 @@ export function useClientSubmit(props: UseClientSubmitProps) {
             alert(`${validacion.mensaje}\n\nSi desea ver o editar este cliente, búsquelo en la lista de clientes.`);
             return;
           }
-        } catch (validacionError) {
-          console.warn('No se pudo validar la identificación, continuando...', validacionError);
+        } catch (_validacionError) {
+          // No se pudo validar la identificacion, continuando
         }
       }
 
@@ -516,7 +516,7 @@ export function useClientSubmit(props: UseClientSubmitProps) {
         onSave(updatedClient as any);
       }
     } catch (error: any) {
-      console.error('Error al guardar cliente:', error);
+      console.error('Error al guardar cliente:', error instanceof Error ? error.message : 'Unknown error');
       const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Error desconocido';
       const statusCode = error?.response?.status || error?.status;
 

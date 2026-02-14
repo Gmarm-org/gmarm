@@ -54,14 +54,10 @@ const Vendedor: React.FC = React.memo(() => {
     const verificarGrupos = async () => {
       try {
         setCargandoGrupos(true);
-        console.log('🔍 Vendedor - Verificando grupos activos...');
         const grupos = await apiService.getGruposActivos();
-        console.log('📋 Vendedor - Grupos recibidos:', grupos);
-        console.log('📊 Vendedor - Cantidad de grupos:', grupos?.length || 0);
-        console.log('📊 Vendedor - hayGruposDisponibles será:', grupos && grupos.length > 0);
         setHayGruposDisponibles(grupos && grupos.length > 0);
       } catch (error) {
-        console.error('❌ Error verificando grupos de importación:', error);
+        console.error('Error verificando grupos de importacion:', error instanceof Error ? error.message : 'Unknown error');
         setHayGruposDisponibles(false);
       } finally {
         setCargandoGrupos(false);
@@ -817,7 +813,7 @@ const Vendedor: React.FC = React.memo(() => {
       case 'seriesAssignment':
         // Solo mostrar si hay un arma seleccionada
         if (!selectedWeapon) {
-          console.error('❌ No se puede mostrar asignación de series sin arma seleccionada');
+          console.error('No se puede mostrar asignacion de series sin arma seleccionada');
           setCurrentPage('dashboard');
           return null;
         }
@@ -894,7 +890,7 @@ const Vendedor: React.FC = React.memo(() => {
       await handleValidarDatosPersonales(modalValidarDatos.client);
       setModalValidarDatos({ isOpen: false, client: null, isLoading: false });
     } catch (error) {
-      console.error('Error validando datos:', error);
+      console.error('Error validando datos:', error instanceof Error ? error.message : 'Unknown error');
       setModalValidarDatos(prev => ({ ...prev, isLoading: false }));
     }
   };

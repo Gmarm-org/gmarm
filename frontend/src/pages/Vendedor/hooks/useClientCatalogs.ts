@@ -40,7 +40,7 @@ export const useClientCatalogs = () => {
         setTiposIdentificacion(tiposIdentificacionData || []);
         setProvincias((provinciasData as Provincia[]) || []);
       } catch (error) {
-        console.error('❌ Error cargando catálogos:', error);
+        console.error('Error cargando catalogos:', error instanceof Error ? error.message : 'Error desconocido');
       } finally {
         setLoading(false);
       }
@@ -72,7 +72,7 @@ export const useClientCatalogs = () => {
         setAvailableCantons(cantones || []);
       }
     } catch (error) {
-      console.error('❌ Error cargando cantones:', error);
+      console.error('Error cargando cantones:', error instanceof Error ? error.message : 'Error desconocido');
       if (isEmpresa) {
         setAvailableCantonsEmpresa([]);
       } else {

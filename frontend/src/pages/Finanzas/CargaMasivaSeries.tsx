@@ -205,7 +205,7 @@ const CargaMasivaSeries: React.FC = () => {
         if (result.errors.length > 10) {
           mensaje += `\n\n... y ${result.errors.length - 10} errores más. Revisa la consola para ver todos.`;
         }
-        console.error('Lista completa de errores de carga de series');
+        console.error('Errores de carga de series:', result.errors.length);
       }
 
       if (mensaje) {

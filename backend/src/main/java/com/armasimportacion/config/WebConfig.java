@@ -1,5 +1,7 @@
 package com.armasimportacion.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -17,6 +19,8 @@ import java.nio.file.Paths;
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    private static final Logger log = LoggerFactory.getLogger(WebConfig.class);
 
     @Value("${app.upload.dir:./documentacion}")
     private String uploadDir;
@@ -39,11 +43,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .setCachePeriod(3600) // Cache de 1 hora
                 .resourceChain(true);
         
-        // Log de configuración
-        System.out.println("✅ Configuración de recursos estáticos:");
-        System.out.println("   📂 Directorio base: " + uploadsPath);
-        System.out.println("   🖼️  Imágenes: /images/weapons/** (ImageController)");
-        System.out.println("   📄 Recursos: /uploads/** → " + uploadsLocation);
+        log.info("Configuracion de recursos estaticos: directorio={}, uploads={}", uploadsPath, uploadsLocation);
     }
 }
 

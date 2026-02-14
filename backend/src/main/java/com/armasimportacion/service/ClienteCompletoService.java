@@ -373,15 +373,7 @@ public class ClienteCompletoService {
             
             // 5. Generar contrato (solo si hay pago)
             // NOTA: El contrato es secundario, si falla no debe revertir la transacción completa
-            // log.info("🔍 DEBUG: Llamando a generarContratoDelCliente...");
-            // try {
-            //     generarContratoDelCliente(cliente, pago);
-            //     log.info("🔍 DEBUG: generarContratoDelCliente completado");
-            // } catch (Exception e) {
-            //     log.error("❌ Error en generarContratoDelCliente (no crítico): {}", e.getMessage(), e);
-            //     // NO relanzar la excepción porque el contrato es secundario
-            //     // La transacción continuará y se confirmará
-            // }
+            // Contrato se genera en paso posterior del flujo
         } else {
             log.info("No hay datos de pago, se creará más adelante en el flujo");
         }
@@ -414,20 +406,15 @@ public class ClienteCompletoService {
      * Crea el cliente básico usando ClienteService
      */
     private Cliente crearClienteBasico(Map<String, Object> requestData, Long usuarioId) {
-        log.info("Paso 1: Creando cliente básico con usuarioId={}", usuarioId);
-        log.info("DEBUG: requestData completo: {}", requestData);
-        
+        log.info("Paso 1: Creando cliente basico con usuarioId={}", usuarioId);
+
         Map<String, Object> clientData = extraerDatosCliente(requestData);
-        log.info("DEBUG: clientData extraído: {}", clientData);
-        
         ClienteCreateDTO clienteCreateDTO = construirClienteCreateDTO(clientData);
-        log.info("DEBUG: DTO construido - fechaNacimiento: {}", clienteCreateDTO.getFechaNacimiento());
         
         ClienteDTO clienteDTO = clienteService.createFromDTO(clienteCreateDTO, usuarioId);
         Cliente cliente = clienteService.findById(clienteDTO.getId());
         
-        log.info("Cliente creado: ID={}, nombres={}, apellidos={}, fechaNacimiento={}, usuarioCreadorId={}",
-            cliente.getId(), cliente.getNombres(), cliente.getApellidos(), cliente.getFechaNacimiento(), usuarioId);
+        log.info("Cliente creado: ID={}, usuarioCreadorId={}", cliente.getId(), usuarioId);
         
         return cliente;
     }
@@ -652,7 +639,6 @@ public class ClienteCompletoService {
     }
 
     private ClienteCreateDTO construirClienteCreateDTO(Map<String, Object> clientData) {
-        log.info("DEBUG: construirClienteCreateDTO EJECUTÁNDOSE con clientData: {}", clientData);
         ClienteCreateDTO dto = new ClienteCreateDTO();
         dto.setNumeroIdentificacion((String) clientData.get("numeroIdentificacion"));
         dto.setNombres((String) clientData.get("nombres"));
@@ -663,16 +649,10 @@ public class ClienteCompletoService {
         dto.setTipoIdentificacionCodigo((String) clientData.get("tipoIdentificacionCodigo"));
         dto.setTipoClienteCodigo((String) clientData.get("tipoClienteCodigo"));
         
-        // Campos de dirección - CORREGIDO: Agregar mapeo de campos faltantes
-        log.warn("DEBUG: Antes de mapear - direccion: '{}', provincia: '{}', canton: '{}'",
-            clientData.get("direccion"), clientData.get("provincia"), clientData.get("canton"));
-        
+        // Campos de dirección
         dto.setDireccion((String) clientData.get("direccion"));
         dto.setProvincia((String) clientData.get("provincia"));
         dto.setCanton((String) clientData.get("canton"));
-        
-        log.warn("DEBUG: Después de mapear - direccion: '{}', provincia: '{}', canton: '{}'",
-            dto.getDireccion(), dto.getProvincia(), dto.getCanton());
         
         // Campos de empresa
         dto.setRepresentanteLegal((String) clientData.get("representanteLegal"));
@@ -698,16 +678,10 @@ public class ClienteCompletoService {
         // Parsear fecha de nacimiento
         parsearFechaNacimiento(clientData, dto);
         
-        log.warn("DEBUG: DTO construido con direccion='{}', provincia='{}', canton='{}'",
-            dto.getDireccion(), dto.getProvincia(), dto.getCanton());
-        
         return dto;
     }
 
     private void parsearFechaNacimiento(Map<String, Object> clientData, ClienteCreateDTO dto) {
-        log.info("DEBUG: parsearFechaNacimiento llamado con clientData: {}", clientData);
-        log.info("DEBUG: fechaNacimiento raw: {}", clientData.get("fechaNacimiento"));
-        
         Optional.ofNullable(clientData.get("fechaNacimiento"))
             .map(Object::toString)
             .ifPresentOrElse(
@@ -783,12 +757,7 @@ public class ClienteCompletoService {
     }
 
     private void logDatosRecibidos(Map<String, Object> requestData) {
-        log.info("=== DATOS RECIBIDOS ===");
-        log.info("Cliente: {}", requestData.get("cliente"));
-        log.info("Arma: {}", requestData.get("arma"));
-        log.info("Respuestas: {}", requestData.get("respuestas"));
-        log.info("Pago: {}", requestData.get("pago"));
-        log.info("======================");
+        log.info("Datos recibidos - keys: {}", requestData.keySet());
     }
 
     private Map<String, Object> crearRespuestaExitoso(Cliente cliente, Pago pago) {

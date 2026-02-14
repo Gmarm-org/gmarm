@@ -17,7 +17,7 @@ export async function cargarDocumentoCliente(clienteId: number, tipoDocumentoId:
       }
       formData.append('usuarioId', currentUser.id.toString());
     } catch (userError: any) {
-      console.error('Error obteniendo usuario actual:', userError);
+      console.error('Error obteniendo usuario actual:', userError instanceof Error ? userError.message : 'Error desconocido');
       throw new Error(`No se pudo obtener el usuario actual: ${userError?.message || 'Error desconocido'}`);
     }
 
@@ -29,7 +29,7 @@ export async function cargarDocumentoCliente(clienteId: number, tipoDocumentoId:
       headers: {}
     });
   } catch (error: any) {
-    console.error('Error en cargarDocumentoCliente:', error);
+    console.error('Error en cargarDocumentoCliente:', error instanceof Error ? error.message : 'Error desconocido');
     throw error;
   }
 }

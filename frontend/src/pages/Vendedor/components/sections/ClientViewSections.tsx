@@ -146,11 +146,8 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                         src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDoc.id}`}
                         className="w-full h-64 border border-gray-300 rounded-lg"
                         title={`Previsualización de ${document.nombre}`}
-                        onError={(e) => {
-                          console.error('❌ Error cargando documento en iframe:', e, loadedDoc);
-                        }}
-                        onLoad={() => {
-                          console.log('✅ Documento cargado exitosamente en iframe:', loadedDoc);
+                        onError={() => {
+                          console.error('Error cargando documento en iframe');
                         }}
                       />
                       <div className="mt-2 flex justify-end">

@@ -43,7 +43,7 @@ public class AutorizacionController {
     public ResponseEntity<?> generarAutorizacion(@RequestBody Map<String, Object> requestData) {
         try {
             log.info("POST /api/autorizaciones/generar - Generando autorizacion de venta");
-            log.info("Datos recibidos: {}", requestData);
+            log.debug("Datos recibidos keys: {}", requestData.keySet());
 
             // Validar datos requeridos
             if (requestData.get("clienteId") == null) {

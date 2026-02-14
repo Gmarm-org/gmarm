@@ -283,7 +283,7 @@ const LicenseManagement: React.FC = () => {
       setTotalPages(response.totalPages);
     } catch (err) {
       setError('Error al cargar las licencias');
-      console.error('Error loading licenses:', err);
+      console.error('Error loading licenses:', err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -353,7 +353,7 @@ const LicenseManagement: React.FC = () => {
       loadLicenses();
       alert('Licencia creada exitosamente');
     } catch (err) {
-      console.error('Error creating license:', err);
+      console.error('Error creating license:', err instanceof Error ? err.message : 'Error desconocido');
       alert('Error al crear la licencia');
     }
   };
@@ -415,7 +415,7 @@ const LicenseManagement: React.FC = () => {
       loadLicenses();
       alert('Licencia actualizada exitosamente');
     } catch (err) {
-      console.error('Error updating license:', err);
+      console.error('Error updating license:', err instanceof Error ? err.message : 'Error desconocido');
       alert('Error al actualizar la licencia');
     }
   };
@@ -430,7 +430,7 @@ const LicenseManagement: React.FC = () => {
       loadLicenses();
       alert('Licencia eliminada exitosamente');
     } catch (err) {
-      console.error('Error deleting license:', err);
+      console.error('Error deleting license:', err instanceof Error ? err.message : 'Error desconocido');
       alert('Error al eliminar la licencia');
     }
   };

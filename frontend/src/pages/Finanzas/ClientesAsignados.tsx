@@ -64,9 +64,7 @@ const ClientesAsignados: React.FC = () => {
   const cargarClientesAsignados = async () => {
     setLoadingClientes(true);
     try {
-      console.log('🔄 Finanzas - Cargando clientes con armas asignadas...');
       const response = await apiService.getTodosClientes();
-      console.log('✅ Finanzas - Total clientes cargados:', response.length);
       
       const weaponAssignments: Record<string, WeaponAssignment> = {};
       const clientesConArmaAsignada: ClienteConVendedor[] = [];
@@ -101,22 +99,21 @@ const ClientesAsignados: React.FC = () => {
                 const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
                 autorizacionesTemp[client.id] = autorizacionesResponse || [];
               } catch (error) {
-                console.warn(`No se pudieron cargar autorizaciones para cliente ${client.id}:`, error);
+                // No se pudieron cargar autorizaciones para este cliente
                 autorizacionesTemp[client.id] = [];
               }
             }
           }
         } catch (error) {
-          console.warn(`No se pudieron cargar armas para cliente ${client.id}:`, error);
+          // No se pudieron cargar armas para este cliente
         }
       }
       
-      console.log('✅ Finanzas - Clientes con armas asignadas:', clientesConArmaAsignada.length);
       setClientesAsignados(clientesConArmaAsignada);
       setClientWeaponAssignments(weaponAssignments);
       setAutorizaciones(autorizacionesTemp);
     } catch (error) {
-      console.error('❌ Finanzas - Error cargando clientes asignados:', error);
+      console.error('Error cargando clientes asignados:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error cargando la lista de clientes asignados: ${error}`);
     } finally {
       setLoadingClientes(false);
@@ -152,21 +149,13 @@ const ClientesAsignados: React.FC = () => {
 
     setGenerando(true);
     try {
-      console.log('📄 Generando autorización para:', {
-        clienteId: clienteSeleccionado.id,
+      await apiService.generarAutorizacion(
+        clienteSeleccionado.id,
         numeroFactura,
-        tramite
-      });
-      
-      const response = await apiService.generarAutorizacion(
-        clienteSeleccionado.id, 
-        numeroFactura, 
         tramite
       );
       
-      console.log('✅ Autorización generada:', response);
-      
-      alert('✅ Autorización de venta generada exitosamente');
+      alert('Autorizacion de venta generada exitosamente');
       
       // Cerrar modal
       handleCerrarModal();
@@ -174,7 +163,7 @@ const ClientesAsignados: React.FC = () => {
       // Recargar toda la lista de clientes para actualizar el botón
       await cargarClientesAsignados();
     } catch (error) {
-      console.error('Error generando autorización:', error);
+      console.error('Error generando autorizacion:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error generando la autorización: ${error}`);
     } finally {
       setGenerando(false);
@@ -403,11 +392,7 @@ const ClientesAsignados: React.FC = () => {
                         {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-EC') : '-'}
                       </td>
                       <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
-                        {(() => {
-                          const tieneAutorizacion = autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0;
-                          console.log('🔍 DEBUG Cliente:', cliente.id, '- Autorizaciones:', autorizaciones[cliente.id], '- Tiene:', tieneAutorizacion);
-                          return tieneAutorizacion;
-                        })() ? (
+                        {(autorizaciones[cliente.id] && autorizaciones[cliente.id].length > 0) ? (
                           <div className="flex flex-col gap-2">
                             {/* Botón Ver Autorización */}
                             <button
