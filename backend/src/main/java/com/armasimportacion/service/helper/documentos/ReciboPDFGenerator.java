@@ -10,8 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -21,6 +24,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ReciboPDFGenerator {
+
+    private static final DateTimeFormatter FECHA_ESPANOL_FMT = DateTimeFormatter.ofPattern("dd 'de' MMMM yyyy", Locale.forLanguageTag("es"));
+    private static final DateTimeFormatter FECHA_SIMPLE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FECHA_PAGO_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private final DocumentoPDFUtils utils;
     private final ClienteArmaRepository clienteArmaRepository;
@@ -67,19 +74,17 @@ public class ReciboPDFGenerator {
             BigDecimal montoAntesIva = cuota.getMonto();
             BigDecimal montoConIva = montoAntesIva.multiply(BigDecimal.valueOf(1 + ivaDecimal));
 
-            java.time.LocalDate fechaActual = java.time.LocalDate.now();
+            LocalDate fechaActual = LocalDate.now();
             String fechaDocumento;
             try {
-                fechaDocumento = fechaActual.format(
-                    java.time.format.DateTimeFormatter.ofPattern("dd 'de' MMMM yyyy",
-                        java.util.Locale.forLanguageTag("es")));
+                fechaDocumento = fechaActual.format(FECHA_ESPANOL_FMT);
             } catch (Exception e) {
                 log.warn("⚠️ Error formateando fecha con locale español, usando formato simple: {}", e.getMessage());
-                fechaDocumento = fechaActual.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                fechaDocumento = fechaActual.format(FECHA_SIMPLE_FMT);
             }
 
             Map<String, Object> variables = new HashMap<>();
-            int year = java.time.LocalDate.now().getYear();
+            int year = fechaActual.getYear();
             String iniciales = utils.obtenerInicialesImportador(cliente);
             int fallbackSeq = cuota.getId() != null ? Math.max(cuota.getId().intValue(), 100) : 100;
             String numeroReciboFallback = String.format("RC-%s-%d-%06d", iniciales, year, fallbackSeq);
@@ -88,12 +93,12 @@ public class ReciboPDFGenerator {
             String fechaPagoStr;
             if (cuota.getFechaPago() != null) {
                 try {
-                    fechaPagoStr = cuota.getFechaPago().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                    fechaPagoStr = cuota.getFechaPago().format(FECHA_PAGO_FMT);
                 } catch (Exception e) {
-                    fechaPagoStr = fechaActual.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                    fechaPagoStr = fechaActual.format(FECHA_PAGO_FMT);
                 }
             } else {
-                fechaPagoStr = fechaActual.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                fechaPagoStr = fechaActual.format(FECHA_PAGO_FMT);
             }
             variables.put("fechaPago", fechaPagoStr);
             variables.put("fechaDocumento", fechaDocumento);

@@ -154,9 +154,7 @@ public class LicenciaController {
                                 .ifPresent(existingLicencia::setProvincia);
                     }
                     if (licenciaDTO.getCanton() != null && !licenciaDTO.getCanton().isEmpty()) {
-                        cantonRepository.findAll().stream()
-                                .filter(c -> c.getNombre().equalsIgnoreCase(licenciaDTO.getCanton()))
-                                .findFirst()
+                        cantonRepository.findByNombreIgnoreCase(licenciaDTO.getCanton())
                                 .ifPresent(existingLicencia::setCanton);
                     }
                     

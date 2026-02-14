@@ -84,10 +84,7 @@ public class LicenciaMapper {
                     .ifPresent(licencia::setProvincia);
         }
         if (dto.getCanton() != null && !dto.getCanton().isEmpty()) {
-            // Buscar canton por nombre (sin provincia específica, asumiendo nombres únicos)
-            cantonRepository.findAll().stream()
-                    .filter(c -> c.getNombre().equalsIgnoreCase(dto.getCanton()))
-                    .findFirst()
+            cantonRepository.findByNombreIgnoreCase(dto.getCanton())
                     .ifPresent(licencia::setCanton);
         }
         

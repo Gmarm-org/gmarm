@@ -155,21 +155,17 @@ public class PedidoArmasGrupoImportacionService {
         
         // Obtener clientes del grupo
         List<ClienteGrupoImportacion> clientesGrupo = clienteGrupoRepository.findByGrupoImportacionId(grupo.getId());
-        
-        // Obtener armas de todos los clientes del grupo (solo RESERVADAS o ASIGNADAS)
-        List<ClienteArma> armasGrupo = new java.util.ArrayList<>();
-        for (ClienteGrupoImportacion clienteGrupo : clientesGrupo) {
-            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteIdAndEstado(
-                clienteGrupo.getCliente().getId(), 
-                ClienteArma.EstadoClienteArma.RESERVADA
-            );
-            // También incluir armas ASIGNADAS por si acaso
-            armasCliente.addAll(clienteArmaRepository.findByClienteIdAndEstado(
-                clienteGrupo.getCliente().getId(), 
-                ClienteArma.EstadoClienteArma.ASIGNADA
-            ));
-            armasGrupo.addAll(armasCliente);
-        }
+
+        // Obtener armas de todos los clientes del grupo en UNA sola query batch
+        // Antes: 2N queries (RESERVADA + ASIGNADA por cada cliente). Ahora: 1 query.
+        List<Long> clienteIds = clientesGrupo.stream()
+            .map(cg -> cg.getCliente().getId())
+            .toList();
+        List<ClienteArma> armasGrupo = clienteIds.isEmpty()
+            ? List.of()
+            : clienteArmaRepository.findByClienteIdInAndEstadoIn(
+                clienteIds,
+                List.of(ClienteArma.EstadoClienteArma.RESERVADA, ClienteArma.EstadoClienteArma.ASIGNADA));
         
         log.info("📋 Total de armas encontradas para el grupo: {}", armasGrupo.size());
         

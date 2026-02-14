@@ -69,6 +69,10 @@ public interface GrupoImportacionRepository extends JpaRepository<GrupoImportaci
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin);
     
+    // Grupos activos (excluye COMPLETADO y CANCELADO) - evita findAll().stream().filter()
+    @Query("SELECT gi FROM GrupoImportacion gi WHERE gi.estado NOT IN :estadosExcluidos")
+    List<GrupoImportacion> findByEstadoNotIn(@Param("estadosExcluidos") List<EstadoGrupoImportacion> estadosExcluidos);
+
     // Generar código único
     @Query("SELECT COUNT(gi) FROM GrupoImportacion gi WHERE gi.codigo LIKE :prefijo%")
     Long countByCodigoPrefijo(@Param("prefijo") String prefijo);

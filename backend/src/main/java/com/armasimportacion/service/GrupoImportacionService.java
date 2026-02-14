@@ -560,10 +560,8 @@ public class GrupoImportacionService {
     // ============================================================
 
     public List<GrupoImportacion> obtenerGruposActivos() {
-        return grupoImportacionRepository.findAll().stream()
-            .filter(grupo -> grupo.getEstado() != EstadoGrupoImportacion.COMPLETADO)
-            .filter(grupo -> grupo.getEstado() != EstadoGrupoImportacion.CANCELADO)
-            .collect(Collectors.toList());
+        return grupoImportacionRepository.findByEstadoNotIn(
+            List.of(EstadoGrupoImportacion.COMPLETADO, EstadoGrupoImportacion.CANCELADO));
     }
 
     @Transactional(readOnly = true)

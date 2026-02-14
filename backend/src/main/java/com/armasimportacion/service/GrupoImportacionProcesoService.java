@@ -89,6 +89,7 @@ public class GrupoImportacionProcesoService {
         List<GrupoImportacionProceso> procesosPendientes = procesoRepository.findProcesosPendientesHasta(fechaLimite);
 
         List<AlertaProcesoImportacionDTO> alertas = new ArrayList<>();
+        List<GrupoImportacionProceso> procesosActualizados = new ArrayList<>();
         LocalDateTime ahora = LocalDateTime.now();
         LocalDateTime inicioDia = ahora.toLocalDate().atStartOfDay();
 
@@ -116,7 +117,12 @@ public class GrupoImportacionProcesoService {
 
             alertas.add(alerta);
             proceso.setFechaUltimaAlerta(ahora);
-            procesoRepository.save(proceso);
+            procesosActualizados.add(proceso);
+        }
+
+        // Batch save en vez de save() individual en loop
+        if (!procesosActualizados.isEmpty()) {
+            procesoRepository.saveAll(procesosActualizados);
         }
 
         if (!alertas.isEmpty()) {

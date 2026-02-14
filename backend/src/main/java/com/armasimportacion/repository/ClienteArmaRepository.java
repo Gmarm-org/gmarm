@@ -74,6 +74,14 @@ public interface ClienteArmaRepository extends JpaRepository<ClienteArma, Long> 
 
     // Buscar por rango de fechas
     @Query("SELECT ca FROM ClienteArma ca WHERE ca.fechaCreacion BETWEEN :fechaInicio AND :fechaFin")
-    List<ClienteArma> findByFechaCreacionBetween(@Param("fechaInicio") java.time.LocalDateTime fechaInicio, 
+    List<ClienteArma> findByFechaCreacionBetween(@Param("fechaInicio") java.time.LocalDateTime fechaInicio,
                                                 @Param("fechaFin") java.time.LocalDateTime fechaFin);
+
+    // Sumar cantidad asignada por arma en batch - evita N+1 en ArmaStockMapper
+    @Query("SELECT ca.arma.id, COALESCE(SUM(ca.cantidad), 0) FROM ClienteArma ca WHERE ca.arma.id IN :armaIds AND ca.estado = :estado GROUP BY ca.arma.id")
+    List<Object[]> sumCantidadByArmaIdInAndEstado(@Param("armaIds") List<Long> armaIds, @Param("estado") ClienteArma.EstadoClienteArma estado);
+
+    // Buscar por múltiples clientes y estados en batch - evita N+1 en PedidoArmasService
+    @Query("SELECT ca FROM ClienteArma ca JOIN FETCH ca.arma a LEFT JOIN FETCH a.categoria WHERE ca.cliente.id IN :clienteIds AND ca.estado IN :estados")
+    List<ClienteArma> findByClienteIdInAndEstadoIn(@Param("clienteIds") List<Long> clienteIds, @Param("estados") List<ClienteArma.EstadoClienteArma> estados);
 }

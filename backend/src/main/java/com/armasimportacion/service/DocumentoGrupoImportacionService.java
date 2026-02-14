@@ -165,15 +165,14 @@ public class DocumentoGrupoImportacionService {
             return false;
         }
         
-        // Verificar que cada tipo tenga al menos un documento cargado
+        // Cargar todos los documentos del grupo en una sola query y verificar en memoria
+        List<DocumentoGrupoImportacion> todosDocumentos = repository.findByGrupoImportacionId(grupoId);
         for (TipoDocumento tipoRequerido : tiposRequeridos) {
-            List<DocumentoGrupoImportacion> documentos = repository
-                .findByGrupoImportacionIdAndTipoDocumentoId(grupoId, tipoRequerido.getId());
-            
-            boolean tieneDocumentoCargado = documentos.stream()
-                .anyMatch(doc -> doc.getEstado() == EstadoDocumentoGrupo.CARGADO || 
+            boolean tieneDocumentoCargado = todosDocumentos.stream()
+                .filter(doc -> doc.getTipoDocumento().getId().equals(tipoRequerido.getId()))
+                .anyMatch(doc -> doc.getEstado() == EstadoDocumentoGrupo.CARGADO ||
                                doc.getEstado() == EstadoDocumentoGrupo.APROBADO);
-            
+
             if (!tieneDocumentoCargado) {
                 log.info("⚠️ Falta documento: {}", tipoRequerido.getNombre());
                 return false;
