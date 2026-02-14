@@ -20,11 +20,11 @@ Este archivo contiene las mejores prácticas y convenciones específicas del pro
 
 **IMPORTANTE**: Este documento complementa las **reglas globales** en `.cursor/rules/global.mdc`.
 
-- **`.cursor/rules/global.mdc`**: Reglas automáticas aplicadas por Cursor (código, SOLID, KISS, etc.)
+- **`.cursor/rules/global.mdc`**: Reglas automáticas aplicadas por el editor (código, SOLID, KISS, etc.)
 - **`AGENTS.md`**: Convenciones específicas del proyecto GMARM (configuración, workflows, Docker, etc.)
-- **`CURSOR_RULES_GUIDE.md`**: Guía de uso de las reglas globales
+- **`CLAUDE.md`**: Guía principal para IAs trabajando en el proyecto
 
-**Ambos documentos trabajan juntos** - las reglas globales definen estándares de código, este documento define cómo aplicarlos en GMARM.
+**Estos documentos trabajan juntos** - las reglas globales definen estándares de código, este documento define cómo aplicarlos en GMARM.
 
 ## 🏗️ Arquitectura del Proyecto
 
