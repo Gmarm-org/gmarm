@@ -205,8 +205,7 @@ public class ContratoService {
     }
 
     @Transactional(readOnly = true)
-    public List<DocumentoGenerado> obtenerContratosPorCliente(Long clienteId) {
-        return documentoGeneradoRepository.findByClienteIdAndTipo(
-            clienteId, TipoDocumentoGenerado.CONTRATO);
+    public List<DocumentoGenerado> obtenerDocumentosGeneradosPorCliente(Long clienteId) {
+        return documentoGeneradoRepository.findByClienteId(clienteId);
     }
 }

@@ -24,11 +24,11 @@ public class ContratoController {
     private final DocumentoGeneradoMapper documentoGeneradoMapper;
 
     @GetMapping("/cliente/{clienteId}")
-    @Operation(summary = "Obtener contratos de un cliente")
+    @Operation(summary = "Obtener documentos generados de un cliente")
     public ResponseEntity<List<DocumentoGeneradoDTO>> getContratosCliente(@PathVariable Long clienteId) {
-        log.info("Obteniendo contratos para cliente ID: {}", clienteId);
-        List<DocumentoGenerado> contratos = contratoService.obtenerContratosPorCliente(clienteId);
-        log.info("Encontrados {} contratos para cliente {}", contratos.size(), clienteId);
-        return ResponseEntity.ok(documentoGeneradoMapper.toDTOList(contratos));
+        log.info("Obteniendo documentos generados para cliente ID: {}", clienteId);
+        List<DocumentoGenerado> documentos = contratoService.obtenerDocumentosGeneradosPorCliente(clienteId);
+        log.info("Encontrados {} documentos generados para cliente {}", documentos.size(), clienteId);
+        return ResponseEntity.ok(documentoGeneradoMapper.toDTOList(documentos));
     }
 }

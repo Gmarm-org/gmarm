@@ -176,7 +176,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
         </div>
       )}
       
-      {/* Sección de Contratos Generados */}
+      {/* Sección de Documentos Generados */}
       <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
         <div className="flex items-center mb-6">
           <div className="bg-purple-100 p-3 rounded-full mr-4">
@@ -185,7 +185,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
             </svg>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Contratos Generados</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Documentos Generados</h2>
             <p className="text-sm text-gray-600 mt-1">Documentos generados al finalizar el proceso de creación del cliente</p>
           </div>
         </div>
@@ -200,7 +200,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                     <p className="text-sm text-gray-500 mb-3">{contrato.descripcion}</p>
                     <div className="flex flex-wrap gap-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        📄 Contrato
+                        📄 {contrato.tipoDocumento === 'CONTRATO' ? 'Contrato' : contrato.tipoDocumento === 'COTIZACION' ? 'Cotización' : contrato.tipoDocumento === 'SOLICITUD_COMPRA' ? 'Solicitud de Compra' : contrato.tipoDocumento === 'RECIBO' ? 'Recibo' : 'Documento'}
                       </span>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         ✅ Generado
@@ -231,7 +231,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <span>Ver Contrato</span>
+                    <span>Ver Documento</span>
                   </button>
                   
                   <button
@@ -260,8 +260,8 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay contratos generados</h3>
-            <p className="text-gray-500 mb-4">Los contratos se generarán automáticamente al finalizar el proceso de creación del cliente.</p>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay documentos generados</h3>
+            <p className="text-gray-500 mb-4">Los documentos se generarán automáticamente al finalizar el proceso de creación del cliente.</p>
             <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
