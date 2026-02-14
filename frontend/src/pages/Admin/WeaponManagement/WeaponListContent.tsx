@@ -31,10 +31,9 @@ const WeaponListContent: React.FC = () => {
     try {
       setIsLoading(true);
       const data = await weaponApi.getAll();
-      console.log('🔫 WeaponList - Armas cargadas:', data);
       setWeapons(data);
     } catch (error) {
-      console.error('Error cargando armas:', error);
+      console.error('Error cargando armas:', error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsLoading(false);
     }
@@ -42,12 +41,10 @@ const WeaponListContent: React.FC = () => {
 
   const loadCategories = async () => {
     try {
-      console.log('🔍 WeaponList - Iniciando carga de categorías...');
       const data = await weaponCategoryApi.getAll();
-      console.log('🔍 WeaponList - Categorías obtenidas:', data);
       setCategories(data);
     } catch (error) {
-      console.error('❌ WeaponList - Error cargando categorías:', error);
+      console.error('Error cargando categorías:', error instanceof Error ? error.message : 'Error desconocido');
     }
   };
 
@@ -94,7 +91,7 @@ const WeaponListContent: React.FC = () => {
       await loadWeapons(); // Recargar la lista
       setEditModalOpen(false);
     } catch (error) {
-      console.error('Error actualizando arma:', error);
+      console.error('Error actualizando arma:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al actualizar la arma');
     }
   };
@@ -111,7 +108,7 @@ const WeaponListContent: React.FC = () => {
       await loadWeapons(); // Recargar la lista
       setDeleteModalOpen(false);
     } catch (error) {
-      console.error('Error desactivando arma:', error);
+      console.error('Error desactivando arma:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al desactivar la arma');
     }
   };
@@ -124,7 +121,7 @@ const WeaponListContent: React.FC = () => {
       });
       await loadWeapons(); // Recargar la lista
     } catch (error) {
-      console.error('Error reactivando arma:', error);
+      console.error('Error reactivando arma:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al reactivar la arma');
     }
   };
@@ -140,7 +137,7 @@ const WeaponListContent: React.FC = () => {
       setCreateModalOpen(false);
       alert('Arma creada exitosamente');
     } catch (error) {
-      console.error('Error creando arma:', error);
+      console.error('Error creando arma:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al crear la arma: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   };

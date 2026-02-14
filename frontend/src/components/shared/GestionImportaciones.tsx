@@ -112,7 +112,7 @@ const GestionImportaciones: React.FC = () => {
             const procesos = await apiService.getProcesosGrupoImportacion(grupo.grupoId);
             procesosData[grupo.grupoId] = Array.isArray(procesos) ? procesos : [];
           } catch (error) {
-            console.warn('No se pudo cargar procesos para grupo', grupo.grupoId, error);
+            // Procesos no disponibles para este grupo
             procesosData[grupo.grupoId] = [];
           }
         })
@@ -122,10 +122,10 @@ const GestionImportaciones: React.FC = () => {
         const alertas = await apiService.getAlertasProcesosImportacion();
         setAlertasProceso(Array.isArray(alertas) ? alertas : []);
       } catch (error) {
-        console.warn('No se pudieron cargar alertas de procesos:', error);
+        // Alertas de procesos no disponibles
       }
     } catch (error) {
-      console.error('Error cargando grupos:', error);
+      console.error('Error cargando grupos:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar los grupos de importación');
     } finally {
       setLoading(false);
@@ -137,7 +137,7 @@ const GestionImportaciones: React.FC = () => {
       const clientes = await apiService.getClientesDelGrupo(grupoId);
       setClientesGrupo(clientes);
     } catch (error) {
-      console.error('Error cargando clientes del grupo:', error);
+      console.error('Error cargando clientes del grupo:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar los clientes del grupo');
     }
   };
@@ -157,7 +157,7 @@ const GestionImportaciones: React.FC = () => {
         [grupoId]: Array.isArray(data) ? data : prev[grupoId]
       }));
     } catch (error) {
-      console.error('Error actualizando proceso:', error);
+      console.error('Error actualizando proceso:', error instanceof Error ? error.message : 'Unknown error');
       alert('No se pudo actualizar el proceso');
     }
   };

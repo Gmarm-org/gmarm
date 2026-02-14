@@ -89,13 +89,13 @@ public class ClienteProcesoService {
 
         try {
             emailService.enviarContratoCliente(cliente, documentos, respuestas);
-            log.info("✅ Proceso completado y contrato enviado para cliente: {}", cliente.getNombreCompleto());
+            log.info("Proceso completado y contrato enviado para cliente: {}", cliente.getNombreCompleto());
         } catch (Exception e) {
-            log.error("❌ Error al enviar contrato: {}", e.getMessage());
+            log.error("Error al enviar contrato: {}", e.getMessage());
         }
 
         // TODO: Implementar notificación de proceso completado
-        log.info("✅ Proceso completado para cliente ID: {}", clienteId);
+        log.info("Proceso completado para cliente ID: {}", clienteId);
     }
 
     /**
@@ -107,9 +107,9 @@ public class ClienteProcesoService {
 
         try {
             emailService.enviarConfirmacionProceso(cliente);
-            log.info("✅ Confirmación enviada para cliente: {}", cliente.getNombreCompleto());
+            log.info("Confirmación enviada para cliente: {}", cliente.getNombreCompleto());
         } catch (Exception e) {
-            log.error("❌ Error al enviar confirmación: {}", e.getMessage());
+            log.error("Error al enviar confirmación: {}", e.getMessage());
             throw new RuntimeException("Error al enviar confirmación", e);
         }
     }

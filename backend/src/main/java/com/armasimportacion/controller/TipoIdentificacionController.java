@@ -31,46 +31,46 @@ public class TipoIdentificacionController {
         List<TipoIdentificacionDTO> tipos = incluirInactivos 
             ? mapper.toDTOList(service.findAll())
             : mapper.toDTOList(service.findAllActive());
-        log.info("✅ Tipos de identificación encontrados: {}", tipos.size());
+        log.info("Tipos de identificacion encontrados: {}", tipos.size());
         return ResponseEntity.ok(tipos);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener tipo de identificación por ID", description = "Retorna un tipo de identificación específico")
     public ResponseEntity<TipoIdentificacionDTO> getTipoIdentificacionById(@PathVariable Long id) {
-        log.info("📋 GET /api/tipo-identificacion/{} - Obteniendo tipo", id);
+        log.info("GET /api/tipo-identificacion/{} - Obteniendo tipo", id);
         return ResponseEntity.ok(mapper.toDTO(service.findById(id)));
     }
 
     @PostMapping
     @Operation(summary = "Crear nuevo tipo de identificación", description = "Crea un nuevo tipo de identificación")
     public ResponseEntity<TipoIdentificacionDTO> createTipoIdentificacion(@RequestBody TipoIdentificacionDTO dto) {
-        log.info("📝 POST /api/tipo-identificacion - Creando nuevo tipo: {}", dto.getNombre());
+        log.info("POST /api/tipo-identificacion - Creando nuevo tipo: {}", dto.getNombre());
         var entity = mapper.toEntity(dto);
         var saved = service.save(entity);
-        log.info("✅ Tipo de identificación creado con ID: {}", saved.getId());
+        log.info("Tipo de identificacion creado con ID: {}", saved.getId());
         return ResponseEntity.ok(mapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar tipo de identificación", description = "Actualiza un tipo de identificación existente")
     public ResponseEntity<TipoIdentificacionDTO> updateTipoIdentificacion(@PathVariable Long id, @RequestBody TipoIdentificacionDTO dto) {
-        log.info("📝 PUT /api/tipo-identificacion/{} - Actualizando tipo", id);
+        log.info("PUT /api/tipo-identificacion/{} - Actualizando tipo", id);
         var existing = service.findById(id);
         existing.setNombre(dto.getNombre());
         existing.setDescripcion(dto.getDescripcion());
         existing.setEstado(dto.getEstado());
         var updated = service.save(existing);
-        log.info("✅ Tipo de identificación actualizado: {}", updated.getNombre());
+        log.info("Tipo de identificacion actualizado: {}", updated.getNombre());
         return ResponseEntity.ok(mapper.toDTO(updated));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar tipo de identificación", description = "Elimina un tipo de identificación")
     public ResponseEntity<Void> deleteTipoIdentificacion(@PathVariable Long id) {
-        log.info("🗑️ DELETE /api/tipo-identificacion/{} - Eliminando tipo", id);
+        log.info("DELETE /api/tipo-identificacion/{} - Eliminando tipo", id);
         service.delete(id);
-        log.info("✅ Tipo de identificación eliminado");
+        log.info("Tipo de identificacion eliminado");
         return ResponseEntity.ok().build();
     }
 }

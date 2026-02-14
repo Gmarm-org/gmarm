@@ -68,7 +68,7 @@ public class OperacionesController {
     public ResponseEntity<List<GrupoImportacionDTO>> listarGrupos(
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📋 Listando grupos para operaciones");
+            log.info("Listando grupos para operaciones");
             
             // TODO: Implementar filtrado por estado en el repositorio
             // Por ahora retornamos todos, el frontend filtrará
@@ -100,7 +100,7 @@ public class OperacionesController {
                         dto.setDocumentosRequeridosCargados((Integer) estadoDocs.get("documentosRequeridosCargados"));
                         dto.setPuedeNotificarPago((Boolean) estadoDocs.get("puedeNotificarPago"));
                     } catch (Exception e) {
-                        log.warn("⚠️ Error obteniendo estado de documentos para grupo {}: {}", g.getId(), e.getMessage());
+                        log.warn("Error obteniendo estado de documentos para grupo {}: {}", g.getId(), e.getMessage());
                     }
                     
                     return dto;
@@ -109,7 +109,7 @@ public class OperacionesController {
             
             return ResponseEntity.ok(dtos);
         } catch (Exception e) {
-            log.error("❌ Error listando grupos para operaciones: {}", e.getMessage(), e);
+            log.error("Error listando grupos para operaciones: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -123,13 +123,13 @@ public class OperacionesController {
     public ResponseEntity<GrupoImportacionResumenDTO> obtenerGrupo(
             @PathVariable Long id) {
         try {
-            log.info("📋 Obteniendo detalle del grupo ID: {}", id);
+            log.info("Obteniendo detalle del grupo ID: {}", id);
             
             GrupoImportacionResumenDTO resumen = grupoImportacionService.obtenerResumenGrupo(id);
             
             return ResponseEntity.ok(resumen);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo grupo ID {}: {}", id, e.getMessage(), e);
+            log.error("Error obteniendo grupo ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
@@ -147,7 +147,7 @@ public class OperacionesController {
             @RequestParam(value = "descripcion", required = false) String descripcion,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📄 Cargando documento para grupo ID: {}, tipo: {}", grupoId, tipoDocumentoId);
+            log.info("Cargando documento para grupo ID: {}, tipo: {}", grupoId, tipoDocumentoId);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
@@ -156,7 +156,7 @@ public class OperacionesController {
             
             return ResponseEntity.ok(documento);
         } catch (Exception e) {
-            log.error("❌ Error cargando documento: {}", e.getMessage(), e);
+            log.error("Error cargando documento: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(null);
         }
@@ -171,14 +171,14 @@ public class OperacionesController {
     public ResponseEntity<List<DocumentoGrupoImportacionDTO>> listarDocumentos(
             @PathVariable Long grupoId) {
         try {
-            log.info("📄 Listando documentos del grupo ID: {}", grupoId);
+            log.info("Listando documentos del grupo ID: {}", grupoId);
             
             List<DocumentoGrupoImportacionDTO> documentos = 
                 documentoGrupoImportacionService.obtenerDocumentosPorGrupo(grupoId);
             
             return ResponseEntity.ok(documentos);
         } catch (Exception e) {
-            log.error("❌ Error listando documentos: {}", e.getMessage(), e);
+            log.error("Error listando documentos: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -193,13 +193,13 @@ public class OperacionesController {
             @PathVariable Long grupoId,
             @PathVariable Long documentoId) {
         try {
-            log.info("🗑️ Eliminando documento ID: {} del grupo ID: {}", documentoId, grupoId);
+            log.info("Eliminando documento ID: {} del grupo ID: {}", documentoId, grupoId);
             
             documentoGrupoImportacionService.eliminarDocumento(documentoId);
             
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            log.error("❌ Error eliminando documento: {}", e.getMessage(), e);
+            log.error("Error eliminando documento: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -214,7 +214,7 @@ public class OperacionesController {
             @PathVariable Long grupoId,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("💰 Notificando pago a fábrica para grupo ID: {}", grupoId);
+            log.info("Notificando pago a fabrica para grupo ID: {}", grupoId);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
@@ -225,7 +225,7 @@ public class OperacionesController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error notificando pago a fábrica: {}", e.getMessage(), e);
+            log.error("Error notificando pago a fabrica: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -251,7 +251,7 @@ public class OperacionesController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error verificando documentos: {}", e.getMessage(), e);
+            log.error("Error verificando documentos: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -269,7 +269,7 @@ public class OperacionesController {
             @RequestParam("fechaLlegada") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaLlegada,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📅 Registrando fecha de llegada para grupo ID: {} - Fecha: {}", grupoId, fechaLlegada);
+            log.info("Registrando fecha de llegada para grupo ID: {} - Fecha: {}", grupoId, fechaLlegada);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
@@ -280,7 +280,7 @@ public class OperacionesController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error registrando fecha de llegada: {}", e.getMessage(), e);
+            log.error("Error registrando fecha de llegada: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -298,7 +298,7 @@ public class OperacionesController {
             @RequestParam("numeroPrevia") String numeroPrevia,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📝 Registrando número de previa para grupo ID: {} - Número: {}", grupoId, numeroPrevia);
+            log.info("Registrando numero de previa para grupo ID: {} - Numero: {}", grupoId, numeroPrevia);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             
@@ -309,7 +309,7 @@ public class OperacionesController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error registrando número de previa: {}", e.getMessage(), e);
+            log.error("Error registrando numero de previa: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);

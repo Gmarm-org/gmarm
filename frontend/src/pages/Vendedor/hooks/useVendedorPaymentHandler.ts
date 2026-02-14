@@ -28,7 +28,6 @@ export const useVendedorPaymentHandler = (
   const handlePaymentComplete = useCallback(async (paymentData: any) => {
     // Prevenir múltiples submissions
     if ((handlePaymentComplete as any).isProcessing) {
-      console.warn('⚠️ Ya hay un proceso de pago en ejecución, ignorando solicitud duplicada');
       return;
     }
     
@@ -153,7 +152,6 @@ export const useVendedorPaymentHandler = (
       
       // Si llegamos aquí, el cliente se creó exitosamente
       const clienteId = (resultado as any).clienteId || resultado.id;
-      console.log('✅ Cliente creado exitosamente con ID:', clienteId);
       
       // Subir documentos (si hay) - estos errores no deben fallar todo el proceso
       let erroresDocumentos = [];
@@ -161,9 +159,8 @@ export const useVendedorPaymentHandler = (
         for (const [tipoDocumentoId, file] of Object.entries(documentosUsuario)) {
           try {
             await apiService.cargarDocumentoCliente(clienteId, parseInt(tipoDocumentoId), file as File);
-            console.log(`✅ Documento ${tipoDocumentoId} subido exitosamente`);
           } catch (error) {
-            console.error(`❌ Error subiendo documento ${tipoDocumentoId}:`, error);
+            console.error(`Error subiendo documento ${tipoDocumentoId}:`, error instanceof Error ? error.message : 'Error desconocido');
             erroresDocumentos.push(`documento ${tipoDocumentoId}`);
           }
         }
@@ -187,7 +184,7 @@ export const useVendedorPaymentHandler = (
       setCantidad(1);
       setClientFormData(null);
     } catch (error: any) {
-      console.error('❌ Error procesando pago:', error);
+      console.error('Error procesando pago:', error instanceof Error ? error.message : 'Error desconocido');
       
       // Extraer mensaje de error del backend
       let errorMessage = 'Error desconocido al crear el cliente';

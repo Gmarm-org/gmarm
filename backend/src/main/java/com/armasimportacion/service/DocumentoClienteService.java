@@ -59,7 +59,7 @@ public class DocumentoClienteService {
             .collect(java.util.stream.Collectors.toList());
         
         if (!documentosAnteriores.isEmpty()) {
-            log.info("📋 Encontrados {} documento(s) anterior(es) del tipo '{}' que serán marcados como REEMPLAZADO y sus archivos físicos eliminados", 
+            log.info("Encontrados {} documento(s) anterior(es) del tipo '{}' que serán marcados como REEMPLAZADO y sus archivos físicos eliminados", 
                     documentosAnteriores.size(), tipoDocumento.getNombre());
             
             int eliminadosExitosos = 0;
@@ -72,16 +72,16 @@ public class DocumentoClienteService {
                         // La ruta en BD es relativa (ej: "documentos_clientes/{cedula}/documentos_cargados/archivo.pdf")
                         // FileStorageService.deleteFile ya maneja la construcción de la ruta completa
                         fileStorageService.deleteFile(docAnterior.getRutaArchivo());
-                        log.info("🗑️ Archivo físico eliminado exitosamente: {}", docAnterior.getRutaArchivo());
+                        log.info("Archivo físico eliminado exitosamente: {}", docAnterior.getRutaArchivo());
                         eliminadosExitosos++;
                     } catch (Exception e) {
-                        log.error("❌ ERROR CRÍTICO: No se pudo eliminar el archivo físico {}: {}", 
+                        log.error("ERROR CRÍTICO: No se pudo eliminar el archivo físico {}: {}", 
                                 docAnterior.getRutaArchivo(), e.getMessage(), e);
                         eliminadosFallidos++;
                         // Continuar aunque falle la eliminación del archivo (puede que ya no exista)
                     }
                 } else {
-                    log.warn("⚠️ Documento ID {} no tiene ruta de archivo, solo se marcará como REEMPLAZADO en BD", docAnterior.getId());
+                    log.warn("Documento ID {} no tiene ruta de archivo, solo se marcará como REEMPLAZADO en BD", docAnterior.getId());
                 }
                 
                 // Marcar como REEMPLAZADO en BD (mantener registro para trazabilidad)
@@ -92,13 +92,13 @@ public class DocumentoClienteService {
                 docAnterior.setRutaArchivo(null);
                 docAnterior.setNombreArchivo(null);
                 repository.save(docAnterior);
-                log.info("✅ Documento ID {} marcado como REEMPLAZADO en BD", docAnterior.getId());
+                log.info("Documento ID {} marcado como REEMPLAZADO en BD", docAnterior.getId());
             }
             
-            log.info("✅ Proceso de reemplazo completado: {} archivo(s) eliminado(s) exitosamente, {} fallido(s). {} documento(s) marcado(s) como REEMPLAZADO en BD.", 
+            log.info("Proceso de reemplazo completado: {} archivo(s) eliminado(s) exitosamente, {} fallido(s). {} documento(s) marcado(s) como REEMPLAZADO en BD.", 
                     eliminadosExitosos, eliminadosFallidos, documentosAnteriores.size());
         } else {
-            log.info("ℹ️ No hay documentos anteriores del tipo '{}' para reemplazar. Se creará un nuevo documento.", tipoDocumento.getNombre());
+            log.info("No hay documentos anteriores del tipo '{}' para reemplazar. Se creará un nuevo documento.", tipoDocumento.getNombre());
         }
         
         // Crear nuevo documento (siempre crear uno nuevo para mantener historial)
@@ -107,7 +107,7 @@ public class DocumentoClienteService {
         documento.setTipoDocumento(tipoDocumento);
         documento.setUsuarioCarga(usuario);
         documento.setFechaCarga(LocalDateTime.now());
-        log.info("📄 Creando nuevo documento del tipo: {} (ID: {})", tipoDocumento.getNombre(), tipoDocumentoId);
+        log.info("Creando nuevo documento del tipo: {} (ID: {})", tipoDocumento.getNombre(), tipoDocumentoId);
         
         // Guardar archivo físico usando numeroIdentificacion y nombre del tipo de documento
         String rutaArchivo = fileStorageService.storeClientDocument(
@@ -214,13 +214,13 @@ public class DocumentoClienteService {
         // Si el cliente es fantasma, no requiere documentos obligatorios (es temporal)
         // Los clientes fantasma son para almacenar armas del vendedor sin cliente específico
         if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
-            log.debug("⚠️ Cliente fantasma detectado - no requiere documentos obligatorios");
+            log.debug("Cliente fantasma detectado - no requiere documentos obligatorios");
             return true;
         }
         
         // Si no tiene tipoProcesoId, no hay documentos obligatorios
         if (cliente.getTipoProcesoId() == null) {
-            log.debug("⚠️ Cliente sin tipoProcesoId - no hay documentos obligatorios");
+            log.debug("Cliente sin tipoProcesoId - no hay documentos obligatorios");
             return true;
         }
         
@@ -255,7 +255,7 @@ public class DocumentoClienteService {
                 });
             
             if (!tieneDocumentoCargado) {
-                log.debug("❌ Falta documento obligatorio cargado o aprobado: {} (ID: {})", tipoObligatorio.getNombre(), tipoObligatorio.getId());
+                log.debug("Falta documento obligatorio cargado o aprobado: {} (ID: {})", tipoObligatorio.getNombre(), tipoObligatorio.getId());
                 return false;
             }
         }

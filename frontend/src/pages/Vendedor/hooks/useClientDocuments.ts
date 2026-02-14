@@ -75,7 +75,7 @@ export const useClientDocuments = (
           }
         }
       } catch (error) {
-        console.error('❌ Error cargando documentos requeridos:', error);
+        console.error('Error cargando documentos requeridos:', error instanceof Error ? error.message : 'Error desconocido');
       }
     };
 
@@ -116,24 +116,12 @@ export const useClientDocuments = (
                   fechaCarga: doc.fechaCarga
                 };
               }
-            } else {
-              console.warn('⚠️ Documento omitido (reemplazado, sin ruta o sin ID):', {
-                nombre: doc.tipoDocumentoNombre,
-                estado: doc.estado,
-                tieneRuta: !!doc.rutaArchivo,
-                tieneId: !!doc.id
-              });
             }
           });
           setLoadedDocuments(documentosMap);
-          console.log('📄 Documentos cargados mapeados (excluyendo reemplazados):', documentosMap);
-          console.log('📄 Total documentos recibidos del backend:', documentos.length);
-          console.log('📄 Documentos válidos cargados:', Object.keys(documentosMap).length);
-        } else {
-          console.warn('⚠️ No se recibieron documentos del backend o no es un array:', documentos);
         }
       } catch (error) {
-        console.error('❌ Error cargando documentos del cliente:', error);
+        console.error('Error cargando documentos del cliente:', error instanceof Error ? error.message : 'Error desconocido');
       }
     };
 
@@ -176,7 +164,7 @@ export const useClientDocuments = (
         [document.nombre]: file
       }));
     } else {
-      console.error('❌ Documento no encontrado en requiredDocuments:', documentName);
+      console.error('Documento no encontrado en requiredDocuments:', documentName);
       // Fallback: usar el nombre del documento directamente
       setUploadedDocuments(prev => ({
         ...prev,

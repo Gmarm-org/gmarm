@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequestException(BadRequestException ex) {
-        log.warn("⚠️ BadRequest: {}", ex.getMessage());
+        log.warn("BadRequest: {}", ex.getMessage());
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        log.warn("⚠️ Recurso no encontrado: {}", ex.getMessage());
+        log.warn("Recurso no encontrado: {}", ex.getMessage());
         return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleEntityNotFoundException(EntityNotFoundException ex) {
-        log.warn("⚠️ Entidad no encontrada: {}", ex.getMessage());
+        log.warn("Entidad no encontrada: {}", ex.getMessage());
         return buildErrorResponse(
             HttpStatus.NOT_FOUND,
             "El recurso solicitado no fue encontrado en el sistema.",
@@ -93,7 +93,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.error("❌ Error de integridad de datos: {}", ex.getMessage());
+        log.error("Error de integridad de datos: {}", ex.getMessage());
 
         String mensaje = ex.getMessage();
         String mensajeUsuario;
@@ -128,7 +128,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        log.warn("⚠️ Violación de constraint: {}", ex.getMessage());
+        log.warn("Violación de constraint: {}", ex.getMessage());
 
         String errores = ex.getConstraintViolations().stream()
             .map(v -> v.getPropertyPath() + ": " + v.getMessage())
@@ -148,7 +148,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        log.warn("⚠️ Error de validación de argumentos");
+        log.warn("Error de validación de argumentos");
 
         Map<String, String> errores = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
@@ -172,7 +172,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Map<String, Object>> handleMissingServletRequestParameter(
             MissingServletRequestParameterException ex) {
-        log.warn("⚠️ Parámetro faltante: {}", ex.getParameterName());
+        log.warn("Parámetro faltante: {}", ex.getParameterName());
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST,
             "Falta el parámetro requerido: " + ex.getParameterName(),
@@ -186,7 +186,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
             MethodArgumentTypeMismatchException ex) {
-        log.warn("⚠️ Error de tipo de argumento: {}", ex.getName());
+        log.warn("Error de tipo de argumento: {}", ex.getName());
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST,
             "El valor proporcionado para '" + ex.getName() + "' no es válido.",
@@ -201,7 +201,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
-        log.warn("🔒 Acceso denegado: {}", ex.getMessage());
+        log.warn("Acceso denegado: {}", ex.getMessage());
         return buildErrorResponse(
             HttpStatus.FORBIDDEN,
             "No tiene permisos para realizar esta operación.",
@@ -214,7 +214,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        log.warn("🔒 Credenciales inválidas");
+        log.warn("Credenciales inválidas");
         return buildErrorResponse(
             HttpStatus.UNAUTHORIZED,
             "Las credenciales proporcionadas son incorrectas.",
@@ -230,7 +230,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Map<String, Object>> handleHttpRequestMethodNotSupported(
             HttpRequestMethodNotSupportedException ex) {
-        log.warn("⚠️ Método HTTP no soportado: {}", ex.getMethod());
+        log.warn("Método HTTP no soportado: {}", ex.getMethod());
         return buildErrorResponse(
             HttpStatus.METHOD_NOT_ALLOWED,
             "El método HTTP utilizado no está permitido para esta operación.",
@@ -244,7 +244,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Map<String, Object>> handleHttpMediaTypeNotSupported(
             HttpMediaTypeNotSupportedException ex) {
-        log.warn("⚠️ Tipo de media no soportado");
+        log.warn("Tipo de media no soportado");
         return buildErrorResponse(
             HttpStatus.UNSUPPORTED_MEDIA_TYPE,
             "El formato de los datos enviados no es soportado.",
@@ -258,7 +258,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(
             HttpMessageNotReadableException ex) {
-        log.warn("⚠️ Request body inválido: {}", ex.getMessage());
+        log.warn("Request body inválido: {}", ex.getMessage());
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST,
             "Los datos enviados tienen un formato incorrecto. Verifique e intente nuevamente.",
@@ -271,7 +271,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoHandlerFound(NoHandlerFoundException ex) {
-        log.warn("⚠️ Ruta no encontrada: {}", ex.getRequestURL());
+        log.warn("Ruta no encontrada: {}", ex.getRequestURL());
         return buildErrorResponse(
             HttpStatus.NOT_FOUND,
             "La ruta solicitada no existe.",
@@ -287,7 +287,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> handleMaxUploadSizeExceeded(
             MaxUploadSizeExceededException ex) {
-        log.warn("⚠️ Archivo demasiado grande");
+        log.warn("Archivo demasiado grande");
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST,
             "El archivo es demasiado grande. El tamaño máximo permitido es 10MB.",
@@ -303,7 +303,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.thymeleaf.exceptions.TemplateProcessingException.class)
     public ResponseEntity<Map<String, Object>> handleTemplateProcessingException(
             org.thymeleaf.exceptions.TemplateProcessingException ex) {
-        log.error("❌ Error procesando template: {}", ex.getMessage());
+        log.error("Error procesando template: {}", ex.getMessage());
 
         String mensaje;
         if (ex.getMessage() != null && ex.getMessage().contains("cannot be found")) {
@@ -322,7 +322,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        log.error("❌ RuntimeException: {}", ex.getMessage(), ex);
+        log.error("RuntimeException: {}", ex.getMessage(), ex);
 
         String mensaje = ex.getMessage();
         String mensajeUsuario;
@@ -355,7 +355,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("⚠️ Argumento inválido: {}", ex.getMessage());
+        log.warn("Argumento inválido: {}", ex.getMessage());
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST,
             ex.getMessage() != null ? ex.getMessage() : "Los datos proporcionados no son válidos.",
@@ -368,7 +368,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalStateException(IllegalStateException ex) {
-        log.warn("⚠️ Estado inválido: {}", ex.getMessage());
+        log.warn("Estado inválido: {}", ex.getMessage());
         return buildErrorResponse(
             HttpStatus.CONFLICT,
             ex.getMessage() != null ? ex.getMessage() : "La operación no puede realizarse en el estado actual.",
@@ -382,7 +382,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        log.error("❌ Error no manejado: {}", ex.getMessage(), ex);
+        log.error("Error no manejado: {}", ex.getMessage(), ex);
         return buildErrorResponse(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Ocurrió un error inesperado en el servidor. Si el problema persiste, contacte al administrador.",

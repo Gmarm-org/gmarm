@@ -33,14 +33,14 @@ public class ContratoPDFGenerator {
 
     public DocumentoGenerado generarYGuardar(Cliente cliente, Pago pago) {
         try {
-            log.info("📄 GENERANDO CONTRATO CON FLYING SAUCER PARA CLIENTE ID: {}", cliente.getId());
-            log.info("🔍 DEBUG: Cliente nombres: {}, apellidos: {}", cliente.getNombres(), cliente.getApellidos());
+            log.info("GENERANDO CONTRATO CON FLYING SAUCER PARA CLIENTE ID: {}", cliente.getId());
+            log.info("DEBUG: Cliente nombres: {}, apellidos: {}", cliente.getNombres(), cliente.getApellidos());
 
             utils.eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.CONTRATO);
 
-            log.info("🔧 Generando PDF profesional con Flying Saucer + Thymeleaf");
+            log.info("Generando PDF profesional con Flying Saucer + Thymeleaf");
             byte[] pdfBytes = generarPDF(cliente, pago);
-            log.info("🔍 DEBUG: PDF profesional generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            log.info("DEBUG: PDF profesional generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivo(cliente);
 
@@ -50,50 +50,50 @@ public class ContratoPDFGenerator {
             DocumentoGenerado documento = utils.crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.CONTRATO);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);
 
-            log.info("✅ Contrato generado y guardado con ID: {}, archivo: {}",
+            log.info("Contrato generado y guardado con ID: {}, archivo: {}",
                 documentoGuardado.getId(), nombreArchivo);
 
             return documentoGuardado;
 
         } catch (Exception e) {
-            log.error("❌ Error generando contrato para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            log.error("Error generando contrato para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando contrato", e);
         }
     }
 
     private byte[] generarPDF(Cliente cliente, Pago pago) throws Exception {
-        log.info("🔧 Generando PDF con Flying Saucer para cliente: {}", cliente.getNombres());
+        log.info("Generando PDF con Flying Saucer para cliente: {}", cliente.getNombres());
 
         try {
             List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
             ClienteArma clienteArma = armasCliente.stream().findFirst().orElse(null);
             if (clienteArma == null) {
-                log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
+                log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new RuntimeException("No se encontró arma asignada al cliente");
             }
 
-            log.info("✅ Arma encontrada: {}", clienteArma.getArma().getModelo());
+            log.info("Arma encontrada: {}", clienteArma.getArma().getModelo());
 
             String ivaValor = configuracionService.getValorConfiguracion("IVA");
             double ivaPorcentaje = Double.parseDouble(ivaValor);
             double ivaDecimal = ivaPorcentaje / 100.0;
 
-            log.info("💰 IVA obtenido desde configuración: {}% ({})", ivaPorcentaje, ivaDecimal);
+            log.info("IVA obtenido desde configuración: {}% ({})", ivaPorcentaje, ivaDecimal);
 
             java.util.List<CuotaPago> cuotas = new java.util.ArrayList<>();
             if (pago != null) {
-                log.info("🔍 DEBUG: Pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
+                log.info("DEBUG: Pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
                 if (pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
                     cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
-                    log.info("📅 Cuotas cargadas: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
+                    log.info("Cuotas cargadas: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
                     for (CuotaPago cuota : cuotas) {
-                        log.info("🔍 DEBUG Cuota: numero={}, monto={}, fecha={}", cuota.getNumeroCuota(), cuota.getMonto(), cuota.getFechaVencimiento());
+                        log.info("DEBUG Cuota: numero={}, monto={}, fecha={}", cuota.getNumeroCuota(), cuota.getMonto(), cuota.getFechaVencimiento());
                     }
                 } else {
-                    log.info("⚠️ No se cargaron cuotas - pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
+                    log.info("No se cargaron cuotas - pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
                 }
             } else {
-                log.info("⚠️ No hay pago asociado al cliente, generando contrato sin información de pago");
+                log.info("No hay pago asociado al cliente, generando contrato sin información de pago");
             }
 
             Map<String, Object> variables = new HashMap<>();
@@ -108,17 +108,17 @@ public class ContratoPDFGenerator {
             variables.put("cantidadArmasTexto", construirCantidadArmasTexto(armasCliente));
             variables.put("armasResumenTexto", construirResumenArmasContrato(armasCliente));
 
-            log.info("🎖️ Rango del cliente: '{}'", cliente.getRango());
+            log.info("Rango del cliente: '{}'", cliente.getRango());
             variables.put("clienteRango", cliente.getRango());
 
-            log.info("🆔 Código ISSFA del cliente: '{}'", cliente.getCodigoIssfa());
-            log.info("🆔 Código ISSPOL del cliente: '{}'", cliente.getCodigoIsspol());
+            log.info("Código ISSFA del cliente: '{}'", cliente.getCodigoIssfa());
+            log.info("Código ISSPOL del cliente: '{}'", cliente.getCodigoIsspol());
 
             String estadoMilitarLowercase = "activo";
             if (cliente.getEstadoMilitar() != null) {
                 estadoMilitarLowercase = cliente.getEstadoMilitar().toString().toLowerCase();
             }
-            log.info("🪖 Estado militar: '{}'", estadoMilitarLowercase);
+            log.info("Estado militar: '{}'", estadoMilitarLowercase);
             variables.put("estadoMilitarLowercase", estadoMilitarLowercase);
 
             java.time.LocalDate fechaActualEcuador = java.time.LocalDate.now(java.time.ZoneId.of("America/Guayaquil"));
@@ -148,9 +148,9 @@ public class ContratoPDFGenerator {
             String nombreCanton = cliente.getCanton();
             String direccionCliente = cliente.getDireccion();
 
-            log.info("🗺️ Provincia - Código: {}, Nombre: {}", cliente.getProvincia(), nombreProvincia);
-            log.info("🗺️ Cantón: {}", nombreCanton);
-            log.info("🗺️ Dirección: {}", direccionCliente);
+            log.info("Provincia - Código: {}, Nombre: {}", cliente.getProvincia(), nombreProvincia);
+            log.info("Cantón: {}", nombreCanton);
+            log.info("Dirección: {}", direccionCliente);
 
             StringBuilder direccionCompleta = new StringBuilder();
             if (nombreProvincia != null && !nombreProvincia.isEmpty()) {
@@ -173,10 +173,10 @@ public class ContratoPDFGenerator {
                 }
             }
 
-            log.info("🗺️ Dirección completa construida: {}", direccionCompleta.toString());
+            log.info("Dirección completa construida: {}", direccionCompleta.toString());
             variables.put("clienteDireccionCompleta", direccionCompleta.toString());
 
-            log.info("🔧 Variables preparadas para template: cliente={}, pago={}, arma={}, IVA={}%, numeroCuotas={}",
+            log.info("Variables preparadas para template: cliente={}, pago={}, arma={}, IVA={}%, numeroCuotas={}",
                 cliente.getNombres(),
                 pago != null ? pago.getMontoTotal() : "N/A",
                 clienteArma.getArma().getModelo(),
@@ -184,22 +184,22 @@ public class ContratoPDFGenerator {
                 pago != null ? pago.getNumeroCuotas() : 0);
 
             String nombreTemplate = determinarTemplateContrato(cliente);
-            log.info("📄 Usando template: {}", nombreTemplate);
+            log.info("Usando template: {}", nombreTemplate);
 
             byte[] pdfBytes = utils.generarPdf(nombreTemplate, variables);
 
-            log.info("✅ PDF generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
 
         } catch (Exception e) {
-            log.error("❌ Error generando PDF con Flying Saucer: {}", e.getMessage(), e);
+            log.error("Error generando PDF con Flying Saucer: {}", e.getMessage(), e);
             throw e;
         }
     }
 
     private String determinarTemplateContrato(Cliente cliente) {
         if (cliente.getTipoCliente() == null || cliente.getTipoCliente().getNombre() == null) {
-            log.warn("⚠️ Tipo de cliente no definido, usando template de uniformados por defecto");
+            log.warn("Tipo de cliente no definido, usando template de uniformados por defecto");
             return utils.determinarTemplateUniformado(cliente, "contrato_compra");
         }
 

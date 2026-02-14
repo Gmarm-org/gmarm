@@ -8,9 +8,6 @@ const AdminSidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  console.log('🔍 AdminSidebar - Ruta actual:', location.pathname);
-  console.log('🔍 AdminSidebar - Renderizando sidebar');
-
   const toggleExpanded = (path: string) => {
     setExpandedItems(prev => 
       prev.includes(path) 
@@ -22,15 +19,9 @@ const AdminSidebar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const handleItemClick = (item: AdminMenuItem) => {
-    console.log('🔍 AdminSidebar - Click en item:', item.label, 'Path:', item.path);
-    
     if (item.children && item.children.length > 0) {
-      // Si tiene hijos, solo expandir/contraer
-      console.log('🔍 AdminSidebar - Expandir/contraer submenú');
       toggleExpanded(item.path);
     } else {
-      // Si no tiene hijos, navegar
-      console.log('🔍 AdminSidebar - Navegando a:', item.path);
       navigate(item.path);
     }
   };

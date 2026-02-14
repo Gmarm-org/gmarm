@@ -6,9 +6,8 @@ import ReportsAndStats from './components/ReportsAndStats';
 const ReportsAndStatsPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleNavigate = (page: string, data?: Record<string, unknown>) => {
+  const handleNavigate = (_page: string, _data?: Record<string, unknown>) => {
     // Handle navigation within this context if needed
-    console.log('Navigate to:', page, data);
   };
 
   const handleBackToDashboard = () => {

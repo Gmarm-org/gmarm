@@ -6,7 +6,7 @@ import type { PagoCompleto } from '../types';
 
 export function usePagosExport(ivaPercent: number | null) {
 
-  const obtenerDescripcionArma = useCallback(async (pago: PagoCompleto, clienteNombre: string) => {
+  const obtenerDescripcionArma = useCallback(async (pago: PagoCompleto, _clienteNombre: string) => {
     let descripcionArma = 'N/A';
     try {
       if (pago.cliente) {
@@ -22,7 +22,7 @@ export function usePagosExport(ivaPercent: number | null) {
         }
       }
     } catch (error) {
-      console.warn(`No se pudieron cargar las armas para el cliente ${clienteNombre}:`, error);
+      // Armas no disponibles para este cliente
     }
     return descripcionArma;
   }, []);
@@ -143,7 +143,7 @@ export function usePagosExport(ivaPercent: number | null) {
       const nombreArchivo = `Pago_${pago.id}_${fecha}.xlsx`;
       XLSX.writeFile(workbook, nombreArchivo);
     } catch (error) {
-      console.error('Error al exportar detalle a Excel:', error);
+      console.error('Error al exportar detalle a Excel:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error al exportar detalle a Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }, [crearHojaDetallePago]);
@@ -202,7 +202,7 @@ export function usePagosExport(ivaPercent: number | null) {
 
       alert(`Exportación completada exitosamente!\n\nArchivo: ${nombreArchivo}\nTotal de pagos: ${pagosFiltrados.length}`);
     } catch (error) {
-      console.error('Error al exportar a Excel:', error);
+      console.error('Error al exportar a Excel:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error al exportar a Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }, [ivaPercent, obtenerDescripcionArma]);

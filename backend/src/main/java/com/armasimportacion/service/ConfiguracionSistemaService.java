@@ -91,7 +91,7 @@ public class ConfiguracionSistemaService {
         try {
             String valor = getValorConfiguracion("CORREOS_RECIBO");
             if (valor == null || valor.trim().isEmpty()) {
-                log.warn("⚠️ CORREOS_RECIBO está vacío o no configurado");
+                log.warn("CORREOS_RECIBO está vacío o no configurado");
                 return new ArrayList<>();
             }
             
@@ -122,14 +122,14 @@ public class ConfiguracionSistemaService {
                     .map(String::trim)
                     .collect(Collectors.toList());
             
-            log.info("✅ Correos de recibo obtenidos: {} correo(s)", correos.size());
+            log.info("Correos de recibo obtenidos: {} correo(s)", correos.size());
             return correos;
             
         } catch (ResourceNotFoundException e) {
-            log.warn("⚠️ Configuración CORREOS_RECIBO no encontrada, retornando lista vacía");
+            log.warn("Configuración CORREOS_RECIBO no encontrada, retornando lista vacía");
             return new ArrayList<>();
         } catch (Exception e) {
-            log.error("❌ Error obteniendo correos de recibo: {}", e.getMessage(), e);
+            log.error("Error obteniendo correos de recibo: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
     }

@@ -79,7 +79,7 @@ public class GrupoImportacionMatchingService {
      */
     @Transactional(readOnly = true)
     public GrupoImportacion encontrarGrupoDisponibleParaVendedor(Long vendedorId, Cliente cliente) {
-        log.info("🔍 Buscando grupo disponible para vendedor ID: {} y cliente ID: {}", vendedorId, cliente.getId());
+        log.info("Buscando grupo disponible para vendedor ID: {} y cliente ID: {}", vendedorId, cliente.getId());
 
         Usuario vendedor = usuarioRepository.findById(vendedorId)
             .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
@@ -87,7 +87,7 @@ public class GrupoImportacionMatchingService {
         List<GrupoImportacionVendedor> asignacionesVendedor = grupoImportacionVendedorRepository.findByVendedor(vendedor);
 
         if (asignacionesVendedor.isEmpty()) {
-            log.info("📭 No hay grupos asignados para el vendedor ID: {}", vendedorId);
+            log.info("No hay grupos asignados para el vendedor ID: {}", vendedorId);
             return null;
         }
 
@@ -100,7 +100,7 @@ public class GrupoImportacionMatchingService {
             }
 
             if (!esClienteCompatibleConGrupo(cliente, grupo)) {
-                log.debug("⚠️ Cliente ID {} no es compatible con grupo ID {} (tipo: {})",
+                log.debug("Cliente ID {} no es compatible con grupo ID {} (tipo: {})",
                     cliente.getId(), grupo.getId(), grupo.getTipoGrupo());
                 continue;
             }
@@ -127,7 +127,7 @@ public class GrupoImportacionMatchingService {
                             long clientesConfirmadosConCategoria = contarArmasPorCategoriaEnGrupo(grupo.getId(), categoriaId);
 
                             if (clientesConfirmadosConCategoria >= limiteMaximo) {
-                                log.debug("⚠️ Grupo ID {} no tiene cupo disponible para categoría {} (ocupados: {}, límite: {})",
+                                log.debug("Grupo ID {} no tiene cupo disponible para categoría {} (ocupados: {}, límite: {})",
                                     grupo.getId(), categoriaId, clientesConfirmadosConCategoria, limiteMaximo);
                                 tieneCupoDisponible = false;
                                 break;
@@ -141,11 +141,11 @@ public class GrupoImportacionMatchingService {
                 }
             }
 
-            log.info("✅ Grupo disponible encontrado: ID={}, nombre={}", grupo.getId(), grupo.getNombre());
+            log.info("Grupo disponible encontrado: ID={}, nombre={}", grupo.getId(), grupo.getNombre());
             return grupo;
         }
 
-        log.info("📭 No se encontró grupo disponible para vendedor ID: {}", vendedorId);
+        log.info("No se encontró grupo disponible para vendedor ID: {}", vendedorId);
         return null;
     }
 

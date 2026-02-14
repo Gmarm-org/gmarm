@@ -103,9 +103,8 @@ const ImportGroupManagement: React.FC = () => {
     } catch (error: any) {
       if (error?.message?.includes('404') || error?.message?.includes('Not Found')) {
         setGrupos([]);
-        console.log('No hay grupos de importación disponibles');
       } else {
-        console.error('Error cargando grupos:', error);
+        console.error('Error cargando grupos:', error instanceof Error ? error.message : 'Error desconocido');
         if (!error?.message?.includes('403')) {
           alert('Error al cargar los grupos de importación');
         }
@@ -130,7 +129,7 @@ const ImportGroupManagement: React.FC = () => {
       });
       cargarGrupos();
     } catch (error: any) {
-      console.error('Error definiendo pedido:', error);
+      console.error('Error definiendo pedido:', error instanceof Error ? error.message : 'Error desconocido');
       alert(error.message || 'Error al definir el pedido');
     } finally {
       setDefiniendoPedido(null);

@@ -36,24 +36,24 @@ public class LicenciaController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todas las licencias", description = "Devuelve la lista completa de licencias")
     public ResponseEntity<List<LicenciaDTO>> getAllLicencias() {
-        log.info("📋 GET /api/licencia - Obteniendo todas las licencias");
+        log.info("GET /api/licencia - Obteniendo todas las licencias");
         List<Licencia> licencias = licenciaRepository.findAll();
         List<LicenciaDTO> licenciaDTOs = licencias.stream()
                 .map(licenciaMapper::toDTO)
                 .collect(Collectors.toList());
-        log.info("✅ Licencias encontradas: {}", licenciaDTOs.size());
+        log.info("Licencias encontradas: {}", licenciaDTOs.size());
         return ResponseEntity.ok(licenciaDTOs);
     }
 
     @GetMapping("/disponibles")
     @Operation(summary = "Obtener licencias disponibles", description = "Retorna las licencias que están activas y disponibles (no bloqueadas)")
     public ResponseEntity<List<LicenciaDTO>> getLicenciasDisponibles() {
-        log.info("📋 GET /api/licencia/disponibles - Obteniendo licencias disponibles");
+        log.info("GET /api/licencia/disponibles - Obteniendo licencias disponibles");
         List<Licencia> licencias = licenciaRepository.findByEstadoAndEstadoOcupacion(true, EstadoOcupacionLicencia.DISPONIBLE);
         List<LicenciaDTO> licenciaDTOs = licencias.stream()
                 .map(licenciaMapper::toDTO)
                 .collect(Collectors.toList());
-        log.info("✅ Licencias disponibles encontradas: {}", licenciaDTOs.size());
+        log.info("Licencias disponibles encontradas: {}", licenciaDTOs.size());
         return ResponseEntity.ok(licenciaDTOs);
     }
 
@@ -61,15 +61,15 @@ public class LicenciaController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener licencia por ID", description = "Devuelve una licencia específica por su ID")
     public ResponseEntity<LicenciaDTO> getLicenciaById(@PathVariable Long id) {
-        log.info("📋 GET /api/licencia/{} - Obteniendo licencia", id);
+        log.info("GET /api/licencia/{} - Obteniendo licencia", id);
         return licenciaRepository.findById(id)
                 .map(licencia -> {
-                    log.info("✅ Licencia encontrada: {} - Banco: {}, Cuenta: {}", 
+                    log.info("Licencia encontrada: {} - Banco: {}, Cuenta: {}",
                              licencia.getNumero(), licencia.getNombreBanco(), licencia.getCuentaBancaria());
                     return ResponseEntity.ok(licenciaMapper.toDTO(licencia));
                 })
                 .orElseGet(() -> {
-                    log.warn("⚠️ Licencia no encontrada con ID: {}", id);
+                    log.warn("Licencia no encontrada con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
     }
@@ -85,15 +85,15 @@ public class LicenciaController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nueva licencia", description = "Crea una nueva licencia en el sistema")
     public ResponseEntity<LicenciaDTO> createLicencia(@RequestBody LicenciaDTO licenciaDTO) {
-        log.info("📝 POST /api/licencia - Creando nueva licencia: {}", licenciaDTO.getNumero());
-        log.info("📦 Datos bancarios recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
+        log.info("POST /api/licencia - Creando nueva licencia: {}", licenciaDTO.getNumero());
+        log.info("Datos bancarios recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}",
                   licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(), 
                   licenciaDTO.getTipoCuenta(), licenciaDTO.getCedulaCuenta());
         
         Licencia licencia = licenciaMapper.toEntity(licenciaDTO);
         
-        // 🏦 Verificar que los campos bancarios se mapearon correctamente
-        log.info("🔍 Después del mapper - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}", 
+        // Verificar que los campos bancarios se mapearon correctamente
+        log.info("Despues del mapper - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}",
                   licencia.getCuentaBancaria(), licencia.getNombreBanco(), 
                   licencia.getTipoCuenta(), licencia.getCedulaCuenta());
         
@@ -104,7 +104,7 @@ public class LicenciaController {
         // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
 
         Licencia savedLicencia = licenciaRepository.save(licencia);
-        log.info("✅ Licencia creada con ID: {} - Banco: {}, Cuenta: {}", 
+        log.info("Licencia creada con ID: {} - Banco: {}, Cuenta: {}",
                  savedLicencia.getId(), savedLicencia.getNombreBanco(), savedLicencia.getCuentaBancaria());
         return ResponseEntity.ok(licenciaMapper.toDTO(savedLicencia));
     }
@@ -113,8 +113,8 @@ public class LicenciaController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar licencia", description = "Actualiza una licencia existente (soporta PUT y PATCH)")
     public ResponseEntity<LicenciaDTO> updateLicencia(@PathVariable Long id, @RequestBody LicenciaDTO licenciaDTO) {
-        log.info("📝 PUT/PATCH /api/licencia/{} - Actualizando licencia", id);
-        log.debug("📦 Datos recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}",
+        log.info("PUT/PATCH /api/licencia/{} - Actualizando licencia", id);
+        log.debug("Datos recibidos - Cuenta: {}, Banco: {}, Tipo: {}, Cedula: {}",
                   licenciaDTO.getCuentaBancaria(), licenciaDTO.getNombreBanco(),
                   licenciaDTO.getTipoCuenta(), licenciaDTO.getCedulaCuenta());
         
@@ -134,7 +134,7 @@ public class LicenciaController {
                         existingLicencia.setRuc(licenciaDTO.getRuc());
                     }
                     
-                    // 🏦 Actualizar SIEMPRE campos bancarios (permitir vacíos)
+                    // Actualizar SIEMPRE campos bancarios (permitir vacíos)
                     existingLicencia.setCuentaBancaria(licenciaDTO.getCuentaBancaria());
                     existingLicencia.setNombreBanco(licenciaDTO.getNombreBanco());
                     existingLicencia.setTipoCuenta(licenciaDTO.getTipoCuenta());
@@ -184,12 +184,12 @@ public class LicenciaController {
                     existingLicencia.setFechaActualizacion(LocalDateTime.now());
                     
                     Licencia updated = licenciaRepository.save(existingLicencia);
-                    log.info("✅ Licencia actualizada: {} - Banco: {}, Cuenta: {}", 
+                    log.info("Licencia actualizada: {} - Banco: {}, Cuenta: {}",
                              updated.getNumero(), updated.getNombreBanco(), updated.getCuentaBancaria());
                     return ResponseEntity.ok(licenciaMapper.toDTO(updated));
                 })
                 .orElseGet(() -> {
-                    log.warn("⚠️ Licencia no encontrada con ID: {}", id);
+                    log.warn("Licencia no encontrada con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
     }
@@ -198,15 +198,15 @@ public class LicenciaController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Eliminar licencia", description = "Elimina una licencia del sistema")
     public ResponseEntity<Void> deleteLicencia(@PathVariable Long id) {
-        log.info("🗑️ DELETE /api/licencia/{} - Eliminando licencia", id);
+        log.info("DELETE /api/licencia/{} - Eliminando licencia", id);
         return licenciaRepository.findById(id)
                 .map(licencia -> {
                     licenciaRepository.delete(licencia);
-                    log.info("✅ Licencia eliminada: {}", licencia.getNumero());
+                    log.info("Licencia eliminada: {}", licencia.getNumero());
                     return ResponseEntity.ok().<Void>build();
                 })
                 .orElseGet(() -> {
-                    log.warn("⚠️ Licencia no encontrada con ID: {}", id);
+                    log.warn("Licencia no encontrada con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
     }

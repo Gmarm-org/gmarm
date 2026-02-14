@@ -10,8 +10,6 @@ export const useClients = () => {
   // Función para obtener el servicio API apropiado
   // ⚠️ MODIFICADO PARA FASE PILOTO - Solo usar API real del backend
   const getApiService = async () => {
-    // Forzar uso de API real para fase piloto
-    console.log('🔒 FASE PILOTO: Usando solo API real del backend');
     return apiService;
   };
 
@@ -23,7 +21,7 @@ export const useClients = () => {
       setClients((Array.isArray(response) ? response : (response as any).content || []) as any);
       setError(null);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error('Error loading clients:', error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }

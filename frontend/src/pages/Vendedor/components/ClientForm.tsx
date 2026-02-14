@@ -99,13 +99,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Combinar selectedWeapon prop con localSelectedWeapon para mostrar la arma correcta
   const currentSelectedWeapon = localSelectedWeapon || selectedWeapon;
   
-  // Log para diagnosticar el estado del arma
-  useEffect(() => {
-    console.log('🔍 DEBUG currentSelectedWeapon:', currentSelectedWeapon);
-    console.log('🔍 DEBUG localSelectedWeapon:', localSelectedWeapon);
-    console.log('🔍 DEBUG selectedWeapon prop:', selectedWeapon);
-  }, [currentSelectedWeapon, localSelectedWeapon, selectedWeapon]);
-
   // Determinar si es empresa
   const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
   
@@ -278,7 +271,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
           onCancel();
         }
       } catch (error) {
-        console.error('Error verificando disponibilidad de grupos:', error);
+        console.error('Error verificando disponibilidad de grupos:', error instanceof Error ? error.message : 'Unknown error');
       }
     };
 
@@ -288,15 +281,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // Función para cargar datos adicionales del cliente
   const loadClientData = useCallback(async (clienteId: number) => {
     try {
-      console.log('🔄 Cargando datos adicionales del cliente:', clienteId);
-      
       // OPTIMIZACIÓN CRÍTICA: NO cargar respuestas aquí
       // Las respuestas se cargan automáticamente por useClientAnswers hook
       // Esto evita cargas duplicadas y procesamiento innecesario
       
       // Cargar documentos del cliente
       const documentos = await apiService.getDocumentosCliente(clienteId);
-      console.log('📄 Documentos cargados:', documentos);
       
       // Actualizar el estado de documentos cargados
       if (documentos && Array.isArray(documentos)) {
@@ -314,12 +304,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
           }
         });
         setLoadedDocuments(documentosMap);
-        console.log('📄 Documentos cargados mapeados:', documentosMap);
       }
       
       // Cargar armas asignadas al cliente (solo para mostrar en el formulario)
       const armasCliente = await apiService.getArmasCliente(clienteId);
-      console.log('🔫 Armas del cliente cargadas:', armasCliente);
       setLoadedArmas(armasCliente || []);
       
       // OPTIMIZACIÓN: No cargar pagos y contratos aquí, solo cuando se necesiten (no se usan en el formulario)
@@ -330,7 +318,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Si hay armas asignadas, actualizar el precio modificado y selectedWeapon
       if (armasCliente && armasCliente.length > 0) {
         const armaAsignada = armasCliente[0]; // Tomar la primera arma
-        console.log('💰 Arma asignada encontrada:', armaAsignada);
         
         // Establecer selectedWeapon para que se muestre en modo edit
         const weaponData = {
@@ -344,7 +331,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
           disponible: true,
           precioModificado: parseFloat(armaAsignada.precioUnitario) || 0
         } as Weapon;
-        console.log('🔫 Estableciendo localSelectedWeapon:', weaponData);
         setLocalSelectedWeapon(weaponData);
         
         // Notificar al padre sobre el precio de la arma asignada
@@ -354,7 +340,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
       }
       
     } catch (error) {
-      console.error('❌ Error cargando datos del cliente:', error);
+      console.error('Error cargando datos del cliente:', error instanceof Error ? error.message : 'Unknown error');
     }
   }, [onPriceChange]);
   
@@ -374,10 +360,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
       const cargarArmasEnStock = async () => {
         try {
           const armas = await apiService.getArmasEnStockVendedor(parseInt(user.id.toString()));
-          console.log('📦 Armas en stock del vendedor:', armas);
           setArmasEnStock(armas || []);
         } catch (error) {
-          console.error('❌ Error cargando armas en stock:', error);
+          console.error('Error cargando armas en stock:', error instanceof Error ? error.message : 'Unknown error');
           setArmasEnStock([]);
         }
       };
@@ -388,8 +373,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
   
  // Función para asignar un arma del stock al nuevo cliente
   const handleAsignarArmaDelStock = useCallback((armaEnStock: any) => {
-    console.log('🔫 Asignando arma del stock al nuevo cliente:', armaEnStock);
-    
     // Convertir el arma del stock al formato Weapon
     const weapon: Weapon = {
       id: armaEnStock.armaId.toString(),
@@ -428,7 +411,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // NUEVO: Restaurar datos del formulario cuando se regresa en el flujo de creación
   useEffect(() => {
     if (client && mode === 'create' && client.nombres) {
-      console.log('🔄 Restaurando datos del formulario en proceso de creación:', client);
       setFormData({
         id: client.id || '',
         nombres: client.nombres || '',
@@ -458,9 +440,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
         documentos: client.documentos || [],
         respuestas: [] // Inicializar vacío - se cargarán por useClientAnswers cuando detecte el clientId
       });
-      
-      console.log('✅ Datos del formulario restaurados correctamente');
-      console.log('📋 Client ID para cargar respuestas:', client.id);
     }
   }, [client, mode, setFormData]);
   
@@ -480,10 +459,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
 
   useEffect(() => {
-    console.log('ClientForm useEffect triggered:', { client, mode, clientId: client?.id });
-    
     if (client && mode !== 'create') {
-      console.log('Setting form data from client:', client);
       
       // Solo establecer formData si los catálogos están disponibles
       if (tiposCliente.length > 0 && tiposIdentificacion.length > 0) {
@@ -495,7 +471,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
         if (client.tipoClienteNombre) {
           // El backend ya devuelve el nombre, usar directamente
           mappedClient.tipoCliente = client.tipoClienteNombre;
-          console.log('✅ TipoCliente desde tipoClienteNombre:', client.tipoClienteNombre);
         } else if (client.tipoCliente) {
           // Verificar si tipoCliente es nombre o código
           const tipoClientePorNombre = tiposCliente.find(tc => tc.nombre === client.tipoCliente);
@@ -504,15 +479,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
           if (tipoClientePorNombre) {
             // Ya es nombre, mantenerlo
             mappedClient.tipoCliente = tipoClientePorNombre.nombre;
-            console.log('✅ TipoCliente ya es nombre:', client.tipoCliente);
           } else if (tipoClientePorCodigo) {
             // Es código, convertir a nombre
             mappedClient.tipoCliente = tipoClientePorCodigo.nombre;
-            console.log('✅ TipoCliente convertido de código a nombre:', { codigo: client.tipoCliente, nombre: tipoClientePorCodigo.nombre });
           } else {
             // Si no se encuentra, asumir que es nombre (fallback)
             mappedClient.tipoCliente = client.tipoCliente;
-            console.log('⚠️ TipoCliente no encontrado en catálogo, usando valor original:', client.tipoCliente);
           }
         }
         
@@ -524,21 +496,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
           if (tipoIdentificacionPorCodigo) {
             // Ya es código, mantenerlo
             mappedClient.tipoIdentificacion = tipoIdentificacionPorCodigo.codigo;
-            console.log('✅ TipoIdentificacion ya es código, manteniendo:', client.tipoIdentificacion);
           } else {
             // No se encontró por código, puede ser nombre, intentar buscar por nombre
             const tipoIdentificacionPorNombre = tiposIdentificacion.find(ti => ti.nombre === client.tipoIdentificacion);
             if (tipoIdentificacionPorNombre) {
               // Es nombre, convertir a código
               mappedClient.tipoIdentificacion = tipoIdentificacionPorNombre.codigo;
-              console.log('✅ TipoIdentificacion convertida de nombre a código:', { 
-                original: client.tipoIdentificacion, 
-                codigo: tipoIdentificacionPorNombre.codigo 
-              });
             } else {
               // Si no se encuentra, usar el valor original (fallback)
               mappedClient.tipoIdentificacion = client.tipoIdentificacion;
-              console.log('⚠️ TipoIdentificacion no encontrada en catálogo, usando valor original:', client.tipoIdentificacion);
             }
           }
         } else if (client.tipoIdentificacionNombre) {
@@ -546,12 +512,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
           const tipoIdentificacionPorNombre = tiposIdentificacion.find(ti => ti.nombre === client.tipoIdentificacionNombre);
           if (tipoIdentificacionPorNombre) {
             mappedClient.tipoIdentificacion = tipoIdentificacionPorNombre.codigo;
-            console.log('✅ TipoIdentificacion convertida de tipoIdentificacionNombre a código:', { 
-              nombre: client.tipoIdentificacionNombre, 
-              codigo: tipoIdentificacionPorNombre.codigo 
-            });
           } else {
-            console.log('⚠️ No se encontró tipoIdentificacionNombre en catálogo:', client.tipoIdentificacionNombre);
             mappedClient.tipoIdentificacion = '';
           }
         }
@@ -559,19 +520,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
         // Mapear código ISSFA si está disponible (para militares)
         if ((client as any).codigoIssfa) {
           (mappedClient as any).codigoIssfa = (client as any).codigoIssfa;
-          console.log('✅ Código ISSFA cargado:', (client as any).codigoIssfa);
         }
         
         // Mapear código ISSPOL si está disponible (para policías)
         if ((client as any).codigoIsspol) {
           (mappedClient as any).codigoIsspol = (client as any).codigoIsspol;
-          console.log('✅ Código ISSPOL cargado:', (client as any).codigoIsspol);
         }
         
         // Mapear rango si está disponible
         if ((client as any).rango) {
           (mappedClient as any).rango = (client as any).rango;
-          console.log('✅ Rango cargado:', (client as any).rango);
         }
         
         // CRÍTICO: Mapear provincia correctamente
@@ -585,44 +543,19 @@ const ClientForm: React.FC<ClientFormProps> = ({
           if (provinciaPorCodigo) {
             // Ya es código, mantenerlo
             mappedClient.provincia = provinciaPorCodigo.codigo;
-            console.log('✅ Provincia ya es código, manteniendo:', client.provincia);
           } else if (provinciaPorNombre) {
             // Es nombre, convertir a código
             mappedClient.provincia = provinciaPorNombre.codigo;
-            console.log('✅ Provincia convertida de nombre a código:', { 
-              original: client.provincia, 
-              codigo: provinciaPorNombre.codigo 
-            });
           } else {
             // Si no se encuentra, usar el valor original (puede ser código válido que no está en el catálogo)
             mappedClient.provincia = client.provincia;
-            console.log('⚠️ Provincia no encontrada en catálogo, usando valor original:', client.provincia);
           }
-        } else {
-          console.log('⚠️ Cliente no tiene provincia');
         }
         
         // Asegurar que tipoCliente esté establecido (verificación final)
         if (!mappedClient.tipoCliente && client.tipoClienteNombre) {
           mappedClient.tipoCliente = client.tipoClienteNombre;
-          console.log('✅ TipoCliente establecido desde tipoClienteNombre (verificación final):', client.tipoClienteNombre);
         }
-        
-        console.log('🔍 Mapeando cliente:', { 
-          original: { 
-            tipoCliente: client.tipoCliente, 
-            tipoClienteNombre: client.tipoClienteNombre,
-            tipoIdentificacion: client.tipoIdentificacion,
-            provincia: client.provincia
-          },
-          mapeado: { 
-            tipoCliente: mappedClient.tipoCliente, 
-            tipoIdentificacion: mappedClient.tipoIdentificacion,
-            provincia: mappedClient.provincia
-          }
-        });
-        
-        console.log('Mapped client data:', mappedClient);
         
         // OPTIMIZACIÓN CRÍTICA: NO cargar respuestas desde client.respuestas
         // El objeto client puede venir con TODAS las respuestas de TODOS los clientes (276k+)
@@ -644,7 +577,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
         
         // La validación de bloqueo se hará cuando useClientAnswers cargue las respuestas
       } else {
-        console.log('Catálogos no disponibles aún, esperando...');
         // Establecer el formData básico del cliente mientras se cargan los catálogos
         // OPTIMIZACIÓN: NO incluir respuestas aquí - se cargarán por useClientAnswers
         setFormData({
@@ -654,7 +586,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
       }
     } else if (mode === 'create' && (!client || !client.nombres)) {
       // Solo resetear el formulario si NO hay datos de cliente para restaurar
-      console.log('Resetting form data for create mode (no client data to restore)');
       setFormData({
         id: '',
         nombres: '',
@@ -683,8 +614,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
       });
       setClienteBloqueado(false);
       setMotivoBloqueo('');
-    } else if (mode === 'create' && client && client.nombres) {
-      console.log('Skipping reset - client data exists for restoration');
     }
   }, [client, mode, tiposCliente, tiposIdentificacion, provincias]); // Agregar provincias como dependencia para mapeo correcto
 

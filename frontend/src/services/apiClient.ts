@@ -96,13 +96,13 @@ export async function request<T>(
         if (contentLength === '0' || contentLength === null) {
           return { success: true } as T;
         }
-        console.warn('No se pudo parsear la respuesta JSON, pero el status es exitoso:', response.status);
+        // Response is successful but not JSON parseable
         return { success: true } as T;
       }
       throw parseError;
     }
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error:', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 }

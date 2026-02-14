@@ -37,12 +37,12 @@ public class AsignacionSerieService {
      * (estado = RESERVADA y sin numero_serie)
      */
     public List<ReservaPendienteDTO> obtenerReservasPendientes() {
-        log.info("📋 Obteniendo reservas pendientes de asignar serie");
+        log.info("Obteniendo reservas pendientes de asignar serie");
         
         List<ClienteArma> reservas = clienteArmaRepository
             .findByEstadoAndNumeroSerieIsNull(ClienteArma.EstadoClienteArma.RESERVADA);
         
-        log.info("✅ Se encontraron {} reservas pendientes", reservas.size());
+        log.info("Se encontraron {} reservas pendientes", reservas.size());
         
         // Convertir a DTO para evitar recursión infinita en JSON
         return reservas.stream()
@@ -70,12 +70,12 @@ public class AsignacionSerieService {
      * Obtener series disponibles para un arma específica
      */
     public List<ArmaSerieDTO> obtenerSeriesDisponibles(Long armaId) {
-        log.info("🔍 Obteniendo series disponibles para arma ID: {}", armaId);
+        log.info("Obteniendo series disponibles para arma ID: {}", armaId);
         
         List<ArmaSerie> series = armaSerieRepository
             .findByArmaIdAndEstado(armaId, ArmaSerie.EstadoSerie.DISPONIBLE);
         
-        log.info("✅ Se encontraron {} series disponibles", series.size());
+        log.info("Se encontraron {} series disponibles", series.size());
         
         // Convertir a DTO para evitar referencias circulares
         return series.stream()
@@ -92,52 +92,52 @@ public class AsignacionSerieService {
         String numeroSerie, 
         Long usuarioAsignadorId
     ) {
-        log.info("🎯 Asignando serie {} a cliente_arma {}", numeroSerie, clienteArmaId);
+        log.info("Asignando serie {} a cliente_arma {}", numeroSerie, clienteArmaId);
 
         // 1. Validar que existe la reserva del cliente
         ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
             .orElseThrow(() -> new IllegalArgumentException(
-                "❌ No se encontró la reserva del cliente con ID: " + clienteArmaId
+                "No se encontró la reserva del cliente con ID: " + clienteArmaId
             ));
 
         // 2. Validar que la reserva esté en estado RESERVADA
         if (clienteArma.getEstado() != ClienteArma.EstadoClienteArma.RESERVADA) {
             throw new IllegalStateException(
-                "❌ La reserva debe estar en estado RESERVADA. Estado actual: " + clienteArma.getEstado()
+                "La reserva debe estar en estado RESERVADA. Estado actual: " + clienteArma.getEstado()
             );
         }
 
         // 3. Validar que no tenga serie asignada
         if (clienteArma.getNumeroSerie() != null) {
             throw new IllegalStateException(
-                "❌ Esta reserva ya tiene una serie asignada: " + clienteArma.getNumeroSerie()
+                "Esta reserva ya tiene una serie asignada: " + clienteArma.getNumeroSerie()
             );
         }
 
         // 4. Validar que existe la serie
         ArmaSerie armaSerie = armaSerieRepository.findByNumeroSerie(numeroSerie)
             .orElseThrow(() -> new IllegalArgumentException(
-                "❌ No se encontró la serie con número: " + numeroSerie
+                "No se encontró la serie con número: " + numeroSerie
             ));
 
         // 5. Validar que la serie esté disponible
         if (armaSerie.getEstado() != ArmaSerie.EstadoSerie.DISPONIBLE) {
             throw new IllegalStateException(
-                "❌ La serie no está disponible. Estado actual: " + armaSerie.getEstado()
+                "La serie no está disponible. Estado actual: " + armaSerie.getEstado()
             );
         }
 
         // 6. Validar que la serie corresponda al arma que el cliente eligió
         if (!clienteArma.getArma().getId().equals(armaSerie.getArma().getId())) {
             throw new IllegalStateException(
-                "❌ La serie no corresponde al arma que el cliente eligió"
+                "La serie no corresponde al arma que el cliente eligió"
             );
         }
 
         // 7. Obtener usuario asignador
         Usuario usuarioAsignador = usuarioRepository.findById(usuarioAsignadorId)
             .orElseThrow(() -> new IllegalArgumentException(
-                "❌ No se encontró el usuario asignador con ID: " + usuarioAsignadorId
+                "No se encontró el usuario asignador con ID: " + usuarioAsignadorId
             ));
 
         // 8. Actualizar cliente_arma
@@ -147,22 +147,22 @@ public class AsignacionSerieService {
         clienteArma.setFechaActualizacion(LocalDateTime.now());
         
         ClienteArma clienteArmaActualizado = clienteArmaRepository.save(clienteArma);
-        log.info("✅ Cliente_arma actualizado con serie: {}", armaSerie.getNumeroSerie());
+        log.info("Cliente_arma actualizado con serie: {}", armaSerie.getNumeroSerie());
 
         // 9. Actualizar arma_serie usando el método asignar()
         armaSerie.asignar(clienteArma, usuarioAsignador);
         
         armaSerieRepository.save(armaSerie);
-        log.info("✅ Arma_serie actualizada a estado ASIGNADO");
+        log.info("Arma_serie actualizada a estado ASIGNADO");
 
         // 10. Actualizar estado del cliente a SERIE_ASIGNADA
         var cliente = clienteArma.getCliente();
         cliente.setEstado(EstadoCliente.SERIE_ASIGNADA);
         clienteRepository.save(cliente);
-        log.info("✅ Estado del cliente actualizado a SERIE_ASIGNADA: {} {}",
+        log.info("Estado del cliente actualizado a SERIE_ASIGNADA: {} {}",
             cliente.getNombres(), cliente.getApellidos());
 
-        log.info("🎉 Serie asignada exitosamente: {} → Cliente: {} {}",
+        log.info("Serie asignada exitosamente: {} → Cliente: {} {}",
             armaSerie.getNumeroSerie(),
             clienteArma.getCliente().getNombres(),
             clienteArma.getCliente().getApellidos()

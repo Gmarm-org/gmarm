@@ -28,19 +28,19 @@ public class EmailVerificationController {
      */
     @GetMapping("/verify")
     public ResponseEntity<Map<String, Object>> verifyToken(@RequestParam String token) {
-        log.info("🔍 Solicitud de verificación de token recibida");
+        log.info("Solicitud de verificacion de token recibida");
 
         try {
             Map<String, Object> result = verificationService.verifyToken(token);
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
-            log.warn("⚠️ Error de validación en verificación: {}", e.getMessage());
+            log.warn("Error de validacion en verificacion: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (Exception e) {
-            log.error("❌ Error inesperado en verificación: {}", e.getMessage(), e);
+            log.error("Error inesperado en verificacion: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "Error interno del servidor al verificar el token");

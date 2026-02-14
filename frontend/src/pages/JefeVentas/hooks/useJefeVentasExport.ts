@@ -9,11 +9,8 @@ import { apiService } from '../../../services/api';
 export const useJefeVentasExport = () => {
   const exportarClientesAExcel = useCallback(async () => {
     try {
-      console.log('📊 Iniciando exportación a Excel (Jefe de Ventas)...');
-      
       // Obtener TODOS los clientes del sistema
       const todosLosClientes = await apiService.getTodosClientes();
-      console.log(`✅ Total clientes a exportar: ${todosLosClientes.length}`);
       
       const datosExportacion: any[] = [];
       
@@ -89,7 +86,7 @@ export const useJefeVentasExport = () => {
                 const precioTotalConIva = precioUnitario * cantidad * (1 + ivaDecimal);
                 fila['Precio Total'] = precioTotalConIva.toFixed(2);
               } catch (error) {
-                console.error('Error cargando IVA para exportación:', error);
+                console.error('Error cargando IVA para exportación:', error instanceof Error ? error.message : 'Error desconocido');
                 // Fallback: usar 15% si falla la carga (pero registrar el error)
                 const precioTotalConIva = precioUnitario * cantidad * 1.15;
                 fila['Precio Total'] = precioTotalConIva.toFixed(2);
@@ -99,7 +96,6 @@ export const useJefeVentasExport = () => {
           
           datosExportacion.push(fila);
         } catch (error) {
-          console.warn(`⚠️ Error cargando armas para cliente ${cliente.id}:`, error);
           const clienteData = cliente as any;
           const tipoClienteNombre = clienteData.tipoProcesoNombre || clienteData.tipoClienteNombre || clienteData.tipoCliente || 'N/A';
           const vendedorNombre = clienteData.vendedorNombre || clienteData.vendedor?.nombres || '';
@@ -167,11 +163,10 @@ export const useJefeVentasExport = () => {
       const nombreArchivo = `Clientes_Todos_${fecha}.xlsx`;
       
       XLSX.writeFile(workbook, nombreArchivo);
-      
-      console.log(`✅ Exportación completada: ${nombreArchivo}`);
+
       alert(`✅ Exportación completada exitosamente!\n\nArchivo: ${nombreArchivo}\nTotal de clientes: ${datosExportacion.length}`);
     } catch (error) {
-      console.error('❌ Error al exportar a Excel:', error);
+      console.error('Error al exportar a Excel:', error instanceof Error ? error.message : 'Error desconocido');
       alert(`❌ Error al exportar a Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }, []);

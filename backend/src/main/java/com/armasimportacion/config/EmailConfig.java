@@ -42,16 +42,16 @@ public class EmailConfig {
             props.put("mail.smtp.starttls.required", starttls);
             props.put("mail.debug", "false"); // Cambiar a "true" para debugging
             
-            log.info("✅ Configuración SMTP cargada desde BD:");
-            log.info("   📧 Host: {}", host);
-            log.info("   🔌 Puerto: {}", port);
-            log.info("   👤 Usuario: {}", username);
-            log.info("   🔐 Auth: {}", auth);
-            log.info("   🔒 STARTTLS: {}", starttls);
+            log.info("Configuración SMTP cargada desde BD:");
+            log.info("Host: {}", host);
+            log.info("Puerto: {}", port);
+            log.info("Usuario: {}", username);
+            log.info("Auth: {}", auth);
+            log.info("STARTTLS: {}", starttls);
             
         } catch (Exception e) {
-            log.error("❌ Error cargando configuración SMTP desde BD: {}", e.getMessage());
-            log.warn("⚠️ Usando valores por defecto de application.properties");
+            log.error("Error cargando configuración SMTP desde BD: {}", e.getMessage());
+            log.warn("Usando valores por defecto de application.properties");
             
             // Valores por defecto si falla la carga desde BD
             mailSender.setHost("smtp.gmail.com");

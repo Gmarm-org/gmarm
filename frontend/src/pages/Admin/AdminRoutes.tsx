@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
 import UserList from './UserManagement/UserList';
 import WeaponList from './WeaponManagement/WeaponList';
@@ -11,11 +11,6 @@ import ImportTypeList from './SystemConfig/ImportTypeList';
 import IdentificationTypeList from './SystemConfig/IdentificationTypeList';
 
 const AdminRoutes: React.FC = () => {
-  const location = useLocation();
-  
-  console.log('🔍 AdminRoutes - Ruta actual:', location.pathname);
-  console.log('🔍 AdminRoutes - Renderizando AdminRoutes');
-
   return (
     <Routes>
       <Route path="/" element={<AdminDashboard />} />

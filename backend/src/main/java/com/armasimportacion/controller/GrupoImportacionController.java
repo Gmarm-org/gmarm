@@ -89,7 +89,7 @@ public class GrupoImportacionController {
         try {
             return obtenerUsuarioId(authHeader);
         } catch (Exception e) {
-            log.warn("⚠️ Token no enviado en definir pedido, usando usuario creador del grupo {}", grupoId);
+            log.warn("Token no enviado en definir pedido, usando usuario creador del grupo {}", grupoId);
             return grupoImportacionService.obtenerGrupoImportacion(grupoId).getUsuarioCreador().getId();
         }
     }
@@ -105,7 +105,7 @@ public class GrupoImportacionController {
             @PathVariable @NotNull @Positive Long id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            log.info("📋 Definiendo pedido para grupo ID: {}", id);
+            log.info("Definiendo pedido para grupo ID: {}", id);
             Long usuarioId = obtenerUsuarioIdOpcional(authHeader, id);
             
             DocumentoGenerado documento = grupoImportacionWorkflowService.definirPedido(id, usuarioId);
@@ -118,7 +118,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error definiendo pedido para grupo ID {}: {}", id, e.getMessage(), e);
+            log.error("Error definiendo pedido para grupo ID {}: {}", id, e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -134,7 +134,7 @@ public class GrupoImportacionController {
     public ResponseEntity<Map<String, Object>> obtenerGrupoImportacion(
             @PathVariable @NotNull @Positive Long id) {
         try {
-            log.info("📋 Obteniendo grupo de importación ID: {}", id);
+            log.info("Obteniendo grupo de importacion ID: {}", id);
             
             GrupoImportacion grupo = 
                 grupoImportacionService.obtenerGrupoImportacion(id);
@@ -194,7 +194,7 @@ public class GrupoImportacionController {
                     grupoDTO.put("documentosGenerados", new ArrayList<>());
                 }
             } catch (Exception e) {
-                log.warn("⚠️ No se pudieron cargar los documentos generados para el grupo {}: {}", id, e.getMessage());
+                log.warn("No se pudieron cargar los documentos generados para el grupo {}: {}", id, e.getMessage());
                 grupoDTO.put("documentosGenerados", new ArrayList<>());
             }
             
@@ -251,12 +251,12 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(grupoDTO);
         } catch (ResourceNotFoundException e) {
-            log.warn("⚠️ Grupo de importación no encontrado ID: {}", id);
+            log.warn("Grupo de importacion no encontrado ID: {}", id);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Grupo de importación no encontrado");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo grupo de importación ID {}: {}", id, e.getClass().getSimpleName(), e);
+            log.error("Error obteniendo grupo de importacion ID {}: {}", id, e.getClass().getSimpleName(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Error al obtener el grupo de importación");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -308,13 +308,13 @@ public class GrupoImportacionController {
     public ResponseEntity<GrupoImportacionResumenDTO> obtenerResumen(
             @PathVariable @NotNull @Positive Long id) {
         try {
-            log.info("📊 Obteniendo resumen del grupo ID: {}", id);
+            log.info("Obteniendo resumen del grupo ID: {}", id);
             
             GrupoImportacionResumenDTO resumen = grupoImportacionService.obtenerResumenGrupo(id);
             
             return ResponseEntity.ok(resumen);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo resumen del grupo ID {}: {}", id, e.getMessage(), e);
+            log.error("Error obteniendo resumen del grupo ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
@@ -330,11 +330,11 @@ public class GrupoImportacionController {
     public ResponseEntity<List<Map<String, Object>>> obtenerGruposActivos(
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📋 Obteniendo grupos de importación activos para vendedor");
+            log.info("Obteniendo grupos de importacion activos para vendedor");
             
             // Obtener ID del vendedor desde el token
             Long vendedorId = obtenerUsuarioId(authHeader);
-            log.info("🔍 Buscando grupos para vendedor ID: {}", vendedorId);
+            log.info("Buscando grupos para vendedor ID: {}", vendedorId);
             
             // Obtener grupos disponibles para este vendedor (con cupos verificados)
             List<GrupoImportacion> grupos = 
@@ -354,10 +354,10 @@ public class GrupoImportacionController {
                 return grupoMap;
             }).collect(Collectors.toList());
             
-            log.info("✅ Retornando {} grupos activos disponibles para vendedor ID: {}", gruposDTO.size(), vendedorId);
+            log.info("Retornando {} grupos activos disponibles para vendedor ID: {}", gruposDTO.size(), vendedorId);
             return ResponseEntity.ok(gruposDTO);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo grupos activos: {}", e.getMessage(), e);
+            log.error("Error obteniendo grupos activos: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Error al obtener los grupos activos: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
@@ -376,7 +376,7 @@ public class GrupoImportacionController {
             @RequestParam(required = false) String busqueda,
             Pageable pageable) {
         try {
-            log.info("📋 Listando grupos para Jefe de Ventas - Estado: {}, Búsqueda: {}", estado, busqueda);
+            log.info("Listando grupos para Jefe de Ventas - Estado: {}, Busqueda: {}", estado, busqueda);
             
             // TODO: Implementar búsqueda y filtrado en el repositorio
             // Por ahora retornamos todos los grupos activos
@@ -390,7 +390,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(resumenes);
         } catch (Exception e) {
-            log.error("❌ Error listando grupos para Jefe de Ventas: {}", e.getMessage(), e);
+            log.error("Error listando grupos para Jefe de Ventas: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -404,7 +404,7 @@ public class GrupoImportacionController {
                description = "Obtiene la lista paginada de grupos de importación activos para Finanzas/Jefe de Ventas")
     public ResponseEntity<Page<GrupoImportacionResumenDTO>> listarParaGestionImportaciones(Pageable pageable) {
         try {
-            log.info("📋 Listando grupos para Gestión de Importaciones");
+            log.info("Listando grupos para Gestion de Importaciones");
             
             // Obtener grupos paginados
             Page<GrupoImportacion> grupos =
@@ -416,7 +416,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(resumenes);
         } catch (Exception e) {
-            log.error("❌ Error listando grupos para Gestión de Importaciones: {}", e.getMessage(), e);
+            log.error("Error listando grupos para Gestion de Importaciones: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -433,7 +433,7 @@ public class GrupoImportacionController {
             Map<String, Object> response = grupoImportacionWorkflowService.verificarPuedeDefinirPedidoDetalle(id);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error verificando si puede definir pedido: {}", e.getMessage(), e);
+            log.error("Error verificando si puede definir pedido: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -451,7 +451,7 @@ public class GrupoImportacionController {
     public ResponseEntity<List<Map<String, Object>>> obtenerClientesDisponibles(
             @RequestParam(required = false) Long grupoId) {
         try {
-            log.info("🔍 Obteniendo clientes disponibles para asignar a grupos{}", 
+            log.info("Obteniendo clientes disponibles para asignar a grupos{}",
                     grupoId != null ? " (grupo ID: " + grupoId + ")" : "");
             
             List<Cliente> clientes = 
@@ -475,10 +475,10 @@ public class GrupoImportacionController {
                 return clienteMap;
             }).toList();
             
-            log.info("✅ Retornando {} clientes disponibles", clientesDTO.size());
+            log.info("Retornando {} clientes disponibles", clientesDTO.size());
             return ResponseEntity.ok(clientesDTO);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo clientes disponibles: {}", e.getMessage(), e);
+            log.error("Error obteniendo clientes disponibles: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -492,7 +492,7 @@ public class GrupoImportacionController {
     public ResponseEntity<List<Map<String, Object>>> obtenerClientesDelGrupo(
             @PathVariable @NotNull @Positive Long id) {
         try {
-            log.info("👥 Obteniendo clientes del grupo ID: {}", id);
+            log.info("Obteniendo clientes del grupo ID: {}", id);
             
             List<ClienteGrupoImportacion> clientesGrupo = 
                 grupoImportacionClienteService.obtenerClientesPorGrupo(id);
@@ -523,7 +523,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(clientesDTO);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo clientes del grupo ID {}: {}", id, e.getMessage(), e);
+            log.error("Error obteniendo clientes del grupo ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -587,7 +587,7 @@ public class GrupoImportacionController {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "Estado militar inválido: " + estadoMilitar));
         } catch (Exception e) {
-            log.error("❌ Error verificando grupos disponibles por tipo: {}", e.getMessage(), e);
+            log.error("Error verificando grupos disponibles por tipo: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Error verificando disponibilidad de grupos"));
         }
@@ -604,7 +604,7 @@ public class GrupoImportacionController {
             @PathVariable @NotNull @Positive Long clienteId,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("➕ Agregando cliente ID: {} al grupo ID: {}", clienteId, id);
+            log.info("Agregando cliente ID: {} al grupo ID: {}", clienteId, id);
             
             grupoImportacionClienteService.agregarCliente(id, clienteId);
             
@@ -613,7 +613,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error agregando cliente al grupo: {}", e.getMessage(), e);
+            log.error("Error agregando cliente al grupo: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -630,7 +630,7 @@ public class GrupoImportacionController {
             @PathVariable @NotNull @Positive Long id,
             @PathVariable @NotNull @Positive Long clienteId) {
         try {
-            log.info("➖ Removiendo cliente ID: {} del grupo ID: {}", clienteId, id);
+            log.info("Removiendo cliente ID: {} del grupo ID: {}", clienteId, id);
             
             grupoImportacionClienteService.removerCliente(id, clienteId);
             
@@ -639,7 +639,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error removiendo cliente del grupo: {}", e.getMessage(), e);
+            log.error("Error removiendo cliente del grupo: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -656,7 +656,7 @@ public class GrupoImportacionController {
             @PathVariable @NotNull @Positive Long id,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📢 Notificando agente aduanero para grupo ID: {}", id);
+            log.info("Notificando agente aduanero para grupo ID: {}", id);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             grupoImportacionWorkflowService.cambiarEstado(id, EstadoGrupoImportacion.NOTIFICAR_AGENTE_ADUANERO, usuarioId);
@@ -666,7 +666,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error notificando agente aduanero: {}", e.getMessage(), e);
+            log.error("Error notificando agente aduanero: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -681,7 +681,7 @@ public class GrupoImportacionController {
                description = "Obtiene la lista de todos los vendedores activos para asignar a grupos")
     public ResponseEntity<List<Map<String, Object>>> obtenerVendedores() {
         try {
-            log.info("👥 Obteniendo lista de vendedores activos");
+            log.info("Obteniendo lista de vendedores activos");
 
             // Solo retornar vendedores activos (estado = true)
             List<Usuario> vendedores = usuarioService.findVendedoresActivos();
@@ -700,7 +700,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(vendedoresDTO);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo vendedores: {}", e.getMessage(), e);
+            log.error("Error obteniendo vendedores: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
@@ -715,7 +715,7 @@ public class GrupoImportacionController {
                description = "Obtiene la lista de todas las categorías de armas para configurar límites")
     public ResponseEntity<List<Map<String, Object>>> obtenerCategoriasArmas() {
         try {
-            log.info("🔫 Obteniendo lista de categorías de armas");
+            log.info("Obteniendo lista de categorias de armas");
             
             List<CategoriaArma> categorias = categoriaArmaService.getAllCategorias();
             
@@ -732,7 +732,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(categoriasDTO);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo categorías de armas: {}", e.getMessage(), e);
+            log.error("Error obteniendo categorias de armas: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
@@ -749,7 +749,7 @@ public class GrupoImportacionController {
             @Valid @RequestBody GrupoImportacionCreateDTO dto,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("📝 Creando nuevo grupo de importación: {}", dto.getNombre());
+            log.info("Creando nuevo grupo de importacion: {}", dto.getNombre());
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             GrupoImportacion grupo = 
@@ -765,7 +765,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            log.error("❌ Error creando grupo de importación: {}", e.getMessage(), e);
+            log.error("Error creando grupo de importacion: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -783,7 +783,7 @@ public class GrupoImportacionController {
             @Valid @RequestBody GrupoImportacionCreateDTO dto,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("✏️ Actualizando grupo de importación ID: {}", id);
+            log.info("Actualizando grupo de importacion ID: {}", id);
             
             Long usuarioId = obtenerUsuarioId(authHeader);
             GrupoImportacion grupo = 
@@ -799,7 +799,7 @@ public class GrupoImportacionController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error actualizando grupo de importación ID {}: {}", id, e.getMessage(), e);
+            log.error("Error actualizando grupo de importacion ID {}: {}", id, e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);

@@ -150,10 +150,10 @@ public class ClienteFormularioController {
                 config.put(tipo.getNombre(), tipoConfig);
             }
             
-            log.info("✅ Configuración dinámica de {} tipos de cliente cargada desde BD", tiposCliente.size());
+            log.info("Configuracion dinamica de {} tipos de cliente cargada desde BD", tiposCliente.size());
             return ResponseEntity.ok(config);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo configuración de tipos de cliente: {}", e.getMessage());
+            log.error("Error obteniendo configuracion de tipos de cliente: {}", e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }

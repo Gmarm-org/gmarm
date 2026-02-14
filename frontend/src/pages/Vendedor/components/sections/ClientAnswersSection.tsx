@@ -54,14 +54,6 @@ export const ClientAnswersSection: React.FC<ClientAnswersSectionProps> = ({
       
       <div className="space-y-4">
         {clientQuestions.map((question) => {
-          console.log('Rendering question:', { 
-            id: question.id, 
-            pregunta: question.pregunta, 
-            tipoRespuesta: question.tipoRespuesta,
-            currentValue: getAnswerForQuestion(question.pregunta),
-            isViolenceQuestion: question.pregunta.includes('denuncias de violencia'),
-            fullQuestion: question
-          });
           return (
           <div key={question.id} className="bg-white p-4 rounded-xl border-2 border-gray-200">
             <div className="flex items-start justify-between mb-3">
@@ -99,12 +91,6 @@ export const ClientAnswersSection: React.FC<ClientAnswersSectionProps> = ({
                     key={`${question.id}-${getAnswerForQuestion(question.pregunta)}`}
                     value={getAnswerForQuestion(question.pregunta)?.startsWith('SI') ? 'SI' : getAnswerForQuestion(question.pregunta)?.startsWith('NO') ? 'NO' : ''}
                     onChange={(e) => {
-                      console.log('Dropdown SI/NO onChange triggered:', { 
-                        question: question.pregunta, 
-                        newValue: e.target.value,
-                        currentValue: getAnswerForQuestion(question.pregunta)
-                      });
-                      
                       if (e.target.value === 'NO') {
                         // Si es NO, solo guardar NO
                         handleAnswerChange(question.pregunta, 'NO', question.id);
@@ -136,11 +122,6 @@ export const ClientAnswersSection: React.FC<ClientAnswersSectionProps> = ({
                              getAnswerForQuestion(question.pregunta)?.includes('2 armas') ? '2 armas' : 
                              getAnswerForQuestion(question.pregunta)?.includes('más armas') ? 'más armas' : ''}
                       onChange={(e) => {
-                        console.log('Dropdown cantidad onChange triggered:', { 
-                          question: question.pregunta, 
-                          newValue: e.target.value
-                        });
-                        
                         // Combinar SI con la cantidad seleccionada
                         const combinedAnswer = `SI, ${e.target.value}`;
                         handleAnswerChange(question.pregunta, combinedAnswer, question.id);

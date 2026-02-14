@@ -36,14 +36,14 @@ public class ReciboPDFGenerator {
 
     public DocumentoGenerado generarYGuardar(Cliente cliente, Pago pago, CuotaPago cuota) {
         try {
-            log.info("📄 GENERANDO RECIBO CON FLYING SAUCER PARA CUOTA ID: {}", cuota.getId());
+            log.info("GENERANDO RECIBO CON FLYING SAUCER PARA CUOTA ID: {}", cuota.getId());
 
             // Eliminar recibo anterior de la misma cuota para evitar duplicados
             String nombreRecibo = "Recibo de Pago - Cuota #" + cuota.getNumeroCuota();
             utils.eliminarDocumentoAnteriorPorNombre(cliente.getId(), TipoDocumentoGenerado.RECIBO, nombreRecibo);
 
             byte[] pdfBytes = generarPDF(cliente, pago, cuota);
-            log.info("✅ PDF de recibo generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF de recibo generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivo(cliente, cuota);
 
@@ -53,19 +53,19 @@ public class ReciboPDFGenerator {
             DocumentoGenerado documento = crearDocumentoRecibo(cliente, pago, cuota, nombreArchivo, rutaArchivo, pdfBytes);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);
 
-            log.info("✅ Recibo generado y guardado con ID: {}, archivo: {}",
+            log.info("Recibo generado y guardado con ID: {}, archivo: {}",
                 documentoGuardado.getId(), nombreArchivo);
 
             return documentoGuardado;
 
         } catch (Exception e) {
-            log.error("❌ Error generando recibo para cuota ID: {}: {}", cuota.getId(), e.getMessage(), e);
+            log.error("Error generando recibo para cuota ID: {}: {}", cuota.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando recibo", e);
         }
     }
 
     private byte[] generarPDF(Cliente cliente, Pago pago, CuotaPago cuota) throws Exception {
-        log.info("🔧 Generando PDF de recibo con Flying Saucer para cuota: {}", cuota.getNumeroCuota());
+        log.info("Generando PDF de recibo con Flying Saucer para cuota: {}", cuota.getNumeroCuota());
 
         try {
             List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
@@ -83,7 +83,7 @@ public class ReciboPDFGenerator {
             try {
                 fechaDocumento = fechaActual.format(FECHA_ESPANOL_FMT);
             } catch (Exception e) {
-                log.warn("⚠️ Error formateando fecha con locale español, usando formato simple: {}", e.getMessage());
+                log.warn("Error formateando fecha con locale español, usando formato simple: {}", e.getMessage());
                 fechaDocumento = fechaActual.format(FECHA_SIMPLE_FMT);
             }
 
@@ -162,7 +162,7 @@ public class ReciboPDFGenerator {
                 try {
                     variables.put("montoEnLetras", numberToTextService.convertToText(cuota.getMonto()));
                 } catch (Exception e) {
-                    log.warn("⚠️ Error convirtiendo número a texto: {}", e.getMessage());
+                    log.warn("Error convirtiendo número a texto: {}", e.getMessage());
                     variables.put("montoEnLetras", "");
                 }
             } else {
@@ -171,11 +171,11 @@ public class ReciboPDFGenerator {
 
             byte[] pdfBytes = utils.generarPdf("recibo-cuota-pago", variables);
 
-            log.info("✅ PDF de recibo generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF de recibo generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
 
         } catch (Exception e) {
-            log.error("❌ Error generando PDF de recibo con Flying Saucer: {}", e.getMessage(), e);
+            log.error("Error generando PDF de recibo con Flying Saucer: {}", e.getMessage(), e);
             throw e;
         }
     }

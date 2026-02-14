@@ -29,12 +29,12 @@ public class RolController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todos los roles", description = "Devuelve la lista completa de roles del sistema")
     public ResponseEntity<List<RolDTO>> getAllRoles() {
-        log.info("📋 GET /api/roles - Obteniendo todos los roles");
+        log.info("GET /api/roles - Obteniendo todos los roles");
         List<Rol> roles = rolRepository.findAll();
         List<RolDTO> rolesDTO = roles.stream()
                 .map(rolMapper::toDTO)
                 .collect(Collectors.toList());
-        log.info("✅ Roles encontrados: {}", rolesDTO.size());
+        log.info("Roles encontrados: {}", rolesDTO.size());
         return ResponseEntity.ok(rolesDTO);
     }
 
@@ -42,14 +42,14 @@ public class RolController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener rol por ID", description = "Devuelve un rol específico por su ID")
     public ResponseEntity<Rol> getRolById(@PathVariable Long id) {
-        log.info("📋 GET /api/roles/{} - Obteniendo rol", id);
+        log.info("GET /api/roles/{} - Obteniendo rol", id);
         return rolRepository.findById(id)
                 .map(rol -> {
-                    log.info("✅ Rol encontrado: {}", rol.getNombre());
+                    log.info("Rol encontrado: {}", rol.getNombre());
                     return ResponseEntity.ok(rol);
                 })
                 .orElseGet(() -> {
-                    log.warn("⚠️ Rol no encontrado con ID: {}", id);
+                    log.warn("Rol no encontrado con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
     }
@@ -58,10 +58,10 @@ public class RolController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nuevo rol", description = "Crea un nuevo rol en el sistema")
     public ResponseEntity<RolDTO> createRol(@RequestBody Rol rol) {
-        log.info("📝 POST /api/roles - Creando nuevo rol: {}", rol.getNombre());
+        log.info("POST /api/roles - Creando nuevo rol: {}", rol.getNombre());
         Rol savedRol = rolRepository.save(rol);
         RolDTO rolDTO = rolMapper.toDTO(savedRol);
-        log.info("✅ Rol creado con ID: {}", savedRol.getId());
+        log.info("Rol creado con ID: {}", savedRol.getId());
         return ResponseEntity.ok(rolDTO);
     }
 
@@ -69,7 +69,7 @@ public class RolController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar rol", description = "Actualiza un rol existente")
     public ResponseEntity<RolDTO> updateRol(@PathVariable Long id, @RequestBody Rol rol) {
-        log.info("📝 PUT /api/roles/{} - Actualizando rol", id);
+        log.info("PUT /api/roles/{} - Actualizando rol", id);
         return rolRepository.findById(id)
                 .map(existingRol -> {
                     existingRol.setNombre(rol.getNombre());
@@ -78,11 +78,11 @@ public class RolController {
                     existingRol.setEstado(rol.getEstado());
                     Rol updated = rolRepository.save(existingRol);
                     RolDTO rolDTO = rolMapper.toDTO(updated);
-                    log.info("✅ Rol actualizado: {}", updated.getNombre());
+                    log.info("Rol actualizado: {}", updated.getNombre());
                     return ResponseEntity.ok(rolDTO);
                 })
                 .orElseGet(() -> {
-                    log.warn("⚠️ Rol no encontrado con ID: {}", id);
+                    log.warn("Rol no encontrado con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
     }
@@ -91,15 +91,15 @@ public class RolController {
     // TODO: Descomentar en producción: @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Eliminar rol", description = "Elimina un rol del sistema")
     public ResponseEntity<Void> deleteRol(@PathVariable Long id) {
-        log.info("🗑️ DELETE /api/roles/{} - Eliminando rol", id);
+        log.info("DELETE /api/roles/{} - Eliminando rol", id);
         return rolRepository.findById(id)
                 .map(rol -> {
                     rolRepository.delete(rol);
-                    log.info("✅ Rol eliminado: {}", rol.getNombre());
+                    log.info("Rol eliminado: {}", rol.getNombre());
                     return ResponseEntity.ok().<Void>build();
                 })
                 .orElseGet(() -> {
-                    log.warn("⚠️ Rol no encontrado con ID: {}", id);
+                    log.warn("Rol no encontrado con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
     }

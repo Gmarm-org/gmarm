@@ -31,7 +31,7 @@ export const formatDate = (
   try {
     return new Date(date!).toLocaleDateString(locale);
   } catch (error) {
-    console.warn('Error formateando fecha:', error);
+    // Date formatting failed
     return fallback;
   }
 };
@@ -55,7 +55,7 @@ export const formatDateTime = (
   try {
     return new Date(date!).toLocaleString(locale);
   } catch (error) {
-    console.warn('Error formateando fecha y hora:', error);
+    // DateTime formatting failed
     return fallback;
   }
 };
@@ -91,7 +91,7 @@ export const formatRelativeDate = (
     if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} mes${Math.floor(diffDays / 30) > 1 ? 'es' : ''}`;
     return `Hace ${Math.floor(diffDays / 365)} año${Math.floor(diffDays / 365) > 1 ? 's' : ''}`;
   } catch (error) {
-    console.warn('Error formateando fecha relativa:', error);
+    // Relative date formatting failed
     return fallback;
   }
 };

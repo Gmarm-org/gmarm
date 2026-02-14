@@ -60,11 +60,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } else {
-                    log.warn("🔐 Token válido pero usuario no existe: {}", username);
+                    log.warn("Token válido pero usuario no existe: {}", username);
                 }
             }
         } catch (Exception ex) {
-            log.error("🔐 Error al configurar la autenticación del usuario: {}", ex.getMessage());
+            log.error("Error al configurar la autenticación del usuario: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

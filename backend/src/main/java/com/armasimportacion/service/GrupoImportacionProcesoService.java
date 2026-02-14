@@ -159,7 +159,7 @@ public class GrupoImportacionProcesoService {
                 }
             }
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo enviar alertas por correo: {}", e.getMessage(), e);
+            log.warn("No se pudo enviar alertas por correo: {}", e.getMessage(), e);
         }
     }
 

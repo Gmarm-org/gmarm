@@ -27,12 +27,12 @@ public class SolicitudCompraPDFGenerator {
 
     public DocumentoGenerado generarYGuardar(Cliente cliente, Pago pago) {
         try {
-            log.info("📄 GENERANDO SOLICITUD DE COMPRA PARA CLIENTE ID: {}", cliente.getId());
+            log.info("GENERANDO SOLICITUD DE COMPRA PARA CLIENTE ID: {}", cliente.getId());
 
             utils.eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.SOLICITUD_COMPRA);
 
             byte[] pdfBytes = generarPDF(cliente, pago);
-            log.info("🔍 DEBUG: PDF de solicitud de compra generado, tamaño: {} bytes", pdfBytes.length);
+            log.info("DEBUG: PDF de solicitud de compra generado, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivo(cliente);
 
@@ -42,24 +42,24 @@ public class SolicitudCompraPDFGenerator {
             DocumentoGenerado documento = utils.crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.SOLICITUD_COMPRA);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);
 
-            log.info("✅ Solicitud de compra generada y guardada con ID: {}, archivo: {}",
+            log.info("Solicitud de compra generada y guardada con ID: {}, archivo: {}",
                 documentoGuardado.getId(), nombreArchivo);
 
             return documentoGuardado;
 
         } catch (Exception e) {
-            log.error("❌ Error generando solicitud de compra para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            log.error("Error generando solicitud de compra para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando solicitud de compra", e);
         }
     }
 
     private byte[] generarPDF(Cliente cliente, Pago pago) throws Exception {
-        log.info("🔧 Generando PDF de Solicitud de Compra con Flying Saucer para cliente: {}", cliente.getNombres());
+        log.info("Generando PDF de Solicitud de Compra con Flying Saucer para cliente: {}", cliente.getNombres());
 
         try {
             List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
             if (armasCliente == null || armasCliente.isEmpty()) {
-                log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
+                log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new RuntimeException("No se encontró arma asignada al cliente");
             }
 
@@ -115,18 +115,18 @@ public class SolicitudCompraPDFGenerator {
             } else if (cliente.esMilitar() || cliente.esPolicia()) {
                 nombreTemplate = utils.determinarTemplateUniformado(cliente, "solicitud_compra");
             } else {
-                log.warn("⚠️ Tipo de cliente no identificado, usando template de civiles");
+                log.warn("Tipo de cliente no identificado, usando template de civiles");
                 nombreTemplate = "contratos/civiles/solicitud_compra";
             }
-            log.info("📄 Usando template de solicitud: {}", nombreTemplate);
+            log.info("Usando template de solicitud: {}", nombreTemplate);
 
             byte[] pdfBytes = utils.generarPdf(nombreTemplate, variables);
 
-            log.info("✅ PDF de solicitud de compra generado exitosamente, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF de solicitud de compra generado exitosamente, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
 
         } catch (Exception e) {
-            log.error("❌ Error generando PDF de solicitud de compra: {}", e.getMessage(), e);
+            log.error("Error generando PDF de solicitud de compra: {}", e.getMessage(), e);
             throw e;
         }
     }

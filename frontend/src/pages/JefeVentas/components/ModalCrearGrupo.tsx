@@ -64,16 +64,12 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
   
   const cargarLicenciasParaEdicion = async () => {
     try {
-      console.log('🔄 Cargando TODAS las licencias activas para edición (incluidas ocupadas)...');
-      // Usar getLicenciasActivas() que retorna TODAS las licencias activas, no solo las disponibles
-      // Esto incluye las licencias que ya están asignadas a grupos (ocupadas)
+      // Cargar TODAS las licencias activas (incluidas ocupadas) para edicion
       const licenciasActivas = await apiService.getLicenciasActivas();
-      console.log('✅ Licencias activas cargadas:', licenciasActivas.length);
-      console.log('📋 Licencias:', licenciasActivas.map(l => ({ id: l.id, numero: l.numero, nombre: l.nombre })));
       setLicencias(licenciasActivas);
       return licenciasActivas;
     } catch (error) {
-      console.error('❌ Error cargando licencias para edición:', error);
+      console.error('Error cargando licencias para edicion:', error instanceof Error ? error.message : 'Unknown error');
       return [];
     }
   };
@@ -86,8 +82,6 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       
       // Cargar grupo primero
       const grupo = await apiService.getGrupoImportacion(grupoId);
-      console.log('📋 Datos del grupo cargados:', grupo);
-      console.log('📋 Licencia del grupo:', (grupo as any).licencia);
       
       setNombre(grupo.nombre || '');
       setDescripcion(grupo.descripcion || '');
@@ -97,13 +91,13 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       
       // Cargar datos adicionales en paralelo (con manejo de errores individual)
       try {
-        const vendedoresData = await apiService.getVendedoresParaGrupo().catch(err => {
-          console.warn('⚠️ Error cargando vendedores, usando array vacío:', err);
+        const vendedoresData = await apiService.getVendedoresParaGrupo().catch(() => {
+          // Error cargando vendedores, usando array vacio
           return [];
         });
-        
-        const categoriasData = await apiService.getCategoriasArmasParaGrupo().catch(err => {
-          console.warn('⚠️ Error cargando categorías, usando array vacío:', err);
+
+        const categoriasData = await apiService.getCategoriasArmasParaGrupo().catch(() => {
+          // Error cargando categorias, usando array vacio
           return [];
         });
         
@@ -111,7 +105,7 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
         setVendedores(vendedoresData || []);
         setCategorias(categoriasData || []);
       } catch (error) {
-        console.error('❌ Error cargando datos adicionales:', error);
+        console.error('Error cargando datos adicionales:', error instanceof Error ? error.message : 'Unknown error');
         // Continuar aunque falle la carga de vendedores o categorías
         setVendedores([]);
         setCategorias([]);
@@ -121,12 +115,6 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       // Las licencias ya están cargadas porque cargarLicenciasParaEdicion() se ejecuta antes
       if ((grupo as any).licencia && (grupo as any).licencia.id) {
         const licenciaIdGrupo = (grupo as any).licencia.id;
-        console.log('🔑 Estableciendo licencia asignada al grupo - ID:', licenciaIdGrupo);
-        console.log('📝 Información de licencia:', {
-          id: (grupo as any).licencia.id,
-          numero: (grupo as any).licencia.numero,
-          nombre: (grupo as any).licencia.nombre
-        });
         
         // Establecer la licencia directamente (las licencias activas ya están cargadas)
         // Si la licencia está inactiva pero asignada, la agregamos a la lista
@@ -138,8 +126,7 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
           setLicencias(licenciasActuales => {
             const licenciaEncontrada = licenciasActuales.find((l: Licencia) => l.id === licenciaIdGrupo);
             if (!licenciaEncontrada) {
-              console.warn('⚠️ La licencia asignada al grupo no está en la lista de licencias activas. Agregándola...');
-              // Agregar la licencia del grupo a la lista (puede estar inactiva pero asignada)
+              // La licencia asignada no esta en la lista de activas - agregarla
               const licenciaDelGrupo: Licencia = {
                 id: licenciaIdGrupo,
                 numero: (grupo as any).licencia.numero || '',
@@ -155,13 +142,12 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
           });
         }, 50);
       } else {
-        console.warn('⚠️ El grupo no tiene licencia asignada');
+        // El grupo no tiene licencia asignada
         setLicenciaId(null);
       }
       
       // Cargar vendedores asignados con sus límites
       if ((grupo as any).vendedores && Array.isArray((grupo as any).vendedores)) {
-        console.log('👥 Vendedores encontrados en el grupo:', (grupo as any).vendedores);
         const vendedoresConLimites = (grupo as any).vendedores
           .filter((v: any) => v.activo !== false)
           .map((v: any) => ({
@@ -169,32 +155,29 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
             limiteArmas: v.limiteArmas || 0
           }))
           .filter((v: any) => v.vendedorId);
-        console.log('✅ Vendedores con límites procesados:', vendedoresConLimites);
         setLimitesVendedores(vendedoresConLimites);
         setVendedorIdsSeleccionados(Array.from(new Set(vendedoresConLimites.map((v: any) => v.vendedorId))));
       } else {
-        console.warn('⚠️ No se encontraron vendedores en el grupo');
+        // No se encontraron vendedores en el grupo
         setLimitesVendedores([]);
         setVendedorIdsSeleccionados([]);
       }
       
       // Cargar límites por categoría
       if ((grupo as any).limitesCategoria && Array.isArray((grupo as any).limitesCategoria)) {
-        console.log('📊 Límites por categoría encontrados:', (grupo as any).limitesCategoria);
         const limites = (grupo as any).limitesCategoria
           .map((l: any) => ({
             categoriaArmaId: l.categoriaArmaId ?? l.categoriaArma?.id ?? null,
             limiteMaximo: l.limiteMaximo
           }))
           .filter((l: any) => l.categoriaArmaId);
-        console.log('✅ Límites procesados:', limites);
         setLimitesCategoria(limites);
       } else {
-        console.warn('⚠️ No se encontraron límites por categoría en el grupo');
+        // No se encontraron limites por categoria en el grupo
         setLimitesCategoria([]);
       }
     } catch (error) {
-      console.error('❌ Error cargando datos del grupo:', error);
+      console.error('Error cargando datos del grupo:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar datos del grupo para editar');
     } finally {
       setLoading(false);
@@ -231,7 +214,7 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       });
       setLimitesCategoria(limitesIniciales);
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('Error cargando datos:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar datos iniciales');
     } finally {
       setLoading(false);
@@ -399,7 +382,7 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error(`Error ${modo === 'editar' ? 'actualizando' : 'creando'} grupo:`, error);
+      console.error(`Error ${modo === 'editar' ? 'actualizando' : 'creando'} grupo:`, error instanceof Error ? error.message : 'Unknown error');
       alert(error.message || `Error al ${modo === 'editar' ? 'actualizar' : 'crear'} el grupo de importación`);
     } finally {
       setCreando(false);
@@ -471,7 +454,6 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
               value={licenciaId ? String(licenciaId) : ''}
               onChange={(e) => {
                 const nuevoId = e.target.value ? Number(e.target.value) : null;
-                console.log('🔑 Licencia cambiada:', nuevoId);
                 setLicenciaId(nuevoId);
               }}
               disabled={loading || licencias.length === 0}
@@ -494,10 +476,6 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
                                  (licencia.cupoMilitar || 0) + 
                                  (licencia.cupoEmpresa || 0) + 
                                  (licencia.cupoDeportista || 0);
-                const isSelected = licenciaId === licencia.id;
-                if (isSelected) {
-                  console.log('✅ Licencia seleccionada en el dropdown:', licencia.id, licencia.numero);
-                }
                 return (
                   <option key={licencia.id} value={String(licencia.id)}>
                     {licencia.numero} - {licencia.nombre} 

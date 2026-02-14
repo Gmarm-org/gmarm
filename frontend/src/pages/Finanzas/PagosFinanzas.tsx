@@ -41,7 +41,7 @@ const PagosFinanzas: React.FC = () => {
         const cuotasData = await apiService.getCuotasPorPago(pago.id);
         setPagoSeleccionado({ ...pago, cuotas: cuotasData });
       } catch (error) {
-        console.error('Error cargando cuotas:', error);
+        console.error('Error cargando cuotas:', error instanceof Error ? error.message : 'Unknown error');
         setPagoSeleccionado({ ...pago, cuotas: [] });
       }
     }
@@ -68,7 +68,7 @@ const PagosFinanzas: React.FC = () => {
           setDescripcionArma(descripcion);
         }
       } catch (error) {
-        console.warn('No se pudieron cargar las armas del cliente:', error);
+        // Armas del cliente no disponibles
         setDescripcionArma('No disponible');
       }
 

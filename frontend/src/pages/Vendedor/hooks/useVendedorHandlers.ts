@@ -252,11 +252,8 @@ export const useVendedorHandlers = (
       }
       
       try {
-        console.log('👤 Buscando/creando cliente fantasma para vendedor:', user.nombres, user.apellidos);
-        
         // Buscar o crear el cliente fantasma del vendedor en el backend
         const clienteFantasma = await apiService.buscarOCrearClienteFantasmaVendedor();
-        console.log('✅ Cliente fantasma obtenido:', clienteFantasma);
         
         // Crear reservas para todas las armas seleccionadas
         for (const arma of armasParaReservar) {
@@ -274,8 +271,6 @@ export const useVendedorHandlers = (
           );
         }
         
-        console.log(`✅ ${armasParaReservar.length} arma(s) asignada(s) al cliente fantasma del vendedor.`);
-        
         // Refrescar datos y mostrar mensaje
         await loadWeapons();
         await loadClients();
@@ -290,7 +285,7 @@ export const useVendedorHandlers = (
         setCurrentPage('dashboard');
         return; // No continuar con el flujo de pago para armas sin cliente
       } catch (error: any) {
-        console.error('❌ Error asignando arma(s) al cliente fantasma:', error);
+        console.error('Error asignando arma(s) al cliente fantasma:', error instanceof Error ? error.message : 'Unknown error');
         // Extraer mensaje de error del backend (puede estar en diferentes lugares)
         const errorMessage = error?.responseData?.error || 
                            error?.responseData?.message || 
@@ -307,7 +302,6 @@ export const useVendedorHandlers = (
     const clienteActual = clientFormData || selectedClient;
     if (clienteActual?.id && armasParaReservar.length > 0) {
       try {
-        console.log(`🔫 Guardando ${armasParaReservar.length} reserva(s) de arma para cliente:`, clienteActual.id);
         
         // Crear reservas para todas las armas seleccionadas
         for (const arma of armasParaReservar) {
@@ -325,18 +319,13 @@ export const useVendedorHandlers = (
           );
         }
         
-        console.log(`✅ ${armasParaReservar.length} reserva(s) de arma guardada(s) exitosamente`);
       } catch (error: any) {
-        console.error('❌ Error guardando reserva(s) de arma:', error);
+        console.error('Error guardando reserva(s) de arma:', error instanceof Error ? error.message : 'Unknown error');
         const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al guardar reserva';
         alert(`⚠️ Error al guardar la(s) reserva(s) del arma: ${errorMessage}`);
         return; // No continuar si falla guardar la reserva
       }
     } else {
-      console.log('⚠️ No se puede guardar reserva:', { 
-        clienteId: clienteActual?.id, 
-        tieneArma: armasParaReservar.length > 0 
-      });
     }
     
     // Siempre ir a paymentForm (expoferia eliminada)
@@ -389,7 +378,7 @@ export const useVendedorHandlers = (
       }
       setCurrentPage('clientForm');
     } catch (error) {
-      console.error('❌ Error obteniendo cliente completo:', error);
+      console.error('Error obteniendo cliente completo:', error instanceof Error ? error.message : 'Unknown error');
       const clienteParaMostrar = {
         ...client,
         provincia: mapearCodigoANombreProvincia(client.provincia || '', provinciasCompletas),
@@ -418,7 +407,7 @@ export const useVendedorHandlers = (
       await loadClients();
       alert('✅ Datos personales validados exitosamente');
     } catch (error: any) {
-      console.error('❌ Error validando datos personales:', error);
+      console.error('Error validando datos personales:', error instanceof Error ? error.message : 'Unknown error');
       alert('❌ Error al validar datos personales: ' + (error.message || 'Error desconocido'));
     }
   }, [loadClients]);
@@ -426,7 +415,6 @@ export const useVendedorHandlers = (
   const handleEditClient = useCallback(async (client: Client) => {
     try {
       const clienteCompleto = await apiService.getCliente(parseInt(client.id));
-      console.log('🔍 Cliente completo obtenido del backend:', clienteCompleto);
       
       // Obtener tipos de cliente para el mapeo
       const tiposClienteCompletos = await apiService.getClientTypes();
@@ -442,17 +430,11 @@ export const useVendedorHandlers = (
         if (provinciaPorCodigo) {
           // Ya es código, mantenerlo
           provinciaMapeada = provinciaPorCodigo.codigo;
-          console.log('✅ Provincia ya es código:', provinciaMapeada);
         } else if (provinciaPorNombre) {
           // Es nombre, convertir a código para el select
           provinciaMapeada = provinciaPorNombre.codigo;
-          console.log('✅ Provincia convertida de nombre a código:', { 
-            nombre: (clienteCompleto as any).provincia, 
-            codigo: provinciaMapeada 
-          });
         } else {
-          // No se encontró, usar valor original
-          console.log('⚠️ Provincia no encontrada en catálogo:', provinciaMapeada);
+          // No se encontro, usar valor original
         }
       }
       
@@ -463,7 +445,6 @@ export const useVendedorHandlers = (
         const tipoClienteEncontrado = tiposClienteCompletos.find((tc: any) => tc.codigo === (clienteCompleto as any).tipoClienteCodigo);
         if (tipoClienteEncontrado) {
           tipoClienteNombre = tipoClienteEncontrado.nombre;
-          console.log('✅ TipoCliente encontrado por código:', { codigo: (clienteCompleto as any).tipoClienteCodigo, nombre: tipoClienteNombre });
         }
       }
       
@@ -476,13 +457,6 @@ export const useVendedorHandlers = (
         provincia: provinciaMapeada,
         canton: (clienteCompleto as any).canton || ''
       };
-      
-      console.log('✅ Cliente preparado para mostrar:', {
-        tipoCliente: clienteParaMostrar.tipoCliente,
-        tipoClienteNombre: clienteParaMostrar.tipoClienteNombre,
-        provincia: clienteParaMostrar.provincia,
-        canton: clienteParaMostrar.canton
-      });
       
       setSelectedClient(clienteParaMostrar as any);
       setClientFormMode('edit');
@@ -498,7 +472,7 @@ export const useVendedorHandlers = (
       }
       setCurrentPage('clientForm');
     } catch (error) {
-      console.error('❌ Error obteniendo cliente completo:', error);
+      console.error('Error obteniendo cliente completo:', error instanceof Error ? error.message : 'Unknown error');
       // En caso de error, intentar usar los datos del cliente que ya tenemos
       let provinciaMapeada = client.provincia || '';
       if (provinciaMapeada) {
@@ -518,7 +492,7 @@ export const useVendedorHandlers = (
       try {
         tiposClienteCompletos = await apiService.getClientTypes();
       } catch (e) {
-        console.error('❌ Error obteniendo tipos de cliente:', e);
+        console.error('Error obteniendo tipos de cliente:', e instanceof Error ? e.message : 'Unknown error');
       }
       
       // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})

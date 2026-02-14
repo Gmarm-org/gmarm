@@ -48,7 +48,7 @@ public class UsuarioController {
     public ResponseEntity<Map<String, Object>> getAllUsuarios(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.info("📋 GET /api/usuarios?page={}&size={}", page, size);
+        log.info("GET /api/usuarios?page={}&size={}", page, size);
         
         Pageable pageable = PageRequest.of(page, size);
         Page<Usuario> usuariosPage = usuarioService.findAllPaginated(pageable);
@@ -62,21 +62,21 @@ public class UsuarioController {
         response.put("currentPage", usuariosPage.getNumber());
         response.put("pageSize", usuariosPage.getSize());
         
-        log.info("✅ Usuarios obtenidos: {} de {} total", usuariosDTO.size(), usuariosPage.getTotalElements());
+        log.info("Usuarios obtenidos: {} de {} total", usuariosDTO.size(), usuariosPage.getTotalElements());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioSimpleDTO> getUsuarioById(@PathVariable Long id) {
-        log.info("📋 GET /api/usuarios/{} - Obteniendo usuario", id);
+        log.info("GET /api/usuarios/{} - Obteniendo usuario", id);
         try {
             Usuario usuario = usuarioService.findById(id);
             UsuarioSimpleDTO usuarioDTO = usuarioMapper.toDTO(usuario);
-            log.info("✅ Usuario encontrado: {} - Teléfono: {}, Último Login: {}", 
+            log.info("Usuario encontrado: {} - Telefono: {}, Ultimo Login: {}",
                      usuario.getUsername(), usuario.getTelefonoPrincipal(), usuario.getUltimoLogin());
             return ResponseEntity.ok(usuarioDTO);
         } catch (ResourceNotFoundException e) {
-            log.error("⚠️ Usuario no encontrado con ID: {}", id);
+            log.error("Usuario no encontrado con ID: {}", id);
             return ResponseEntity.notFound().build();
         }
     }
@@ -124,10 +124,10 @@ public class UsuarioController {
 
     @GetMapping("/{id}/roles")
     public ResponseEntity<Set<Rol>> getUserRoles(@PathVariable Long id) {
-        log.info("📋 GET /api/usuarios/{}/roles - Obteniendo roles del usuario", id);
+        log.info("GET /api/usuarios/{}/roles - Obteniendo roles del usuario", id);
         try {
             Usuario usuario = usuarioService.findById(id);
-            log.info("✅ Usuario encontrado: {}, roles: {}", usuario.getUsername(), usuario.getRoles().size());
+            log.info("Usuario encontrado: {}, roles: {}", usuario.getUsername(), usuario.getRoles().size());
             return ResponseEntity.ok(usuario.getRoles());
         } catch (ResourceNotFoundException e) {
             log.error("Usuario no encontrado con ID: {}", id);

@@ -49,7 +49,7 @@ public class GrupoImportacionWorkflowService {
      * Genera el PDF "Pedido_Armas_Grupo_Importacion_AAAA_MM_DD" y cambia el estado
      */
     public DocumentoGenerado definirPedido(Long grupoId, Long usuarioId) {
-        log.info("📋 Definiendo pedido para grupo de importación ID: {}", grupoId);
+        log.info("Definiendo pedido para grupo de importación ID: {}", grupoId);
 
         Map<String, Object> validacion = verificarPuedeDefinirPedidoDetalle(grupoId);
         boolean puedeDefinir = Boolean.TRUE.equals(validacion.get("puedeDefinir"));
@@ -110,7 +110,7 @@ public class GrupoImportacionWorkflowService {
      * Solo se puede ejecutar si los documentos 1, 2, 3 están cargados
      */
     public void notificarPagoFabrica(Long grupoId, Long usuarioId) {
-        log.info("💰 Notificando pago a fábrica para grupo ID: {}", grupoId);
+        log.info("Notificando pago a fábrica para grupo ID: {}", grupoId);
 
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
             .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
@@ -134,14 +134,14 @@ public class GrupoImportacionWorkflowService {
 
         grupoImportacionRepository.save(grupo);
 
-        log.info("✅ Pago a fábrica notificado para grupo ID: {}", grupoId);
+        log.info("Pago a fábrica notificado para grupo ID: {}", grupoId);
     }
 
     /**
      * Registra la fecha aproximada de llegada de la importación
      */
     public void registrarFechaLlegada(Long grupoId, LocalDate fechaLlegada, Long usuarioId) {
-        log.info("📅 Registrando fecha de llegada para grupo ID: {} - Fecha: {}", grupoId, fechaLlegada);
+        log.info("Registrando fecha de llegada para grupo ID: {} - Fecha: {}", grupoId, fechaLlegada);
 
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
             .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
@@ -158,14 +158,14 @@ public class GrupoImportacionWorkflowService {
 
         grupoImportacionRepository.save(grupo);
 
-        log.info("✅ Fecha de llegada registrada para grupo ID: {}", grupoId);
+        log.info("Fecha de llegada registrada para grupo ID: {}", grupoId);
     }
 
     /**
      * Registra el número de previa importación
      */
     public void registrarNumeroPreviaImportacion(Long grupoId, String numeroPrevia, Long usuarioId) {
-        log.info("📝 Registrando número de previa importación para grupo ID: {} - Número: {}", grupoId, numeroPrevia);
+        log.info("Registrando número de previa importación para grupo ID: {} - Número: {}", grupoId, numeroPrevia);
 
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
             .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
@@ -186,14 +186,14 @@ public class GrupoImportacionWorkflowService {
 
         grupoImportacionRepository.save(grupo);
 
-        log.info("✅ Número de previa importación registrado para grupo ID: {}", grupoId);
+        log.info("Número de previa importación registrado para grupo ID: {}", grupoId);
     }
 
     /**
      * Cambia el estado del grupo (método genérico mejorado)
      */
     public void cambiarEstado(Long grupoId, EstadoGrupoImportacion nuevoEstado, Long usuarioId) {
-        log.info("🔄 Cambiando estado del grupo ID: {} a {}", grupoId, nuevoEstado);
+        log.info("Cambiando estado del grupo ID: {} a {}", grupoId, nuevoEstado);
 
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
             .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
@@ -220,11 +220,11 @@ public class GrupoImportacionWorkflowService {
             actualizarEstadoClientesDelGrupo(grupoId, EstadoCliente.EN_CURSO_IMPORTACION);
         }
 
-        log.info("✅ Estado del grupo ID: {} cambiado a {}", grupoId, nuevoEstado);
+        log.info("Estado del grupo ID: {} cambiado a {}", grupoId, nuevoEstado);
     }
 
     private void actualizarEstadoClientesDelGrupo(Long grupoId, EstadoCliente nuevoEstado) {
-        log.info("📋 Actualizando estado de clientes del grupo {} a {}", grupoId, nuevoEstado);
+        log.info("Actualizando estado de clientes del grupo {} a {}", grupoId, nuevoEstado);
 
         List<ClienteGrupoImportacion> clientesGrupo = clienteGrupoRepository.findByGrupoImportacionId(grupoId);
 
@@ -235,12 +235,12 @@ public class GrupoImportacionWorkflowService {
                 cliente.setEstado(nuevoEstado);
                 clienteRepository.save(cliente);
                 clientesActualizados++;
-                log.info("✅ Cliente {} {} actualizado a {}",
+                log.info("Cliente {} {} actualizado a {}",
                     cliente.getNombres(), cliente.getApellidos(), nuevoEstado);
             }
         }
 
-        log.info("✅ {} clientes actualizados a estado {} en grupo {}",
+        log.info("{} clientes actualizados a estado {} en grupo {}",
             clientesActualizados, nuevoEstado, grupoId);
     }
 }

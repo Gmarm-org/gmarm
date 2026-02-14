@@ -46,7 +46,7 @@ public class ImageController {
 
             if (resource.exists() && resource.isReadable()) {
                 // Imagen encontrada - servirla
-                log.debug("✅ Imagen encontrada: {}", filename);
+                log.debug("Imagen encontrada: {}", filename);
                 
                 // Detectar tipo de contenido
                 String contentType = Files.probeContentType(imagePath);
@@ -60,12 +60,12 @@ public class ImageController {
                         .body(resource);
             } else {
                 // Imagen no encontrada - retornar placeholder
-                log.warn("⚠️ Imagen no encontrada: {} - Sirviendo placeholder", filename);
+                log.warn("Imagen no encontrada: {} - Sirviendo placeholder", filename);
                 return getPlaceholderImage();
             }
         } catch (Exception e) {
             // Error inesperado - retornar placeholder (NO error 500)
-            log.error("❌ Error cargando imagen {}: {} - Sirviendo placeholder", filename, e.getMessage());
+            log.error("Error cargando imagen {}: {} - Sirviendo placeholder", filename, e.getMessage());
             return getPlaceholderImage();
         }
     }
@@ -85,7 +85,7 @@ public class ImageController {
             Resource placeholder = new UrlResource(placeholderPath.toUri());
             
             if (placeholder.exists() && placeholder.isReadable()) {
-                log.debug("✅ Sirviendo placeholder: default-weapon.svg (uploads)");
+                log.debug("Sirviendo placeholder: default-weapon.svg (uploads)");
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType("image/svg+xml"))
                         .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
@@ -94,7 +94,7 @@ public class ImageController {
                 Resource classpathPlaceholder = resourceLoader.getResource(
                         "classpath:/static/images/weapons/default-weapon.svg");
                 if (classpathPlaceholder.exists()) {
-                    log.debug("✅ Sirviendo placeholder: default-weapon.svg (classpath)");
+                    log.debug("Sirviendo placeholder: default-weapon.svg (classpath)");
                     return ResponseEntity.ok()
                             .contentType(MediaType.parseMediaType("image/svg+xml"))
                             .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
@@ -102,14 +102,14 @@ public class ImageController {
                 }
                 // Si ni siquiera existe el placeholder, crear respuesta vacía con 404
                 // pero NO romper el sistema (error 500)
-                log.warn("⚠️ Placeholder default-weapon.svg no existe - Retornando 404 silencioso");
+                log.warn("Placeholder default-weapon.svg no existe - Retornando 404 silencioso");
                 return ResponseEntity.notFound()
                         .header(HttpHeaders.CACHE_CONTROL, "no-cache")
                         .build();
             }
         } catch (Exception e) {
             // Último recurso - 404 silencioso sin romper el sistema
-            log.error("❌ Error crítico sirviendo placeholder: {} - Retornando 404", e.getMessage());
+            log.error("Error critico sirviendo placeholder: {} - Retornando 404", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

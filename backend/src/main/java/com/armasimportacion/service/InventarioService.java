@@ -37,7 +37,7 @@ public class InventarioService {
             List<ArmaStock> armas = armaStockRepository.findArmasConStockDisponible();
             return armas != null ? armas : new ArrayList<>();
         } catch (Exception e) {
-            log.error("❌ Error obteniendo armas con stock: {}", e.getMessage(), e);
+            log.error("Error obteniendo armas con stock: {}", e.getMessage(), e);
             return new ArrayList<>(); // Retornar lista vacía en caso de error
         }
     }
@@ -84,7 +84,7 @@ public class InventarioService {
         armaStock.reducirStock(cantidad);
         armaStockRepository.save(armaStock);
         
-        log.info("✅ Stock reducido - Arma: {}, Cantidad: {}, Disponible: {}", 
+        log.info("Stock reducido - Arma: {}, Cantidad: {}, Disponible: {}", 
                 armaStock.getArma().getModelo(), cantidad, armaStock.getCantidadDisponible());
     }
 
@@ -99,7 +99,7 @@ public class InventarioService {
         armaStock.aumentarStock(cantidad);
         armaStockRepository.save(armaStock);
         
-        log.info("✅ Stock aumentado - Arma: {}, Cantidad: {}, Disponible: {}", 
+        log.info("Stock aumentado - Arma: {}, Cantidad: {}, Disponible: {}", 
                 armaStock.getArma().getModelo(), cantidad, armaStock.getCantidadDisponible());
     }
 

@@ -24,9 +24,8 @@ const InventarioArmas: React.FC<InventarioArmasProps> = ({
       const armasConStock = await apiService.getArmasConStock();
       setArmas(armasConStock);
       
-      console.log('🎯 Armas con stock cargadas:', armasConStock.length);
     } catch (error) {
-      console.error('❌ Error cargando armas:', error);
+      console.error('Error cargando armas:', error instanceof Error ? error.message : 'Unknown error');
       setError('Error cargando inventario de armas');
     } finally {
       setLoading(false);

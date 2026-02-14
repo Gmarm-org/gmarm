@@ -177,10 +177,10 @@ public class ArmaService {
             arma.setCapacidad(updateDTO.getCapacidad());
         }
         if (updateDTO.getPrecioReferencia() != null) {
-            log.info("🔍 DEBUG - Precio recibido en servicio: {}", updateDTO.getPrecioReferencia());
-            log.info("🔍 DEBUG - Precio anterior en BD: {}", arma.getPrecioReferencia());
+            log.info("DEBUG - Precio recibido en servicio: {}", updateDTO.getPrecioReferencia());
+            log.info("DEBUG - Precio anterior en BD: {}", arma.getPrecioReferencia());
             arma.setPrecioReferencia(updateDTO.getPrecioReferencia());
-            log.info("🔍 DEBUG - Precio actualizado en entidad: {}", arma.getPrecioReferencia());
+            log.info("DEBUG - Precio actualizado en entidad: {}", arma.getPrecioReferencia());
         }
         if (updateDTO.getCategoriaId() != null) {
             CategoriaArma categoria = categoriaArmaRepository.findById(updateDTO.getCategoriaId())
@@ -317,10 +317,10 @@ public class ArmaService {
                 stock.setMarca(arma.getMarca());
                 stock.setAlimentadora(arma.getAlimentadora());
                 armaStockRepository.save(stock);
-                log.debug("✅ Campos denormalizados sincronizados en arma_stock para arma ID: {}", arma.getId());
+                log.debug("Campos denormalizados sincronizados en arma_stock para arma ID: {}", arma.getId());
             }
         } catch (Exception e) {
-            log.warn("⚠️ Error sincronizando campos denormalizados en arma_stock para arma ID {}: {}", arma.getId(), e.getMessage());
+            log.warn("Error sincronizando campos denormalizados en arma_stock para arma ID {}: {}", arma.getId(), e.getMessage());
             // No lanzar excepción, solo loggear el warning para no afectar la operación principal
         }
     }

@@ -22,7 +22,7 @@ public class FlyingSaucerPdfService {
      */
     public byte[] generarPdfDesdeTemplate(String templateName, Map<String, Object> variables) {
         try {
-            log.info("🔧 Generando PDF con Flying Saucer desde template: {}", templateName);
+            log.info("Generando PDF con Flying Saucer desde template: {}", templateName);
             
             // Crear contexto de Thymeleaf
             Context context = new Context();
@@ -30,7 +30,7 @@ public class FlyingSaucerPdfService {
             
             // Procesar template HTML
             String htmlContent = templateEngine.process(templateName, context);
-            log.info("✅ Template HTML procesado exitosamente, longitud: {} caracteres", htmlContent.length());
+            log.info("Template HTML procesado exitosamente, longitud: {} caracteres", htmlContent.length());
             
             // Generar PDF usando Flying Saucer
             ITextRenderer renderer = new ITextRenderer();
@@ -42,11 +42,11 @@ public class FlyingSaucerPdfService {
             renderer.createPDF(outputStream);
             byte[] pdfBytes = outputStream.toByteArray();
             
-            log.info("✅ PDF generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF generado exitosamente con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
             
         } catch (Exception e) {
-            log.error("❌ Error generando PDF con Flying Saucer: {}", e.getMessage(), e);
+            log.error("Error generando PDF con Flying Saucer: {}", e.getMessage(), e);
             throw new RuntimeException("Error generando PDF con Flying Saucer", e);
         }
     }

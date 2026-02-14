@@ -34,14 +34,14 @@ public class CotizacionPDFGenerator {
 
     public DocumentoGenerado generarYGuardar(Cliente cliente, Pago pago) {
         try {
-            log.info("📄 GENERANDO COTIZACIÓN PARA CLIENTE ID: {}", cliente.getId());
+            log.info("GENERANDO COTIZACIÓN PARA CLIENTE ID: {}", cliente.getId());
 
             String numeroCotizacion = determinarNumeroCotizacion(cliente);
 
             utils.eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.COTIZACION);
 
             byte[] pdfBytes = generarPDF(cliente, pago, numeroCotizacion);
-            log.info("🔍 DEBUG: PDF de cotización generado, tamaño: {} bytes", pdfBytes.length);
+            log.info("DEBUG: PDF de cotización generado, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivo(cliente);
 
@@ -52,13 +52,13 @@ public class CotizacionPDFGenerator {
             documento.setNombre(numeroCotizacion);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);
 
-            log.info("✅ Cotización generada y guardada con ID: {}, archivo: {}",
+            log.info("Cotización generada y guardada con ID: {}, archivo: {}",
                 documentoGuardado.getId(), nombreArchivo);
 
             return documentoGuardado;
 
         } catch (Exception e) {
-            log.error("❌ Error generando cotización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            log.error("Error generando cotización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando cotización", e);
         }
     }
@@ -72,31 +72,31 @@ public class CotizacionPDFGenerator {
         int seq;
         if (maxSeq.isPresent()) {
             seq = maxSeq.get() + 1;
-            log.info("🔢 Secuencia encontrada: máx existente = {}, nuevo = {}", maxSeq.get(), seq);
+            log.info("Secuencia encontrada: máx existente = {}, nuevo = {}", maxSeq.get(), seq);
         } else {
             Licencia licencia = utils.obtenerLicenciaActiva(cliente);
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
 
             if (licenciaNombre.toLowerCase().contains("marcia") && licenciaNombre.toLowerCase().contains("loyaga")) {
                 seq = 9;
-                log.info("🔢 Licencia Marcia Loyaga - iniciando numeración en {}", seq);
+                log.info("Licencia Marcia Loyaga - iniciando numeración en {}", seq);
             } else {
                 seq = 1;
             }
         }
 
         String numeroCotizacion = String.format("%s-%04d-%d", iniciales, seq, year);
-        log.info("✨ Nueva cotización generada: {}", numeroCotizacion);
+        log.info("Nueva cotización generada: {}", numeroCotizacion);
         return numeroCotizacion;
     }
 
     private byte[] generarPDF(Cliente cliente, Pago pago, String numeroCotizacion) throws Exception {
-        log.info("🔧 Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
+        log.info("Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
 
         try {
             List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
             if (armasCliente == null || armasCliente.isEmpty()) {
-                log.error("❌ No se encontró arma asignada al cliente ID: {}", cliente.getId());
+                log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new RuntimeException("No se encontró arma asignada al cliente");
             }
 
@@ -107,7 +107,7 @@ public class CotizacionPDFGenerator {
             java.util.List<CuotaPago> cuotas = new java.util.ArrayList<>();
             if (pago != null && pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
                 cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
-                log.info("📅 Cuotas cargadas para cotización: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
+                log.info("Cuotas cargadas para cotización: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
             }
 
             List<Map<String, Object>> armasDetalle = new java.util.ArrayList<>();
@@ -156,7 +156,7 @@ public class CotizacionPDFGenerator {
             String licenciaCuentaBancaria = licencia != null && licencia.getCuentaBancaria() != null ? licencia.getCuentaBancaria() : "";
             String licenciaTitular = licenciaNombre;
 
-            log.info("📋 Usando número de cotización: {}", numeroCotizacion);
+            log.info("Usando número de cotización: {}", numeroCotizacion);
 
             String licenciaCiudad = licencia != null && licencia.getCanton() != null
                 ? licencia.getCanton().getNombre()
@@ -194,15 +194,15 @@ public class CotizacionPDFGenerator {
             variables.put("licenciaTitular", licenciaTitular);
 
             String nombreTemplate = utils.determinarTemplateUniformado(cliente, "cotizacion");
-            log.info("📄 Usando template de cotización: {}", nombreTemplate);
+            log.info("Usando template de cotización: {}", nombreTemplate);
 
             byte[] pdfBytes = utils.generarPdf(nombreTemplate, variables);
 
-            log.info("✅ PDF de cotización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF de cotización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
 
         } catch (Exception e) {
-            log.error("❌ Error generando PDF de cotización: {}", e.getMessage(), e);
+            log.error("Error generando PDF de cotización: {}", e.getMessage(), e);
             throw e;
         }
     }

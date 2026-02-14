@@ -70,7 +70,7 @@ public class PedidoArmasGrupoImportacionService {
      * y lo guarda en documentos_generados/grupos_importacion/{grupoId}/{año}/{mes}/
      */
     public DocumentoGenerado generarPedidoArmas(Long grupoId, Long usuarioId) {
-        log.info("📄 Generando pedido de armas para grupo de importación ID: {}", grupoId);
+        log.info("Generando pedido de armas para grupo de importación ID: {}", grupoId);
         
         // Validar que el grupo existe
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
@@ -136,13 +136,13 @@ public class PedidoArmasGrupoImportacionService {
             grupo.setFechaActualizacion(LocalDateTime.now());
             grupoImportacionRepository.save(grupo);
             
-            log.info("✅ Pedido de armas generado y guardado con ID: {}, archivo: {}", 
+            log.info("Pedido de armas generado y guardado con ID: {}, archivo: {}",
                 documentoGuardado.getId(), nombreArchivo);
             
             return documentoGuardado;
             
         } catch (Exception e) {
-            log.error("❌ Error generando pedido de armas para grupo ID: {}: {}", grupoId, e.getMessage(), e);
+            log.error("Error generando pedido de armas para grupo ID: {}: {}", grupoId, e.getMessage(), e);
             throw new RuntimeException("Error generando pedido de armas", e);
         }
     }
@@ -151,7 +151,7 @@ public class PedidoArmasGrupoImportacionService {
      * Genera el Excel del pedido con lista de armas y licencias en cabecera
      */
     private byte[] generarExcelPedido(GrupoImportacion grupo, GrupoImportacionResumenDTO resumen) throws IOException {
-        log.info("🔧 Generando Excel del pedido para grupo: {}", grupo.getCodigo());
+        log.info("Generando Excel del pedido para grupo: {}", grupo.getCodigo());
         
         // Obtener clientes del grupo
         List<ClienteGrupoImportacion> clientesGrupo = clienteGrupoRepository.findByGrupoImportacionId(grupo.getId());
@@ -167,7 +167,7 @@ public class PedidoArmasGrupoImportacionService {
                 clienteIds,
                 List.of(ClienteArma.EstadoClienteArma.RESERVADA, ClienteArma.EstadoClienteArma.ASIGNADA));
         
-        log.info("📋 Total de armas encontradas para el grupo: {}", armasGrupo.size());
+        log.info("Total de armas encontradas para el grupo: {}", armasGrupo.size());
         
         // Agrupar armas por modelo (incluye atributos para no mezclar variantes) y sumar cantidades
         Map<String, Map<String, Object>> armasAgrupadas = new HashMap<>();
@@ -212,7 +212,7 @@ public class PedidoArmasGrupoImportacionService {
         // Convertir a lista para el Excel
         List<Map<String, Object>> armasLista = new java.util.ArrayList<>(armasAgrupadas.values());
         
-        log.info("📋 Total de tipos de armas diferentes: {}", armasLista.size());
+        log.info("Total de tipos de armas diferentes: {}", armasLista.size());
         
         // Crear workbook de Excel
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -324,7 +324,7 @@ public class PedidoArmasGrupoImportacionService {
             workbook.write(outputStream);
             byte[] excelBytes = outputStream.toByteArray();
             
-            log.info("✅ Excel del pedido generado exitosamente, tamaño: {} bytes", excelBytes.length);
+            log.info("Excel del pedido generado exitosamente, tamaño: {} bytes", excelBytes.length);
             return excelBytes;
         }
     }

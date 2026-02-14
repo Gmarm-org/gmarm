@@ -36,10 +36,10 @@ public class ArmaController {
         
         // Si incluirInactivas=true (para admin), devolver TODAS las armas
         if (incluirInactivas) {
-            log.info("🔧 ADMIN MODE - Obteniendo TODAS las armas (activas e inactivas)");
+            log.info("ADMIN MODE - Obteniendo TODAS las armas (activas e inactivas)");
             List<Arma> todasArmas = armaService.findAll();
             List<ArmaDTO> armasDTO = armaMapper.toDTOList(todasArmas);
-            log.info("✅ Total de armas (ADMIN): {}", armasDTO.size());
+            log.info("Total de armas (ADMIN): {}", armasDTO.size());
             return ResponseEntity.ok(armasDTO);
         }
         
@@ -50,7 +50,7 @@ public class ArmaController {
         
         // Mapear a DTOs
         List<ArmaDTO> armasDTO = armaMapper.toDTOList(armas);
-        log.info("✅ Todas las armas activas: {}", armasDTO.size());
+        log.info("Todas las armas activas: {}", armasDTO.size());
         return ResponseEntity.ok(armasDTO);
     }
 
@@ -169,13 +169,13 @@ public class ArmaController {
             @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
         
         log.info("Solicitud para actualizar arma con ID: {} e imagen", id);
-        log.info("🔍 DEBUG - Precio recibido como string: {}", precioReferencia);
-        
+        log.info("DEBUG - Precio recibido como string: {}", precioReferencia);
+
         try {
             // Crear DTO con los datos recibidos
             // El código se generará automáticamente desde el modelo si no se proporciona
             java.math.BigDecimal precioDecimal = new java.math.BigDecimal(precioReferencia);
-            log.info("🔍 DEBUG - Precio convertido a BigDecimal: {}", precioDecimal);
+            log.info("DEBUG - Precio convertido a BigDecimal: {}", precioDecimal);
             
             ArmaUpdateDTO updateDTO = ArmaUpdateDTO.builder()
                     .modelo(modelo)

@@ -120,11 +120,8 @@ export const ClientDocumentsSection: React.FC<ClientDocumentsSectionProps> = ({
                         src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
                         className="w-full h-64 border border-gray-300 rounded-lg"
                         title={`Previsualización de ${document.nombre}`}
-                        onError={(e) => {
-                          console.error('❌ Error cargando documento en iframe:', e, loadedDocuments[document.nombre]);
-                        }}
-                        onLoad={() => {
-                          console.log('✅ Documento cargado exitosamente en iframe:', loadedDocuments[document.nombre]);
+                        onError={() => {
+                          // Document failed to load in iframe
                         }}
                       />
                       <div className="mt-1 text-xs text-gray-500">

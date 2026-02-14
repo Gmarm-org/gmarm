@@ -116,9 +116,9 @@ public class PagoController {
 
     @GetMapping("/{pagoId}/cuotas")
     public ResponseEntity<List<CuotaPagoDTO>> obtenerCuotasPorPago(@PathVariable Long pagoId) {
-        log.info("📅 Obteniendo cuotas para pago ID: {}", pagoId);
+        log.info("Obteniendo cuotas para pago ID: {}", pagoId);
         List<CuotaPago> cuotas = pagoService.obtenerCuotasPorPago(pagoId);
-        log.info("✅ Se encontraron {} cuotas para pago ID: {}", cuotas.size(), pagoId);
+        log.info("Se encontraron {} cuotas para pago ID: {}", cuotas.size(), pagoId);
         List<CuotaPagoDTO> cuotasDTO = cuotas.stream()
                 .map(cuotaPagoMapper::toDTO)
                 .collect(Collectors.toList());
@@ -261,14 +261,14 @@ public class PagoController {
             // Agregar correo del cliente si existe
             if (cliente.getEmail() != null && !cliente.getEmail().trim().isEmpty()) {
                 emails.add(cliente.getEmail().trim());
-                log.info("📧 Correo del cliente agregado: {}", cliente.getEmail());
+                log.info("Correo del cliente agregado: {}", cliente.getEmail());
             }
             
             // Obtener correos configurados desde configuracion_sistema
             List<String> correosRecibo = configuracionSistemaService.getCorreosRecibo();
             if (!correosRecibo.isEmpty()) {
                 emails.addAll(correosRecibo);
-                log.info("📧 {} correo(s) de recibo agregado(s) desde configuración", correosRecibo.size());
+                log.info("{} correo(s) de recibo agregado(s) desde configuracion", correosRecibo.size());
             }
             
             // Si el requestBody tiene emails adicionales (opcional, para compatibilidad)
@@ -289,7 +289,7 @@ public class PagoController {
                     .body(Map.of("success", false, "error", "No hay correos configurados para enviar el recibo. Configure CORREOS_RECIBO en el sistema o asegúrese de que el cliente tenga un correo válido."));
             }
             
-            log.info("📧 Total de correos destinatarios: {}", emails.size());
+            log.info("Total de correos destinatarios: {}", emails.size());
 
             // Generar recibo si no existe
             DocumentoGenerado recibo;

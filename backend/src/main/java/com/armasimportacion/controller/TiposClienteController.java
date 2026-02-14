@@ -28,7 +28,7 @@ public class TiposClienteController {
     @GetMapping("/config")
     @Operation(summary = "Obtener configuración de tipos de cliente", description = "Retorna un mapa con la configuración de cada tipo de cliente para el frontend")
     public ResponseEntity<Map<String, Map<String, Object>>> getTiposClienteConfig() {
-        log.info("✅ GET /api/tipos-cliente/config - Obteniendo configuración de tipos de cliente");
+        log.info("GET /api/tipos-cliente/config - Obteniendo configuracion de tipos de cliente");
         
         List<TipoClienteDTO> tipos = mapper.toDTOList(service.findAllActive());
         Map<String, Map<String, Object>> config = new HashMap<>();
@@ -42,10 +42,10 @@ public class TiposClienteController {
             tipoConfig.put("debeTratarseComoCivilCuandoPasivo", false);
             
             config.put(tipo.getNombre(), tipoConfig);
-            log.info("  📋 Tipo: {} → Código: {}, Requiere ISSFA: {}", tipo.getNombre(), tipo.getCodigo(), tipo.getRequiereIssfa());
+            log.info("  Tipo: {} -> Codigo: {}, Requiere ISSFA: {}", tipo.getNombre(), tipo.getCodigo(), tipo.getRequiereIssfa());
         }
         
-        log.info("✅ Configuración generada para {} tipos de cliente", config.size());
+        log.info("Configuracion generada para {} tipos de cliente", config.size());
         return ResponseEntity.ok(config);
     }
 }

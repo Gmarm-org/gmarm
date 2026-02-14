@@ -23,6 +23,10 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
+    esbuild: {
+      pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info', 'console.warn'] : [],
+      drop: mode === 'production' ? ['debugger'] : [],
+    },
     server: {
       port: 5173,
       host: '0.0.0.0', // Permitir conexiones desde cualquier IP

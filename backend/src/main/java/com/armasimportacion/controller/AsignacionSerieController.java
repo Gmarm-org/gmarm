@@ -39,14 +39,14 @@ public class AsignacionSerieController {
      */
     @GetMapping("/pendientes")
     public ResponseEntity<List<ReservaPendienteDTO>> obtenerReservasPendientes() {
-        log.info("🔍 GET /api/asignacion-series/pendientes - Obteniendo reservas pendientes");
+        log.info("GET /api/asignacion-series/pendientes - Obteniendo reservas pendientes");
         
         try {
             List<ReservaPendienteDTO> reservas = asignacionSerieService.obtenerReservasPendientes();
-            log.info("✅ Se encontraron {} reservas pendientes", reservas.size());
+            log.info("Se encontraron {} reservas pendientes", reservas.size());
             return ResponseEntity.ok(reservas);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo reservas pendientes", e);
+            log.error("Error obteniendo reservas pendientes", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -59,14 +59,14 @@ public class AsignacionSerieController {
     public ResponseEntity<List<ArmaSerieDTO>> obtenerSeriesDisponibles(
         @PathVariable Long armaId
     ) {
-        log.info("🔍 GET /api/asignacion-series/series-disponibles/{} - Obteniendo series disponibles", armaId);
+        log.info("GET /api/asignacion-series/series-disponibles/{} - Obteniendo series disponibles", armaId);
         
         try {
             List<ArmaSerieDTO> series = asignacionSerieService.obtenerSeriesDisponibles(armaId);
-            log.info("✅ Se encontraron {} series disponibles para arma ID: {}", series.size(), armaId);
+            log.info("Se encontraron {} series disponibles para arma ID: {}", series.size(), armaId);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo series disponibles para arma ID: {}", armaId, e);
+            log.error("Error obteniendo series disponibles para arma ID: {}", armaId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -81,7 +81,7 @@ public class AsignacionSerieController {
         Long clienteArmaId = Long.valueOf(request.get("clienteArmaId").toString());
         String numeroSerie = request.get("numeroSerie").toString();
         
-        log.info("🎯 POST /api/asignacion-series/asignar - Cliente Arma: {}, Numero Serie: {}", 
+        log.info("POST /api/asignacion-series/asignar - Cliente Arma: {}, Numero Serie: {}",
             clienteArmaId, numeroSerie);
         
         try {
@@ -93,7 +93,7 @@ public class AsignacionSerieController {
             // Si es usuario anónimo (endpoint permitAll), usar usuario admin por defecto
             Usuario usuario;
             if ("anonymousUser".equals(currentUsername) || currentUsername == null) {
-                log.info("👤 Usuario anónimo detectado, usando usuario admin por defecto");
+                log.info("Usuario anonimo detectado, usando usuario admin por defecto");
                 usuario = usuarioRepository.findByEmail("admin@armasimportacion.com")
                     .orElseThrow(() -> new RuntimeException("Usuario admin no encontrado en el sistema"));
             } else {
@@ -101,7 +101,7 @@ public class AsignacionSerieController {
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + currentUsername));
             }
 
-            log.info("👤 Usuario asignador: {} (ID: {})", usuario.getUsername(), usuario.getId());
+            log.info("Usuario asignador: {} (ID: {})", usuario.getUsername(), usuario.getId());
             
             // Asignar serie
             ClienteArma clienteArmaActualizado = asignacionSerieService.asignarSerie(
@@ -116,25 +116,25 @@ public class AsignacionSerieController {
             response.put("message", "Serie asignada exitosamente");
             response.put("clienteArma", clienteArmaActualizado);
             
-            log.info("✅ Serie asignada exitosamente");
+            log.info("Serie asignada exitosamente");
             return ResponseEntity.ok(response);
             
         } catch (IllegalArgumentException e) {
-            log.error("❌ Error de validación: {}", e.getMessage());
+            log.error("Error de validacion: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
             
         } catch (IllegalStateException e) {
-            log.error("❌ Error de estado: {}", e.getMessage());
+            log.error("Error de estado: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             
         } catch (Exception e) {
-            log.error("❌ Error asignando serie", e);
+            log.error("Error asignando serie", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", "Error interno del servidor: " + e.getMessage());

@@ -256,7 +256,7 @@ public class GrupoImportacionService {
      * Actualiza un grupo de importación desde un DTO (para edición de vendedores y límites)
      */
     public GrupoImportacion actualizarGrupoDesdeDTO(Long id, GrupoImportacionCreateDTO dto, Long usuarioId) {
-        log.info("✏️ Actualizando grupo de importación ID {} desde DTO", id);
+        log.info("Actualizando grupo de importación ID {} desde DTO", id);
 
         GrupoImportacion grupo = grupoImportacionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado con ID: " + id));
@@ -274,7 +274,7 @@ public class GrupoImportacionService {
             }
 
             if (!nuevaLicencia.getId().equals(grupo.getLicencia() != null ? grupo.getLicencia().getId() : null)) {
-                log.info("📋 Cambiando licencia del grupo de {} a {}",
+                log.info("Cambiando licencia del grupo de {} a {}",
                     grupo.getLicencia() != null ? grupo.getLicencia().getNumero() : "ninguna",
                     nuevaLicencia.getNumero());
 
@@ -288,7 +288,7 @@ public class GrupoImportacionService {
 
                 grupo.setLicencia(nuevaLicencia);
 
-                log.info("✅ Licencia actualizada. El cupo del grupo se mantiene: {}", grupo.getCupoTotal());
+                log.info("Licencia actualizada. El cupo del grupo se mantiene: {}", grupo.getCupoTotal());
             }
         }
 
@@ -386,7 +386,7 @@ public class GrupoImportacionService {
                         boolean existeAsignacion = grupoImportacionVendedorRepository
                             .existsByGrupoImportacionAndVendedor(grupoGuardado, vendedor);
                         if (existeAsignacion) {
-                            log.warn("⚠️ Asignación ya existe para grupo {} y vendedor {}, se omite inserción", grupoGuardado.getId(), vendedor.getId());
+                            log.warn("Asignación ya existe para grupo {} y vendedor {}, se omite inserción", grupoGuardado.getId(), vendedor.getId());
                             continue;
                         }
                         grupoVendedor = new GrupoImportacionVendedor();
@@ -404,7 +404,7 @@ public class GrupoImportacionService {
                         grupoImportacionVendedorRepository.save(asignacion);
                     }
                 }
-                log.info("✅ {} vendedor(es) actualizado(s) en el grupo con límites de armas", limitesPorVendedor.size());
+                log.info("{} vendedor(es) actualizado(s) en el grupo con límites de armas", limitesPorVendedor.size());
             }
         }
 
@@ -433,7 +433,7 @@ public class GrupoImportacionService {
                     limite.setLimiteMaximo(entry.getValue());
                     grupoImportacionLimiteCategoriaRepository.save(limite);
                 }
-                log.info("✅ {} límite(s) de categoría actualizado(s) en el grupo", limitesPorCategoria.size());
+                log.info("{} límite(s) de categoría actualizado(s) en el grupo", limitesPorCategoria.size());
             }
         }
 
@@ -566,7 +566,7 @@ public class GrupoImportacionService {
 
     @Transactional(readOnly = true)
     public List<GrupoImportacion> obtenerGruposActivosParaVendedor(Long vendedorId) {
-        log.info("🔍 Obteniendo grupos activos disponibles para vendedor ID: {}", vendedorId);
+        log.info("Obteniendo grupos activos disponibles para vendedor ID: {}", vendedorId);
 
         List<GrupoImportacionVendedor> asignacionesVendedor =
             grupoImportacionVendedorRepository.findGruposActivosByVendedorId(
@@ -574,18 +574,18 @@ public class GrupoImportacionService {
                 EstadoGrupoImportacion.EN_PREPARACION,
                 EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES);
 
-        log.info("📊 RESULTADO CONSULTA: {} asignación(es) encontrada(s) para vendedor ID {}", asignacionesVendedor.size(), vendedorId);
+        log.info("RESULTADO CONSULTA: {} asignación(es) encontrada(s) para vendedor ID {}", asignacionesVendedor.size(), vendedorId);
 
         if (!asignacionesVendedor.isEmpty()) {
             asignacionesVendedor.forEach(asig -> {
                 GrupoImportacion grupo = asig.getGrupoImportacion();
-                log.info("📋 Grupo encontrado: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}",
+                log.info("Grupo encontrado: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}",
                     grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(), grupo.getCupoDisponible());
             });
         }
 
         if (asignacionesVendedor.isEmpty()) {
-            log.warn("📭 No hay grupos activos (EN_PREPARACION/EN_PROCESO_ASIGNACION_CLIENTES) asignados al vendedor ID {}", vendedorId);
+            log.warn("No hay grupos activos (EN_PREPARACION/EN_PROCESO_ASIGNACION_CLIENTES) asignados al vendedor ID {}", vendedorId);
             return List.of();
         }
 
@@ -595,23 +595,23 @@ public class GrupoImportacionService {
                 if (grupo.getTipoGrupo() == TipoGrupo.CUPO) {
                     boolean tieneCupo = grupo.getCupoDisponible() != null && grupo.getCupoDisponible() > 0;
                     if (!tieneCupo) {
-                        log.warn("⚠️ Grupo ID={} (CUPO) filtrado: sin cupo disponible (disponible={}, total={})",
+                        log.warn("Grupo ID={} (CUPO) filtrado: sin cupo disponible (disponible={}, total={})",
                             grupo.getId(), grupo.getCupoDisponible(), grupo.getCupoTotal());
                     }
                     return tieneCupo;
                 } else if (grupo.getTipoGrupo() == TipoGrupo.JUSTIFICATIVO) {
-                    log.debug("✅ Grupo ID={} (JUSTIFICATIVO) disponible", grupo.getId());
+                    log.debug("Grupo ID={} (JUSTIFICATIVO) disponible", grupo.getId());
                     return true;
                 }
-                log.warn("⚠️ Grupo ID={} sin tipo definido, considerando disponible", grupo.getId());
+                log.warn("Grupo ID={} sin tipo definido, considerando disponible", grupo.getId());
                 return true;
             })
-            .peek(grupo -> log.info("✅ Grupo DISPONIBLE: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}, CupoTotal={}",
+            .peek(grupo -> log.info("Grupo DISPONIBLE: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}, CupoTotal={}",
                 grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(),
                 grupo.getCupoDisponible(), grupo.getCupoTotal()))
             .collect(Collectors.toList());
 
-        log.info("✅ RESULTADO FINAL: {} grupo(s) disponible(s) para vendedor ID: {}",
+        log.info("RESULTADO FINAL: {} grupo(s) disponible(s) para vendedor ID: {}",
             gruposDisponibles.size(), vendedorId);
 
         return gruposDisponibles;
@@ -757,7 +757,7 @@ public class GrupoImportacionService {
         seriesCargadas = seriesCargadasLong != null ? seriesCargadasLong.intValue() : 0;
         seriesPendientes = Math.max(0, totalArmasSolicitadas - seriesCargadas);
 
-        log.debug("📊 Grupo {}: {} armas solicitadas, {} series cargadas, {} asignadas, {} sin asignar",
+        log.debug("Grupo {}: {} armas solicitadas, {} series cargadas, {} asignadas, {} sin asignar",
             grupo.getCodigo(), totalArmasSolicitadas, seriesCargadas, seriesAsignadas, armasSinAsignar);
 
         return GrupoImportacionResumenDTO.builder()

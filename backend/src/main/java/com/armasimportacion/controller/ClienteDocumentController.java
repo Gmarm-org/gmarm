@@ -66,7 +66,7 @@ public class ClienteDocumentController {
     @Operation(summary = "Obtener datos del contrato", description = "Obtiene los datos del cliente, pago y armas para mostrar en el popup de generación de contrato")
     public ResponseEntity<DatosContratoDTO> obtenerDatosContrato(@PathVariable Long id) {
         try {
-            log.info("📄 Obteniendo datos del contrato para cliente ID: {}", id);
+            log.info("Obteniendo datos del contrato para cliente ID: {}", id);
 
             Cliente cliente = clienteService.findById(id);
             List<Pago> pagos = pagoRepository.findByClienteId(id);
@@ -79,7 +79,7 @@ public class ClienteDocumentController {
             Boolean emailVerificadoRaw = cliente.getEmailVerificado();
             Boolean emailVerificado = emailVerificadoRaw != null && emailVerificadoRaw;
 
-            log.info("📋 Cliente ID {} - documentosCompletos: {}, emailVerificado (raw): {}, emailVerificado (calculado): {}",
+            log.info("Cliente ID {} - documentosCompletos: {}, emailVerificado (raw): {}, emailVerificado (calculado): {}",
                 id, documentosCompletos, emailVerificadoRaw, emailVerificado);
 
             DatosContratoDTO.ClienteDTO clienteDTO = DatosContratoDTO.ClienteDTO.builder()
@@ -124,7 +124,7 @@ public class ClienteDocumentController {
                 .documentosCompletos(documentosCompletos)
                 .build();
 
-            log.info("📋 DTO construido - documentosCompletos: {}, emailVerificado: {}",
+            log.info("DTO construido - documentosCompletos: {}, emailVerificado: {}",
                 datosContratoDTO.getDocumentosCompletos(),
                 datosContratoDTO.getCliente() != null ? datosContratoDTO.getCliente().getEmailVerificado() : "null");
 
@@ -142,7 +142,7 @@ public class ClienteDocumentController {
     @Operation(summary = "Generar contrato del cliente", description = "Genera un contrato PDF para el cliente. Requiere documentos completos y email validado. Confirma asignación definitiva al grupo.")
     public ResponseEntity<Map<String, Object>> generarContrato(@PathVariable Long id) {
         try {
-            log.info("📄 Generando contrato para cliente ID: {}", id);
+            log.info("Generando contrato para cliente ID: {}", id);
 
             Cliente cliente = clienteService.findById(id);
 
@@ -174,9 +174,9 @@ public class ClienteDocumentController {
 
             try {
                 grupoImportacionClienteService.confirmarAsignacionCliente(id);
-                log.info("✅ Asignación del cliente ID {} confirmada definitivamente al grupo", id);
+                log.info("Asignacion del cliente ID {} confirmada definitivamente al grupo", id);
             } catch (Exception e) {
-                log.warn("⚠️ No se pudo confirmar asignación del cliente al grupo (puede no tener asignación pendiente): {}", e.getMessage());
+                log.warn("No se pudo confirmar asignacion del cliente al grupo (puede no tener asignacion pendiente): {}", e.getMessage());
             }
 
             DocumentoGenerado documentoPrincipal = documentos.get(0);
@@ -204,7 +204,7 @@ public class ClienteDocumentController {
                 .collect(Collectors.toList());
             response.put("documentos", documentosInfo);
 
-            log.info("✅ {} documento(s) generado(s) exitosamente: {}", documentos.size(), documentoPrincipal.getNombreArchivo());
+            log.info("{} documento(s) generado(s) exitosamente: {}", documentos.size(), documentoPrincipal.getNombreArchivo());
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -223,7 +223,7 @@ public class ClienteDocumentController {
             @RequestParam("archivo") MultipartFile archivo,
             @RequestParam(value = "documentoId", required = false) Long documentoId) {
         try {
-            log.info("📄 Cargando contrato firmado para cliente ID: {}", id);
+            log.info("Cargando contrato firmado para cliente ID: {}", id);
 
             Cliente cliente = clienteService.findById(id);
 
@@ -299,7 +299,7 @@ public class ClienteDocumentController {
             response.put("nombreArchivo", nombreArchivoFirmado);
             response.put("tipoDocumento", contratoGenerado.getTipoDocumento());
 
-            log.info("✅ Documento firmado cargado exitosamente: {}", nombreArchivoFirmado);
+            log.info("Documento firmado cargado exitosamente: {}", nombreArchivoFirmado);
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             log.error("Cliente no encontrado: {}", e.getMessage());
@@ -349,7 +349,7 @@ public class ClienteDocumentController {
                     licencia,
                     adjuntos
                 );
-                log.info("✅ Documentos enviados al cliente: {}", cliente.getEmail());
+                log.info("Documentos enviados al cliente: {}", cliente.getEmail());
             }
 
             if (vendedor != null && vendedor.getEmail() != null && !vendedor.getEmail().trim().isEmpty()) {
@@ -360,10 +360,10 @@ public class ClienteDocumentController {
                     licencia,
                     adjuntos
                 );
-                log.info("✅ Documentos enviados al vendedor: {}", vendedor.getEmail());
+                log.info("Documentos enviados al vendedor: {}", vendedor.getEmail());
             }
         } catch (Exception e) {
-            log.warn("⚠️ No se pudieron enviar documentos por correo: {}", e.getMessage());
+            log.warn("No se pudieron enviar documentos por correo: {}", e.getMessage());
         }
     }
 
@@ -394,7 +394,7 @@ public class ClienteDocumentController {
                 .findFirst()
                 .orElse(null);
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo obtener licencia activa del cliente {}: {}", cliente.getId(), e.getMessage());
+            log.warn("No se pudo obtener licencia activa del cliente {}: {}", cliente.getId(), e.getMessage());
         }
         return null;
     }
@@ -403,7 +403,7 @@ public class ClienteDocumentController {
         try {
             return fileStorageService.loadFile(documento.getRutaArchivo());
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo cargar documento generado {}: {}", documento.getId(), e.getMessage());
+            log.warn("No se pudo cargar documento generado {}: {}", documento.getId(), e.getMessage());
             return null;
         }
     }

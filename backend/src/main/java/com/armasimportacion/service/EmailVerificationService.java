@@ -58,12 +58,11 @@ public class EmailVerificationService {
      */
     @Transactional
     public EmailVerificationToken generateAndSendVerificationToken(Cliente cliente, String baseUrl) {
-        log.info("📧 Generando token de verificación para cliente ID: {}, email: {}", 
-            cliente.getId(), cliente.getEmail());
+        log.info("Generando token de verificacion para cliente ID: {}", cliente.getId());
 
         // Validar que el cliente tenga email
         if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
-            log.warn("⚠️ Cliente ID {} no tiene email, no se puede generar token de verificación", cliente.getId());
+            log.warn("Cliente ID {} no tiene email, no se puede generar token", cliente.getId());
             throw new IllegalArgumentException("El cliente debe tener un correo electrónico para verificación");
         }
 
@@ -74,7 +73,7 @@ public class EmailVerificationService {
                     token.setUsed(true);
                     token.setUsedAt(LocalDateTime.now());
                     tokenRepository.save(token);
-                    log.info("🗑️ Token anterior invalidado para cliente ID: {}", cliente.getId());
+                    log.debug("Token anterior invalidado para cliente ID: {}", cliente.getId());
                 }
             });
 
@@ -90,7 +89,7 @@ public class EmailVerificationService {
             .build();
 
         EmailVerificationToken savedToken = tokenRepository.save(token);
-        log.info("✅ Token generado: {} (expira en: {})", tokenValue, expiresAt);
+        log.info("Token de verificacion generado para cliente ID: {} (expira en: {})", cliente.getId(), expiresAt);
 
         // Enviar correo de verificación con todos los datos del cliente
         try {
@@ -100,10 +99,9 @@ public class EmailVerificationService {
             boolean noTieneCuentaSicoar = verificarNoTieneCuentaSicoar(cliente.getId());
             
             emailService.sendVerificationEmail(cliente, verificationUrl, noTieneCuentaSicoar);
-            log.info("📧 Correo de verificación enviado a: {} (sin cuenta Sicoar: {})", 
-                cliente.getEmail(), noTieneCuentaSicoar);
+            log.info("Correo de verificacion enviado para cliente ID: {}", cliente.getId());
         } catch (Exception e) {
-            log.error("❌ Error enviando correo de verificación a {}: {}", cliente.getEmail(), e.getMessage());
+            log.error("Error enviando correo de verificacion para cliente ID {}: {}", cliente.getId(), e.getMessage());
             // No lanzamos excepción para no romper el flujo de creación del cliente
             // El token se guarda pero el correo puede fallar
         }
@@ -120,24 +118,24 @@ public class EmailVerificationService {
      */
     @Transactional
     public Map<String, Object> verifyToken(String tokenValue) {
-        log.info("🔍 Verificando token: {}", tokenValue);
+        log.info("Verificando token de email");
 
         // Buscar token
         EmailVerificationToken token = tokenRepository.findByToken(tokenValue)
             .orElseThrow(() -> {
-                log.warn("⚠️ Token no encontrado: {}", tokenValue);
+                log.warn("Token de verificacion no encontrado");
                 return new IllegalArgumentException("Token de verificación inválido");
             });
 
         // Verificar si ya fue usado
         if (token.getUsed()) {
-            log.warn("⚠️ Token ya fue usado: {}", tokenValue);
+            log.warn("Token de verificacion ya fue usado");
             throw new IllegalArgumentException("Este token de verificación ya fue utilizado");
         }
 
         // Verificar si expiró
         if (token.isExpired()) {
-            log.warn("⚠️ Token expirado: {} (expiraba en: {})", tokenValue, token.getExpiresAt());
+            log.warn("Token de verificacion expirado (expiraba en: {})", token.getExpiresAt());
             throw new IllegalArgumentException("El token de verificación ha expirado. Por favor, solicite un nuevo correo de verificación");
         }
 
@@ -153,15 +151,14 @@ public class EmailVerificationService {
         // Confirmar asignación al grupo de importación (si tiene una asignación pendiente)
         try {
             grupoImportacionClienteService.confirmarAsignacionCliente(cliente.getId());
-            log.info("✅ Asignación al grupo confirmada para cliente ID: {}", cliente.getId());
+            log.info("Asignacion al grupo confirmada para cliente ID: {}", cliente.getId());
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo confirmar asignación al grupo para cliente ID {}: {}", 
+            log.warn("No se pudo confirmar asignacion al grupo para cliente ID {}: {}",
                 cliente.getId(), e.getMessage());
             // No fallar la verificación si no hay asignación pendiente
         }
 
-        log.info("✅ Token verificado exitosamente para cliente ID: {}, email: {}", 
-            cliente.getId(), cliente.getEmail());
+        log.info("Token verificado exitosamente para cliente ID: {}", cliente.getId());
 
         // Retornar información del resultado con todos los datos del cliente
         Map<String, Object> result = new HashMap<>();
@@ -255,7 +252,7 @@ public class EmailVerificationService {
                     // Verificar si es la pregunta sobre cuenta en Sicoar y la respuesta es NO
                     if (preguntaTexto != null && preguntaTexto.toLowerCase().contains("cuenta en el sicoar")) {
                         if (respuestaTexto != null && respuestaTexto.trim().equalsIgnoreCase("NO")) {
-                            log.info("🔍 Cliente ID {} respondió NO a cuenta en Sicoar", clienteId);
+                            log.debug("Cliente ID {} respondio NO a cuenta en Sicoar", clienteId);
                             return true;
                         }
                     }
@@ -264,7 +261,7 @@ public class EmailVerificationService {
             
             return false;
         } catch (Exception e) {
-            log.warn("⚠️ Error verificando respuesta Sicoar para cliente ID {}: {}", clienteId, e.getMessage());
+            log.warn("Error verificando respuesta Sicoar para cliente ID {}: {}", clienteId, e.getMessage());
             return false; // Por defecto, asumir que sí tiene cuenta si hay error
         }
     }

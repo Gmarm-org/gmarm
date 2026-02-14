@@ -24,7 +24,7 @@ public class JwtTokenProvider {
                            @Value("${app.jwt.expiration}") int jwtExpirationMs) {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
         this.jwtExpirationMs = jwtExpirationMs;
-        log.info("🔐 JWT Token Provider inicializado correctamente");
+        log.info("JWT Token Provider inicializado correctamente");
     }
 
     /**
@@ -105,15 +105,15 @@ public class JwtTokenProvider {
                 .parseClaimsJws(authToken);
             return true;
         } catch (SecurityException ex) {
-            log.error("🔐 Token JWT con firma inválida: {}", ex.getMessage());
+            log.error("Token JWT con firma inválida: {}", ex.getMessage());
         } catch (MalformedJwtException ex) {
-            log.error("🔐 Token JWT malformado: {}", ex.getMessage());
+            log.error("Token JWT malformado: {}", ex.getMessage());
         } catch (ExpiredJwtException ex) {
-            log.error("🔐 Token JWT expirado: {}", ex.getMessage());
+            log.error("Token JWT expirado: {}", ex.getMessage());
         } catch (UnsupportedJwtException ex) {
-            log.error("🔐 Token JWT no soportado: {}", ex.getMessage());
+            log.error("Token JWT no soportado: {}", ex.getMessage());
         } catch (IllegalArgumentException ex) {
-            log.error("🔐 Token JWT vacío: {}", ex.getMessage());
+            log.error("Token JWT vacío: {}", ex.getMessage());
         }
         return false;
     }

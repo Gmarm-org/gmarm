@@ -149,16 +149,6 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
         formData.append('imagen', selectedImageFile);
       }
       
-      // DEBUG: Verificar qué se está enviando
-      console.log('🔍 DEBUG - FormData que se va a enviar:');
-      console.log('🔍 createForm:', createForm);
-      console.log('🔍 selectedImageFile:', selectedImageFile);
-      
-      // DEBUG: Verificar cada campo del FormData
-      for (let [key, value] of formData.entries()) {
-        console.log(`🔍 FormData[${key}]:`, value);
-      }
-      
       await onSave(formData);
       onClose();
       
@@ -179,7 +169,7 @@ const WeaponCreateModal: React.FC<WeaponCreateModalProps> = ({
       setSelectedImageFile(null);
       setImagePreview('');
     } catch (error) {
-      console.error('Error creando arma:', error);
+      console.error('Error creando arma:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al crear la arma: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     } finally {
       setIsSaving(false);

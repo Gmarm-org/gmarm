@@ -37,19 +37,17 @@ const SeriesAssignment: React.FC<SeriesAssignmentProps> = ({
     try {
       setLoading(true);
       setError(null);
-      console.log('🔢 Cargando series disponibles para arma:', armaId);
-      
+
       // Obtener series disponibles
       const series = await apiService.getSeriesDisponibles(armaId);
-      
-      console.log('✅ Series disponibles cargadas:', series.length);
+
       setSeriesDisponibles(series);
       
       if (series.length === 0) {
         setError('No hay series disponibles para este arma en este momento.');
       }
     } catch (err) {
-      console.error('❌ Error cargando series:', err);
+      console.error('Error cargando series:', err instanceof Error ? err.message : 'Error desconocido');
       setError('Error al cargar las series disponibles. Por favor, intente nuevamente.');
     } finally {
       setLoading(false);
@@ -62,7 +60,6 @@ const SeriesAssignment: React.FC<SeriesAssignmentProps> = ({
 
   const handleConfirmar = () => {
     if (serieSeleccionada) {
-      console.log('✅ Serie seleccionada:', serieSeleccionada);
       onSerieSelected(serieSeleccionada.id, serieSeleccionada.numeroSerie);
     }
   };

@@ -78,7 +78,7 @@ export const useClientAnswers = (
           }
         }
       } catch (error) {
-        console.error('❌ Error cargando preguntas:', error);
+        console.error('Error cargando preguntas:', error instanceof Error ? error.message : 'Error desconocido');
       }
     };
 
@@ -99,7 +99,6 @@ export const useClientAnswers = (
 
       // Si el clientId cambió, limpiar el cache y cargar nuevas respuestas
       if (clientIdStr !== ultimoClientIdCargadoRef.current) {
-        console.log('🔄 ClientId cambió, limpiando cache y cargando nuevas respuestas');
         ultimoClientIdCargadoRef.current = ''; // Resetear para forzar carga
       }
       
@@ -109,18 +108,14 @@ export const useClientAnswers = (
         // Verificar que las respuestas sean válidas (tengan pregunta y respuesta)
         const respuestasValidas = formDataRespuestas.filter(r => r.pregunta && r.respuesta);
         if (respuestasValidas.length > 0) {
-          console.log('📋 Respuestas ya cargadas para este cliente, omitiendo carga duplicada');
           return;
         }
-        // Si las respuestas no son válidas, continuar con la carga
-        console.log('⚠️ Respuestas existentes no válidas, recargando...');
       }
 
       // OPTIMIZACIÓN: Verificar cache antes de cargar
       if (respuestasCacheRef.current.has(clientIdStr)) {
         const respuestasCacheadas = respuestasCacheRef.current.get(clientIdStr);
         if (respuestasCacheadas && respuestasCacheadas.length > 0) {
-          console.log('📋 Usando respuestas del cache para cliente:', clientIdStr);
           setFormDataRespuestas(respuestasCacheadas);
           ultimoClientIdCargadoRef.current = clientIdStr;
           return;
@@ -153,18 +148,10 @@ export const useClientAnswers = (
           ultimoClientIdCargadoRef.current = clientIdStr;
           
           setFormDataRespuestas(respuestasFormateadas);
-          console.log(`📋 Respuestas cargadas y cacheadas: ${respuestasFormateadas.length} de ${respuestas.length} totales`);
           
-          // Validar bloqueo por violencia
-          const violenciaRespuesta = respuestasFormateadas.find(r => 
-            r.pregunta && r.pregunta.toLowerCase().includes('denuncias de violencia')
-          );
-          if (violenciaRespuesta?.respuesta === 'SI') {
-            console.log('⚠️ Cliente bloqueado por denuncias de violencia');
-          }
         }
       } catch (error) {
-        console.error('❌ Error cargando respuestas del cliente:', error);
+        console.error('Error cargando respuestas del cliente:', error instanceof Error ? error.message : 'Error desconocido');
       }
     };
 
@@ -188,8 +175,6 @@ export const useClientAnswers = (
     setClienteBloqueado?: (bloqueado: boolean) => void,
     setMotivoBloqueo?: (motivo: string) => void
   ) => {
-    console.log('handleAnswerChange called:', { question, answer, preguntaId });
-    
     // Validar respuesta a la pregunta de armas registradas
     // NOTA: Los deportistas (DEP) NO tienen límite de armas, por lo que no se valida cantidad para ellos
     if (question.toLowerCase().includes('armas registradas')) {

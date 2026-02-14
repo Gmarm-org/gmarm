@@ -72,7 +72,7 @@ public class DocumentoGrupoImportacionService {
         documento.setUsuarioCarga(usuario);
         documento.setFechaCarga(LocalDateTime.now());
         documento.setEstado(EstadoDocumentoGrupo.CARGADO);
-        log.info("📄 Creando nuevo documento del tipo: {} (ID: {}) para grupo: {}", 
+        log.info("Creando nuevo documento del tipo: {} (ID: {}) para grupo: {}",
             tipoDocumento.getNombre(), tipoDocumentoId, grupoId);
         
         // Guardar archivo físico
@@ -89,7 +89,7 @@ public class DocumentoGrupoImportacionService {
         documento.setNombre(tipoDocumento.getNombre());
         
         DocumentoGrupoImportacion saved = repository.save(documento);
-        log.info("✅ Documento guardado con ID: {}", saved.getId());
+        log.info("Documento guardado con ID: {}", saved.getId());
         
         return mapper.toDTO(saved);
     }
@@ -135,7 +135,7 @@ public class DocumentoGrupoImportacionService {
         }
         
         repository.delete(documento);
-        log.info("✅ Documento eliminado con ID: {}", documentoId);
+        log.info("Documento eliminado con ID: {}", documentoId);
     }
 
     /**
@@ -161,7 +161,7 @@ public class DocumentoGrupoImportacionService {
             .toList();
         
         if (tiposRequeridos.size() != 3) {
-            log.warn("⚠️ No se encontraron los 3 tipos de documento requeridos");
+            log.warn("No se encontraron los 3 tipos de documento requeridos");
             return false;
         }
         
@@ -174,12 +174,12 @@ public class DocumentoGrupoImportacionService {
                                doc.getEstado() == EstadoDocumentoGrupo.APROBADO);
 
             if (!tieneDocumentoCargado) {
-                log.info("⚠️ Falta documento: {}", tipoRequerido.getNombre());
+                log.info("Falta documento: {}", tipoRequerido.getNombre());
                 return false;
             }
         }
         
-        log.info("✅ Todos los documentos requeridos están cargados para el grupo: {}", grupoId);
+        log.info("Todos los documentos requeridos están cargados para el grupo: {}", grupoId);
         return true;
     }
 
@@ -194,7 +194,7 @@ public class DocumentoGrupoImportacionService {
         documento.setFechaActualizacion(LocalDateTime.now());
         
         DocumentoGrupoImportacion updated = repository.save(documento);
-        log.info("✅ Estado del documento {} cambiado a: {}", documentoId, nuevoEstado);
+        log.info("Estado del documento {} cambiado a: {}", documentoId, nuevoEstado);
         
         return mapper.toDTO(updated);
     }

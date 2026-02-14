@@ -36,30 +36,23 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
     const loadConfig = async () => {
       try {
         setLoading(true);
-        console.log('🔄 TiposClienteProvider: Cargando configuración... (intento ' + (retryCount + 1) + ')');
-        
         const tiposConfig = await apiService.getTiposClienteConfig();
-        
-        console.log('✅ TiposClienteProvider: Configuración cargada:', tiposConfig);
-        console.log('✅ TiposClienteProvider: Número de tipos:', Object.keys(tiposConfig).length);
-        console.log('✅ TiposClienteProvider: Tipos disponibles:', Object.keys(tiposConfig));
-        
+
         setConfig(tiposConfig);
         setError(null);
         setRetryCount(0); // Reset retry count on success
       } catch (err: any) {
-        console.error('❌ TiposClienteProvider: Error cargando configuración:', err);
+        console.error('TiposClienteProvider: Error cargando configuración:', err instanceof Error ? err.message : 'Unknown error');
         setError('Error cargando configuración');
         
         // Auto-retry hasta 3 veces con delay incremental
         if (retryCount < 3) {
           const delay = (retryCount + 1) * 2000; // 2s, 4s, 6s
-          console.log(`⏰ TiposClienteProvider: Reintentando en ${delay/1000} segundos...`);
           setTimeout(() => {
             setRetryCount(prev => prev + 1);
           }, delay);
         } else {
-          console.error('❌ TiposClienteProvider: Máximo de reintentos alcanzado');
+          console.error('TiposClienteProvider: Máximo de reintentos alcanzado');
         }
       } finally {
         setLoading(false);
@@ -70,19 +63,16 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [retryCount]); // Se ejecuta cuando cambia retryCount
 
   const retry = () => {
-    console.log('🔄 TiposClienteProvider: Reintento manual solicitado');
     setRetryCount(prev => prev + 1);
   };
 
   const getCodigoTipoCliente = (tipoCliente: string | undefined): string => {
     if (!tipoCliente) {
-      console.error('❌ getCodigoTipoCliente: tipoCliente es undefined o vacío');
       throw new Error('Tipo de cliente no proporcionado');
     }
     
     // Si la configuración está cargada, usarla
     if (config[tipoCliente]) {
-      console.log(`✅ getCodigoTipoCliente: ${tipoCliente} → ${config[tipoCliente].codigo}`);
       return config[tipoCliente].codigo;
     }
     
@@ -99,14 +89,12 @@ export const TiposClienteProvider: React.FC<{ children: ReactNode }> = ({ childr
     
     const normalizedTipo = tipoCliente.trim();
     if (fallbackMap[normalizedTipo]) {
-      console.warn(`⚠️ getCodigoTipoCliente: Usando mapeo de respaldo para "${tipoCliente}" → ${fallbackMap[normalizedTipo]} (configuración aún no cargada)`);
+      // Usando mapeo de respaldo (configuracion aun no cargada)
       return fallbackMap[normalizedTipo];
     }
     
     // Si no hay mapeo de respaldo y no está cargada la configuración, lanzar error
-    console.error('❌ getCodigoTipoCliente: No se encontró configuración para:', tipoCliente);
-    console.error('❌ Configuración disponible:', Object.keys(config));
-    console.error('❌ Loading:', loading);
+    console.error('getCodigoTipoCliente: No se encontro configuracion para tipo de cliente');
     throw new Error(`No se encontró configuración para el tipo de cliente: ${tipoCliente}. La configuración aún está cargando: ${loading}`);
   };
 

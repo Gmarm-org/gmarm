@@ -26,23 +26,23 @@ public class TipoClienteImportacionController {
     @GetMapping
     @Operation(summary = "Obtener todas las relaciones", description = "Retorna todas las relaciones tipo cliente - tipo importación")
     public ResponseEntity<List<TipoClienteImportacionDTO>> getAll() {
-        log.info("📋 GET /api/tipo-cliente-importacion - Obteniendo todas las relaciones");
+        log.info("GET /api/tipo-cliente-importacion - Obteniendo todas las relaciones");
         List<TipoClienteImportacionDTO> relaciones = mapper.toDTOList(service.findAll());
-        log.info("✅ Relaciones encontradas: {}", relaciones.size());
+        log.info("Relaciones encontradas: {}", relaciones.size());
         return ResponseEntity.ok(relaciones);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener relación por ID", description = "Retorna una relación específica")
     public ResponseEntity<TipoClienteImportacionDTO> getById(@PathVariable Long id) {
-        log.info("📋 GET /api/tipo-cliente-importacion/{} - Obteniendo relación", id);
+        log.info("GET /api/tipo-cliente-importacion/{} - Obteniendo relación", id);
         return ResponseEntity.ok(mapper.toDTO(service.findById(id)));
     }
 
     @GetMapping("/tipo-cliente/{tipoClienteId}")
     @Operation(summary = "Obtener por tipo de cliente", description = "Retorna relaciones para un tipo de cliente específico")
     public ResponseEntity<List<TipoClienteImportacionDTO>> getByTipoCliente(@PathVariable Long tipoClienteId) {
-        log.info("📋 GET /api/tipo-cliente-importacion/tipo-cliente/{} - Obteniendo relaciones", tipoClienteId);
+        log.info("GET /api/tipo-cliente-importacion/tipo-cliente/{} - Obteniendo relaciones", tipoClienteId);
         List<TipoClienteImportacionDTO> relaciones = mapper.toDTOList(service.findByTipoClienteId(tipoClienteId));
         return ResponseEntity.ok(relaciones);
     }
@@ -50,19 +50,19 @@ public class TipoClienteImportacionController {
     @PostMapping
     @Operation(summary = "Crear nueva relación", description = "Crea una nueva relación tipo cliente - tipo importación")
     public ResponseEntity<TipoClienteImportacionDTO> create(@RequestBody TipoClienteImportacionDTO dto) {
-        log.info("📝 POST /api/tipo-cliente-importacion - Creando nueva relación");
+        log.info("POST /api/tipo-cliente-importacion - Creando nueva relación");
         var entity = mapper.toEntity(dto);
         var saved = service.save(entity);
-        log.info("✅ Relación creada con ID: {}", saved.getId());
+        log.info("Relacion creada con ID: {}", saved.getId());
         return ResponseEntity.ok(mapper.toDTO(saved));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar relación", description = "Elimina una relación tipo cliente - tipo importación")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        log.info("🗑️ DELETE /api/tipo-cliente-importacion/{} - Eliminando relación", id);
+        log.info("DELETE /api/tipo-cliente-importacion/{} - Eliminando relación", id);
         service.delete(id);
-        log.info("✅ Relación eliminada");
+        log.info("Relacion eliminada");
         return ResponseEntity.ok().build();
     }
 }

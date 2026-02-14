@@ -131,7 +131,7 @@ public class GrupoImportacionClienteService {
         clienteGrupo.setFechaCreacion(LocalDateTime.now());
 
         clienteGrupoRepository.save(clienteGrupo);
-        log.info("✅ Cliente ID {} agregado al grupo ID {}", clienteId, grupoId);
+        log.info("Cliente ID {} agregado al grupo ID {}", clienteId, grupoId);
     }
 
     public void removerCliente(Long grupoId, Long clienteId) {
@@ -158,7 +158,7 @@ public class GrupoImportacionClienteService {
 
     @Transactional(readOnly = true)
     public List<Cliente> obtenerClientesDisponibles(Long grupoId) {
-        log.info("🔍 Obteniendo clientes disponibles para asignar a grupos{}",
+        log.info("Obteniendo clientes disponibles para asignar a grupos{}",
                 grupoId != null ? " (grupo ID: " + grupoId + ")" : "");
 
         final TipoGrupo tipoGrupoFinal;
@@ -166,7 +166,7 @@ public class GrupoImportacionClienteService {
             GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
             tipoGrupoFinal = grupo.getTipoGrupo() != null ? grupo.getTipoGrupo() : TipoGrupo.CUPO;
-            log.info("📋 Filtrando clientes compatibles con tipo de grupo: {}", tipoGrupoFinal);
+            log.info("Filtrando clientes compatibles con tipo de grupo: {}", tipoGrupoFinal);
         } else {
             tipoGrupoFinal = null;
         }
@@ -200,7 +200,7 @@ public class GrupoImportacionClienteService {
                 })
                 .toList();
 
-        log.info("✅ Encontrados {} clientes disponibles de {} pre-filtrados{}",
+        log.info("Encontrados {} clientes disponibles de {} pre-filtrados{}",
                 clientesDisponibles.size(), clientesPreFiltrados.size(),
                 tipoGrupoFinal != null ? " (filtrados por tipo " + tipoGrupoFinal + ")" : "");
 
@@ -213,17 +213,17 @@ public class GrupoImportacionClienteService {
      */
     @Transactional
     public ClienteGrupoImportacion asignarClienteAGrupoDisponible(Cliente cliente, Long vendedorId) {
-        log.info("🔄 Asignando cliente ID {} a grupo disponible del vendedor ID: {}", cliente.getId(), vendedorId);
+        log.info("Asignando cliente ID {} a grupo disponible del vendedor ID: {}", cliente.getId(), vendedorId);
 
         GrupoImportacion grupo = matchingService.encontrarGrupoDisponibleParaVendedor(vendedorId, cliente);
 
         if (grupo == null) {
-            log.info("📭 No hay grupo disponible para asignar cliente ID: {}", cliente.getId());
+            log.info("No hay grupo disponible para asignar cliente ID: {}", cliente.getId());
             return null;
         }
 
         if (clienteGrupoRepository.existsByClienteAndGrupoImportacion(cliente, grupo)) {
-            log.info("ℹ️ Cliente ID {} ya está asignado al grupo ID: {}", cliente.getId(), grupo.getId());
+            log.info("Cliente ID {} ya está asignado al grupo ID: {}", cliente.getId(), grupo.getId());
             return clienteGrupoRepository.findByClienteAndGrupoImportacion(cliente, grupo)
                 .orElse(null);
         }
@@ -236,7 +236,7 @@ public class GrupoImportacionClienteService {
         clienteGrupo.setFechaCreacion(LocalDateTime.now());
 
         ClienteGrupoImportacion guardado = clienteGrupoRepository.save(clienteGrupo);
-        log.info("✅ Cliente ID {} asignado provisionalmente al grupo ID: {} (estado: PENDIENTE)",
+        log.info("Cliente ID {} asignado provisionalmente al grupo ID: {} (estado: PENDIENTE)",
             cliente.getId(), grupo.getId());
 
         return guardado;
@@ -248,7 +248,7 @@ public class GrupoImportacionClienteService {
      */
     @Transactional
     public void confirmarAsignacionCliente(Long clienteId) {
-        log.info("✅ Confirmando asignación del cliente ID: {} al grupo", clienteId);
+        log.info("Confirmando asignación del cliente ID: {} al grupo", clienteId);
 
         if (!clienteRepository.existsById(clienteId)) {
             throw new ResourceNotFoundException("Cliente no encontrado");
@@ -262,7 +262,7 @@ public class GrupoImportacionClienteService {
             .orElse(null);
 
         if (asignacionPendiente == null) {
-            log.warn("⚠️ No se encontró asignación pendiente para cliente ID: {}", clienteId);
+            log.warn("No se encontró asignación pendiente para cliente ID: {}", clienteId);
             return;
         }
 
@@ -270,7 +270,7 @@ public class GrupoImportacionClienteService {
         asignacionPendiente.setFechaActualizacion(LocalDateTime.now());
         clienteGrupoRepository.save(asignacionPendiente);
 
-        log.info("✅ Asignación confirmada: Cliente ID {} en grupo ID: {}",
+        log.info("Asignación confirmada: Cliente ID {} en grupo ID: {}",
             clienteId, asignacionPendiente.getGrupoImportacion().getId());
     }
 }

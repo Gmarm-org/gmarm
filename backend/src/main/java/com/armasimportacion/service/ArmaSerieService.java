@@ -56,7 +56,7 @@ public class ArmaSerieService {
     @Transactional
     public Map<String, Object> cargarSeriesDesdeArchivo(MultipartFile archivo, Long armaId, String lote) {
         try {
-            log.info("📂 Cargando números de serie desde archivo: {}", archivo.getOriginalFilename());
+            log.info("Cargando números de serie desde archivo: {}", archivo.getOriginalFilename());
             
             // Si se proporciona armaId, validar que existe
             Arma armaUnica = null;
@@ -82,9 +82,9 @@ public class ArmaSerieService {
                         String headerLower = line.toLowerCase();
                         if (headerLower.contains("modelo") || headerLower.contains("arma")) {
                             esFormatoDobleColumna = true;
-                            log.info("📋 Formato detectado: MODELO_ARMA, NUMERO_SERIE");
+                            log.info("Formato detectado: MODELO_ARMA, NUMERO_SERIE");
                         } else {
-                            log.info("📋 Formato detectado: NUMERO_SERIE");
+                            log.info("Formato detectado: NUMERO_SERIE");
                         }
                         continue;
                     }
@@ -148,7 +148,7 @@ public class ArmaSerieService {
                 }
             }
 
-            log.info("✅ Cargadas {} series", seriesCreadas.size());
+            log.info("Cargadas {} series", seriesCreadas.size());
             
             Map<String, Object> resultado = new HashMap<>();
             resultado.put("success", true);
@@ -165,7 +165,7 @@ public class ArmaSerieService {
             return resultado;
             
         } catch (Exception e) {
-            log.error("❌ Error cargando números de serie: {}", e.getMessage(), e);
+            log.error("Error cargando números de serie: {}", e.getMessage(), e);
             Map<String, Object> resultado = new HashMap<>();
             resultado.put("success", false);
             resultado.put("error", e.getMessage());
@@ -178,7 +178,7 @@ public class ArmaSerieService {
      */
     @Transactional
     public ArmaSerieDTO asignarSerieACliente(Long clienteArmaId, String numeroSerie, Long usuarioAsignadorId) {
-        log.info("🔧 Asignando serie {} a cliente_arma ID: {}", numeroSerie, clienteArmaId);
+        log.info("Asignando serie {} a cliente_arma ID: {}", numeroSerie, clienteArmaId);
 
         // Buscar la reserva del cliente
         ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
@@ -229,7 +229,7 @@ public class ArmaSerieService {
         clienteArma.asignar(numeroSerie);
         clienteArmaRepository.save(clienteArma);
 
-        log.info("✅ Serie {} asignada a cliente {} {}", 
+        log.info("Serie {} asignada a cliente {} {}", 
                 numeroSerie, 
                 clienteArma.getCliente().getNombres(),
                 clienteArma.getCliente().getApellidos());
@@ -311,7 +311,7 @@ public class ArmaSerieService {
         if (serie.estaAsignado()) {
             serie.liberar();
             armaSerieRepository.save(serie);
-            log.info("✅ Serie {} liberada", serie.getNumeroSerie());
+            log.info("Serie {} liberada", serie.getNumeroSerie());
         }
     }
 
@@ -325,7 +325,7 @@ public class ArmaSerieService {
         
         serie.marcarComoVendido();
         armaSerieRepository.save(serie);
-        log.info("✅ Serie {} marcada como VENDIDA", serie.getNumeroSerie());
+        log.info("Serie {} marcada como VENDIDA", serie.getNumeroSerie());
     }
 
     /**
@@ -334,7 +334,7 @@ public class ArmaSerieService {
      */
     private void enviarCorreoAsignacion(ClienteArma clienteArma, ArmaSerie serie) {
         try {
-            log.info("📧 Notificación de asignación para: {} {}", 
+            log.info("Notificación de asignación para: {} {}", 
                     clienteArma.getCliente().getNombres(),
                     clienteArma.getCliente().getApellidos());
             log.info("   Arma: {}, Serie: {}", 
@@ -347,10 +347,10 @@ public class ArmaSerieService {
             // String cuerpo = ...
             // emailService.enviarCorreoAsignacion(destinatario, asunto, cuerpo);
             
-            log.info("📧 Correo de asignación registrado (SMTP no configurado)");
+            log.info("Correo de asignación registrado (SMTP no configurado)");
             
         } catch (Exception e) {
-            log.error("❌ Error en notificación de asignación: {}", e.getMessage(), e);
+            log.error("Error en notificación de asignación: {}", e.getMessage(), e);
             // No lanzar excepción para no interrumpir el flujo
         }
     }
@@ -386,7 +386,7 @@ public class ArmaSerieService {
      */
     @Transactional
     public Map<String, Object> bulkUploadSeriesFromJson(List<Map<String, String>> seriesData, Long grupoImportacionId) {
-        log.info("📤 Iniciando carga masiva de {} series desde JSON para grupo de importación ID: {}", seriesData.size(), grupoImportacionId);
+        log.info("Iniciando carga masiva de {} series desde JSON para grupo de importación ID: {}", seriesData.size(), grupoImportacionId);
         
         // Obtener el grupo de importación y su licencia
         GrupoImportacion grupoImportacion = grupoImportacionRepository.findById(grupoImportacionId)
@@ -457,16 +457,16 @@ public class ArmaSerieService {
                 armaSerieRepository.save(serie);
                 successCount++;
                 
-                log.debug("✅ Fila {}: Serie {} asignada a arma {} en grupo {}", rowNum, serialNumber, arma.getModelo(), grupoImportacion.getCodigo());
+                log.debug("Fila {}: Serie {} asignada a arma {} en grupo {}", rowNum, serialNumber, arma.getModelo(), grupoImportacion.getCodigo());
                 
             } catch (Exception e) {
                 String errorMsg = "Fila " + rowNum + ": Error procesando - " + e.getMessage();
                 errors.add(errorMsg);
-                log.error("❌ {}", errorMsg, e);
+                log.error("{}", errorMsg, e);
             }
         }
         
-        log.info("✅ Carga masiva completada: {} éxitos, {} errores", successCount, errors.size());
+        log.info("Carga masiva completada: {} éxitos, {} errores", successCount, errors.size());
         
         Map<String, Object> result = new HashMap<>();
         result.put("success", successCount);
@@ -493,7 +493,7 @@ public class ArmaSerieService {
             return coincidencias.get(0);
         }
         if (coincidencias.size() > 1) {
-            log.warn("⚠️ Múltiples armas coinciden con Modelo/Calibre/Categoria/Marca: {}", modelo);
+            log.warn("Múltiples armas coinciden con Modelo/Calibre/Categoria/Marca: {}", modelo);
         }
         return null;
     }

@@ -48,11 +48,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
         setSelectedRoleIds(new Set());
       } else if (mode === 'edit' && user) {
         // Cargar datos del usuario en modo edit
-        console.log('🔍 UserEditModal - Usuario recibido para editar:', user);
-        console.log('🔍 UserEditModal - Teléfonos:', {
-          principal: user.telefono_principal,
-          secundario: user.telefono_secundario
-        });
         setFormData({
           username: user.username || '',
           email: user.email || '',
@@ -64,7 +59,6 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
           direccion: user.direccion || '',
           estado: user.estado !== undefined ? user.estado : true
         });
-        console.log('✅ UserEditModal - FormData cargado:', formData);
       }
       loadData();
     }
@@ -80,16 +74,13 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
 
       // Solo cargar roles actuales si estamos en modo edit
       if (mode === 'edit' && user) {
-        console.log('🔍 UserEditModal - Cargando roles del usuario ID:', user.id);
         const currentRoles = await userApi.getUserRoles(user.id);
-        console.log('✅ UserEditModal - Roles del usuario:', currentRoles);
         const roleIds = new Set(currentRoles.map((r: any) => r.id));
-        console.log('✅ UserEditModal - Role IDs seleccionados:', Array.from(roleIds));
         setSelectedRoleIds(roleIds);
       }
       
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('Error cargando datos:', error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +157,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, mode, isOpen, onClo
       onSave();
       onClose();
     } catch (error) {
-      console.error('Error guardando usuario:', error);
+      console.error('Error guardando usuario:', error instanceof Error ? error.message : 'Error desconocido');
       alert(mode === 'create' ? 'Error al crear el usuario. Verifique que el username y email sean únicos.' : 'Error al actualizar el usuario');
     } finally {
       setIsSaving(false);

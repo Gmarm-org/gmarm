@@ -21,7 +21,7 @@ export function usePagosData() {
           const ivaNumero = typeof ivaValue === 'number' ? ivaValue : parseFloat(String(ivaValue));
           if (!isNaN(ivaNumero) && ivaNumero >= 0) {
             setIvaPercent(ivaNumero);
-            console.log(`IVA cargado desde configuración: ${ivaNumero}%`);
+            // IVA cargado desde configuración
           } else {
             throw new Error('Valor de IVA inválido en la configuración del sistema');
           }
@@ -32,7 +32,7 @@ export function usePagosData() {
         throw new Error('No se pudo obtener la configuración del sistema');
       }
     } catch (error) {
-      console.error('Error cargando configuración:', error);
+      console.error('Error cargando configuración:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error: No se pudo cargar la configuración del sistema. Por favor, contacte al administrador.');
     }
   };
@@ -53,7 +53,7 @@ export function usePagosData() {
                 const cuotasData = await apiService.getCuotasPorPago(pago.id);
                 cuotas = cuotasData;
               } catch (error) {
-                console.warn(`No se pudieron cargar cuotas para pago ${pago.id}`);
+                // Cuotas no disponibles para este pago
               }
             }
 
@@ -76,13 +76,13 @@ export function usePagosData() {
             });
           }
         } catch (error) {
-          console.warn(`No se pudieron cargar pagos para cliente ${cliente.id}`);
+          // Pagos no disponibles para este cliente
         }
       }
 
       setPagos(pagosTemp);
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('Error cargando datos:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }

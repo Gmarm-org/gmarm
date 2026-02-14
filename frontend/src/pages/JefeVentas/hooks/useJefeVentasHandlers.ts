@@ -61,7 +61,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
             const cuotas = await apiService.getCuotasPorPago(pago.id);
             cuotasTemp.push(...cuotas);
           } catch (error) {
-            console.warn(`No se pudieron cargar cuotas para pago ${pago.id}`);
+            // Cuotas no disponibles para este pago
           }
         } else {
           cuotasTemp.push({
@@ -76,7 +76,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
 
       setPagosCliente(cuotasTemp);
     } catch (error) {
-      console.error('Error cargando detalle del cliente:', error);
+      console.error('Error cargando detalle del cliente:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoadingDetalleCliente(false);
     }
@@ -104,7 +104,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
           setTramiteAutorizacion('');
         }
       } catch (error) {
-        console.warn('No se pudo cargar el trámite del grupo de importación:', error);
+        // No se pudo cargar el tramite del grupo de importacion
         setTramiteAutorizacion('');
       }
     } else {
@@ -146,7 +146,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       handleCerrarModalAutorizacion();
       await dataActions.cargarClientesAsignados();
     } catch (error) {
-      console.error('Error generando autorización:', error);
+      console.error('Error generando autorizacion:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error generando la autorización: ${error}`);
     } finally {
       setGenerandoAutorizacion(false);
@@ -195,7 +195,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       setClientFormMode('edit');
       setCurrentPage('clientForm');
     } catch (error) {
-      console.error('Error obteniendo cliente completo:', error);
+      console.error('Error obteniendo cliente completo:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar los datos del cliente para editar');
     }
   };
@@ -211,7 +211,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       setClientFormMode('view');
       alert('Cliente actualizado exitosamente');
     } catch (error) {
-      console.error('Error recargando clientes después de editar:', error);
+      console.error('Error recargando clientes despues de editar:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -291,7 +291,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false });
       dataActions.cargarClientes();
     } catch (error: any) {
-      console.error('Error cambiando estado a DESISTIMIENTO:', error);
+      console.error('Error cambiando estado a DESISTIMIENTO:', error instanceof Error ? error.message : 'Unknown error');
 
       let errorMessage = 'Error desconocido al cambiar estado';
       if (error?.response?.data?.error) {
@@ -323,7 +323,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         isLoading: false
       });
     } catch (error) {
-      console.error('Error cargando armas:', error);
+      console.error('Error cargando armas:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar armas disponibles');
     }
   };
@@ -361,7 +361,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         setArmasCliente(armas);
       }
     } catch (error: any) {
-      console.error('Error actualizando arma:', error);
+      console.error('Error actualizando arma:', error instanceof Error ? error.message : 'Unknown error');
       const errorMessage = error?.response?.data?.error || error?.message || 'Error desconocido';
       alert(`Error al actualizar arma: ${errorMessage}`);
     } finally {
@@ -379,7 +379,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       const datos = await apiService.obtenerDatosContrato(Number(clienteSeleccionado.id));
       setModalGenerarContrato({ isOpen: true, datosContrato: datos, isLoading: false });
     } catch (error) {
-      console.error('Error obteniendo datos del contrato:', error);
+      console.error('Error obteniendo datos del contrato:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al obtener datos del contrato. Por favor, intente nuevamente.');
       setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
     }
@@ -403,7 +403,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error: any) {
-      console.error('Error generando documento:', error);
+      console.error('Error generando documento:', error instanceof Error ? error.message : 'Unknown error');
       const errorMessage = error?.responseData?.error || error?.message || 'Error desconocido';
       alert('Error al generar documento: ' + errorMessage);
       setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));
@@ -430,7 +430,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       setModalClienteReasignado({ isOpen: false, arma: null, nuevoClienteId: null, isLoading: false });
       dataActions.cargarArmasReasignadas();
     } catch (error) {
-      console.error('Error confirmando reasignación:', error);
+      console.error('Error confirmando reasignacion:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al confirmar reasignación');
     } finally {
       setModalClienteReasignado(prev => ({ ...prev, isLoading: false }));

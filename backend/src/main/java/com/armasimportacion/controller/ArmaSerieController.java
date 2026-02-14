@@ -46,7 +46,7 @@ public class ArmaSerieController {
             @RequestParam(value = "lote", required = false) String lote) {
         
         try {
-            log.info("📂 Solicitud de carga de series para arma ID: {}, lote: {}", armaId, lote);
+            log.info("Solicitud de carga de series para arma ID: {}, lote: {}", armaId, lote);
             
             // Validar archivo
             if (archivo.isEmpty()) {
@@ -69,7 +69,7 @@ public class ArmaSerieController {
             }
             
         } catch (Exception e) {
-            log.error("❌ Error cargando series: {}", e.getMessage(), e);
+            log.error("Error cargando series: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", e.getMessage()));
         }
@@ -101,7 +101,7 @@ public class ArmaSerieController {
                     .body(Map.of("success", 0, "errors", List.of("Debe seleccionar un grupo de importación")));
             }
             
-            log.info("📤 Solicitud de carga masiva de {} series para grupo de importación ID: {}", series.size(), grupoImportacionId);
+            log.info("Solicitud de carga masiva de {} series para grupo de importacion ID: {}", series.size(), grupoImportacionId);
             
             Map<String, Object> resultado = armaSerieService.bulkUploadSeriesFromJson(series, grupoImportacionId);
             
@@ -112,7 +112,7 @@ public class ArmaSerieController {
             }
             
         } catch (Exception e) {
-            log.error("❌ Error en carga masiva de series: {}", e.getMessage(), e);
+            log.error("Error en carga masiva de series: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", 0, "errors", List.of("Error del servidor: " + e.getMessage())));
         }
@@ -132,7 +132,7 @@ public class ArmaSerieController {
             String numeroSerie = requestBody.get("numeroSerie").toString();
             Long usuarioAsignadorId = Long.valueOf(requestBody.get("usuarioAsignadorId").toString());
 
-            log.info("🔧 Solicitud de asignación de serie {} a cliente_arma {}", numeroSerie, clienteArmaId);
+            log.info("Solicitud de asignacion de serie {} a cliente_arma {}", numeroSerie, clienteArmaId);
 
             ArmaSerieDTO resultado = armaSerieService.asignarSerieACliente(clienteArmaId, numeroSerie, usuarioAsignadorId);
 
@@ -144,12 +144,12 @@ public class ArmaSerieController {
             return ResponseEntity.ok(response);
 
         } catch (IllegalStateException | IllegalArgumentException e) {
-            log.error("❌ Error de validación: {}", e.getMessage());
+            log.error("Error de validacion: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "error", e.getMessage()));
                     
         } catch (Exception e) {
-            log.error("❌ Error asignando serie: {}", e.getMessage(), e);
+            log.error("Error asignando serie: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", e.getMessage()));
         }
@@ -169,7 +169,7 @@ public class ArmaSerieController {
             List<ArmaSerieDTO> series = armaSerieService.getSeriesDisponiblesByArma(armaId, grupoImportacionId);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo series disponibles: {}", e.getMessage(), e);
+            log.error("Error obteniendo series disponibles: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -185,7 +185,7 @@ public class ArmaSerieController {
             List<ArmaSerieDTO> series = armaSerieService.getSeriesByArma(armaId);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo series: {}", e.getMessage(), e);
+            log.error("Error obteniendo series: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -201,7 +201,7 @@ public class ArmaSerieController {
             List<Map<String, Object>> estadisticas = armaSerieService.getEstadisticasSeries();
             return ResponseEntity.ok(estadisticas);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo estadísticas: {}", e.getMessage(), e);
+            log.error("Error obteniendo estadisticas: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -217,7 +217,7 @@ public class ArmaSerieController {
             ArmaSerieDTO serie = armaSerieService.getSerieByNumero(numeroSerie);
             return ResponseEntity.ok(serie);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo serie: {}", e.getMessage(), e);
+            log.error("Error obteniendo serie: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
@@ -233,7 +233,7 @@ public class ArmaSerieController {
             List<ArmaSerieDTO> series = armaSerieService.getSeriesByEstado(estado);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
-            log.error("❌ Error obteniendo series por estado: {}", e.getMessage(), e);
+            log.error("Error obteniendo series por estado: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -249,7 +249,7 @@ public class ArmaSerieController {
             armaSerieService.liberarSerie(serieId);
             return ResponseEntity.ok(Map.of("success", true, "message", "Serie liberada exitosamente"));
         } catch (Exception e) {
-            log.error("❌ Error liberando serie: {}", e.getMessage(), e);
+            log.error("Error liberando serie: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", e.getMessage()));
         }
@@ -266,7 +266,7 @@ public class ArmaSerieController {
             armaSerieService.marcarComoVendida(serieId);
             return ResponseEntity.ok(Map.of("success", true, "message", "Serie marcada como vendida exitosamente"));
         } catch (Exception e) {
-            log.error("❌ Error marcando serie como vendida: {}", e.getMessage(), e);
+            log.error("Error marcando serie como vendida: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", e.getMessage()));
         }

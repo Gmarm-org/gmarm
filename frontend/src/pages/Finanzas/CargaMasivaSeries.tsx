@@ -43,12 +43,8 @@ const CargaMasivaSeries: React.FC = () => {
         const tienePedidoDefinido = estado && !['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(estado);
         
         // Verificar si aún necesita series
-        const totalArmas = g.totalArmasSolicitadas || 0;
-        const seriesCargadas = g.seriesCargadas || 0;
         const seriesPendientes = g.seriesPendientes !== undefined ? g.seriesPendientes : 999; // Si no tiene el campo, asumir que necesita
         const necesitaSeries = seriesPendientes > 0;
-        
-        console.log(`🔍 Grupo ${g.grupoCodigo || g.grupoId}: ${totalArmas} armas, ${seriesCargadas} series, ${seriesPendientes} pendientes → ${necesitaSeries ? 'MOSTRAR' : 'OCULTAR'}`);
         
         return tienePedidoDefinido && necesitaSeries;
       });
@@ -66,14 +62,8 @@ const CargaMasivaSeries: React.FC = () => {
       }));
       
       setGruposDisponibles(gruposMapeados);
-      console.log('✅ Grupos con pedido definido cargados:', gruposMapeados.length);
-      console.log('📋 Grupos disponibles:', gruposMapeados);
-      
-      if (gruposMapeados.length === 0) {
-        console.warn('⚠️ No hay grupos con pedido definido. Los grupos deben estar en estado SOLICITAR_PROFORMA_FABRICA o posterior.');
-      }
     } catch (error) {
-      console.error('❌ Error cargando grupos:', error);
+      console.error('Error cargando grupos:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al cargar los grupos de importación');
     } finally {
       setCargandoGrupos(false);
@@ -154,9 +144,8 @@ const CargaMasivaSeries: React.FC = () => {
         }));
 
         setPreviewData(mappedData);
-        console.log('📊 Datos procesados del Excel:', mappedData);
       } catch (error) {
-        console.error('Error procesando Excel:', error);
+        console.error('Error procesando Excel:', error instanceof Error ? error.message : 'Error desconocido');
         alert('Error al procesar el archivo Excel. Verifica el formato.');
       }
     };
@@ -216,7 +205,7 @@ const CargaMasivaSeries: React.FC = () => {
         if (result.errors.length > 10) {
           mensaje += `\n\n... y ${result.errors.length - 10} errores más. Revisa la consola para ver todos.`;
         }
-        console.error('⚠️ Lista completa de errores:', result.errors);
+        console.error('Lista completa de errores de carga de series');
       }
 
       if (mensaje) {
@@ -229,7 +218,7 @@ const CargaMasivaSeries: React.FC = () => {
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (error: any) {
-      console.error('Error subiendo series:', error);
+      console.error('Error subiendo series:', error instanceof Error ? error.message : 'Error desconocido');
       const errorMessage = error?.message || 'Error desconocido';
       alert(`❌ Error al cargar las series:\n\n${errorMessage}\n\nRevisa que:\n- El archivo Excel tenga el formato correcto\n- Las columnas se llamen exactamente: serialNumber, model, caliber, tipo, marca\n- Hayas seleccionado un grupo de importación`);
     } finally {

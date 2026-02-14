@@ -38,7 +38,7 @@ public class TipoDocumentoService {
         
         // Validación: si grupos_importacion = true, tipo_proceso_id debe ser NULL
         if (Boolean.TRUE.equals(tipoDocumento.getGruposImportacion()) && tipoDocumento.getTipoProceso() != null) {
-            log.warn("⚠️ Intento de guardar documento de grupos_importacion con tipo_proceso_id. Se establece como NULL.");
+            log.warn("Intento de guardar documento de grupos_importacion con tipo_proceso_id. Se establece como NULL.");
             tipoDocumento.setTipoProceso(null);
         }
         

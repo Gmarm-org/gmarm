@@ -130,12 +130,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      
-      // DEBUG: Verificar el precio antes de guardar
-      console.log('🔍 DEBUG - Precio antes de guardar:', editForm.precioReferencia);
-      console.log('🔍 DEBUG - Tipo de precio:', typeof editForm.precioReferencia);
-      console.log('🔍 DEBUG - Precio como string:', editForm.precioReferencia.toString());
-      
+
       const formData = new FormData();
       formData.append('modelo', editForm.modelo); // Cambiado de nombre a modelo
       if (editForm.marca) {
@@ -156,7 +151,6 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       // Asegurar que el precio se envía correctamente como número
       const precioString = editForm.precioReferencia.toString();
       formData.append('precioReferencia', precioString);
-      console.log('🔍 DEBUG - Precio enviado en FormData:', precioString);
       formData.append('categoriaId', editForm.categoriaId.toString());
       formData.append('estado', editForm.estado.toString());
       
@@ -167,7 +161,7 @@ const WeaponEditModal: React.FC<WeaponEditModalProps> = ({
       await onSave(formData);
       onClose();
     } catch (error) {
-      console.error('Error guardando cambios:', error);
+      console.error('Error guardando cambios:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error al guardar los cambios: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     } finally {
       setIsSaving(false);

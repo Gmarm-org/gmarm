@@ -42,8 +42,8 @@ public class AutorizacionController {
                description = "Genera un documento PDF de autorización de venta para un cliente con arma asignada")
     public ResponseEntity<?> generarAutorizacion(@RequestBody Map<String, Object> requestData) {
         try {
-            log.info("📄 POST /api/autorizaciones/generar - Generando autorización de venta");
-            log.info("🔍 Datos recibidos: {}", requestData);
+            log.info("POST /api/autorizaciones/generar - Generando autorizacion de venta");
+            log.info("Datos recibidos: {}", requestData);
 
             // Validar datos requeridos
             if (requestData.get("clienteId") == null) {
@@ -99,8 +99,8 @@ public class AutorizacionController {
                 ));
             }
 
-            log.info("✅ Cliente encontrado: ID={}, Nombre={}", cliente.getId(), cliente.getNombres());
-            log.info("✅ Arma encontrada: ID={}, Modelo={}, Serie={}",
+            log.info("Cliente encontrado: ID={}, Nombre={}", cliente.getId(), cliente.getNombres());
+            log.info("Arma encontrada: ID={}, Modelo={}, Serie={}",
                 clienteArma.getArma().getId(),
                 clienteArma.getArma().getModelo(),
                 clienteArma.getNumeroSerie());
@@ -113,7 +113,7 @@ public class AutorizacionController {
                 tramite
             );
 
-            log.info("✅ Autorización generada exitosamente: ID={}", documento.getId());
+            log.info("Autorizacion generada exitosamente: ID={}", documento.getId());
 
             // Preparar respuesta
             Map<String, Object> response = new HashMap<>();
@@ -126,7 +126,7 @@ public class AutorizacionController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (Exception e) {
-            log.error("❌ Error generando autorización: {}", e.getMessage(), e);
+            log.error("Error generando autorizacion: {}", e.getMessage(), e);
 
             // Extraer mensaje de error más específico
             String mensajeError = extraerMensajeErrorLegible(e);
@@ -173,17 +173,17 @@ public class AutorizacionController {
                description = "Obtiene todas las autorizaciones de venta generadas para un cliente específico")
     public ResponseEntity<?> obtenerAutorizacionesPorCliente(@PathVariable Long clienteId) {
         try {
-            log.info("📄 GET /api/autorizaciones/cliente/{} - Obteniendo autorizaciones del cliente", clienteId);
+            log.info("GET /api/autorizaciones/cliente/{} - Obteniendo autorizaciones del cliente", clienteId);
             
             // Buscar autorizaciones del cliente
             List<DocumentoGenerado> autorizaciones = documentoGeneradoRepository
                 .findByClienteIdAndTipo(clienteId, TipoDocumentoGenerado.AUTORIZACION);
             
-            log.info("✅ Autorizaciones encontradas: {}", autorizaciones.size());
+            log.info("Autorizaciones encontradas: {}", autorizaciones.size());
             return ResponseEntity.ok(autorizaciones);
             
         } catch (Exception e) {
-            log.error("❌ Error obteniendo autorizaciones del cliente: {}", e.getMessage(), e);
+            log.error("Error obteniendo autorizaciones del cliente: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error obteniendo autorizaciones: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

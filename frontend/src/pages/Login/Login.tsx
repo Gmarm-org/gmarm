@@ -13,21 +13,10 @@ const Login: React.FC = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  // Función para redirigir según el rol usando la configuración centralizada
   const redirectBasedOnRole = (userRoles: UserRole[]) => {
-    console.log('🔐 Login - redirectBasedOnRole ejecutándose');
-    console.log('🔐 Login - userRoles recibidos:', userRoles);
-    console.log('🔐 Login - userRoles[0]:', userRoles[0]);
-    console.log('🔐 Login - userRoles[0].rol:', userRoles[0]?.rol);
-    console.log('🔐 Login - userRoles[0].rol?.codigo:', userRoles[0]?.rol?.codigo);
-    console.log('🔐 Login - userRoles[0].codigo (directo):', (userRoles[0] as any)?.codigo);
-    
-    // Obtener el rol principal del usuario - usar la estructura correcta
     const userRole = userRoles[0]?.rol?.codigo || (userRoles[0] as any)?.codigo;
-    console.log('🔐 Login - Rol principal del usuario:', userRole);
-    
+
     if (!userRole) {
-      console.log('🔐 Login - Usuario sin rol, redirigiendo a /dashboard');
       navigate('/dashboard');
       return;
     }
@@ -58,7 +47,6 @@ const Login: React.FC = () => {
         }
     }
     
-    console.log('🔐 Login - Redirigiendo a:', redirectRoute);
     navigate(redirectRoute);
   };
 
@@ -78,17 +66,9 @@ const Login: React.FC = () => {
     }
   };
 
-  // Efecto para redirigir cuando el usuario se actualice
   React.useEffect(() => {
-    console.log('🔐 Login - useEffect ejecutándose');
-    console.log('🔐 Login - user:', user);
-    console.log('🔐 Login - user.roles:', user?.roles);
-    
     if (user && user.roles) {
-      console.log('🔐 Login - Ejecutando redirectBasedOnRole');
       redirectBasedOnRole(user.roles);
-    } else {
-      console.log('🔐 Login - Usuario o roles no disponibles');
     }
   }, [user, navigate]);
 

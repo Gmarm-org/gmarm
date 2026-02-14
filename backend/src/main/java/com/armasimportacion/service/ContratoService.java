@@ -38,7 +38,7 @@ public class ContratoService {
      */
     public void generarYEnviarContrato(Long clienteId, Long pagoId, Long vendedorId) {
         try {
-            log.info("🎯 Generando contrato para cliente: {} y pago: {}", clienteId, pagoId);
+            log.info("Generando contrato para cliente: {} y pago: {}", clienteId, pagoId);
 
             // 1. Leer datos y guardar documento en transacción corta
             ContratoData datos = guardarContrato(clienteId, pagoId, vendedorId);
@@ -46,10 +46,10 @@ public class ContratoService {
             // 2. Enviar email fuera de la transacción
             enviarContratoPorEmail(datos.cliente, datos.vendedor, datos.pago, datos.pdfBytes, datos.nombreArchivo);
 
-            log.info("✅ Contrato generado y enviado exitosamente para cliente: {}", datos.cliente.getNombreCompleto());
+            log.info("Contrato generado y enviado exitosamente para cliente: {}", datos.cliente.getNombreCompleto());
 
         } catch (Exception e) {
-            log.error("❌ Error al generar contrato: {}", e.getMessage(), e);
+            log.error("Error al generar contrato: {}", e.getMessage(), e);
             throw new RuntimeException("Error al generar contrato", e);
         }
     }
@@ -196,10 +196,10 @@ public class ContratoService {
                 nombreArchivo
             );
 
-            log.info("✅ Contrato enviado por email a cliente y vendedor");
+            log.info("Contrato enviado por email a cliente y vendedor");
 
         } catch (Exception e) {
-            log.error("❌ Error al enviar contrato por email: {}", e.getMessage(), e);
+            log.error("Error al enviar contrato por email: {}", e.getMessage(), e);
             throw new RuntimeException("Error al enviar contrato por email", e);
         }
     }

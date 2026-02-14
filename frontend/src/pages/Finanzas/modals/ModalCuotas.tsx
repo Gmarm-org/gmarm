@@ -55,7 +55,7 @@ const ModalCuotas: React.FC<ModalCuotasProps> = ({ pago, onClose, onDataReload, 
           formData.append('tipo', 'comprobante_cuota');
           formData.append('cuotaId', cuotaEditando.id.toString());
         } catch (error) {
-          console.warn('Error subiendo comprobante:', error);
+          // Error subiendo comprobante, continuar sin él
         }
       }
 
@@ -75,7 +75,7 @@ const ModalCuotas: React.FC<ModalCuotasProps> = ({ pago, onClose, onDataReload, 
       await onDataReload();
       onClose();
     } catch (error) {
-      console.error('Error registrando pago:', error);
+      console.error('Error registrando pago:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error registrando el pago: ${error}`);
     } finally {
       setProcesando(false);
@@ -101,7 +101,7 @@ const ModalCuotas: React.FC<ModalCuotasProps> = ({ pago, onClose, onDataReload, 
       setMostrarModalAgregarCuota(false);
       setNuevaCuota({ monto: 0, fechaVencimiento: '', referenciaPago: '' });
     } catch (error) {
-      console.error('Error agregando cuota:', error);
+      console.error('Error agregando cuota:', error instanceof Error ? error.message : 'Unknown error');
       alert(`Error agregando la cuota: ${error}`);
     } finally {
       setProcesando(false);
@@ -193,7 +193,7 @@ const ModalCuotas: React.FC<ModalCuotasProps> = ({ pago, onClose, onDataReload, 
                                     // Luego descargarlo
                                     await apiService.descargarRecibo(cuota.id);
                                   } catch (error) {
-                                    console.error('Error descargando recibo:', error);
+                                    console.error('Error descargando recibo:', error instanceof Error ? error.message : 'Unknown error');
                                     alert(`Error al descargar el recibo: ${error}`);
                                   } finally {
                                     setProcesando(false);
@@ -217,7 +217,7 @@ const ModalCuotas: React.FC<ModalCuotasProps> = ({ pago, onClose, onDataReload, 
                                     await apiService.enviarReciboPorCorreo(cuota.id);
                                     alert('Recibo enviado exitosamente');
                                   } catch (error: any) {
-                                    console.error('Error enviando recibo:', error);
+                                    console.error('Error enviando recibo:', error instanceof Error ? error.message : 'Unknown error');
                                     const errorMessage = error?.message || error?.error || 'Error desconocido';
                                     alert(`Error al enviar el recibo: ${errorMessage}`);
                                   } finally {

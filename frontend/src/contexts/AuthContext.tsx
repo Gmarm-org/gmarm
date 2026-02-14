@@ -61,9 +61,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Obtener usuario completo con roles
       const fullUser = await apiService.getCurrentUser();
-      console.log('🔍 AuthContext - Usuario recibido del backend:', fullUser);
-      console.log('🔍 AuthContext - ID del usuario:', fullUser?.id);
-      console.log('🔍 AuthContext - Roles del usuario:', fullUser?.roles);
       setUser(fullUser as any);
       
       // Establecer rol activo automáticamente si solo tiene un rol
@@ -71,7 +68,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const firstRole: any = fullUser.roles[0];
         const rolCodigo = firstRole?.rol?.codigo || firstRole?.codigo;
         if (rolCodigo) {
-          console.log('🔍 AuthContext - Estableciendo rol activo automáticamente:', rolCodigo);
           setActiveRoleState(rolCodigo);
           localStorage.setItem('activeRole', rolCodigo);
         }
@@ -80,11 +76,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         await revisarAlertasProcesosImportacion();
       } catch (alertError) {
-        console.warn('No se pudieron cargar alertas de procesos al iniciar sesión:', alertError);
+        // Alertas no son críticas, continuar silenciosamente
       }
       
     } catch (error: unknown) {
-      console.error('Error en login:', error);
+      console.error('Error en login:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }, []);
@@ -94,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const service = await getApiService();
       await service.logout();
     } catch (error) {
-      console.error('Error en logout:', error);
+      console.error('Error en logout:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('activeRole');
@@ -124,13 +120,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(updatedUser as any);
       }
     } catch (error: unknown) {
-      console.error('Error actualizando perfil:', error);
+      console.error('Error actualizando perfil:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }, [user?.id]);
 
   const setActiveRole = useCallback((role: string) => {
-    console.log('🔄 AuthContext - Cambiando rol activo a:', role);
     setActiveRoleState(role);
     localStorage.setItem('activeRole', role);
   }, []);
@@ -154,24 +149,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   // Cargar rol activo desde localStorage
                   const savedRole = localStorage.getItem('activeRole');
                   if (savedRole) {
-                    console.log('🔄 AuthContext - Cargando rol activo desde localStorage:', savedRole);
                     // Validar que el rol guardado sea un código válido
                     const validRoleCodes = ['VENDOR', 'SALES_CHIEF', 'FINANCE', 'ADMIN', 'OPERATIONS'];
                     if (validRoleCodes.includes(savedRole)) {
                       setActiveRoleState(savedRole);
                     } else {
-                      console.log('🔄 AuthContext - Rol inválido en localStorage, limpiando:', savedRole);
                       localStorage.removeItem('activeRole');
                     }
                   }
                   try {
                     await revisarAlertasProcesosImportacion();
                   } catch (alertError) {
-                    console.warn('No se pudieron cargar alertas de procesos al iniciar sesión:', alertError);
+                    // Alertas no son críticas, continuar silenciosamente
                   }
             }
           } catch (authError) {
-            console.error('Token inválido o expirado:', authError);
+            console.error('Token inválido o expirado:', authError instanceof Error ? authError.message : 'Unknown error');
             // Limpiar token inválido
             if (isMounted) {
               localStorage.removeItem('token');
@@ -180,7 +173,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error('Error inicializando auth:', error);
+        console.error('Error inicializando auth:', error instanceof Error ? error.message : 'Unknown error');
         if (isMounted) {
           localStorage.removeItem('token');
           setUser(null);
@@ -216,12 +209,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Timer de advertencia (9 minutos)
       warningTimer = setTimeout(() => {
         setShowInactivityWarning(true);
-        console.warn('⚠️ Advertencia: Sesión expirará en 1 minuto por inactividad');
       }, WARNING_TIMEOUT);
 
       // Timer de cierre de sesión (10 minutos)
       inactivityTimer = setTimeout(() => {
-        console.warn('🚪 Cerrando sesión por inactividad (10 minutos sin actividad)');
         logout();
       }, INACTIVITY_TIMEOUT);
     };
@@ -249,11 +240,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Memoizar el valor del contexto para evitar re-renders innecesarios
   const value: AuthContextType = useMemo(() => {
-    console.log('🔐 AuthContext - Creando nuevo valor del contexto - TIMESTAMP:', new Date().toISOString());
-    console.log('🔐 AuthContext - user:', user);
-    console.log('🔐 AuthContext - activeRole:', activeRole);
-    console.log('🔐 AuthContext - isLoading:', isLoading);
-    
     return {
       user,
       activeRole,

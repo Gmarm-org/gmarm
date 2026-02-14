@@ -172,23 +172,19 @@ const VerifyPage: React.FC = () => {
                       }
 
                       try {
-                        console.log('🔄 Verificando token...', token);
                         const response = await apiService.verifyEmailToken(token);
-                        console.log('📥 Respuesta del servidor:', response);
-                        
+
                         if (response && response.success === true) {
                           setStatus('success');
                           setMessage(response.message || 'Correo electrónico verificado exitosamente');
                           setClienteInfo(response);
-                          console.log('✅ Verificación exitosa');
                         } else {
                           // El backend retornó success: false
                           setStatus('error');
                           setMessage(response?.message || 'Error al verificar el correo electrónico. El servidor indicó que la verificación falló.');
-                          console.error('❌ Verificación falló:', response);
                         }
                       } catch (error: any) {
-                        console.error('❌ Error al verificar token:', error);
+                        console.error('Error al verificar token:', error instanceof Error ? error.message : 'Error desconocido');
                         setStatus('error');
                         
                         // Extraer mensaje de error más descriptivo

@@ -81,7 +81,7 @@ public class EmailService {
      * @param noTieneCuentaSicoar true si el cliente respondió NO a tener cuenta en Sicoar
      */
     public void sendVerificationEmail(Cliente cliente, String verificationUrl, boolean noTieneCuentaSicoar) {
-        log.info("📧 Enviando correo de verificación a: {}", cliente.getEmail());
+        log.info("Enviando correo de verificación a: {}", cliente.getEmail());
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -119,13 +119,13 @@ public class EmailService {
 
             // Enviar correo
             mailSender.send(message);
-            log.info("✅ Correo de verificación enviado exitosamente a: {}", cliente.getEmail());
+            log.info("Correo de verificación enviado exitosamente a: {}", cliente.getEmail());
 
         } catch (MessagingException e) {
-            log.error("❌ Error enviando correo de verificación a {}: {}", cliente.getEmail(), e.getMessage(), e);
+            log.error("Error enviando correo de verificación a {}: {}", cliente.getEmail(), e.getMessage(), e);
             throw new RuntimeException("Error al enviar correo de verificación: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando correo a {}: {}", cliente.getEmail(), e.getMessage(), e);
+            log.error("Error inesperado enviando correo a {}: {}", cliente.getEmail(), e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar correo: " + e.getMessage(), e);
         }
     }
@@ -138,7 +138,7 @@ public class EmailService {
      * @param rutaArchivo Ruta completa del archivo PDF a adjuntar
      */
     public void enviarContratoAdjunto(String email, String nombreCompleto, String rutaArchivo) {
-        log.info("📧 Enviando contrato adjunto a: {}", email);
+        log.info("Enviando contrato adjunto a: {}", email);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -161,20 +161,20 @@ public class EmailService {
             if (file.exists()) {
                 FileSystemResource resource = new FileSystemResource(file);
                 helper.addAttachment(file.getName(), resource);
-                log.info("✅ Archivo adjuntado: {}", rutaArchivo);
+                log.info("Archivo adjuntado: {}", rutaArchivo);
             } else {
-                log.warn("⚠️ Archivo no encontrado: {}", rutaArchivo);
+                log.warn("Archivo no encontrado: {}", rutaArchivo);
             }
 
             // Enviar correo
             mailSender.send(message);
-            log.info("✅ Contrato enviado exitosamente a: {}", email);
+            log.info("Contrato enviado exitosamente a: {}", email);
 
         } catch (MessagingException e) {
-            log.error("❌ Error enviando contrato a {}: {}", email, e.getMessage(), e);
+            log.error("Error enviando contrato a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error al enviar contrato: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando contrato a {}: {}", email, e.getMessage(), e);
+            log.error("Error inesperado enviando contrato a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar contrato: " + e.getMessage(), e);
         }
     }
@@ -190,7 +190,7 @@ public class EmailService {
      */
     public void enviarContratoConAdjunto(String email, String nombreCompleto, Pago pago, 
                                         byte[] pdfBytes, String nombreArchivo) {
-        log.info("📧 Enviando contrato con adjunto a: {}", email);
+        log.info("Enviando contrato con adjunto a: {}", email);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -221,13 +221,13 @@ public class EmailService {
 
             // Enviar correo
             mailSender.send(message);
-            log.info("✅ Contrato con adjunto enviado exitosamente a: {}", email);
+            log.info("Contrato con adjunto enviado exitosamente a: {}", email);
 
         } catch (MessagingException e) {
-            log.error("❌ Error enviando contrato con adjunto a {}: {}", email, e.getMessage(), e);
+            log.error("Error enviando contrato con adjunto a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error al enviar contrato con adjunto: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando contrato con adjunto a {}: {}", email, e.getMessage(), e);
+            log.error("Error inesperado enviando contrato con adjunto a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar contrato con adjunto: " + e.getMessage(), e);
         }
     }
@@ -244,7 +244,7 @@ public class EmailService {
      */
     public void enviarConfirmacionContratoVendedor(String email, String nombreVendedor, Cliente cliente, 
                                                    Pago pago, byte[] pdfBytes, String nombreArchivo) {
-        log.info("📧 Enviando confirmación de contrato a vendedor: {}", email);
+        log.info("Enviando confirmación de contrato a vendedor: {}", email);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -270,13 +270,13 @@ public class EmailService {
 
             // Enviar correo
             mailSender.send(message);
-            log.info("✅ Confirmación de contrato enviada exitosamente a vendedor: {}", email);
+            log.info("Confirmación de contrato enviada exitosamente a vendedor: {}", email);
 
         } catch (MessagingException e) {
-            log.error("❌ Error enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
+            log.error("Error enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error al enviar confirmación a vendedor: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
+            log.error("Error inesperado enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar confirmación a vendedor: " + e.getMessage(), e);
         }
     }
@@ -284,10 +284,10 @@ public class EmailService {
     public void enviarDocumentosGenerados(String email, String nombreCliente, String nombreVendedor, Licencia licencia,
                                           List<DocumentoAdjunto> adjuntos) {
         if (email == null || email.trim().isEmpty()) {
-            log.warn("⚠️ Email vacío, omitiendo envío de documentos generados");
+            log.warn("Email vacío, omitiendo envío de documentos generados");
             return;
         }
-        log.info("📧 Enviando documentos generados a: {}", email);
+        log.info("Enviando documentos generados a: {}", email);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -325,12 +325,12 @@ public class EmailService {
             }
 
             mailSender.send(message);
-            log.info("✅ Documentos generados enviados exitosamente a: {}", email);
+            log.info("Documentos generados enviados exitosamente a: {}", email);
         } catch (MessagingException e) {
-            log.error("❌ Error enviando documentos generados a {}: {}", email, e.getMessage(), e);
+            log.error("Error enviando documentos generados a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error al enviar documentos generados: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando documentos generados a {}: {}", email, e.getMessage(), e);
+            log.error("Error inesperado enviando documentos generados a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar documentos generados: " + e.getMessage(), e);
         }
     }
@@ -340,7 +340,7 @@ public class EmailService {
             return;
         }
 
-        log.info("📧 Enviando alertas de proceso de importación a: {}", email);
+        log.info("Enviando alertas de proceso de importación a: {}", email);
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -357,12 +357,12 @@ public class EmailService {
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
-            log.info("✅ Alertas enviadas exitosamente a: {}", email);
+            log.info("Alertas enviadas exitosamente a: {}", email);
         } catch (MessagingException e) {
-            log.error("❌ Error enviando alertas a {}: {}", email, e.getMessage(), e);
+            log.error("Error enviando alertas a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error al enviar alertas de proceso: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando alertas a {}: {}", email, e.getMessage(), e);
+            log.error("Error inesperado enviando alertas a {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar alertas: " + e.getMessage(), e);
         }
     }
@@ -376,7 +376,7 @@ public class EmailService {
      */
     public void enviarContratoCliente(Cliente cliente, List<DocumentoCliente> documentos, 
                                      List<RespuestaCliente> respuestas) {
-        log.info("📧 Enviando contrato con documentos a cliente: {}", cliente.getEmail());
+        log.info("Enviando contrato con documentos a cliente: {}", cliente.getEmail());
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -398,13 +398,13 @@ public class EmailService {
 
             // Enviar correo
             mailSender.send(message);
-            log.info("✅ Contrato con documentos enviado exitosamente a: {}", cliente.getEmail());
+            log.info("Contrato con documentos enviado exitosamente a: {}", cliente.getEmail());
 
         } catch (MessagingException e) {
-            log.error("❌ Error enviando contrato con documentos a {}: {}", cliente.getEmail(), e.getMessage(), e);
+            log.error("Error enviando contrato con documentos a {}: {}", cliente.getEmail(), e.getMessage(), e);
             throw new RuntimeException("Error al enviar contrato con documentos: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando contrato con documentos a {}: {}", cliente.getEmail(), e.getMessage(), e);
+            log.error("Error inesperado enviando contrato con documentos a {}: {}", cliente.getEmail(), e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar contrato con documentos: " + e.getMessage(), e);
         }
     }
@@ -415,7 +415,7 @@ public class EmailService {
      * @param cliente Cliente
      */
     public void enviarConfirmacionProceso(Cliente cliente) {
-        log.info("📧 Enviando confirmación de proceso a cliente: {}", cliente.getEmail());
+        log.info("Enviando confirmación de proceso a cliente: {}", cliente.getEmail());
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -435,13 +435,13 @@ public class EmailService {
 
             // Enviar correo
             mailSender.send(message);
-            log.info("✅ Confirmación de proceso enviada exitosamente a: {}", cliente.getEmail());
+            log.info("Confirmación de proceso enviada exitosamente a: {}", cliente.getEmail());
 
         } catch (MessagingException e) {
-            log.error("❌ Error enviando confirmación de proceso a {}: {}", cliente.getEmail(), e.getMessage(), e);
+            log.error("Error enviando confirmación de proceso a {}: {}", cliente.getEmail(), e.getMessage(), e);
             throw new RuntimeException("Error al enviar confirmación de proceso: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Error inesperado enviando confirmación de proceso a {}: {}", cliente.getEmail(), e.getMessage(), e);
+            log.error("Error inesperado enviando confirmación de proceso a {}: {}", cliente.getEmail(), e.getMessage(), e);
             throw new RuntimeException("Error inesperado al enviar confirmación de proceso: " + e.getMessage(), e);
         }
     }
@@ -460,11 +460,11 @@ public class EmailService {
     public void enviarReciboPorCorreo(List<String> emails, String clienteNombre, 
                                      byte[] pdfBytes, String nombreArchivo, 
                                      String numeroRecibo, BigDecimal monto) {
-        log.info("📧 Enviando recibo a {} destinatarios", emails.size());
+        log.info("Enviando recibo a {} destinatarios", emails.size());
 
         for (String email : emails) {
             if (email == null || email.trim().isEmpty()) {
-                log.warn("⚠️ Email vacío, omitiendo envío");
+                log.warn("Email vacío, omitiendo envío");
                 continue;
             }
 
@@ -491,12 +491,12 @@ public class EmailService {
 
                 // Enviar correo
                 mailSender.send(message);
-                log.info("✅ Recibo enviado exitosamente a: {}", email);
+                log.info("Recibo enviado exitosamente a: {}", email);
 
             } catch (MessagingException e) {
-                log.error("❌ Error enviando recibo a {}: {}", email, e.getMessage(), e);
+                log.error("Error enviando recibo a {}: {}", email, e.getMessage(), e);
             } catch (Exception e) {
-                log.error("❌ Error inesperado enviando recibo a {}: {}", email, e.getMessage(), e);
+                log.error("Error inesperado enviando recibo a {}: {}", email, e.getMessage(), e);
             }
         }
     }

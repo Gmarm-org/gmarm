@@ -109,7 +109,7 @@ public class ClienteService {
         try {
             return configuracionSistemaService.getValorEntero("EDAD_MINIMA_CLIENTE");
         } catch (Exception e) {
-            log.warn("⚠️ Error obteniendo EDAD_MINIMA_CLIENTE, usando fallback 25: {}", e.getMessage());
+            log.warn("Error obteniendo EDAD_MINIMA_CLIENTE, usando fallback 25: {}", e.getMessage());
             return 25;
         }
     }
@@ -192,12 +192,12 @@ public class ClienteService {
     // ===== MÉTODOS DTO (CREATE / UPDATE) =====
 
     public ClienteDTO createFromDTO(ClienteCreateDTO dto, Long usuarioId) {
-        log.info("🔍 ClienteService.createFromDTO: Recibiendo DTO: {}", dto);
-        log.info("🔍 ClienteService.createFromDTO: numeroIdentificacion = '{}'", dto.getNumeroIdentificacion());
-        log.info("🔍 ClienteService.createFromDTO: nombres = '{}'", dto.getNombres());
-        log.info("🔍 ClienteService.createFromDTO: apellidos = '{}'", dto.getApellidos());
-        log.info("🔍 ClienteService.createFromDTO: tipoIdentificacionCodigo = '{}'", dto.getTipoIdentificacionCodigo());
-        log.info("🔍 ClienteService.createFromDTO: tipoClienteCodigo = '{}'", dto.getTipoClienteCodigo());
+        log.info("ClienteService.createFromDTO: Recibiendo DTO: {}", dto);
+        log.info("ClienteService.createFromDTO: numeroIdentificacion = '{}'", dto.getNumeroIdentificacion());
+        log.info("ClienteService.createFromDTO: nombres = '{}'", dto.getNombres());
+        log.info("ClienteService.createFromDTO: apellidos = '{}'", dto.getApellidos());
+        log.info("ClienteService.createFromDTO: tipoIdentificacionCodigo = '{}'", dto.getTipoIdentificacionCodigo());
+        log.info("ClienteService.createFromDTO: tipoClienteCodigo = '{}'", dto.getTipoClienteCodigo());
 
         Cliente cliente = new Cliente();
         mapDtoToCliente(dto, cliente);
@@ -210,23 +210,23 @@ public class ClienteService {
             throw new BadRequestException("tipoClienteCodigo es obligatorio y debe enviarse desde el frontend");
         }
 
-        log.info("🔍 Buscando TipoIdentificacion con código: '{}'", dto.getTipoIdentificacionCodigo());
+        log.info("Buscando TipoIdentificacion con código: '{}'", dto.getTipoIdentificacionCodigo());
         TipoIdentificacion tipoIdentificacion = tipoIdentificacionRepository.findByCodigo(dto.getTipoIdentificacionCodigo())
                 .orElseThrow(() -> {
-                    log.error("❌ TipoIdentificacion NO encontrado con código: '{}'", dto.getTipoIdentificacionCodigo());
+                    log.error("TipoIdentificacion NO encontrado con código: '{}'", dto.getTipoIdentificacionCodigo());
                     return new ResourceNotFoundException("Tipo de identificación no encontrado con código: " + dto.getTipoIdentificacionCodigo());
                 });
-        log.info("✅ TipoIdentificacion encontrado: ID={}, Código={}, Nombre={}",
+        log.info("TipoIdentificacion encontrado: ID={}, Código={}, Nombre={}",
                 tipoIdentificacion.getId(), tipoIdentificacion.getCodigo(), tipoIdentificacion.getNombre());
         cliente.setTipoIdentificacion(tipoIdentificacion);
 
-        log.info("🔍 Buscando TipoCliente con código: '{}'", dto.getTipoClienteCodigo());
+        log.info("Buscando TipoCliente con código: '{}'", dto.getTipoClienteCodigo());
         TipoCliente tipoCliente = tipoClienteRepository.findByCodigo(dto.getTipoClienteCodigo())
                 .orElseThrow(() -> {
-                    log.error("❌ TipoCliente NO encontrado con código: '{}'", dto.getTipoClienteCodigo());
+                    log.error("TipoCliente NO encontrado con código: '{}'", dto.getTipoClienteCodigo());
                     return new ResourceNotFoundException("Tipo de cliente no encontrado con código: " + dto.getTipoClienteCodigo());
                 });
-        log.info("✅ TipoCliente encontrado: ID={}, Código={}, Nombre={}",
+        log.info("TipoCliente encontrado: ID={}, Código={}, Nombre={}",
                 tipoCliente.getId(), tipoCliente.getCodigo(), tipoCliente.getNombre());
         cliente.setTipoCliente(tipoCliente);
 
@@ -238,14 +238,14 @@ public class ClienteService {
         if (dto.getEstado() != null && !dto.getEstado().trim().isEmpty()) {
             try {
                 cliente.setEstado(EstadoCliente.valueOf(dto.getEstado().toUpperCase()));
-                log.info("✅ Estado del cliente establecido desde DTO: {}", dto.getEstado());
+                log.info("Estado del cliente establecido desde DTO: {}", dto.getEstado());
             } catch (IllegalArgumentException e) {
-                log.warn("⚠️ Estado inválido en DTO: {}, usando ACTIVO por defecto", dto.getEstado());
+                log.warn("Estado inválido en DTO: {}, usando ACTIVO por defecto", dto.getEstado());
                 cliente.setEstado(EstadoCliente.ACTIVO);
             }
         } else {
             cliente.setEstado(EstadoCliente.ACTIVO);
-            log.info("✅ Estado del cliente establecido por defecto: ACTIVO");
+            log.info("Estado del cliente establecido por defecto: ACTIVO");
         }
         cliente.setFechaCreacion(java.time.LocalDateTime.now());
 
@@ -283,7 +283,7 @@ public class ClienteService {
     @Transactional
     public Cliente buscarOCrearClienteFantasmaVendedor(Long usuarioId) {
         try {
-            log.info("🔍 Buscando cliente fantasma del vendedor ID: {}", usuarioId);
+            log.info("Buscando cliente fantasma del vendedor ID: {}", usuarioId);
 
             List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
                 usuarioId,
@@ -292,25 +292,25 @@ public class ClienteService {
 
             if (!clientesFantasma.isEmpty()) {
                 Cliente clienteFantasma = clientesFantasma.get(0);
-                log.info("✅ Cliente fantasma encontrado: ID={}, nombres={}",
+                log.info("Cliente fantasma encontrado: ID={}, nombres={}",
                     clienteFantasma.getId(), clienteFantasma.getNombres());
                 return clienteFantasma;
             }
 
-            log.info("📝 No se encontró cliente fantasma, creando uno nuevo para vendedor ID: {}", usuarioId);
+            log.info("No se encontró cliente fantasma, creando uno nuevo para vendedor ID: {}", usuarioId);
 
             var usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + usuarioId));
 
             TipoCliente tipoClienteCivil = tipoClienteRepository.findByCodigo("CIV")
                 .orElseThrow(() -> {
-                    log.error("❌ Tipo de cliente 'Civil' (CIV) no encontrado en la base de datos");
+                    log.error("Tipo de cliente 'Civil' (CIV) no encontrado en la base de datos");
                     return new BadRequestException("Tipo de cliente 'Civil' no encontrado. Contacte al administrador.");
                 });
 
             TipoIdentificacion tipoIdentificacionCedula = tipoIdentificacionRepository.findByCodigo("CED")
                 .orElseThrow(() -> {
-                    log.error("❌ Tipo de identificación 'Cédula' (CED) no encontrado en la base de datos");
+                    log.error("Tipo de identificación 'Cédula' (CED) no encontrado en la base de datos");
                     return new BadRequestException("Tipo de identificación 'Cédula' no encontrado. Contacte al administrador.");
                 });
 
@@ -320,7 +320,7 @@ public class ClienteService {
 
             String numeroIdentificacion = "V" + usuarioId;
 
-            log.info("📝 Generando numero_identificacion para cliente fantasma: {} ({} caracteres)",
+            log.info("Generando numero_identificacion para cliente fantasma: {} ({} caracteres)",
                 numeroIdentificacion, numeroIdentificacion.length());
 
             clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
@@ -329,7 +329,7 @@ public class ClienteService {
             clienteFantasma.setEstado(EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE);
             String email = usuario.getEmail();
             if (email != null && email.length() > 200) {
-                log.warn("⚠️ Email del usuario muy largo ({} caracteres), truncando a 200", email.length());
+                log.warn("Email del usuario muy largo ({} caracteres), truncando a 200", email.length());
                 email = email.substring(0, 200);
             }
             clienteFantasma.setEmail(email);
@@ -337,12 +337,12 @@ public class ClienteService {
             clienteFantasma.setFechaCreacion(java.time.LocalDateTime.now());
 
             Cliente clienteGuardado = clienteRepository.save(clienteFantasma);
-            log.info("✅ Cliente fantasma creado exitosamente: ID={}, nombres={}, numeroIdentificacion={}",
+            log.info("Cliente fantasma creado exitosamente: ID={}, nombres={}, numeroIdentificacion={}",
                 clienteGuardado.getId(), clienteGuardado.getNombres(), clienteGuardado.getNumeroIdentificacion());
 
             return clienteGuardado;
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            log.error("❌ Error de integridad al crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
+            log.error("Error de integridad al crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
 
             String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
             boolean esDuplicado = errorMessage.contains("duplicate key") ||
@@ -350,29 +350,29 @@ public class ClienteService {
                                  errorMessage.contains("already exists");
 
             if (esDuplicado) {
-                log.info("🔄 Error por duplicado detectado, buscando cliente fantasma existente...");
+                log.info("Error por duplicado detectado, buscando cliente fantasma existente...");
                 entityManager.clear();
                 try {
                     return buscarClienteFantasmaExistente(usuarioId, e.getMessage());
                 } catch (Exception buscarError) {
-                    log.error("❌ Error al buscar cliente fantasma existente: {}", buscarError.getMessage(), buscarError);
-                    log.info("🔄 Reintentando creación con nuevo numero_identificacion...");
+                    log.error("Error al buscar cliente fantasma existente: {}", buscarError.getMessage(), buscarError);
+                    log.info("Reintentando creación con nuevo numero_identificacion...");
                     return reintentarCreacionClienteFantasma(usuarioId);
                 }
             } else {
-                log.info("🔄 Error no es por duplicado, reintentando creación con nuevo numero_identificacion...");
+                log.info("Error no es por duplicado, reintentando creación con nuevo numero_identificacion...");
                 entityManager.clear();
                 return reintentarCreacionClienteFantasma(usuarioId);
             }
         } catch (Exception e) {
-            log.error("❌ Error inesperado al buscar/crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
+            log.error("Error inesperado al buscar/crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
             throw new RuntimeException("Error al buscar/crear cliente fantasma: " + e.getMessage(), e);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Cliente buscarClienteFantasmaExistente(Long usuarioId, String mensajeError) {
-        log.info("🔍 Buscando cliente fantasma existente en nueva transacción para vendedor ID: {}", usuarioId);
+        log.info("Buscando cliente fantasma existente en nueva transacción para vendedor ID: {}", usuarioId);
 
         entityManager.clear();
 
@@ -381,7 +381,7 @@ public class ClienteService {
             EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
         );
         if (!clientesFantasma.isEmpty()) {
-            log.info("✅ Cliente fantasma encontrado después de error de integridad: ID={}", clientesFantasma.get(0).getId());
+            log.info("Cliente fantasma encontrado después de error de integridad: ID={}", clientesFantasma.get(0).getId());
             return clientesFantasma.get(0);
         }
         throw new BadRequestException("Error al crear cliente fantasma: " + mensajeError);
@@ -389,7 +389,7 @@ public class ClienteService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     private Cliente reintentarCreacionClienteFantasma(Long usuarioId) {
-        log.info("🔄 Reintentando creación de cliente fantasma para vendedor ID: {}", usuarioId);
+        log.info("Reintentando creación de cliente fantasma para vendedor ID: {}", usuarioId);
 
         entityManager.clear();
 
@@ -398,7 +398,7 @@ public class ClienteService {
             EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
         );
         if (!clientesFantasma.isEmpty()) {
-            log.info("✅ Cliente fantasma encontrado durante reintento: ID={}", clientesFantasma.get(0).getId());
+            log.info("Cliente fantasma encontrado durante reintento: ID={}", clientesFantasma.get(0).getId());
             return clientesFantasma.get(0);
         }
 
@@ -417,7 +417,7 @@ public class ClienteService {
 
         String numeroIdentificacion = "V" + usuarioId;
 
-        log.info("📝 Reintentando con numero_identificacion: {} ({} caracteres)",
+        log.info("Reintentando con numero_identificacion: {} ({} caracteres)",
             numeroIdentificacion, numeroIdentificacion.length());
 
         clienteFantasma.setNumeroIdentificacion(numeroIdentificacion);
@@ -435,24 +435,24 @@ public class ClienteService {
 
         try {
             Cliente clienteGuardado = clienteRepository.save(clienteFantasma);
-            log.info("✅ Cliente fantasma creado exitosamente en reintento: ID={}, numeroIdentificacion={}",
+            log.info("Cliente fantasma creado exitosamente en reintento: ID={}, numeroIdentificacion={}",
                 clienteGuardado.getId(), clienteGuardado.getNumeroIdentificacion());
 
             return clienteGuardado;
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            log.error("❌ Error de integridad en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
+            log.error("Error de integridad en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
             entityManager.clear();
             List<Cliente> clientesExistentes = clienteRepository.findByUsuarioCreadorIdAndEstado(
                 usuarioId,
                 EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
             );
             if (!clientesExistentes.isEmpty()) {
-                log.info("✅ Cliente fantasma encontrado después de error en reintento: ID={}", clientesExistentes.get(0).getId());
+                log.info("Cliente fantasma encontrado después de error en reintento: ID={}", clientesExistentes.get(0).getId());
                 return clientesExistentes.get(0);
             }
             throw new BadRequestException("No se pudo crear el cliente fantasma después de múltiples intentos: " + e.getMessage());
         } catch (Exception e) {
-            log.error("❌ Error inesperado en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
+            log.error("Error inesperado en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
             throw new RuntimeException("Error al reintentar creación de cliente fantasma: " + e.getMessage(), e);
         }
     }

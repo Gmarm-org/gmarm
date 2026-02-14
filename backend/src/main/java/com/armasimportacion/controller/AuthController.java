@@ -35,7 +35,7 @@ public class AuthController {
             String email = loginRequest.get("email");
             String password = loginRequest.get("password");
 
-            log.info("🔐 Intento de login para el usuario: {}", email);
+            log.info("Intento de login para usuario: {}", email);
 
             if (email == null || password == null) {
                 Map<String, Object> errorResponse = new HashMap<>();
@@ -47,9 +47,9 @@ public class AuthController {
             Usuario usuario;
             try {
                 usuario = usuarioService.findByEmail(email);
-                log.debug("🔍 Usuario encontrado: ID={}, email={}, passwordHash={}", usuario.getId(), usuario.getEmail(), usuario.getPasswordHash() != null ? "***" : "NULL");
+                log.debug("Usuario encontrado: ID={}, email={}", usuario.getId(), usuario.getEmail());
             } catch (Exception e) {
-                log.error("🔐 Error buscando usuario por email {}: {}", email, e.getMessage());
+                log.error("Error buscando usuario por email {}: {}", email, e.getMessage());
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Credenciales inválidas");
                 return ResponseEntity.badRequest().body(errorResponse);
@@ -59,7 +59,7 @@ public class AuthController {
             // Por ahora comparación directa, después se puede implementar BCrypt
             boolean passwordMatches;
             if (usuario.getPasswordHash() == null || usuario.getPasswordHash().isEmpty()) {
-                log.error("🔐 Password hash es null o vacío para usuario: {}", email);
+                log.error("Password hash es null o vacio para usuario: {}", email);
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Credenciales inválidas");
                 return ResponseEntity.badRequest().body(errorResponse);
@@ -68,11 +68,11 @@ public class AuthController {
             if (usuario.getPasswordHash().startsWith("$2a$") || usuario.getPasswordHash().startsWith("$2b$")) {
                 // Password hasheado con BCrypt
                 passwordMatches = passwordEncoder.matches(password, usuario.getPasswordHash());
-                log.debug("🔐 Comparando password BCrypt: matches={}", passwordMatches);
+                log.debug("Password BCrypt comparison: matches={}", passwordMatches);
             } else {
                 // Password en texto plano (para compatibilidad temporal)
                 passwordMatches = password.equals(usuario.getPasswordHash());
-                log.debug("🔐 Comparando password texto plano: input={}, stored={}, matches={}", password, usuario.getPasswordHash(), passwordMatches);
+                log.debug("Password comparison: matches={}", passwordMatches);
             }
 
             if (!passwordMatches) {
@@ -110,11 +110,11 @@ public class AuthController {
                 "roles", roles
             ));
 
-            log.info("🔐 Login exitoso para el usuario: {} con token JWT generado", email);
+            log.info("Login exitoso para usuario: {}", email);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("🔐 Error en login: {}", e.getMessage(), e);
+            log.error("Error en login: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error interno del servidor");
             return ResponseEntity.internalServerError().body(errorResponse);
@@ -161,11 +161,11 @@ public class AuthController {
             response.put("apellidos", usuario.getApellidos());
             response.put("roles", roles);
 
-            log.info("🔐 Usuario actual obtenido: {}", email);
+            log.debug("Usuario actual obtenido: {}", email);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("🔐 Error obteniendo usuario actual: {}", e.getMessage(), e);
+            log.error("Error obteniendo usuario actual: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error interno del servidor");
             return ResponseEntity.internalServerError().body(errorResponse);
@@ -182,10 +182,10 @@ public class AuthController {
             response.put("message", "Sesión cerrada exitosamente");
             response.put("success", true);
             
-            log.info("🔐 Logout exitoso");
+            log.debug("Logout exitoso");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("🔐 Error en logout: {}", e.getMessage(), e);
+            log.error("Error en logout: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error interno del servidor");
             return ResponseEntity.internalServerError().body(errorResponse);

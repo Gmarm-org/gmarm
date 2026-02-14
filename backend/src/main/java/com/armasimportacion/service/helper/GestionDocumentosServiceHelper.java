@@ -35,8 +35,8 @@ public class GestionDocumentosServiceHelper {
      */
     public List<DocumentoGenerado> generarYGuardarDocumentos(Cliente cliente, Pago pago) {
         try {
-            log.info("📄 GENERANDO DOCUMENTOS PARA CLIENTE ID: {}", cliente.getId());
-            log.info("🔍 DEBUG: Cliente nombres: {}, apellidos: {}, tipo: {}",
+            log.info("GENERANDO DOCUMENTOS PARA CLIENTE ID: {}", cliente.getId());
+            log.info("DEBUG: Cliente nombres: {}, apellidos: {}, tipo: {}",
                 cliente.getNombres(), cliente.getApellidos(),
                 cliente.getTipoCliente() != null ? cliente.getTipoCliente().getNombre() : "N/A");
 
@@ -46,39 +46,39 @@ public class GestionDocumentosServiceHelper {
             boolean esDeportista = cliente.esDeportista();
             boolean esUniformado = cliente.esMilitar() || cliente.esPolicia();
 
-            log.info("📋 Tipo de cliente: Civil={}, Uniformado={}", esCivil, esUniformado);
+            log.info("Tipo de cliente: Civil={}, Uniformado={}", esCivil, esUniformado);
 
             if (esCivil || esDeportista) {
-                log.info("📄 Generando Solicitud de compra para cliente CIVIL/DEPORTISTA");
+                log.info("Generando Solicitud de compra para cliente CIVIL/DEPORTISTA");
                 DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
                 documentosGenerados.add(solicitud);
             } else if (esUniformado) {
-                log.info("📄 Generando documentos para cliente UNIFORMADO");
+                log.info("Generando documentos para cliente UNIFORMADO");
 
-                log.info("📄 1/3: Generando Solicitud de compra");
+                log.info("1/3: Generando Solicitud de compra");
                 DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
                 documentosGenerados.add(solicitud);
 
-                log.info("📄 2/3: Generando Contrato");
+                log.info("2/3: Generando Contrato");
                 DocumentoGenerado contrato = generarYGuardarContrato(cliente, pago);
                 documentosGenerados.add(contrato);
 
-                log.info("📄 3/3: Generando Cotización");
+                log.info("3/3: Generando Cotización");
                 DocumentoGenerado cotizacion = generarYGuardarCotizacion(cliente, pago);
                 documentosGenerados.add(cotizacion);
             } else {
-                log.warn("⚠️ Tipo de cliente no identificado, tratando como CIVIL (solo solicitud)");
+                log.warn("Tipo de cliente no identificado, tratando como CIVIL (solo solicitud)");
                 DocumentoGenerado solicitud = generarYGuardarSolicitudCompra(cliente, pago);
                 documentosGenerados.add(solicitud);
             }
 
-            log.info("✅ {} documento(s) generado(s) exitosamente para cliente ID: {}",
+            log.info("{} documento(s) generado(s) exitosamente para cliente ID: {}",
                 documentosGenerados.size(), cliente.getId());
 
             return documentosGenerados;
 
         } catch (Exception e) {
-            log.error("❌ Error generando documentos para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            log.error("Error generando documentos para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando documentos", e);
         }
     }
@@ -109,26 +109,26 @@ public class GestionDocumentosServiceHelper {
      */
     public boolean validarDatosClienteParaContrato(Cliente cliente) {
         if (cliente == null) {
-            log.warn("⚠️ Cliente es nulo");
+            log.warn("Cliente es nulo");
             return false;
         }
 
         if (cliente.getNombres() == null || cliente.getNombres().trim().isEmpty()) {
-            log.warn("⚠️ Cliente sin nombres: ID {}", cliente.getId());
+            log.warn("Cliente sin nombres: ID {}", cliente.getId());
             return false;
         }
 
         if (cliente.getApellidos() == null || cliente.getApellidos().trim().isEmpty()) {
-            log.warn("⚠️ Cliente sin apellidos: ID {}", cliente.getId());
+            log.warn("Cliente sin apellidos: ID {}", cliente.getId());
             return false;
         }
 
         if (cliente.getNumeroIdentificacion() == null || cliente.getNumeroIdentificacion().trim().isEmpty()) {
-            log.warn("⚠️ Cliente sin número de identificación: ID {}", cliente.getId());
+            log.warn("Cliente sin número de identificación: ID {}", cliente.getId());
             return false;
         }
 
-        log.info("✅ Cliente validado correctamente para contrato: ID {}", cliente.getId());
+        log.info("Cliente validado correctamente para contrato: ID {}", cliente.getId());
         return true;
     }
 }

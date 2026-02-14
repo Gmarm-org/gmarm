@@ -38,7 +38,7 @@ public class GestionPagosServiceHelper {
      */
     public Pago crearPagoCompleto(Map<String, Object> pagoData, Long clienteId) {
         try {
-            log.info("💰 Creando pago completo para cliente ID: {}", clienteId);
+            log.info("Creando pago completo para cliente ID: {}", clienteId);
             
             if (pagoData == null) {
                 return crearPagoPorDefecto(clienteId);
@@ -47,7 +47,7 @@ public class GestionPagosServiceHelper {
             Pago pago = construirPagoDesdeDatos(pagoData, clienteId);
             Pago pagoGuardado = pagoRepository.save(pago);
             
-            log.info("✅ Pago creado con ID: {}, monto: {}, tipo: {}", 
+            log.info("Pago creado con ID: {}, monto: {}, tipo: {}", 
                 pagoGuardado.getId(), pagoGuardado.getMontoTotal(), pagoGuardado.getTipoPago());
             
             // Crear cuotas: usar las específicas del frontend si están disponibles, sino automáticas
@@ -56,7 +56,7 @@ public class GestionPagosServiceHelper {
             return pagoGuardado;
             
         } catch (Exception e) {
-            log.error("❌ Error creando pago para cliente ID: {}: {}", clienteId, e.getMessage(), e);
+            log.error("Error creando pago para cliente ID: {}: {}", clienteId, e.getMessage(), e);
             throw new RuntimeException("Error creando pago", e);
         }
     }
@@ -65,7 +65,7 @@ public class GestionPagosServiceHelper {
      * Crea un pago por defecto cuando no se proporcionan datos específicos
      */
     public Pago crearPagoPorDefecto(Long clienteId) {
-        log.info("🔧 Creando pago por defecto para cliente ID: {}", clienteId);
+        log.info("Creando pago por defecto para cliente ID: {}", clienteId);
         
         Pago pago = new Pago();
         pago.setMontoTotal(BigDecimal.ZERO);
@@ -80,7 +80,7 @@ public class GestionPagosServiceHelper {
         pago.setEstado(EstadoPago.PENDIENTE);
         
         Pago pagoGuardado = pagoRepository.save(pago);
-        log.info("✅ Pago por defecto creado con ID: {}", pagoGuardado.getId());
+        log.info("Pago por defecto creado con ID: {}", pagoGuardado.getId());
         return pagoGuardado;
     }
 
@@ -115,7 +115,7 @@ public class GestionPagosServiceHelper {
         pago.setFechaCreacion(LocalDateTime.now());
         pago.setClienteId(clienteId);
         
-        log.info("💰 Pago construido: subtotal={}, IVA={}, total={}", subtotal, montoIva, montoTotal);
+        log.info("Pago construido: subtotal={}, IVA={}, total={}", subtotal, montoIva, montoTotal);
         
         // Establecer tipo de pago desde los datos o usar valor por defecto
         // Intentar obtener de "tipoPago" o "metodoPagoCodigo"
@@ -128,7 +128,7 @@ public class GestionPagosServiceHelper {
         String tipoPagoNormalizado = "CUOTAS".equals(tipoPago) ? "CREDITO" : tipoPago;
         pago.setTipoPago(tipoPagoNormalizado);
         
-        log.info("💰 Tipo de pago normalizado: '{}' → '{}'", tipoPago, tipoPagoNormalizado);
+        log.info("Tipo de pago normalizado: '{}' → '{}'", tipoPago, tipoPagoNormalizado);
         
         // Establecer número de cuotas desde los datos o calcular basado en tipo de pago
         Integer numeroCuotas = Optional.ofNullable(pagoData.get("numeroCuotas"))
@@ -174,7 +174,7 @@ public class GestionPagosServiceHelper {
         String tipoPagoNormalizado = "CUOTAS".equals(pago.getTipoPago()) ? "CREDITO" : pago.getTipoPago();
         
         if (!"CREDITO".equals(tipoPagoNormalizado) || pago.getNumeroCuotas() <= 1) {
-            log.info("📝 Pago no requiere cuotas: tipo={}, cuotas={}", 
+            log.info("Pago no requiere cuotas: tipo={}, cuotas={}", 
                 pago.getTipoPago(), pago.getNumeroCuotas());
             return;
         }
@@ -186,7 +186,7 @@ public class GestionPagosServiceHelper {
         if (cuotasData != null && !cuotasData.isEmpty()) {
             crearCuotasEspecificas(pago, cuotasData);
         } else {
-            log.warn("📅 ⚠️ No hay cuotas específicas del frontend, creando {} cuotas automáticas para pago ID: {}", 
+            log.warn("No hay cuotas específicas del frontend, creando {} cuotas automáticas para pago ID: {}", 
                 pago.getNumeroCuotas(), pago.getId());
             crearCuotasAutomaticamente(pago);
         }
@@ -217,11 +217,11 @@ public class GestionPagosServiceHelper {
                 cuota.setEstado(EstadoCuotaPago.PENDIENTE);
                 
                 cuotaPagoRepository.save(cuota);
-                log.info("✅ Cuota {} creada desde frontend: monto={}, vencimiento={}", 
+                log.info("Cuota {} creada desde frontend: monto={}, vencimiento={}", 
                     numeroCuota, monto, fechaVencimiento);
                     
             } catch (Exception e) {
-                log.error("❌ Error creando cuota específica: {}", e.getMessage(), e);
+                log.error("Error creando cuota específica: {}", e.getMessage(), e);
                 throw new RuntimeException("Error creando cuota específica", e);
             }
         }
@@ -231,7 +231,7 @@ public class GestionPagosServiceHelper {
      * Crea las cuotas automáticamente para un pago en cuotas
      */
     public void crearCuotasAutomaticamente(Pago pago) {
-        log.info("📅 Creando {} cuotas automáticas para pago ID: {}", 
+        log.info("Creando {} cuotas automáticas para pago ID: {}", 
             pago.getNumeroCuotas(), pago.getId());
         
         BigDecimal montoPorCuota = pago.getMontoTotal().divide(
@@ -247,7 +247,7 @@ public class GestionPagosServiceHelper {
             cuota.setEstado(EstadoCuotaPago.PENDIENTE);
             
             cuotaPagoRepository.save(cuota);
-            log.info("✅ Cuota {} creada automáticamente: monto={}, vencimiento={}", 
+            log.info("Cuota {} creada automáticamente: monto={}, vencimiento={}", 
                 i, montoPorCuota, fechaVencimiento.plusMonths(i - 1));
         }
     }
@@ -259,7 +259,7 @@ public class GestionPagosServiceHelper {
         try {
             return configuracionService.getValorEntero("NUMERO_MAXIMO_CUOTAS");
         } catch (Exception e) {
-            log.warn("⚠️ Error obteniendo NUMERO_MAXIMO_CUOTAS, usando fallback 12: {}", e.getMessage());
+            log.warn("Error obteniendo NUMERO_MAXIMO_CUOTAS, usando fallback 12: {}", e.getMessage());
             return 12;
         }
     }
@@ -273,7 +273,7 @@ public class GestionPagosServiceHelper {
             double ivaPorcentaje = Double.parseDouble(ivaValor);
             return ivaPorcentaje / 100.0;  // Convertir a decimal (15 -> 0.15)
         } catch (Exception e) {
-            log.warn("⚠️ Error obteniendo IVA del sistema, usando valor por defecto 15%: {}", e.getMessage());
+            log.warn("Error obteniendo IVA del sistema, usando valor por defecto 15%: {}", e.getMessage());
             return 0.15;  // Fallback
         }
     }
@@ -293,7 +293,7 @@ public class GestionPagosServiceHelper {
             return LocalDate.parse(fechaStr);
             
         } catch (Exception e) {
-            log.error("❌ Error parseando fecha '{}': {}", fechaStr, e.getMessage());
+            log.error("Error parseando fecha '{}': {}", fechaStr, e.getMessage());
             throw new RuntimeException("Error parseando fecha: " + fechaStr, e);
         }
     }
@@ -303,28 +303,28 @@ public class GestionPagosServiceHelper {
      */
     public boolean validarDatosPago(Map<String, Object> pagoData) {
         if (pagoData == null) {
-            log.warn("⚠️ Datos de pago son nulos");
+            log.warn("Datos de pago son nulos");
             return false;
         }
         
         try {
             Object montoObj = pagoData.get("montoTotal");
             if (montoObj == null) {
-                log.warn("⚠️ Monto total no especificado");
+                log.warn("Monto total no especificado");
                 return false;
             }
             
             BigDecimal monto = new BigDecimal(montoObj.toString());
             if (monto.compareTo(BigDecimal.ZERO) <= 0) {
-                log.warn("⚠️ Monto total debe ser mayor a cero: {}", monto);
+                log.warn("Monto total debe ser mayor a cero: {}", monto);
                 return false;
             }
             
-            log.info("✅ Datos de pago validados correctamente: monto={}", monto);
+            log.info("Datos de pago validados correctamente: monto={}", monto);
             return true;
             
         } catch (NumberFormatException e) {
-            log.warn("⚠️ Error parseando monto total: {}", e.getMessage());
+            log.warn("Error parseando monto total: {}", e.getMessage());
             return false;
         }
     }

@@ -184,13 +184,13 @@ public class PagoService {
         // Generar y enviar recibo automáticamente al cliente
         try {
             DocumentoGenerado recibo = generarRecibo(cuotaId);
-            log.info("✅ Recibo generado automáticamente para cuota ID: {}", cuotaId);
+            log.info("Recibo generado automáticamente para cuota ID: {}", cuotaId);
             
             // Enviar recibo por correo al cliente
             enviarReciboACliente(cliente, recibo, cuotaGuardada);
             
         } catch (Exception e) {
-            log.error("⚠️ Error generando/enviando recibo (no crítico): {}", e.getMessage(), e);
+            log.error("Error generando/enviando recibo (no crítico): {}", e.getMessage(), e);
             // No fallar el proceso de pago si falla el envío del recibo
         }
         
@@ -246,7 +246,7 @@ public class PagoService {
                 }
             }
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo obtener iniciales desde licencia, usando fallback: {}", e.getMessage());
+            log.warn("No se pudo obtener iniciales desde licencia, usando fallback: {}", e.getMessage());
         }
         return licenciaService.obtenerInicialesFallback();
     }
@@ -346,10 +346,10 @@ public class PagoService {
                 cuotaPagoRepository.save(cuotaExistente);
             }
             
-            log.info("✅ Cuotas pendientes recalculadas. Saldo restante: {} distribuido en {} cuotas", 
+            log.info("Cuotas pendientes recalculadas. Saldo restante: {} distribuido en {} cuotas",
                 saldoRestante, numeroCuotasPendientes);
         } else if (!cuotasPendientes.isEmpty()) {
-            log.warn("⚠️ Saldo restante es 0 o negativo. Las cuotas pendientes mantienen su monto original.");
+            log.warn("Saldo restante es 0 o negativo. Las cuotas pendientes mantienen su monto original.");
         }
         
         // Guardar nueva cuota
@@ -360,7 +360,7 @@ public class PagoService {
         pago.setMontoPendiente(saldoPendiente);
         pagoRepository.save(pago);
         
-        log.info("✅ Nueva cuota creada con monto {} y cuotas pendientes recalculadas. Saldo restante: {}", 
+        log.info("Nueva cuota creada con monto {} y cuotas pendientes recalculadas. Saldo restante: {}",
             montoCuotaNueva, saldoRestante);
 
         return cuotaGuardada;
@@ -372,7 +372,7 @@ public class PagoService {
      * Si el saldo es 0 o menor, CANCELA las cuotas pendientes restantes
      */
     private void recalcularCuotasPendientes(Pago pago) {
-        log.info("🔄 Recalculando cuotas pendientes para pago ID: {}", pago.getId());
+        log.info("Recalculando cuotas pendientes para pago ID: {}", pago.getId());
 
         // Obtener todas las cuotas del pago
         List<CuotaPago> todasLasCuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
@@ -384,7 +384,7 @@ public class PagoService {
             .collect(java.util.stream.Collectors.toList());
 
         if (cuotasPendientes.isEmpty()) {
-            log.info("ℹ️ No hay cuotas pendientes para recalcular");
+            log.info("No hay cuotas pendientes para recalcular");
             return;
         }
 
@@ -393,7 +393,7 @@ public class PagoService {
 
         // Si el saldo pendiente es 0 o menor, CANCELAR todas las cuotas pendientes
         if (saldoPendiente.compareTo(BigDecimal.ZERO) <= 0) {
-            log.info("🔄 Saldo pendiente es {} (≤0). Cancelando {} cuotas pendientes restantes.",
+            log.info("Saldo pendiente es {} (<=0). Cancelando {} cuotas pendientes restantes.",
                 saldoPendiente, cuotasPendientes.size());
 
             for (CuotaPago cuotaPendiente : cuotasPendientes) {
@@ -401,10 +401,10 @@ public class PagoService {
                 cuotaPendiente.setMonto(BigDecimal.ZERO); // Poner monto en 0 ya que no se debe nada
                 cuotaPendiente.setObservaciones("Cuota cancelada - Saldo total cubierto");
                 cuotaPagoRepository.save(cuotaPendiente);
-                log.info("❌ Cuota #{} cancelada (saldo ya cubierto)", cuotaPendiente.getNumeroCuota());
+                log.info("Cuota #{} cancelada (saldo ya cubierto)", cuotaPendiente.getNumeroCuota());
             }
 
-            log.info("✅ {} cuotas pendientes fueron canceladas porque el saldo total ya fue cubierto",
+            log.info("{} cuotas pendientes fueron canceladas porque el saldo total ya fue cubierto",
                 cuotasPendientes.size());
             return;
         }
@@ -432,7 +432,7 @@ public class PagoService {
             cuotaPagoRepository.save(cuotaPendiente);
         }
 
-        log.info("✅ Cuotas pendientes recalculadas. Saldo pendiente: {} distribuido en {} cuotas",
+        log.info("Cuotas pendientes recalculadas. Saldo pendiente: {} distribuido en {} cuotas",
             saldoPendiente, numeroCuotasPendientes);
     }
 
@@ -441,10 +441,10 @@ public class PagoService {
      */
     private void enviarReciboACliente(Cliente cliente, DocumentoGenerado recibo, CuotaPago cuota) {
         try {
-            log.info("📧 Enviando recibo automáticamente al cliente: {}", cliente.getEmail());
+            log.info("Enviando recibo automáticamente al cliente: {}", cliente.getEmail());
             
             if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
-                log.warn("⚠️ Cliente no tiene email configurado. No se puede enviar recibo.");
+                log.warn("Cliente no tiene email configurado. No se puede enviar recibo.");
                 return;
             }
             
@@ -461,10 +461,10 @@ public class PagoService {
             emailService.enviarReciboPorCorreo(emails, nombreCompleto, pdfBytes, 
                 recibo.getNombreArchivo(), numeroRecibo, cuota.getMonto());
             
-            log.info("✅ Recibo enviado exitosamente al cliente: {}", cliente.getEmail());
+            log.info("Recibo enviado exitosamente al cliente: {}", cliente.getEmail());
             
         } catch (Exception e) {
-            log.error("❌ Error enviando recibo al cliente: {}", e.getMessage(), e);
+            log.error("Error enviando recibo al cliente: {}", e.getMessage(), e);
             // No lanzar excepción para no interrumpir el proceso de pago
         }
     }

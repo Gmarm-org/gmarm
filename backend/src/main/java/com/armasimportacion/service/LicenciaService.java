@@ -39,7 +39,7 @@ public class LicenciaService {
 
         // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
         licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);
-        log.info("✅ Licencia creada: {}", licencia.getNumero());
+        log.info("Licencia creada: {}", licencia.getNumero());
         return licenciaRepository.save(licencia);
     }
 
@@ -93,15 +93,15 @@ public class LicenciaService {
      * o BLOQUEADA y aún así puede ser asignada a nuevos grupos.
      */
     public List<Licencia> obtenerLicenciasDisponibles() {
-        log.info("🔍 Buscando licencias disponibles (activas y no vencidas)");
+        log.info("Buscando licencias disponibles (activas y no vencidas)");
         List<Licencia> todasLasLicencias = licenciaRepository.findByEstado(true);
         List<Licencia> licenciasDisponibles = todasLasLicencias.stream()
             .filter(licencia -> !licencia.isVencida())
             .collect(java.util.stream.Collectors.toList());
-        log.info("✅ Encontradas {} licencias disponibles de {} totales activas",
+        log.info("Encontradas {} licencias disponibles de {} totales activas",
             licenciasDisponibles.size(), todasLasLicencias.size());
         if (licenciasDisponibles.isEmpty()) {
-            log.warn("⚠️ No se encontraron licencias disponibles. Verificar que existan licencias activas y no vencidas");
+            log.warn("No se encontraron licencias disponibles. Verificar que existan licencias activas y no vencidas");
         }
         return licenciasDisponibles;
     }
@@ -172,7 +172,7 @@ public class LicenciaService {
                 return valor.trim().toUpperCase();
             }
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo obtener RECIBO_INICIALES_IMPORTADOR, usando fallback: {}", e.getMessage());
+            log.warn("No se pudo obtener RECIBO_INICIALES_IMPORTADOR, usando fallback: {}", e.getMessage());
         }
         return "JG";
     }
@@ -238,7 +238,7 @@ public class LicenciaService {
      */
     @Transactional
     public Licencia resetearEstadoLicencia(Long licenciaId) {
-        log.info("🔄 Reseteando estado de licencia ID: {}", licenciaId);
+        log.info("Reseteando estado de licencia ID: {}", licenciaId);
 
         Licencia licencia = licenciaRepository.findById(licenciaId)
             .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + licenciaId));
@@ -248,7 +248,7 @@ public class LicenciaService {
 
         Licencia licenciaActualizada = licenciaRepository.save(licencia);
 
-        log.info("✅ Licencia {} ahora está DISPONIBLE", licencia.getNumero());
+        log.info("Licencia {} ahora está DISPONIBLE", licencia.getNumero());
         return licenciaActualizada;
     }
 }

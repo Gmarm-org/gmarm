@@ -46,7 +46,7 @@ public class FileStorageService {
         // Guardar archivo
         Files.copy(file.getInputStream(), filePath);
         
-        log.info("📄 Archivo de cliente guardado: {} (tipo: {}, cliente: {})", filePath, nombreTipoDocumento, numeroIdentificacion);
+        log.debug("Archivo de cliente guardado: tipo={}, cliente={}", nombreTipoDocumento, numeroIdentificacion);
         
         // Retornar ruta relativa para almacenar en BD
         return Paths.get(relativePath, fileName).toString().replace("\\", "/");
@@ -120,15 +120,13 @@ public class FileStorageService {
             Path fullPath = Paths.get(uploadDir, filePath);
             Path absolutePath = fullPath.toAbsolutePath();
             
-            log.info("🗑️ Intentando eliminar archivo - ruta relativa BD: {}", filePath);
-            log.info("🗑️ uploadDir: {}", uploadDir);
-            log.info("🗑️ Ruta completa construida: {}", absolutePath);
-            
+            log.debug("Eliminando archivo: {}", filePath);
+
             if (Files.exists(absolutePath)) {
                 Files.delete(absolutePath);
-                log.info("✅ Archivo físico eliminado exitosamente: {}", absolutePath);
+                log.info("Archivo eliminado: {}", filePath);
             } else {
-                log.warn("⚠️ Archivo no existe en la ruta esperada: {}", absolutePath);
+                log.warn("Archivo no existe en ruta esperada: {}", filePath);
                 
                 // Intentar rutas alternativas para diagnóstico
                 String[] rutasAlternativas = {
@@ -140,17 +138,17 @@ public class FileStorageService {
                 for (String rutaAlt : rutasAlternativas) {
                     Path pathAlt = Paths.get(rutaAlt);
                     if (Files.exists(pathAlt)) {
-                        log.info("🔍 Archivo encontrado en ruta alternativa: {}, eliminando...", pathAlt);
+                        log.debug("Archivo encontrado en ruta alternativa, eliminando");
                         Files.delete(pathAlt);
-                        log.info("✅ Archivo eliminado de ruta alternativa: {}", pathAlt);
+                        log.info("Archivo eliminado de ruta alternativa: {}", filePath);
                         return;
                     }
                 }
                 
-                log.warn("⚠️ Archivo no encontrado en ninguna ruta alternativa. Puede que ya haya sido eliminado.");
+                log.warn("Archivo no encontrado en ninguna ruta: {}", filePath);
             }
         } catch (IOException e) {
-            log.error("❌ Error eliminando archivo {}: {}", filePath, e.getMessage(), e);
+            log.error("Error eliminando archivo {}: {}", filePath, e.getMessage(), e);
             throw new RuntimeException("Error eliminando archivo: " + e.getMessage(), e);
         }
     }

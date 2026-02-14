@@ -72,8 +72,6 @@ const AsignacionSeries: React.FC = () => {
         const armasSinAsignar = g.armasSinAsignar || 0;
         const tieneArmasPendientes = armasSinAsignar > 0;
         
-        console.log(`🔍 Grupo ${g.grupoCodigo || g.grupoId}: ${armasSinAsignar} armas sin asignar → ${tieneArmasPendientes ? 'MOSTRAR' : 'OCULTAR'}`);
-        
         return tienePedidoDefinido && tieneArmasPendientes;
       });
       
@@ -88,13 +86,8 @@ const AsignacionSeries: React.FC = () => {
       }));
       
       setGruposDisponibles(gruposMapeados);
-      console.log('✅ Grupos con armas pendientes de asignar:', gruposMapeados.length);
-      
-      if (gruposMapeados.length === 0) {
-        console.log('ℹ️ No hay grupos con armas pendientes de asignación de series.');
-      }
     } catch (error) {
-      console.error('❌ Error cargando grupos:', error);
+      console.error('Error cargando grupos:', error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setCargandoGrupos(false);
     }
@@ -111,9 +104,8 @@ const AsignacionSeries: React.FC = () => {
       // TODO: El backend debería filtrar por grupoId, pero por ahora filtramos en el frontend
       // Filtrar por clienteArma que pertenezcan al grupo seleccionado
       setReservasPendientes(data);
-      console.log('✅ Reservas pendientes cargadas:', data.length);
     } catch (error) {
-      console.error('❌ Error cargando reservas pendientes:', error);
+      console.error('Error cargando reservas pendientes:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error cargando reservas pendientes');
     } finally {
       setLoading(false);
@@ -128,9 +120,8 @@ const AsignacionSeries: React.FC = () => {
     try {
       const series = await apiService.getSeriesDisponibles(reserva.armaId);
       setSeriesDisponibles(series);
-      console.log(`✅ Series disponibles para arma ${reserva.armaCodigo}:`, series.length);
     } catch (error) {
-      console.error('❌ Error cargando series disponibles:', error);
+      console.error('Error cargando series disponibles:', error instanceof Error ? error.message : 'Error desconocido');
       alert('Error cargando series disponibles');
       setSeriesDisponibles([]);
     } finally {
@@ -161,7 +152,7 @@ const AsignacionSeries: React.FC = () => {
       setSeriesDisponibles([]);
       setSerieSeleccionadaNumero(null);
     } catch (error: any) {
-      console.error('❌ Error asignando serie:', error);
+      console.error('Error asignando serie:', error instanceof Error ? error.message : 'Error desconocido');
       const errorMessage = error.response?.data?.error || error.message || 'Error desconocido';
       alert(`❌ Error asignando serie: ${errorMessage}`);
     } finally {

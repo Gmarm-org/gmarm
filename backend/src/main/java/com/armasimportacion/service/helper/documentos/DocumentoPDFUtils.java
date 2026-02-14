@@ -86,7 +86,7 @@ public class DocumentoPDFUtils {
                 }
             }
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo obtener licencia activa del cliente {}: {}", cliente.getId(), e.getMessage());
+            log.warn("No se pudo obtener licencia activa del cliente {}: {}", cliente.getId(), e.getMessage());
         }
         return null;
     }
@@ -110,7 +110,7 @@ public class DocumentoPDFUtils {
                 }
             }
         } catch (Exception e) {
-            log.warn("⚠️ No se pudo obtener iniciales desde licencia, usando fallback: {}", e.getMessage());
+            log.warn("No se pudo obtener iniciales desde licencia, usando fallback: {}", e.getMessage());
         }
         return licenciaService.obtenerInicialesFallback();
     }
@@ -119,12 +119,12 @@ public class DocumentoPDFUtils {
 
     public String determinarTemplateUniformado(Cliente cliente, String tipoDocumento) {
         if (cliente.getTipoCliente() == null || cliente.getTipoCliente().getNombre() == null) {
-            log.warn("⚠️ Tipo de cliente no definido, usando template por defecto");
+            log.warn("Tipo de cliente no definido, usando template por defecto");
             return "contratos/uniformados/" + tipoDocumento + "_fuerza_terrestre";
         }
 
         String nombreTipoCliente = cliente.getTipoCliente().getNombre();
-        log.info("🔍 Tipo de cliente: {}, tipoDocumento: {}", nombreTipoCliente, tipoDocumento);
+        log.info("Tipo de cliente: {}, tipoDocumento: {}", nombreTipoCliente, tipoDocumento);
 
         String sufijoTemplate = switch (nombreTipoCliente) {
             case "Militar Fuerza Terrestre" -> "fuerza_terrestre";
@@ -132,7 +132,7 @@ public class DocumentoPDFUtils {
             case "Militar Fuerza Aérea" -> "fuerza_aerea";
             case "Uniformado Policial" -> "policia";
             default -> {
-                log.warn("⚠️ Tipo de cliente desconocido para uniformado: {}, usando template por defecto", nombreTipoCliente);
+                log.warn("Tipo de cliente desconocido para uniformado: {}, usando template por defecto", nombreTipoCliente);
                 yield "fuerza_terrestre";
             }
         };
@@ -180,21 +180,21 @@ public class DocumentoPDFUtils {
                     File archivoAnterior = new File(rutaCompletaAnterior);
                     if (archivoAnterior.exists()) {
                         archivoAnterior.delete();
-                        log.info("🗑️ Archivo físico anterior eliminado: {}", rutaCompletaAnterior);
+                        log.info("Archivo físico anterior eliminado: {}", rutaCompletaAnterior);
                     }
                 } catch (Exception e) {
-                    log.warn("⚠️ No se pudo eliminar archivo físico anterior: {}", e.getMessage());
+                    log.warn("No se pudo eliminar archivo físico anterior: {}", e.getMessage());
                 }
 
                 documentoGeneradoRepository.delete(documentoAnterior);
-                log.info("🗑️ Recibo anterior eliminado de BD: ID={}, nombre={}", documentoAnterior.getId(), nombre);
+                log.info("Recibo anterior eliminado de BD: ID={}, nombre={}", documentoAnterior.getId(), nombre);
             }
 
             if (!documentosAnteriores.isEmpty()) {
-                log.info("✅ Se eliminaron {} recibo(s) anterior(es) con nombre '{}'", documentosAnteriores.size(), nombre);
+                log.info("Se eliminaron {} recibo(s) anterior(es) con nombre '{}'", documentosAnteriores.size(), nombre);
             }
         } catch (Exception e) {
-            log.error("❌ Error eliminando documento anterior por nombre: {}", e.getMessage(), e);
+            log.error("Error eliminando documento anterior por nombre: {}", e.getMessage(), e);
         }
     }
 
@@ -204,7 +204,7 @@ public class DocumentoPDFUtils {
                 .findByClienteIdAndTipo(clienteId, tipoDocumento);
 
             if (!documentosAnteriores.isEmpty()) {
-                log.info("⚠️ Se encontraron {} documento(s) anterior(es) de tipo {} para el cliente ID {}, se eliminarán",
+                log.info("Se encontraron {} documento(s) anterior(es) de tipo {} para el cliente ID {}, se eliminarán",
                     documentosAnteriores.size(), tipoDocumento, clienteId);
 
                 for (DocumentoGenerado documentoAnterior : documentosAnteriores) {
@@ -216,24 +216,24 @@ public class DocumentoPDFUtils {
                         File archivoAnterior = new File(rutaCompletaAnterior);
                         if (archivoAnterior.exists()) {
                             archivoAnterior.delete();
-                            log.info("🗑️ Archivo físico anterior eliminado: {}", rutaCompletaAnterior);
+                            log.info("Archivo físico anterior eliminado: {}", rutaCompletaAnterior);
                         } else {
-                            log.debug("⚠️ Archivo físico no existe en: {}", rutaCompletaAnterior);
+                            log.debug("Archivo físico no existe en: {}", rutaCompletaAnterior);
                         }
                     } catch (Exception e) {
-                        log.warn("⚠️ No se pudo eliminar archivo físico anterior: {}", e.getMessage());
+                        log.warn("No se pudo eliminar archivo físico anterior: {}", e.getMessage());
                     }
 
                     documentoGeneradoRepository.delete(documentoAnterior);
-                    log.info("🗑️ Registro anterior eliminado de BD: ID={}, tipo={}", documentoAnterior.getId(), tipoDocumento);
+                    log.info("Registro anterior eliminado de BD: ID={}, tipo={}", documentoAnterior.getId(), tipoDocumento);
                 }
 
-                log.info("✅ Se eliminaron {} documento(s) anterior(es) de tipo {}", documentosAnteriores.size(), tipoDocumento);
+                log.info("Se eliminaron {} documento(s) anterior(es) de tipo {}", documentosAnteriores.size(), tipoDocumento);
             } else {
-                log.debug("ℹ️ No hay documentos anteriores de tipo {} para el cliente ID {}", tipoDocumento, clienteId);
+                log.debug("No hay documentos anteriores de tipo {} para el cliente ID {}", tipoDocumento, clienteId);
             }
         } catch (Exception e) {
-            log.error("❌ Error eliminando documentos anteriores de tipo {}: {}", tipoDocumento, e.getMessage(), e);
+            log.error("Error eliminando documentos anteriores de tipo {}: {}", tipoDocumento, e.getMessage(), e);
         }
     }
 
@@ -330,21 +330,21 @@ public class DocumentoPDFUtils {
                 .getContext()
                 .getAuthentication()
                 .getName();
-            log.info("🔍 Usuario actual del contexto: {}", emailUsuarioActual);
+            log.info("Usuario actual del contexto: {}", emailUsuarioActual);
 
             Usuario usuarioActual = buscarUsuarioPorEmail(emailUsuarioActual);
             if (usuarioActual != null) {
                 documento.setUsuarioGenerador(usuarioActual);
-                log.info("✅ Usuario generador establecido: ID={}, email={}",
+                log.info("Usuario generador establecido: ID={}, email={}",
                     usuarioActual.getId(), usuarioActual.getEmail());
             } else {
-                log.warn("⚠️ No se encontró usuario con email: {}", emailUsuarioActual);
+                log.warn("No se encontró usuario con email: {}", emailUsuarioActual);
                 Usuario usuarioAdmin = new Usuario();
                 usuarioAdmin.setId(1L);
                 documento.setUsuarioGenerador(usuarioAdmin);
             }
         } catch (Exception e) {
-            log.error("❌ Error obteniendo usuario actual: {}", e.getMessage());
+            log.error("Error obteniendo usuario actual: {}", e.getMessage());
             Usuario usuarioAdmin = new Usuario();
             usuarioAdmin.setId(1L);
             documento.setUsuarioGenerador(usuarioAdmin);
@@ -382,7 +382,7 @@ public class DocumentoPDFUtils {
             return usuarioRepository.findByEmail(email)
                 .orElse(null);
         } catch (Exception e) {
-            log.error("❌ Error buscando usuario por email {}: {}", email, e.getMessage());
+            log.error("Error buscando usuario por email {}: {}", email, e.getMessage());
             return null;
         }
     }

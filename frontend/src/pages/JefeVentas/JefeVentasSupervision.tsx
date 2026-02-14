@@ -5,8 +5,6 @@ import Header from '../../components/Header';
 const JefeVentasSupervision: React.FC = () => {
   const navigate = useNavigate();
 
-  console.log('🔍 DEBUG: Componente JefeVentasSupervision renderizado');
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Supervisión de Ventas" subtitle="Gestión y reportes del equipo" />

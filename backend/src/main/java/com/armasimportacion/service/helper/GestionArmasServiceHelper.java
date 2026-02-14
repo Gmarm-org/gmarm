@@ -39,31 +39,31 @@ public class GestionArmasServiceHelper {
      */
     public ClienteArma asignarArmaACliente(Map<String, Object> armaData, Cliente cliente) {
         try {
-            log.info("🔫 Asignando arma a cliente ID: {}", cliente.getId());
+            log.info("Asignando arma a cliente ID: {}", cliente.getId());
             
             if (armaData == null) {
-                log.warn("⚠️ Datos de arma son nulos para cliente ID: {}", cliente.getId());
+                log.warn("Datos de arma son nulos para cliente ID: {}", cliente.getId());
                 return null;
             }
             
             Long armaId = obtenerArmaIdDesdeDatos(armaData);
             if (armaId == null) {
-                log.warn("⚠️ No se pudo obtener ID de arma para cliente ID: {}", cliente.getId());
+                log.warn("No se pudo obtener ID de arma para cliente ID: {}", cliente.getId());
                 return null;
             }
             
             Optional<Arma> armaOpt = armaRepository.findById(armaId);
             if (armaOpt.isEmpty()) {
-                log.warn("⚠️ Arma no encontrada con ID: {} para cliente ID: {}", armaId, cliente.getId());
+                log.warn("Arma no encontrada con ID: {} para cliente ID: {}", armaId, cliente.getId());
                 return null;
             }
             
             Arma arma = armaOpt.get();
             
             // Extraer número de serie si existe
-            log.info("🔍 DEBUG - armaData completo recibido: {}", armaData);
+            log.info("DEBUG - armaData completo recibido: {}", armaData);
             String numeroSerie = extraerNumeroSerie(armaData);
-            log.info("🔢 Número de serie extraído: {}", numeroSerie);
+            log.info("Número de serie extraído: {}", numeroSerie);
             
             ClienteArma clienteArma = crearClienteArma(cliente, arma, armaData, numeroSerie);
             
@@ -71,28 +71,28 @@ public class GestionArmasServiceHelper {
             // que aún no están físicamente disponibles. Se reservan para el cliente
             // y se importarán posteriormente.
             Integer cantidad = clienteArma.getCantidad();
-            log.info("📋 Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
+            log.info("Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
             
             // CRÍTICO: Guardar ClienteArma PRIMERO antes de asignar la serie
             ClienteArma clienteArmaGuardado = clienteArmaRepository.save(clienteArma);
-            log.info("✅ ClienteArma guardado con ID: {}", clienteArmaGuardado.getId());
+            log.info("ClienteArma guardado con ID: {}", clienteArmaGuardado.getId());
             
             // AHORA sí, asignar la serie (clienteArma ya está persistido)
             if (numeroSerie != null && !numeroSerie.isEmpty()) {
                 asignarSerieAClienteArma(clienteArmaGuardado, numeroSerie, arma.getId());
             }
             
-            log.info("✅ Arma asignada exitosamente: cliente={}, arma={}, precio={}, cantidad={}", 
+            log.info("Arma asignada exitosamente: cliente={}, arma={}, precio={}, cantidad={}", 
                 cliente.getId(), arma.getModelo(), clienteArmaGuardado.getPrecioUnitario(), 
                 clienteArmaGuardado.getCantidad());
             
             // NOTA: El contrato se genera en ClienteCompletoService, no aquí
-            log.info("✅ Arma asignada. El contrato será generado por ClienteCompletoService");
+            log.info("Arma asignada. El contrato será generado por ClienteCompletoService");
             
             return clienteArmaGuardado;
             
         } catch (Exception e) {
-            log.error("❌ Error asignando arma a cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            log.error("Error asignando arma a cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error asignando arma: " + e.getMessage(), e);
         }
     }
@@ -110,15 +110,15 @@ public class GestionArmasServiceHelper {
             }
             
             if (armaIdObj == null) {
-                log.warn("⚠️ Campo 'id' o 'armaId' no encontrado en datos de arma: {}", armaData);
+                log.warn("Campo 'id' o 'armaId' no encontrado en datos de arma: {}", armaData);
                 return null;
             }
             
             Long armaId = Long.valueOf(armaIdObj.toString());
-            log.info("🔍 Arma ID extraído: {} desde datos: {}", armaId, armaData);
+            log.info("Arma ID extraído: {} desde datos: {}", armaId, armaData);
             return armaId;
         } catch (NumberFormatException e) {
-            log.warn("⚠️ Error parseando armaId: {}", e.getMessage());
+            log.warn("Error parseando armaId: {}", e.getMessage());
             return null;
         }
     }
@@ -143,7 +143,7 @@ public class GestionArmasServiceHelper {
         if (numeroSerie != null && !numeroSerie.isEmpty()) {
             clienteArma.setNumeroSerie(numeroSerie);
             clienteArma.setEstado(ClienteArma.EstadoClienteArma.ASIGNADA);
-            log.info("🔢 Serie asignada al cliente-arma: {}", numeroSerie);
+            log.info("Serie asignada al cliente-arma: {}", numeroSerie);
         } else {
             // Si no hay serie, estado es RESERVADA
             clienteArma.setEstado(ClienteArma.EstadoClienteArma.RESERVADA);
@@ -151,7 +151,7 @@ public class GestionArmasServiceHelper {
         
         clienteArma.setFechaAsignacion(LocalDateTime.now());
         
-        log.info("🔧 ClienteArma creado: precio={}, cantidad={}, estado={}, numeroSerie={}", 
+        log.info("ClienteArma creado: precio={}, cantidad={}, estado={}, numeroSerie={}", 
             precio, cantidad, clienteArma.getEstado(), numeroSerie);
         
         return clienteArma;
@@ -163,7 +163,7 @@ public class GestionArmasServiceHelper {
     private String extraerNumeroSerie(Map<String, Object> armaData) {
         Object numeroSerieObj = armaData.get("numeroSerie");
         if (numeroSerieObj == null) {
-            log.info("📝 No se encontró número de serie en los datos del arma");
+            log.info("No se encontró número de serie en los datos del arma");
             return null;
         }
         return numeroSerieObj.toString();
@@ -174,13 +174,13 @@ public class GestionArmasServiceHelper {
      */
     private void asignarSerieAClienteArma(ClienteArma clienteArma, String numeroSerie, Long armaId) {
         try {
-            log.info("🔢 Buscando serie con número: {} para arma ID: {}", numeroSerie, armaId);
+            log.info("Buscando serie con número: {} para arma ID: {}", numeroSerie, armaId);
             
             // Buscar la serie en la base de datos
             Optional<ArmaSerie> serieOpt = armaSerieRepository.findByNumeroSerieAndArmaId(numeroSerie, armaId);
             
             if (serieOpt.isEmpty()) {
-                log.error("❌ No se encontró la serie {} para el arma ID: {}", numeroSerie, armaId);
+                log.error("No se encontró la serie {} para el arma ID: {}", numeroSerie, armaId);
                 throw new RuntimeException("Serie no encontrada: " + numeroSerie);
             }
             
@@ -188,7 +188,7 @@ public class GestionArmasServiceHelper {
             
             // Verificar que la serie esté disponible
             if (!ArmaSerie.EstadoSerie.DISPONIBLE.equals(serie.getEstado())) {
-                log.error("❌ La serie {} no está disponible. Estado actual: {}", numeroSerie, serie.getEstado());
+                log.error("La serie {} no está disponible. Estado actual: {}", numeroSerie, serie.getEstado());
                 throw new RuntimeException("La serie " + numeroSerie + " no está disponible");
             }
             
@@ -200,11 +200,11 @@ public class GestionArmasServiceHelper {
             serie.asignar(clienteArma, vendedor);
             armaSerieRepository.save(serie);
             
-            log.info("✅ Serie {} asignada correctamente al cliente-arma. Estado: ASIGNADO, Vendedor: {}", 
+            log.info("Serie {} asignada correctamente al cliente-arma. Estado: ASIGNADO, Vendedor: {}", 
                 numeroSerie, vendedor != null ? vendedor.getNombres() : "N/A");
             
         } catch (Exception e) {
-            log.error("❌ Error asignando serie: {}", e.getMessage(), e);
+            log.error("Error asignando serie: {}", e.getMessage(), e);
             throw new RuntimeException("Error asignando serie: " + e.getMessage(), e);
         }
     }
@@ -213,7 +213,7 @@ public class GestionArmasServiceHelper {
      * Calcula el precio de la arma usando datos del frontend o precio de referencia
      */
     private BigDecimal calcularPrecioArma(Map<String, Object> armaData, Arma arma) {
-        log.info("🔍 DEBUG - armaData recibido en calcularPrecioArma: {}", armaData);
+        log.info("DEBUG - armaData recibido en calcularPrecioArma: {}", armaData);
         
         // Intentar obtener precioUnitario del frontend (el vendedor ingresa este precio)
         Optional<BigDecimal> precioFrontend = Optional.ofNullable(armaData.get("precioUnitario"))
@@ -221,10 +221,10 @@ public class GestionArmasServiceHelper {
             .map(precioStr -> {
                 try {
                     BigDecimal precio = new BigDecimal(precioStr);
-                    log.info("💰 Precio recibido del frontend (precioUnitario): {}", precio);
+                    log.info("Precio recibido del frontend (precioUnitario): {}", precio);
                     return precio;
                 } catch (NumberFormatException e) {
-                    log.warn("⚠️ Error parseando precioUnitario del frontend '{}': {}", precioStr, e.getMessage());
+                    log.warn("Error parseando precioUnitario del frontend '{}': {}", precioStr, e.getMessage());
                     return null;
                 }
             });
@@ -236,10 +236,10 @@ public class GestionArmasServiceHelper {
                 .map(precioStr -> {
                     try {
                         BigDecimal precio = new BigDecimal(precioStr);
-                        log.info("💰 Precio recibido del frontend (precio): {}", precio);
+                        log.info("Precio recibido del frontend (precio): {}", precio);
                         return precio;
                     } catch (NumberFormatException e) {
-                        log.warn("⚠️ Error parseando precio del frontend '{}': {}", precioStr, e.getMessage());
+                        log.warn("Error parseando precio del frontend '{}': {}", precioStr, e.getMessage());
                         return null;
                     }
                 });
@@ -249,15 +249,15 @@ public class GestionArmasServiceHelper {
         BigDecimal precioFinal = precioFrontend.orElseGet(() -> {
             BigDecimal precioReferencia = arma.getPrecioReferencia();
             if (precioReferencia != null) {
-                log.warn("⚠️ No se encontró precioUnitario ni precio en requestData, usando precioReferencia de arma como fallback: {}", precioReferencia);
+                log.warn("No se encontró precioUnitario ni precio en requestData, usando precioReferencia de arma como fallback: {}", precioReferencia);
                 return precioReferencia;
             } else {
-                log.warn("⚠️ Arma sin precio de referencia, usando cero");
+                log.warn("Arma sin precio de referencia, usando cero");
                 return BigDecimal.ZERO;
             }
         });
         
-        log.info("💰 Precio final calculado para arma '{}': {}", arma.getModelo(), precioFinal);
+        log.info("Precio final calculado para arma '{}': {}", arma.getModelo(), precioFinal);
         return precioFinal;
     }
 
@@ -271,7 +271,7 @@ public class GestionArmasServiceHelper {
                 try {
                     return Integer.valueOf(cantidadStr);
                 } catch (NumberFormatException e) {
-                    log.warn("⚠️ Error parseando cantidad '{}': {}", cantidadStr, e.getMessage());
+                    log.warn("Error parseando cantidad '{}': {}", cantidadStr, e.getMessage());
                     return 1; // Valor por defecto
                 }
             })
@@ -283,23 +283,23 @@ public class GestionArmasServiceHelper {
      */
     public boolean validarDatosArma(Map<String, Object> armaData) {
         if (armaData == null) {
-            log.warn("⚠️ Datos de arma son nulos");
+            log.warn("Datos de arma son nulos");
             return false;
         }
         
         Long armaId = obtenerArmaIdDesdeDatos(armaData);
         if (armaId == null) {
-            log.warn("⚠️ ID de arma inválido");
+            log.warn("ID de arma inválido");
             return false;
         }
         
         Optional<Arma> armaOpt = armaRepository.findById(armaId);
         if (armaOpt.isEmpty()) {
-            log.warn("⚠️ Arma no encontrada con ID: {}", armaId);
+            log.warn("Arma no encontrada con ID: {}", armaId);
             return false;
         }
         
-        log.info("✅ Datos de arma validados correctamente: arma={}", armaOpt.get().getModelo());
+        log.info("Datos de arma validados correctamente: arma={}", armaOpt.get().getModelo());
         return true;
     }
 
@@ -313,7 +313,7 @@ public class GestionArmasServiceHelper {
                 .map(clienteArma -> clienteArma.getPrecioUnitario().multiply(BigDecimal.valueOf(clienteArma.getCantidad())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         } catch (Exception e) {
-            log.error("❌ Error calculando precio total de armas para cliente ID: {}: {}", clienteId, e.getMessage());
+            log.error("Error calculando precio total de armas para cliente ID: {}: {}", clienteId, e.getMessage());
             return BigDecimal.ZERO;
         }
     }

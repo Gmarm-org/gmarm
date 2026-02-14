@@ -33,7 +33,7 @@ public class ClienteArmaController {
             @RequestParam(required = false, defaultValue = "1") Integer cantidad,
             @RequestParam(required = false) BigDecimal precioUnitario) {
         
-        log.info("🎯 CONTROLADOR ClienteArmaController.crearReserva INICIADO - Cliente: {}, Arma: {}", clienteId, armaId);
+        log.info("CONTROLADOR ClienteArmaController.crearReserva INICIADO - Cliente: {}, Arma: {}", clienteId, armaId);
         log.info("POST /api/cliente-arma - Creando reserva para cliente {} y arma {}", clienteId, armaId);
         
         ClienteArmaDTO reserva = clienteArmaService.crearReserva(clienteId, armaId, cantidad, precioUnitario);

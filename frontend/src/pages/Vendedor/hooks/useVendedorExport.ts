@@ -11,15 +11,12 @@ import { formatNombreCompleto } from '../../../utils/formatUtils';
 export const useVendedorExport = (user: User | null) => {
   const exportarClientesAExcel = useCallback(async () => {
     try {
-      console.log('📊 Iniciando exportación a Excel...');
-      
       if (!user || !user.id) {
         alert('❌ No se puede exportar sin usuario autenticado');
         return;
       }
       
       const todosLosClientes = await apiService.getClientesPorVendedor(user.id);
-      console.log(`✅ Total clientes a exportar: ${todosLosClientes.length}`);
       
       const datosExportacion: any[] = [];
       
@@ -90,7 +87,7 @@ export const useVendedorExport = (user: User | null) => {
                 const precioTotalConIva = precioUnitario * cantidad * (1 + ivaDecimal);
                 fila['Precio Total'] = precioTotalConIva.toFixed(2);
               } catch (error) {
-                console.error('Error cargando IVA para exportación:', error);
+                console.error('Error cargando IVA para exportación:', error instanceof Error ? error.message : 'Error desconocido');
                 // Fallback: usar 15% si falla la carga (pero registrar el error)
                 const precioTotalConIva = precioUnitario * cantidad * 1.15;
                 fila['Precio Total'] = precioTotalConIva.toFixed(2);
@@ -100,7 +97,6 @@ export const useVendedorExport = (user: User | null) => {
           
           datosExportacion.push(fila);
         } catch (error) {
-          console.warn(`⚠️ Error cargando armas para cliente ${cliente.id}:`, error);
           const clienteData = cliente as any;
           const tipoClienteNombre = clienteData.tipoProcesoNombre || clienteData.tipoClienteNombre || clienteData.tipoCliente || 'N/A';
           // Construir fila solo con campos que tengan información (sin arma)
@@ -165,11 +161,10 @@ export const useVendedorExport = (user: User | null) => {
       const nombreArchivo = `Clientes_${user.email || 'vendedor'}_${fecha}.xlsx`;
       
       XLSX.writeFile(workbook, nombreArchivo);
-      
-      console.log(`✅ Exportación completada: ${nombreArchivo}`);
+
       alert(`✅ Exportación completada exitosamente!\n\nArchivo: ${nombreArchivo}\nTotal de clientes: ${datosExportacion.length}`);
     } catch (error) {
-      console.error('❌ Error al exportar a Excel:', error);
+      console.error('Error al exportar a Excel:', error instanceof Error ? error.message : 'Error desconocido');
       alert(`❌ Error al exportar a Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }, [user]);

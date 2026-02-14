@@ -27,7 +27,7 @@ export const useVendedorData = (
         const provincias = await apiService.getProvinciasCompletas();
         setProvinciasCompletas(provincias);
       } catch (error) {
-        console.error('Error cargando provincias completas:', error);
+        console.error('Error cargando provincias completas:', error instanceof Error ? error.message : 'Unknown error');
       }
     };
     cargarProvinciasCompletas();
@@ -38,12 +38,11 @@ export const useVendedorData = (
       setClientsLoading(true);
       
       if (!user || !user.id) {
-        console.error('❌ No se puede cargar clientes sin usuario autenticado');
+        console.error('No se puede cargar clientes sin usuario autenticado');
         setClientsLoading(false);
         return;
       }
       
-      console.log(`📋 Cargando clientes del vendedor ID: ${user.id}`);
       const clientsData = await apiService.getClientesPorVendedor(user.id);
       
       const totalElements = clientsData.length;
@@ -56,8 +55,6 @@ export const useVendedorData = (
       setTotalPages(totalPagesCalc);
       setTotalClients(totalElements);
       setCurrentPageNumber(page);
-      
-      console.log(`✅ Clientes cargados: ${clientsPaginados.length} de ${totalElements} total`);
       
       const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
       

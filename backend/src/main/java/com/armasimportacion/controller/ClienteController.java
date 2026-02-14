@@ -55,14 +55,14 @@ public class ClienteController {
             @RequestBody Map<String, Object> requestData,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("🔄 ClienteController: Recibiendo solicitud completa: {}", requestData);
-            log.info("🔍 ClienteController: requestData keys: {}", requestData.keySet());
-            log.info("🔍 ClienteController: cliente data: {}", requestData.get("cliente"));
+            log.info("ClienteController: Recibiendo solicitud completa: {}", requestData);
+            log.info("ClienteController: requestData keys: {}", requestData.keySet());
+            log.info("ClienteController: cliente data: {}", requestData.get("cliente"));
             
             // Obtener usuario actual desde JWT
             Long usuarioId = null;
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                log.error("❌ Token JWT requerido para crear clientes");
+                log.error("Token JWT requerido para crear clientes");
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "Token JWT requerido"));
             }
@@ -71,26 +71,26 @@ public class ClienteController {
                 String token = authHeader.substring(7);
                 String email = jwtTokenProvider.getUsernameFromToken(token);
                 if (email == null) {
-                    log.error("❌ Token JWT inválido");
+                    log.error("Token JWT invalido");
                     return ResponseEntity.badRequest()
                         .body(Map.of("error", "Token JWT inválido"));
                 }
-                
+
                 Usuario usuario = usuarioService.findByEmail(email);
                 usuarioId = usuario.getId();
-                log.info("✅ Usuario actual obtenido desde JWT: ID={}, Email={}, Nombre={}", 
+                log.info("Usuario actual obtenido desde JWT: ID={}, Email={}, Nombre={}",
                     usuarioId, email, usuario.getNombreCompleto());
             } catch (Exception e) {
-                log.error("❌ Error obteniendo usuario desde JWT: {}", e.getMessage());
+                log.error("Error obteniendo usuario desde JWT: {}", e.getMessage());
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "Error procesando token JWT: " + e.getMessage()));
             }
             
             // Usar el nuevo ClienteCompletoService para el flujo completo
             // El frontend siempre envía: cliente, pago, arma, respuestas, cuotas, documento
-            log.info("🔄 ClienteController: Usando ClienteCompletoService para flujo completo con usuarioId={}", usuarioId);
+            log.info("ClienteController: Usando ClienteCompletoService para flujo completo con usuarioId={}", usuarioId);
             Map<String, Object> response = clienteCompletoService.crearClienteCompleto(requestData, usuarioId);
-            log.info("✅ ClienteController: Respuesta del ClienteCompletoService: {}", response);
+            log.info("ClienteController: Respuesta del ClienteCompletoService: {}", response);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (BadRequestException e) {
@@ -158,10 +158,10 @@ public class ClienteController {
             // Usar el rol activo si se proporciona, sino verificar todos los roles
             boolean esJefeVentas = false;
             if (activeRole != null && !activeRole.isEmpty()) {
-                log.info("🔍 Usuario {} usando rol activo: {}", email, activeRole);
+                log.info("Usuario {} usando rol activo: {}", email, activeRole);
                 esJefeVentas = "SALES_CHIEF".equals(activeRole);
             } else {
-                log.info("🔍 Usuario {} sin rol activo, verificando todos los roles", email);
+                log.info("Usuario {} sin rol activo, verificando todos los roles", email);
                 esJefeVentas = usuario.getRoles().stream()
                     .anyMatch(rol -> "SALES_CHIEF".equals(rol.getCodigo()));
             }
@@ -169,11 +169,11 @@ public class ClienteController {
             Page<ClienteDTO> clientes;
             if (esJefeVentas) {
                 // Jefe de Ventas: ver todos los clientes
-                log.info("🔍 Usuario {} es Jefe de Ventas - mostrando todos los clientes", email);
+                log.info("Usuario {} es Jefe de Ventas - mostrando todos los clientes", email);
                 clientes = clienteQueryService.findAllAsDTO(pageable);
             } else {
                 // Vendedor: solo sus clientes
-                log.info("🔍 Usuario {} es Vendedor - mostrando solo sus clientes (ID: {})", email, usuario.getId());
+                log.info("Usuario {} es Vendedor - mostrando solo sus clientes (ID: {})", email, usuario.getId());
                 clientes = clienteQueryService.findByUsuarioCreadorAsDTO(usuario.getId(), pageable);
             }
             
@@ -249,14 +249,14 @@ public class ClienteController {
             @RequestBody Map<String, Object> requestData,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("🔄 ClienteController: Actualizando cliente completo ID: {}", id);
-            log.info("🔍 ClienteController: requestData keys: {}", requestData.keySet());
+            log.info("ClienteController: Actualizando cliente completo ID: {}", id);
+            log.info("ClienteController: requestData keys: {}", requestData.keySet());
             
             // Obtener usuario actual desde JWT
             Long usuarioId = null;
             Usuario usuario = null;
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                log.error("❌ Token JWT requerido para actualizar clientes");
+                log.error("Token JWT requerido para actualizar clientes");
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "Token JWT requerido"));
             }
@@ -265,16 +265,16 @@ public class ClienteController {
                 String token = authHeader.substring(7);
                 String email = jwtTokenProvider.getUsernameFromToken(token);
                 if (email == null) {
-                    log.error("❌ Token JWT inválido");
+                    log.error("Token JWT invalido");
                     return ResponseEntity.badRequest()
                         .body(Map.of("error", "Token JWT inválido"));
                 }
                 
                 usuario = usuarioService.findByEmail(email);
                 usuarioId = usuario.getId();
-                log.info("✅ Usuario actual obtenido desde JWT: ID={}, Email={}", usuarioId, email);
+                log.info("Usuario actual obtenido desde JWT: ID={}, Email={}", usuarioId, email);
             } catch (Exception e) {
-                log.error("❌ Error obteniendo usuario desde JWT: {}", e.getMessage());
+                log.error("Error obteniendo usuario desde JWT: {}", e.getMessage());
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "Error procesando token JWT: " + e.getMessage()));
             }
@@ -296,7 +296,7 @@ public class ClienteController {
             if (esVendedor && !esJefeVentas && !esAdmin) {
                 Boolean emailVerificado = cliente.getEmailVerificado();
                 if (Boolean.TRUE.equals(emailVerificado)) {
-                    log.warn("⚠️ Vendedor {} intentó editar cliente {} que ya confirmó sus datos", 
+                    log.warn("Vendedor {} intento editar cliente {} que ya confirmo sus datos",
                         usuarioId, id);
                     throw new BadRequestException(
                         "No puede editar este cliente: El cliente ya confirmó sus datos. " +
@@ -328,14 +328,14 @@ public class ClienteController {
             @RequestBody Map<String, Object> requestData,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("🔄 ClienteController: Actualizando cliente parcial ID: {}", id);
-            log.info("🔍 ClienteController: Campos recibidos: {}", requestData.keySet());
+            log.info("ClienteController: Actualizando cliente parcial ID: {}", id);
+            log.info("ClienteController: Campos recibidos: {}", requestData.keySet());
             
             // Obtener usuario actual desde JWT
             Long usuarioId = null;
             Usuario usuario = null;
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                log.error("❌ Token JWT requerido para actualizar clientes");
+                log.error("Token JWT requerido para actualizar clientes");
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "Token JWT requerido"));
             }
@@ -344,16 +344,16 @@ public class ClienteController {
                 String token = authHeader.substring(7);
                 String email = jwtTokenProvider.getUsernameFromToken(token);
                 if (email == null) {
-                    log.error("❌ Token JWT inválido");
+                    log.error("Token JWT invalido");
                     return ResponseEntity.badRequest()
                         .body(Map.of("error", "Token JWT inválido"));
                 }
                 
                 usuario = usuarioService.findByEmail(email);
                 usuarioId = usuario.getId();
-                log.info("✅ Usuario actual obtenido desde JWT: ID={}, Email={}", usuarioId, email);
+                log.info("Usuario actual obtenido desde JWT: ID={}, Email={}", usuarioId, email);
             } catch (Exception e) {
-                log.error("❌ Error obteniendo usuario desde JWT: {}", e.getMessage());
+                log.error("Error obteniendo usuario desde JWT: {}", e.getMessage());
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "Error procesando token JWT: " + e.getMessage()));
             }
@@ -375,7 +375,7 @@ public class ClienteController {
             if (esVendedor && !esJefeVentas && !esAdmin) {
                 Boolean emailVerificado = cliente.getEmailVerificado();
                 if (Boolean.TRUE.equals(emailVerificado)) {
-                    log.warn("⚠️ Vendedor {} intentó editar cliente {} que ya confirmó sus datos", 
+                    log.warn("Vendedor {} intento editar cliente {} que ya confirmo sus datos",
                         usuarioId, id);
                     throw new BadRequestException(
                         "No puede editar este cliente: El cliente ya confirmó sus datos. " +
@@ -404,37 +404,37 @@ public class ClienteController {
     @Operation(summary = "Validar datos personales del cliente", description = "Marca los datos del cliente como validados manualmente por el vendedor y asigna a grupo disponible")
     public ResponseEntity<?> validarDatosPersonales(@PathVariable Long id) {
         try {
-            log.info("✅ ClienteController: Validando datos personales del cliente ID: {}", id);
+            log.info("ClienteController: Validando datos personales del cliente ID: {}", id);
             
             Cliente cliente = clienteService.findById(id);
             cliente.setEmailVerificado(true);
             clienteRepository.save(cliente);
             
-            log.info("✅ Datos personales validados para cliente ID: {}", id);
+            log.info("Datos personales validados para cliente ID: {}", id);
             
             // Intentar asignar cliente a un grupo disponible (provisional - PENDIENTE)
             // Solo si el cliente tiene un vendedor creador
             Long vendedorId = null;
             if (cliente.getUsuarioCreador() != null) {
                 vendedorId = cliente.getUsuarioCreador().getId();
-                log.info("🔍 Intentando asignar cliente ID {} a grupo disponible del vendedor ID: {}", id, vendedorId);
+                log.info("Intentando asignar cliente ID {} a grupo disponible del vendedor ID: {}", id, vendedorId);
                 
                 try {
                     ClienteGrupoImportacion asignacion =
                         grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
                     
                     if (asignacion != null) {
-                        log.info("✅ Cliente ID {} asignado provisionalmente al grupo ID: {} (estado: PENDIENTE)", 
+                        log.info("Cliente ID {} asignado provisionalmente al grupo ID: {} (estado: PENDIENTE)",
                             id, asignacion.getGrupoImportacion().getId());
                     } else {
-                        log.info("📭 No hay grupo disponible para asignar cliente ID: {}", id);
+                        log.info("No hay grupo disponible para asignar cliente ID: {}", id);
                     }
                 } catch (Exception e) {
-                    log.warn("⚠️ No se pudo asignar cliente a grupo (puede no haber grupos disponibles): {}", e.getMessage());
+                    log.warn("No se pudo asignar cliente a grupo (puede no haber grupos disponibles): {}", e.getMessage());
                     // No fallar la validación si no hay grupos disponibles
                 }
             } else {
-                log.warn("⚠️ Cliente ID {} no tiene vendedor creador, no se puede asignar a grupo", id);
+                log.warn("Cliente ID {} no tiene vendedor creador, no se puede asignar a grupo", id);
             }
             
             Map<String, Object> response = new HashMap<>();
@@ -461,7 +461,7 @@ public class ClienteController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> request) {
         try {
-            log.info("🔄 ClienteController: Cambiando estado del cliente ID {} a DESISTIMIENTO", id);
+            log.info("ClienteController: Cambiando estado del cliente ID {} a DESISTIMIENTO", id);
             
             // Validar que el cliente existe
             Cliente cliente = clienteService.findById(id);
@@ -480,7 +480,7 @@ public class ClienteController {
             cliente.setFechaRechazo(LocalDateTime.now());
             
             Cliente clienteActualizado = clienteRepository.save(cliente);
-            log.info("✅ Estado del cliente ID {} cambiado a DESISTIMIENTO con observación: {}", 
+            log.info("Estado del cliente ID {} cambiado a DESISTIMIENTO con observacion: {}",
                 id, observacion != null ? observacion : "sin observación");
             
             return ResponseEntity.ok(Map.of(
@@ -489,10 +489,10 @@ public class ClienteController {
                 "cliente", clienteQueryService.findByIdAsDTO(clienteActualizado.getId())
             ));
         } catch (ResourceNotFoundException e) {
-            log.error("❌ Cliente no encontrado: {}", e.getMessage());
+            log.error("Cliente no encontrado: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("❌ Error inesperado al cambiar estado del cliente a DESISTIMIENTO: {}", e.getMessage(), e);
+            log.error("Error inesperado al cambiar estado del cliente a DESISTIMIENTO: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Error al cambiar estado del cliente: " + e.getMessage()));
         }
@@ -530,14 +530,14 @@ public class ClienteController {
         try {
             // Obtener usuario actual desde JWT
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                log.error("❌ Token JWT requerido para buscar cliente fantasma");
+                log.error("Token JWT requerido para buscar cliente fantasma");
                 return ResponseEntity.badRequest().build();
             }
             
             String token = authHeader.substring(7);
             String email = jwtTokenProvider.getUsernameFromToken(token);
             if (email == null) {
-                log.error("❌ Token JWT inválido");
+                log.error("Token JWT invalido");
                 return ResponseEntity.badRequest().build();
             }
             
@@ -546,8 +546,8 @@ public class ClienteController {
             
             return ResponseEntity.ok(clienteQueryService.findByIdAsDTO(clienteFantasma.getId()));
         } catch (Exception e) {
-            log.error("❌ Error buscando/creando cliente fantasma: {}", e.getMessage(), e);
-            log.error("❌ Stack trace completo:", e);
+            log.error("Error buscando/creando cliente fantasma: {}", e.getMessage(), e);
+            log.error("Stack trace completo:", e);
             // Retornar mensaje de error para debugging
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error al buscar/crear cliente fantasma: " + e.getMessage());

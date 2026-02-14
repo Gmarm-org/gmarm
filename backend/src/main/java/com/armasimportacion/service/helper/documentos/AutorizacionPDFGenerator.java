@@ -27,12 +27,12 @@ public class AutorizacionPDFGenerator {
     public DocumentoGenerado generarYGuardar(Cliente cliente, ClienteArma clienteArma,
                                               String numeroFactura, String tramite) {
         try {
-            log.info("📄 GENERANDO AUTORIZACIÓN DE VENTA PARA CLIENTE ID: {}", cliente.getId());
+            log.info("GENERANDO AUTORIZACIÓN DE VENTA PARA CLIENTE ID: {}", cliente.getId());
 
             utils.eliminarDocumentosAnterioresDelTipo(cliente.getId(), TipoDocumentoGenerado.AUTORIZACION);
 
             byte[] pdfBytes = generarPDF(cliente, clienteArma, numeroFactura, tramite);
-            log.info("🔍 DEBUG: PDF autorización generado, tamaño: {} bytes", pdfBytes.length);
+            log.info("DEBUG: PDF autorización generado, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivo(cliente);
             String rutaArchivo = utils.guardarArchivo(
@@ -41,20 +41,20 @@ public class AutorizacionPDFGenerator {
             DocumentoGenerado documento = crearDocumentoAutorizacion(cliente, nombreArchivo, rutaArchivo, pdfBytes);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);
 
-            log.info("✅ Autorización generada y guardada con ID: {}, archivo: {}",
+            log.info("Autorización generada y guardada con ID: {}, archivo: {}",
                 documentoGuardado.getId(), nombreArchivo);
 
             return documentoGuardado;
 
         } catch (Exception e) {
-            log.error("❌ Error generando autorización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
+            log.error("Error generando autorización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generando autorización", e);
         }
     }
 
     private byte[] generarPDF(Cliente cliente, ClienteArma clienteArma,
                               String numeroFactura, String tramite) throws Exception {
-        log.info("🔧 Generando PDF de autorización con Flying Saucer para cliente: {}", cliente.getNombres());
+        log.info("Generando PDF de autorización con Flying Saucer para cliente: {}", cliente.getNombres());
 
         try {
             String ultimos4Numeros = "0000";
@@ -124,16 +124,16 @@ public class AutorizacionPDFGenerator {
             variables.put("logoImageUrl", "../../../static/images/logos/cz-logo.png");
             variables.put("watermarkImageUrl", "../../../static/images/logos/cz-watermark.png");
 
-            log.info("🔧 Variables preparadas para template de autorización: cliente={}, arma={}, factura={}, tramite={}",
+            log.info("Variables preparadas para template de autorización: cliente={}, arma={}, factura={}, tramite={}",
                 cliente.getNombres(), clienteArma.getArma().getModelo(), numeroFactura, tramite);
 
             byte[] pdfBytes = utils.generarPdf("autorizaciones/autorizacion_venta", variables);
 
-            log.info("✅ PDF de autorización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
+            log.info("PDF de autorización generado exitosamente, tamaño: {} bytes", pdfBytes.length);
             return pdfBytes;
 
         } catch (Exception e) {
-            log.error("❌ Error generando PDF de autorización: {}", e.getMessage(), e);
+            log.error("Error generando PDF de autorización: {}", e.getMessage(), e);
             throw e;
         }
     }

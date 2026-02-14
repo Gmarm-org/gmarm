@@ -56,7 +56,7 @@ public class ClienteArmaService {
      * Crear una nueva reserva de arma para un cliente
      */
     public ClienteArmaDTO crearReserva(Long clienteId, Long armaId, Integer cantidad, BigDecimal precioUnitario) {
-        log.info("🎯 MÉTODO crearReserva INICIADO - Cliente: {}, Arma: {}", clienteId, armaId);
+        log.info("MÉTODO crearReserva INICIADO - Cliente: {}, Arma: {}", clienteId, armaId);
         log.info("Creando reserva de arma {} para cliente {}", armaId, clienteId);
         
         // Validar que el cliente existe
@@ -99,7 +99,7 @@ public class ClienteArmaService {
                     throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
                 }
                 
-                log.info("✅ Cliente Civil detectado. Reservas activas: {}/2", reservasActivas.size());
+                log.info("Cliente Civil detectado. Reservas activas: {}/2", reservasActivas.size());
             } else {
                 // Para otros tipos (Deportista, Militar, etc.): sin límite
                 // Pero verificamos que no exista ya una reserva de la misma arma
@@ -110,7 +110,7 @@ public class ClienteArmaService {
                     throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
                 }
                 
-                log.info("✅ Cliente tipo {} detectado. Sin límite de armas. Reservas activas: {}", 
+                log.info("Cliente tipo {} detectado. Sin límite de armas. Reservas activas: {}",
                         tipoClienteNombre, reservasActivas.size());
             }
         } else {
@@ -143,7 +143,7 @@ public class ClienteArmaService {
         // NOTA: No validamos stock aquí porque estas son armas para importación
         // que aún no están físicamente disponibles. Se reservan para el cliente
         // y se importarán posteriormente.
-        log.info("📋 Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
+        log.info("Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
         
         // Validar que el cliente tenga todos sus documentos obligatorios completos y aprobados
         // EXCEPCIÓN: Los clientes fantasma (PENDIENTE_ASIGNACION_CLIENTE) no requieren documentos
@@ -155,7 +155,7 @@ public class ClienteArmaService {
                         "Debe cargar y aprobar todos los documentos requeridos antes de seleccionar un arma.");
             }
         } else {
-            log.info("⚠️ Cliente fantasma detectado - omitiendo validación de documentos obligatorios");
+            log.info("Cliente fantasma detectado - omitiendo validación de documentos obligatorios");
         }
         
         // Crear la reserva
@@ -181,7 +181,7 @@ public class ClienteArmaService {
                         ClienteGrupoImportacion asignacion =
                             grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
                         if (asignacion == null) {
-                            log.warn("⚠️ No se encontró grupo CUPO disponible para cliente fantasma ID {}", cliente.getId());
+                            log.warn("No se encontró grupo CUPO disponible para cliente fantasma ID {}", cliente.getId());
                         }
                     } else {
                         // Obtener categoría del arma
@@ -217,10 +217,10 @@ public class ClienteArmaService {
                                 
                                 clienteGrupoImportacionRepository.save(clienteGrupo);
                                 
-                                log.info("✅ Cliente ID {} asignado automáticamente al grupo ID {} (categoría arma: {}, segunda arma: {})", 
+                                log.info("Cliente ID {} asignado automáticamente al grupo ID {} (categoría arma: {}, segunda arma: {})",
                                     cliente.getId(), grupoDisponible.getId(), categoriaArmaId, esSegundaArma);
                             } else {
-                                log.info("ℹ️ Cliente ID {} ya está asignado al grupo ID {}", 
+                                log.info("Cliente ID {} ya está asignado al grupo ID {}",
                                     cliente.getId(), grupoDisponible.getId());
                             }
                         } else {
@@ -237,7 +237,7 @@ public class ClienteArmaService {
                                     categoriaArmaId
                                 );
                             
-                            log.warn("⚠️ No se encontró grupo disponible para asignar cliente ID {} con arma categoría {} (segunda arma: {})", 
+                            log.warn("No se encontró grupo disponible para asignar cliente ID {} con arma categoría {} (segunda arma: {})",
                                 cliente.getId(), categoriaArmaId, esSegundaArma);
                             
                             throw new BadRequestException(mensajeError);
@@ -247,12 +247,12 @@ public class ClienteArmaService {
                 }
             } catch (Exception e) {
                 // No fallar la creación de la reserva si falla la asignación automática
-                log.error("❌ Error en asignación automática a grupo (no crítico): {}", e.getMessage(), e);
+                log.error("Error en asignación automática a grupo (no crítico): {}", e.getMessage(), e);
             }
         }
         
         // NOTA: El contrato se genera en ClienteCompletoService, no aquí
-        log.info("✅ Reserva creada. El contrato será generado por ClienteCompletoService");
+        log.info("Reserva creada. El contrato será generado por ClienteCompletoService");
         
         return convertirADTO(saved);
     }
@@ -437,7 +437,7 @@ public class ClienteArmaService {
      */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerArmasEnStockVendedor(Long usuarioId) {
-        log.info("📦 Obteniendo armas en stock del vendedor ID: {}", usuarioId);
+        log.info("Obteniendo armas en stock del vendedor ID: {}", usuarioId);
         
         // Buscar clientes fantasma del vendedor
         List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
@@ -446,7 +446,7 @@ public class ClienteArmaService {
         );
         
         if (clientesFantasma.isEmpty()) {
-            log.info("📦 No se encontraron clientes fantasma para el vendedor, no hay armas en stock");
+            log.info("No se encontraron clientes fantasma para el vendedor, no hay armas en stock");
             return List.of();
         }
         
@@ -458,7 +458,7 @@ public class ClienteArmaService {
                        || ca.getEstado() == ClienteArma.EstadoClienteArma.ASIGNADA)
             .collect(Collectors.toList());
         
-        log.info("📦 Se encontraron {} armas en stock del vendedor", armasEnStock.size());
+        log.info("Se encontraron {} armas en stock del vendedor", armasEnStock.size());
         
         return armasEnStock.stream()
             .map(this::convertirADTO)
@@ -476,7 +476,7 @@ public class ClienteArmaService {
      */
     @Transactional
     public ClienteArmaDTO actualizarArmaReserva(Long clienteArmaId, Long nuevaArmaId, BigDecimal nuevoPrecioUnitario) {
-        log.info("🔄 Actualizando arma en reserva ID: {}, nueva arma ID: {}", clienteArmaId, nuevaArmaId);
+        log.info("Actualizando arma en reserva ID: {}, nueva arma ID: {}", clienteArmaId, nuevaArmaId);
         
         // Obtener la reserva existente
         ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
@@ -509,7 +509,7 @@ public class ClienteArmaService {
         
         ClienteArma saved = clienteArmaRepository.save(clienteArma);
         
-        log.info("✅ Arma actualizada en reserva ID: {} - Anterior: {} (ID: {}), Nueva: {} (ID: {})", 
+        log.info("Arma actualizada en reserva ID: {} - Anterior: {} (ID: {}), Nueva: {} (ID: {})",
             clienteArmaId, nombreArmaAnterior, armaAnteriorId, nombreNuevaArma, nuevaArmaId);
         
         return convertirADTO(saved);
@@ -529,7 +529,7 @@ public class ClienteArmaService {
      */
     @Transactional
     public ClienteArmaDTO reasignarArmaACliente(Long clienteArmaId, Long nuevoClienteId) {
-        log.info("🔄 Reasignando arma ID {} al cliente ID {}", clienteArmaId, nuevoClienteId);
+        log.info("Reasignando arma ID {} al cliente ID {}", clienteArmaId, nuevoClienteId);
         
         // Buscar la relación ClienteArma
         ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
@@ -552,7 +552,7 @@ public class ClienteArmaService {
         // Esto asegura que solo se entreguen armas a clientes con documentación completa
         boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(nuevoClienteId);
         if (!documentosCompletos) {
-            log.warn("❌ Intento de reasignar arma a cliente ID {} sin documentos completos", nuevoClienteId);
+            log.warn("Intento de reasignar arma a cliente ID {} sin documentos completos", nuevoClienteId);
             throw new BadRequestException("El cliente no tiene todos sus documentos obligatorios completos. " +
                     "Debe cargar y aprobar todos los documentos requeridos antes de poder recibir el arma.");
         }
@@ -566,7 +566,7 @@ public class ClienteArmaService {
         
         ClienteArma clienteArmaActualizado = clienteArmaRepository.save(clienteArma);
         
-        log.info("✅ Arma reasignada exitosamente: de cliente ID {} a cliente ID {} (documentos verificados)", 
+        log.info("Arma reasignada exitosamente: de cliente ID {} a cliente ID {} (documentos verificados)",
             clienteAnterior.getId(), nuevoClienteId);
         
         return convertirADTO(clienteArmaActualizado);
@@ -580,11 +580,11 @@ public class ClienteArmaService {
      */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerArmasReasignadas() {
-        log.info("🔄 Obteniendo armas con estado REASIGNADO");
+        log.info("Obteniendo armas con estado REASIGNADO");
         
         List<ClienteArma> armasReasignadas = clienteArmaRepository.findByEstado(ClienteArma.EstadoClienteArma.REASIGNADO);
         
-        log.info("✅ Se encontraron {} armas reasignadas", armasReasignadas.size());
+        log.info("Se encontraron {} armas reasignadas", armasReasignadas.size());
         
         return armasReasignadas.stream()
             .map(this::convertirADTO)

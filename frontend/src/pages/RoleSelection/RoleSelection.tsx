@@ -4,21 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 const RoleSelection: React.FC = () => {
   const { user, setActiveRole } = useAuth();
 
-  console.log('🔄 RoleSelection - Componente renderizando');
-  console.log('🔄 RoleSelection - user:', user);
-  console.log('🔄 RoleSelection - user?.roles:', user?.roles);
-
   if (!user || !user.roles || user.roles.length === 0) {
-    console.log('❌ RoleSelection - No hay roles disponibles');
     return <div>No hay roles disponibles</div>;
   }
 
-  const handleRoleSelect = (roleName: string, roleCode: string) => {
-    console.log('🔄 RoleSelection - Seleccionando rol:', roleName, 'código:', roleCode);
-
+  const handleRoleSelect = (_roleName: string, roleCode: string) => {
     // PRIMERO: Guardar directamente en localStorage (síncrono)
     localStorage.setItem('activeRole', roleCode);
-    console.log('✅ RoleSelection - Rol guardado en localStorage:', roleCode);
 
     // SEGUNDO: Actualizar el contexto (opcional, ya que vamos a recargar)
     setActiveRole(roleCode);
@@ -42,8 +34,6 @@ const RoleSelection: React.FC = () => {
         targetRoute = '/operaciones';
         break;
     }
-
-    console.log('🔄 RoleSelection - Recargando página a:', targetRoute);
 
     // CUARTO: Recargar la página (localStorage ya está actualizado)
     // Esto limpia el caché de React Query y todo el estado
@@ -104,10 +94,6 @@ const RoleSelection: React.FC = () => {
             const roleName = userRole.rol?.nombre || (userRole as any).nombre;
             const roleCode = userRole.rol?.codigo || (userRole as any).codigo;
             const roleDescription = userRole.rol?.descripcion || (userRole as any).descripcion;
-            
-            console.log('🔄 RoleSelection - userRole:', userRole);
-            console.log('🔄 RoleSelection - roleName:', roleName);
-            console.log('🔄 RoleSelection - roleCode:', roleCode);
             
             if (!roleName || !roleCode) return null;
 
