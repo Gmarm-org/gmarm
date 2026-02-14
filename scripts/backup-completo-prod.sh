@@ -69,11 +69,14 @@ fi
 
 # Validar el backup
 echo "   Validando backup de BD..."
-if head -1 "$DB_BACKUP_FILE" | grep -q "PostgreSQL database dump"; then
-  DB_SIZE=$(du -h "$DB_BACKUP_FILE" | cut -f1)
-  echo -e "${GREEN}✅ Backup de BD creado: ${DB_SIZE}${NC}"
+DB_SIZE=$(du -h "$DB_BACKUP_FILE" | cut -f1)
+DB_LINES=$(wc -l < "$DB_BACKUP_FILE" | tr -d ' ')
+if [ "$DB_LINES" -gt 10 ] && head -5 "$DB_BACKUP_FILE" | grep -q "PostgreSQL"; then
+  echo -e "${GREEN}✅ Backup de BD creado: ${DB_SIZE} (${DB_LINES} líneas)${NC}"
 else
-  echo -e "${RED}❌ Backup de BD inválido${NC}"
+  echo -e "${RED}❌ Backup de BD inválido (${DB_LINES} líneas, ${DB_SIZE})${NC}"
+  echo "   Primeras 3 líneas del archivo:"
+  head -3 "$DB_BACKUP_FILE"
   exit 1
 fi
 echo ""
