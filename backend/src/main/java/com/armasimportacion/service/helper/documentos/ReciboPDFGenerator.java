@@ -38,6 +38,10 @@ public class ReciboPDFGenerator {
         try {
             log.info("📄 GENERANDO RECIBO CON FLYING SAUCER PARA CUOTA ID: {}", cuota.getId());
 
+            // Eliminar recibo anterior de la misma cuota para evitar duplicados
+            String nombreRecibo = "Recibo de Pago - Cuota #" + cuota.getNumeroCuota();
+            utils.eliminarDocumentoAnteriorPorNombre(cliente.getId(), TipoDocumentoGenerado.RECIBO, nombreRecibo);
+
             byte[] pdfBytes = generarPDF(cliente, pago, cuota);
             log.info("✅ PDF de recibo generado con Flying Saucer, tamaño: {} bytes", pdfBytes.length);
 

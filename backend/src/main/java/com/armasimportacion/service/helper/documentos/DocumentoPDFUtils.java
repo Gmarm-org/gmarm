@@ -166,6 +166,38 @@ public class DocumentoPDFUtils {
 
     // ======================== Document lifecycle ========================
 
+    public void eliminarDocumentoAnteriorPorNombre(Long clienteId, TipoDocumentoGenerado tipoDocumento, String nombre) {
+        try {
+            List<DocumentoGenerado> documentosAnteriores = documentoGeneradoRepository
+                .findByClienteIdAndTipoAndNombre(clienteId, tipoDocumento, nombre);
+
+            for (DocumentoGenerado documentoAnterior : documentosAnteriores) {
+                try {
+                    String rutaCompletaAnterior = construirRutaCompletaDocumentoGenerado(
+                        documentoAnterior.getRutaArchivo(),
+                        documentoAnterior.getNombreArchivo()
+                    );
+                    File archivoAnterior = new File(rutaCompletaAnterior);
+                    if (archivoAnterior.exists()) {
+                        archivoAnterior.delete();
+                        log.info("🗑️ Archivo físico anterior eliminado: {}", rutaCompletaAnterior);
+                    }
+                } catch (Exception e) {
+                    log.warn("⚠️ No se pudo eliminar archivo físico anterior: {}", e.getMessage());
+                }
+
+                documentoGeneradoRepository.delete(documentoAnterior);
+                log.info("🗑️ Recibo anterior eliminado de BD: ID={}, nombre={}", documentoAnterior.getId(), nombre);
+            }
+
+            if (!documentosAnteriores.isEmpty()) {
+                log.info("✅ Se eliminaron {} recibo(s) anterior(es) con nombre '{}'", documentosAnteriores.size(), nombre);
+            }
+        } catch (Exception e) {
+            log.error("❌ Error eliminando documento anterior por nombre: {}", e.getMessage(), e);
+        }
+    }
+
     public void eliminarDocumentosAnterioresDelTipo(Long clienteId, TipoDocumentoGenerado tipoDocumento) {
         try {
             List<DocumentoGenerado> documentosAnteriores = documentoGeneradoRepository
