@@ -1,455 +1,205 @@
-# 📘 GUÍA DE RESETEO DE BASE DE DATOS
+# Guia de Base de Datos - Backup, Reset y Restauracion
 
-**Fecha**: 11 de febrero de 2026
-**Script validado**: `reset-bd-desde-cero.sh`
-
----
-
-## 🎯 ¿Qué hace este script?
-
-El script `reset-bd-desde-cero.sh` realiza un **reseteo completo** del sistema:
-
-1. ✅ Elimina completamente la base de datos (incluye volúmenes Docker)
-2. ✅ Recrea la base de datos desde el SQL maestro
-3. ✅ Elimina TODOS los documentos generados (contratos, cotizaciones, recibos)
-4. ✅ Elimina TODOS los archivos subidos (documentos de clientes, imágenes)
-5. ✅ Verifica que los datos se cargaron correctamente
-6. ✅ Reinicia todos los servicios
+**Ultima actualizacion**: Febrero 2026
 
 ---
 
-## ⚠️ ADVERTENCIAS IMPORTANTES
+## 1. Crear Backup (SIEMPRE antes de cualquier operacion)
 
-### 🔴 PÉRDIDA TOTAL DE DATOS
-
-Este script elimina **PERMANENTEMENTE**:
-- Todos los registros de la base de datos
-- Todos los documentos generados (PDFs)
-- Todos los archivos subidos por clientes
-- Todas las imágenes de armas
-- **NO HAY FORMA DE RECUPERAR ESTOS DATOS**
-
-### 🟡 CUÁNDO USAR ESTE SCRIPT
-
-✅ **Usar en estos casos:**
-- Desarrollo local cuando quieres datos limpios
-- Testing para validar el SQL maestro
-- Después de hacer cambios grandes al esquema de BD
-- Para limpiar datos de prueba acumulados
-
-❌ **NUNCA usar en:**
-- Producción con datos reales de clientes
-- Si no tienes un backup reciente
-- Si hay transacciones en curso
-- Si otros usuarios están trabajando en el sistema
-
----
-
-## 🚀 CÓMO USAR EL SCRIPT
-
-### Sintaxis
+### Backup rapido (solo BD)
 
 ```bash
-bash scripts/reset-bd-desde-cero.sh [AMBIENTE]
+bash scripts/backup-prod.sh
 ```
 
-**Ambientes disponibles:**
-- `local` (por defecto) - Para desarrollo local
-- `dev` - Para ambiente de desarrollo
-- `prod` - Para producción (⚠️ USAR CON EXTREMO CUIDADO)
+- Genera: `backups/gmarm-prod-TIMESTAMP.sql.gz`
+- Solo la base de datos PostgreSQL (liviano)
+- Retencion: 30 dias
 
-### Ejemplos
+### Backup completo (BD + documentos + archivos)
 
 ```bash
-# Resetear ambiente local (default)
+bash scripts/backup-completo-prod.sh
+```
+
+- Genera: `backups/completos/gmarm-completo-TIMESTAMP.tar.gz`
+- Incluye BD + `documentacion/` (contratos, documentos de clientes, importacion, imagenes de armas)
+- Incluye METADATA.txt con instrucciones de restauracion
+- Retencion: 60 dias (se ejecuta cada 2 meses para no llenar el servidor)
+- Los archivos se comprimen en .tar.gz para minimizar espacio
+
+### Que se respalda
+
+```
+documentacion/                            <- Directorio unico
+├── documentos_cliente/
+│   └── documentos_clientes/
+│       └── {cedula}/
+│           ├── documentos_cargados/      (PDFs subidos por el cliente)
+│           └── documentos_generados/     (contratos, cotizaciones, solicitudes)
+├── documentos_importacion/
+│   └── {grupoId}/
+│       ├── documentos_cargados/
+│       └── documentos_generados/
+└── images/
+    └── weapons/                          (imagenes de armas)
+```
+
+Si estas referencias se pierden sin backup, los documentos generados y cargados no se pueden recuperar.
+
+### Verificar backup creado
+
+```bash
+# Ver ultimos backups
+ls -lht backups/gmarm-prod-*.sql.gz | head -5
+ls -lht backups/completos/gmarm-completo-*.tar.gz | head -5
+```
+
+---
+
+## 2. Restaurar desde Backup
+
+### Restaurar backup rapido (.sql.gz)
+
+```bash
+bash scripts/restore-backup.sh backups/gmarm-prod-TIMESTAMP.sql.gz
+```
+
+### Restaurar backup completo (.tar.gz)
+
+```bash
+# 1. Descomprimir
+tar -xzf backups/completos/gmarm-completo-TIMESTAMP.tar.gz
+
+# 2. Restaurar BD
+bash scripts/restore-backup.sh gmarm-completo-TIMESTAMP/gmarm-completo-TIMESTAMP-database.sql
+
+# 3. Restaurar archivos
+tar -xzf gmarm-completo-TIMESTAMP/gmarm-completo-TIMESTAMP-archivos.tar.gz
+```
+
+### Que hace el restore
+
+1. Crea backup de seguridad automatico (pre-restauracion)
+2. Detiene backend y frontend
+3. DROP + CREATE de la base de datos
+4. Carga el dump SQL
+5. Verifica datos (usuarios, armas, clientes)
+6. Reinicia servicios
+7. Health check del backend
+
+Si la restauracion falla (0 usuarios), restaura automaticamente el backup de seguridad.
+
+---
+
+## 3. Reset completo (recrear BD desde SQL maestro)
+
+**SOLO para desarrollo local o cuando se necesita partir desde cero.**
+
+```bash
+# Local (default)
 bash scripts/reset-bd-desde-cero.sh
 
-# O explícitamente
-bash scripts/reset-bd-desde-cero.sh local
+# Produccion (requiere confirmar con "SI")
+bash scripts/reset-bd-desde-cero.sh prod
+```
 
-# Resetear ambiente dev
-bash scripts/reset-bd-desde-cero.sh dev
+### Que hace el reset
 
-# ⚠️ Resetear producción (requiere confirmación)
+1. Detiene servicios y elimina volumenes Docker (`down -v`)
+2. Elimina archivos generados (contratos, uploads, imagenes)
+3. Inicia solo PostgreSQL
+4. Recrea la BD desde `datos/00_gmarm_completo.sql`
+5. Verifica datos cargados (usuarios >= 3, roles >= 5, licencias >= 1)
+6. Reinicia todos los servicios
+
+### Antes de resetear produccion
+
+```bash
+# 1. OBLIGATORIO: hacer backup completo
+bash scripts/backup-completo-prod.sh
+
+# 2. Verificar que el backup existe
+ls -lh backups/completos/
+
+# 3. Validar el SQL maestro
+bash scripts/validar-sql-maestro.sh
+
+# 4. Informar a usuarios que el sistema estara fuera de linea
+
+# 5. Ejecutar reset
 bash scripts/reset-bd-desde-cero.sh prod
 ```
 
 ---
 
-## 📋 PROCESO PASO A PASO
-
-### 1. Pre-validación
-
-El script verifica automáticamente:
-- ✅ Que existe el archivo `datos/00_gmarm_completo.sql`
-- ✅ Que el ambiente especificado es válido
-- ✅ Solicita confirmación del usuario (debes escribir `SI`)
-
-### 2. Proceso de Reseteo
-
-```
-Paso 1/6: Detener servicios y eliminar volúmenes
-├── docker-compose down -v
-└── Elimina base de datos completamente
-
-Paso 2/6: Eliminar archivos generados
-├── documentacion/documentos_cliente/*
-├── documentacion/contratos_generados/*
-├── documentacion/autorizaciones/*
-├── uploads/clientes/*
-├── uploads/images/weapons/*
-└── backend/uploads/*
-
-Paso 3/6: Iniciar PostgreSQL
-└── Solo inicia el contenedor de PostgreSQL
-
-Paso 4/6: Esperar a PostgreSQL
-├── Verifica que el contenedor esté corriendo
-├── Verifica que PostgreSQL responda (60 intentos)
-└── Espera estabilización (10 segundos adicionales)
-
-Paso 5/6: Recrear base de datos
-├── DROP DATABASE IF EXISTS
-├── CREATE DATABASE (con UTF-8)
-├── Cargar SQL maestro (1-2 minutos)
-└── Reintentos automáticos si falla
-
-Paso 6/6: Verificar datos
-├── Contar usuarios, roles, armas, etc.
-├── Validar que haya datos mínimos esperados
-└── Mostrar advertencias si falta algo
-```
-
-### 3. Inicio de Servicios
-
-- Inicia todos los servicios: `docker-compose up -d`
-- Espera 15 segundos para estabilización
-- Muestra estado final del sistema
-
----
-
-## ✅ VALIDACIONES QUE HACE EL SCRIPT
-
-### Pre-ejecución
-- [x] Verifica que existe el SQL maestro
-- [x] Valida el ambiente (local/dev/prod)
-- [x] Solicita confirmación del usuario
-
-### Durante ejecución
-- [x] Manejo de permisos (intenta con/sin sudo)
-- [x] Verifica que PostgreSQL esté listo (3 checks consecutivos)
-- [x] Reintentos en comandos SQL (hasta 5 intentos)
-- [x] Reintentos en carga de SQL maestro (hasta 3 intentos)
-- [x] Verifica estado del contenedor en cada paso
-
-### Post-ejecución
-- [x] Verifica cantidad de usuarios (espera ≥ 3)
-- [x] Verifica cantidad de roles (espera ≥ 5)
-- [x] Verifica cantidad de licencias (espera ≥ 1)
-- [x] Muestra conteos de armas, clientes, categorías
-- [x] Muestra estado de servicios Docker
-
----
-
-## 🔍 VERIFICACIÓN MANUAL
-
-Después de ejecutar el script, verifica:
-
-### 1. Estado de Servicios
+## 4. Verificacion post-operacion
 
 ```bash
-docker-compose -f docker-compose.local.yml ps
-```
+# Verificar servicios
+docker-compose -f docker-compose.prod.yml ps
 
-**Esperado:**
-```
-NAME                    STATUS
-gmarm-postgres-local    Up
-gmarm-backend-local     Up
-gmarm-frontend-local    Up
-```
-
-### 2. Acceso a la Base de Datos
-
-```bash
-docker exec gmarm-postgres-local psql -U postgres -d gmarm_local -c "SELECT COUNT(*) FROM usuario;"
-```
-
-**Esperado:** Al menos 3 usuarios
-
-### 3. Verificar Usuarios Disponibles
-
-```bash
-docker exec gmarm-postgres-local psql -U postgres -d gmarm_local \
-  -c "SELECT id, username, email, nombres FROM usuario ORDER BY id;"
-```
-
-**Esperado:**
-```
- id | username         | email                           | nombres
-----+------------------+---------------------------------+---------
-  1 | admin            | admin@test.com                  | Admin
-  2 | vendedor         | vendedor@test.com               | Vendedor
-  3 | david.guevara    | czcorp@hotmail.com              | David
-  4 | franklin.endara  | franklin.endara@hotmail.com     | Franklin
-```
-
-### 4. Probar Login en Frontend
-
-**Ambiente Local:** http://localhost:5173
-
-**Credenciales de prueba:**
-```
-Usuario: admin@test.com
-Password: admin123
-```
-
-```
-Usuario: vendedor@test.com
-Password: admin123
-```
-
-### 5. Verificar Datos con Script
-
-```bash
+# Verificar datos
 bash scripts/verificar-datos-prod.sh
+
+# Verificar health del backend
+curl -s http://localhost:8080/api/health
+
+# Verificar logs por errores
+docker logs gmarm-backend-prod --tail 50
 ```
 
-Este script adicional verifica:
-- Integridad referencial
-- Secuencias correctas
-- Sin duplicados
-- Configuración del sistema
+### Datos esperados
+
+| Entidad | Minimo |
+|---------|--------|
+| Usuarios | >= 3 |
+| Roles | >= 5 |
+| Licencias | >= 1 |
+| Categorias de Armas | >= 3 |
+| Tipos de Cliente | >= 2 |
 
 ---
 
-## 🐛 TROUBLESHOOTING
+## 5. Troubleshooting
 
-### Error: "PostgreSQL no está listo después de 60 intentos"
+### PostgreSQL no inicia
 
-**Causa:** El contenedor no inicia correctamente
-
-**Solución:**
 ```bash
-# Ver logs de PostgreSQL
-docker logs gmarm-postgres-local --tail 50
-
-# Verificar memoria
+docker logs gmarm-postgres-prod --tail 50
 docker stats --no-stream
-
-# Si hay problemas de memoria, aumentar límite en docker-compose
 ```
 
-### Error: "No se encuentra el archivo datos/00_gmarm_completo.sql"
-
-**Causa:** El SQL maestro no existe o estás en directorio incorrecto
-
-**Solución:**
-```bash
-# Verificar que estás en el directorio raíz del proyecto
-pwd
-# Debe mostrar: /Users/cesartenemaza/Documents/gmarm/gmarm
-
-# Verificar que existe el SQL maestro
-ls -lh datos/00_gmarm_completo.sql
-```
-
-### Error: "Error cargando SQL maestro después de 3 intentos"
-
-**Causa:** El SQL tiene errores de sintaxis o PostgreSQL tiene problemas
-
-**Solución:**
-```bash
-# Validar sintaxis del SQL maestro
-bash scripts/validar-sql-maestro.sh
-
-# Si el script dice que hay errores, corregirlos primero
-```
-
-### Error: "Algunos archivos no se pudieron eliminar"
-
-**Causa:** Problemas de permisos en archivos generados
-
-**Solución:**
-```bash
-# El script intenta con sudo automáticamente
-# Si falla, ejecutar manualmente:
-sudo chmod -R u+w documentacion/ uploads/ backend/uploads/
-sudo rm -rf documentacion/* uploads/* backend/uploads/*
-```
-
-### Advertencia: "Se esperaban al menos 3 usuarios"
-
-**Causa:** El SQL maestro no se cargó completamente
-
-**Solución:**
-```bash
-# Verificar que el SQL maestro está completo
-wc -l datos/00_gmarm_completo.sql
-# Debe tener varios cientos de líneas
-
-# Revisar logs de carga
-docker logs gmarm-postgres-local | grep ERROR
-```
-
----
-
-## 📊 DATOS ESPERADOS DESPUÉS DEL RESET
-
-Después de un reset exitoso, deberías tener:
-
-| Entidad | Cantidad Mínima | Descripción |
-|---------|----------------|-------------|
-| **Usuarios** | ≥ 3 | admin, vendedor, otros |
-| **Roles** | ≥ 5 | ADMIN, VENDOR, FINANCE, SALES_CHIEF, OPERATIONS |
-| **Licencias** | ≥ 1 | Licencia de importación activa |
-| **Categorías de Armas** | ≥ 3 | Pistola, Revólver, etc. |
-| **Tipos de Cliente** | ≥ 2 | Civil, Uniformado |
-| **Tipos de Identificación** | ≥ 2 | Cédula, Pasaporte, etc. |
-| **Configuración Sistema** | ≥ 1 | IVA y otras configuraciones |
-
-### Verificación Rápida
+### Backup/restore falla
 
 ```bash
-# Ejecutar todas las verificaciones
-docker exec gmarm-postgres-local psql -U postgres -d gmarm_local <<EOF
-SELECT 'Usuarios' as tabla, COUNT(*) as total FROM usuario
-UNION ALL
-SELECT 'Roles', COUNT(*) FROM rol
-UNION ALL
-SELECT 'Licencias', COUNT(*) FROM licencia
-UNION ALL
-SELECT 'Categorías', COUNT(*) FROM categoria_arma
-UNION ALL
-SELECT 'Tipos Cliente', COUNT(*) FROM tipo_cliente
-ORDER BY tabla;
-EOF
+# Verificar que PostgreSQL esta corriendo
+docker ps | grep postgres
+
+# Verificar espacio en disco
+df -h
+```
+
+### Backend no responde despues de restore
+
+```bash
+# Reiniciar backend manualmente
+docker-compose -f docker-compose.prod.yml restart backend
+
+# Esperar 30 segundos y verificar
+sleep 30
+curl -s http://localhost:8080/api/health
 ```
 
 ---
 
-## 🎯 CHECKLIST POST-RESET
+## Scripts disponibles
 
-Después de ejecutar el script, verifica:
-
-- [ ] Todos los servicios están `Up` (docker ps)
-- [ ] PostgreSQL responde (docker exec ... pg_isready)
-- [ ] Usuarios ≥ 3 (verificado por script)
-- [ ] Roles ≥ 5 (verificado por script)
-- [ ] Licencias ≥ 1 (verificado por script)
-- [ ] Frontend accesible (http://localhost:5173)
-- [ ] Backend responde (http://localhost:8080/actuator/health)
-- [ ] Login funciona con admin@test.com
-- [ ] No hay errores en logs del backend
-- [ ] Script validar-sql-maestro.sh pasa ✅
-
----
-
-## 💡 CONSEJOS Y MEJORES PRÁCTICAS
-
-### Antes de Ejecutar
-
-1. **Haz un backup** (si tienes datos que podrías necesitar):
-   ```bash
-   bash scripts/backup-completo-prod.sh
-   ```
-
-2. **Valida el SQL maestro**:
-   ```bash
-   bash scripts/validar-sql-maestro.sh
-   ```
-
-3. **Cierra la aplicación** (si está abierta en el navegador)
-
-4. **Asegúrate de tener espacio en disco** (al menos 1GB libre)
-
-### Durante la Ejecución
-
-- **No interrumpas el script** (Ctrl+C) mientras está corriendo
-- **Observa los mensajes** - el script te dirá si algo falla
-- **Espera a que termine completamente** - puede tomar 2-5 minutos
-
-### Después de Ejecutar
-
-1. **Verifica los servicios** antes de empezar a trabajar
-2. **Prueba el login** con los usuarios de prueba
-3. **Revisa los logs** si algo no funciona:
-   ```bash
-   docker logs gmarm-backend-local --tail 100
-   ```
-
-4. **Ejecuta el script de validación**:
-   ```bash
-   bash scripts/verificar-datos-prod.sh
-   ```
-
----
-
-## 🔒 SEGURIDAD EN PRODUCCIÓN
-
-### ⚠️ PRECAUCIONES PARA PRODUCCIÓN
-
-Si **absolutamente debes** ejecutar este script en producción:
-
-1. **HACER BACKUP COMPLETO** primero:
-   ```bash
-   bash scripts/backup-completo-prod.sh
-   ```
-
-2. **Verificar el backup**:
-   ```bash
-   ls -lh backups/completos/
-   ```
-
-3. **Programar ventana de mantenimiento** (usuarios informados)
-
-4. **Tener plan de rollback**:
-   ```bash
-   # En caso de problemas, restaurar:
-   bash scripts/restore-backup.sh backups/completos/gmarm-completo-TIMESTAMP.tar.gz
-   ```
-
-5. **Cambiar passwords** después del reset:
-   - admin@test.com → cambiar contraseña
-   - Contraseña de PostgreSQL → cambiar en docker-compose.prod.yml
-
-6. **Probar exhaustivamente** antes de dar acceso a usuarios
-
----
-
-## 📞 SOPORTE
-
-Si encuentras problemas:
-
-1. **Revisar esta guía** - La mayoría de problemas están documentados
-2. **Revisar logs**:
-   ```bash
-   docker logs gmarm-postgres-local --tail 100
-   docker logs gmarm-backend-local --tail 100
-   ```
-3. **Ejecutar script de validación**:
-   ```bash
-   bash scripts/validar-sql-maestro.sh
-   bash scripts/verificar-datos-prod.sh
-   ```
-
----
-
-## 📝 HISTORIAL DE CAMBIOS
-
-**v1.1 - 2026-02-11**
-- ✅ Validación de SQL maestro al inicio
-- ✅ Mejor cálculo de espacio liberado
-- ✅ Verificaciones adicionales (roles, categorías, licencias)
-- ✅ Advertencias si faltan datos esperados
-- ✅ Instrucciones detalladas post-reset
-- ✅ Información de usuarios de prueba
-
-**v1.0 - Original**
-- ✅ Reset básico de BD
-- ✅ Eliminación de archivos
-- ✅ Soporte multi-ambiente
-
----
-
-**Última actualización:** 11 de febrero de 2026
+| Script | Uso |
+|--------|-----|
+| `backup-prod.sh` | Backup rapido de BD |
+| `backup-completo-prod.sh` | Backup BD + archivos |
+| `restore-backup.sh` | Restaurar desde backup |
+| `reset-bd-desde-cero.sh` | Reset completo desde SQL maestro |
+| `validar-sql-maestro.sh` | Validar sintaxis del SQL maestro |
+| `verificar-datos-prod.sh` | Verificar integridad de datos |

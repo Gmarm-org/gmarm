@@ -109,24 +109,18 @@ delete_directory_contents "documentacion/documentos_importacion"
 # Eliminar autorizaciones
 delete_directory_contents "documentacion/autorizaciones"
 
-# Eliminar uploads de clientes
-delete_directory_contents "uploads/clientes"
-
 # Eliminar imágenes de armas (mantener estructura)
-if [ -d "uploads/images/weapons" ]; then
-    echo "   Eliminando imágenes de armas en: uploads/images/weapons"
-    chmod -R u+w "uploads/images/weapons" 2>/dev/null || true
-    if find "uploads/images/weapons" -type f -delete 2>/dev/null; then
+if [ -d "documentacion/images/weapons" ]; then
+    echo "   Eliminando imágenes de armas en: documentacion/images/weapons"
+    chmod -R u+w "documentacion/images/weapons" 2>/dev/null || true
+    if find "documentacion/images/weapons" -type f -delete 2>/dev/null; then
         echo "      ✅ Imágenes eliminadas"
     else
         if command -v sudo >/dev/null 2>&1; then
-            sudo find "uploads/images/weapons" -type f -delete 2>/dev/null || true
+            sudo find "documentacion/images/weapons" -type f -delete 2>/dev/null || true
         fi
     fi
 fi
-
-# Eliminar uploads del backend
-delete_directory_contents "backend/uploads"
 
 # Calcular espacio liberado
 echo ""

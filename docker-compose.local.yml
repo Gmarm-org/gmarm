@@ -50,7 +50,6 @@ services:
       - gmarm_local_network
     restart: unless-stopped
     volumes:
-      - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
       - ./logs:/app/logs  # Logs del backend para análisis
 

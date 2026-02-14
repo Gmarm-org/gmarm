@@ -18,7 +18,7 @@ import java.nio.file.Paths;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.upload.dir:./uploads}")
+    @Value("${app.upload.dir:./documentacion}")
     private String uploadDir;
 
     @Override
@@ -41,9 +41,9 @@ public class WebConfig implements WebMvcConfigurer {
         
         // Log de configuración
         System.out.println("✅ Configuración de recursos estáticos:");
-        System.out.println("   📂 Directorio de uploads: " + uploadsPath);
-        System.out.println("   🖼️  Imágenes de armas: /images/weapons/** (ImageController con placeholder)");
-        System.out.println("   📄 Documentos: /uploads/** (acceso directo)");
+        System.out.println("   📂 Directorio base: " + uploadsPath);
+        System.out.println("   🖼️  Imágenes: /images/weapons/** (ImageController)");
+        System.out.println("   📄 Recursos: /uploads/** → " + uploadsLocation);
     }
 }
 

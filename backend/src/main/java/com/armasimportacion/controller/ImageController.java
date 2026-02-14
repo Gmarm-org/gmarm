@@ -28,7 +28,7 @@ import java.nio.file.Paths;
 @Slf4j
 public class ImageController {
 
-    @Value("${app.upload.dir:./uploads}")
+    @Value("${app.upload.dir:./documentacion}")
     private String uploadDir;
 
     private final ResourceLoader resourceLoader;

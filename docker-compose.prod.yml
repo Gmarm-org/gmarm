@@ -30,7 +30,6 @@ services:
       postgres_prod:
         condition: service_healthy  # ✅ Esperar a que PostgreSQL esté healthy
     volumes:
-      - ./uploads:/app/uploads
       - ./documentacion:/app/documentacion
       - ./logs:/app/logs  # Logs del backend para análisis
     restart: unless-stopped

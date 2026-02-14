@@ -20,15 +20,14 @@ NC='\033[0m'
 
 # Configuración
 BACKUP_DIR="backups"
-RETENTION_DAYS=30
+RETENTION_DAYS=60
 CONTAINER_NAME="gmarm-postgres-prod"
 DB_NAME="gmarm_prod"
 DB_USER="postgres"
 
-# Directorios de archivos a respaldar
-FILES_DIR="backend/uploads"
-DOCUMENTS_DIR="backend/documentos-generados"
-WEAPON_IMAGES_DIR="backend/weapon-images"
+# Directorio consolidado de archivos (montado por docker-compose.prod.yml)
+# Contiene: documentos de clientes, documentos de importación, imágenes de armas
+STORAGE_DIR="documentacion"
 
 # Crear directorio de backups si no existe
 mkdir -p "$BACKUP_DIR"
@@ -90,28 +89,10 @@ echo ""
 FILES_BACKUP="${BACKUP_BASE}-archivos.tar.gz"
 ARCHIVOS_ENCONTRADOS=0
 
-# Crear lista de directorios a respaldar
-DIRS_TO_BACKUP=()
-
-# Verificar y agregar cada directorio
-if [ -d "$FILES_DIR" ]; then
-  DIRS_TO_BACKUP+=("$FILES_DIR")
-  FILE_COUNT=$(find "$FILES_DIR" -type f 2>/dev/null | wc -l)
-  echo "   ✅ $FILES_DIR ($FILE_COUNT archivos)"
-  ((ARCHIVOS_ENCONTRADOS++))
-fi
-
-if [ -d "$DOCUMENTS_DIR" ]; then
-  DIRS_TO_BACKUP+=("$DOCUMENTS_DIR")
-  DOC_COUNT=$(find "$DOCUMENTS_DIR" -type f 2>/dev/null | wc -l)
-  echo "   ✅ $DOCUMENTS_DIR ($DOC_COUNT documentos)"
-  ((ARCHIVOS_ENCONTRADOS++))
-fi
-
-if [ -d "$WEAPON_IMAGES_DIR" ]; then
-  DIRS_TO_BACKUP+=("$WEAPON_IMAGES_DIR")
-  IMG_COUNT=$(find "$WEAPON_IMAGES_DIR" -type f 2>/dev/null | wc -l)
-  echo "   ✅ $WEAPON_IMAGES_DIR ($IMG_COUNT imágenes)"
+# Verificar directorio consolidado
+if [ -d "$STORAGE_DIR" ]; then
+  FILE_COUNT=$(find "$STORAGE_DIR" -type f 2>/dev/null | wc -l)
+  echo "   ✅ $STORAGE_DIR ($FILE_COUNT archivos totales)"
   ((ARCHIVOS_ENCONTRADOS++))
 fi
 
@@ -119,7 +100,7 @@ echo ""
 
 if [ "$ARCHIVOS_ENCONTRADOS" -gt 0 ]; then
   echo "   Comprimiendo archivos..."
-  tar -czf "$FILES_BACKUP" "${DIRS_TO_BACKUP[@]}" 2>/dev/null || true
+  tar -czf "$FILES_BACKUP" "$STORAGE_DIR" 2>/dev/null || true
 
   if [ -f "$FILES_BACKUP" ]; then
     FILES_SIZE=$(du -h "$FILES_BACKUP" | cut -f1)
@@ -167,8 +148,7 @@ CONTENIDO:
 - Base de datos: ${DB_NAME}
   Tamaño: ${DB_SIZE}
 
-- Archivos adjuntos:
-  Directorios: $ARCHIVOS_ENCONTRADOS
+- Archivos (documentacion/):
   Tamaño total: ${FILES_SIZE:-N/A}
 
 VERSIÓN:
