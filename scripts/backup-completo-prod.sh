@@ -96,7 +96,7 @@ ARCHIVOS_ENCONTRADOS=0
 if [ -d "$STORAGE_DIR" ]; then
   FILE_COUNT=$(find "$STORAGE_DIR" -type f 2>/dev/null | wc -l)
   echo "   ✅ $STORAGE_DIR ($FILE_COUNT archivos totales)"
-  ((ARCHIVOS_ENCONTRADOS++))
+  ARCHIVOS_ENCONTRADOS=1
 fi
 
 echo ""
