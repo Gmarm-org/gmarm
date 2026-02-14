@@ -85,6 +85,12 @@ echo -e "${YELLOW}PASO 3/7: Copiando imágenes de armas...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
+# Arreglar permisos si Docker creó directorios como root
+if [ -d "documentacion" ] && [ ! -w "documentacion" ]; then
+  echo "  Arreglando permisos de documentacion/ (creado por Docker como root)..."
+  sudo chown -R $(whoami):$(whoami) documentacion/
+fi
+
 mkdir -p documentacion/images/weapons
 
 if [ -d "uploads/images/weapons" ]; then
