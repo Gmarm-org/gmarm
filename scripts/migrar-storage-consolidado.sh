@@ -30,8 +30,8 @@ echo -e "${BLUE}  uploads/ → documentacion/${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 echo "  Este script hará lo siguiente:"
-echo "  1. Backup completo (BD + archivos)"
-echo "  2. Pull del código nuevo"
+echo "  1. Pull del código nuevo"
+echo "  2. Backup completo (BD + archivos)"
 echo "  3. Copiar imágenes de armas a documentacion/"
 echo "  4. Bajar servicios"
 echo "  5. Redesplegar con nuevo código"
@@ -48,10 +48,23 @@ fi
 echo ""
 
 # ========================================
-# PASO 1: BACKUP COMPLETO
+# PASO 1: PULL DEL CÓDIGO NUEVO
 # ========================================
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}PASO 1/7: Creando backup completo...${NC}"
+echo -e "${YELLOW}PASO 1/7: Descargando código nuevo...${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+git pull origin main
+echo ""
+echo -e "${GREEN}Código actualizado${NC}"
+echo ""
+
+# ========================================
+# PASO 2: BACKUP COMPLETO
+# ========================================
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}PASO 2/7: Creando backup completo...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -62,19 +75,6 @@ else
   echo -e "${RED}No se encontró scripts/backup-completo-prod.sh${NC}"
   exit 1
 fi
-echo ""
-
-# ========================================
-# PASO 2: PULL DEL CÓDIGO NUEVO
-# ========================================
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}PASO 2/7: Descargando código nuevo...${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-
-git pull origin main
-echo ""
-echo -e "${GREEN}Código actualizado${NC}"
 echo ""
 
 # ========================================
