@@ -178,7 +178,7 @@ tar -czf "$COMBINED_BACKUP" -C "$TEMP_DIR" "$BACKUP_NAME"
 # Limpiar archivos temporales
 rm -rf "$TEMP_DIR"
 rm -f "$DB_BACKUP_FILE"
-[ -f "$FILES_BACKUP" ] && rm -f "$FILES_BACKUP"
+if [ -f "$FILES_BACKUP" ]; then rm -f "$FILES_BACKUP"; fi
 
 if [ -f "$COMBINED_BACKUP" ]; then
   COMBINED_SIZE=$(du -h "$COMBINED_BACKUP" | cut -f1)

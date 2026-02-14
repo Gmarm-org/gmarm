@@ -90,7 +90,7 @@ mkdir -p documentacion/images/weapons
 if [ -d "uploads/images/weapons" ]; then
   IMG_COUNT=$(find uploads/images/weapons -type f 2>/dev/null | wc -l | tr -d ' ')
   if [ "$IMG_COUNT" -gt 0 ]; then
-    cp -a uploads/images/weapons/* documentacion/images/weapons/ 2>/dev/null
+    cp -a uploads/images/weapons/* documentacion/images/weapons/ 2>/dev/null || true
     NEW_COUNT=$(find documentacion/images/weapons -type f 2>/dev/null | wc -l | tr -d ' ')
     echo -e "${GREEN}$NEW_COUNT imágenes copiadas a documentacion/images/weapons/${NC}"
   else
