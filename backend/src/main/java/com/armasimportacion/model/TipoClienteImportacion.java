@@ -16,11 +16,11 @@ public class TipoClienteImportacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_cliente_id", nullable = false)
     private TipoCliente tipoCliente;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_importacion_id", nullable = false)
     private TipoImportacion tipoImportacion;
 }

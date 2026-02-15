@@ -23,20 +23,27 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
         Long tipoIdentificacionId, String numeroIdentificacion);
 
     // Búsquedas por usuario creador
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     List<Cliente> findByUsuarioCreadorId(Long usuarioId);
     
-    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.usuarioCreador WHERE c.usuarioCreador.id = :usuarioId")
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
+    @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId")
     Page<Cliente> findByUsuarioCreadorId(@Param("usuarioId") Long usuarioId, Pageable pageable);
-    
-    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.usuarioCreador")
+
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
+    @Query("SELECT c FROM Cliente c")
     Page<Cliente> findAllWithUsuarioCreador(Pageable pageable);
 
     // Búsquedas por estado
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     List<Cliente> findByEstado(EstadoCliente estado);
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     Page<Cliente> findByEstado(EstadoCliente estado, Pageable pageable);
 
     // Búsquedas por tipo de cliente
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     List<Cliente> findByTipoClienteId(Long tipoClienteId);
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     List<Cliente> findByTipoClienteIdAndEstado(Long tipoClienteId, EstadoCliente estado);
 
     // Búsquedas por ubicación
@@ -55,6 +62,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByRucAndIdNot(String ruc, Long id);
 
     // Búsquedas con filtros complejos
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     @Query("SELECT c FROM Cliente c WHERE " +
            "(:tipoClienteId IS NULL OR c.tipoCliente.id = :tipoClienteId) AND " +
            "(:estado IS NULL OR c.estado = :estado) AND " +
@@ -81,6 +89,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     boolean existsByTipoIdentificacionIdAndNumeroIdentificacion(Long tipoIdentificacionId, String numeroIdentificacion);
     boolean existsByTipoIdentificacionIdAndNumeroIdentificacionAndIdNot(Long tipoIdentificacionId, String numeroIdentificacion, Long id);
     boolean existsByNumeroIdentificacion(String numeroIdentificacion);
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     Optional<Cliente> findByNumeroIdentificacion(String numeroIdentificacion);
 
     // Estadísticas
@@ -101,15 +110,19 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     List<Cliente> findForReport(@Param("fechaInicio") LocalDate fechaInicio, @Param("fechaFin") LocalDate fechaFin);
     
     // Métodos para Jefe de Ventas
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion", "usuarioCreador"})
     @Query("SELECT c FROM Cliente c WHERE c.estado = :estado AND c.usuarioCreador.nombres LIKE %:vendedor%")
-    Page<Cliente> findByEstadoAndUsuarioCreadorNombreContainingIgnoreCase(@Param("estado") EstadoCliente estado, 
-                                                                         @Param("vendedor") String vendedor, 
+    Page<Cliente> findByEstadoAndUsuarioCreadorNombreContainingIgnoreCase(@Param("estado") EstadoCliente estado,
+                                                                         @Param("vendedor") String vendedor,
                                                                          Pageable pageable);
-    
+
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion", "usuarioCreador"})
     @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.nombres LIKE %:vendedor%")
     Page<Cliente> findByUsuarioCreadorNombreContainingIgnoreCase(@Param("vendedor") String vendedor, Pageable pageable);
     
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     List<Cliente> findByEstadoAndProcesoCompletadoTrue(EstadoCliente estado);
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     List<Cliente> findByEstadoAndProcesoCompletadoFalse(EstadoCliente estado);
     
     // Métodos de conteo para estadísticas
@@ -134,6 +147,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Long countByUsuarioCreadorAndProcesoCompletadoFalse(@Param("usuarioId") Long usuarioId);
     
     // Buscar cliente fantasma del vendedor (para armas sin cliente)
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado = :estado ORDER BY c.fechaCreacion ASC")
     List<Cliente> findByUsuarioCreadorIdAndEstado(@Param("usuarioId") Long usuarioId, @Param("estado") EstadoCliente estado);
     
@@ -143,18 +157,22 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     // ==================== QUERIES OPTIMIZADAS (N+1 FIX) ====================
 
-    @EntityGraph(attributePaths = {"documentos", "respuestas", "armas", "usuarioCreador", "tipoCliente"})
+    @EntityGraph(attributePaths = {"tipoIdentificacion", "tipoCliente"})
+    @Query("SELECT c FROM Cliente c WHERE c.id = :id")
+    Optional<Cliente> findByIdWithRelations(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"documentos", "respuestas", "armas", "usuarioCreador", "tipoCliente", "tipoIdentificacion"})
     @Query("SELECT c FROM Cliente c WHERE c.id = :id")
     Optional<Cliente> findByIdWithCollections(@Param("id") Long id);
 
-    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente"})
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
     @Query("SELECT c FROM Cliente c WHERE c.estado = :estado")
     List<Cliente> findByEstadoWithRelations(@Param("estado") EstadoCliente estado);
 
-    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente"})
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
     List<Cliente> findWithRelationsByUsuarioCreadorId(Long usuarioCreadorId);
 
-    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.tipoCliente " +
+    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.tipoCliente LEFT JOIN FETCH c.tipoIdentificacion " +
            "WHERE c.id NOT IN (SELECT cgi.cliente.id FROM ClienteGrupoImportacion cgi WHERE cgi.estado NOT IN ('COMPLETADO','CANCELADO')) " +
            "AND c.id NOT IN (SELECT ca.cliente.id FROM ClienteArma ca WHERE ca.estado = 'ASIGNADA')")
     List<Cliente> findClientesDisponiblesParaGrupo();

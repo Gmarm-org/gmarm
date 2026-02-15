@@ -32,7 +32,7 @@ public class Cliente {
     @Column(name = "numero_identificacion", nullable = false, length = 50)
     private String numeroIdentificacion;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_identificacion_id", nullable = false)
     private TipoIdentificacion tipoIdentificacion;
 
@@ -74,7 +74,7 @@ public class Cliente {
     @JoinColumn(name = "usuario_aprobador_id")
     private Usuario usuarioAprobador;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_cliente_id", nullable = false)
     private TipoCliente tipoCliente;
 
