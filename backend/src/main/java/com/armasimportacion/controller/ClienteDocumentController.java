@@ -103,7 +103,7 @@ public class ClienteDocumentController {
                 pagoDTO = DatosContratoDTO.PagoDTO.builder()
                     .id(pago.getId())
                     .montoTotal(pago.getMontoTotal())
-                    .tipoPago(pago.getTipoPago())
+                    .tipoPago(pago.getTipoPago() != null ? pago.getTipoPago().name() : null)
                     .numeroCuotas(pago.getNumeroCuotas())
                     .build();
             }

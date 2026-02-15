@@ -2,6 +2,7 @@ package com.armasimportacion.service.helper.documentos;
 
 import com.armasimportacion.model.*;
 import com.armasimportacion.enums.TipoDocumentoGenerado;
+import com.armasimportacion.enums.TipoPago;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
@@ -105,7 +106,7 @@ public class CotizacionPDFGenerator {
             double ivaDecimal = ivaPorcentaje / 100.0;
 
             java.util.List<CuotaPago> cuotas = new java.util.ArrayList<>();
-            if (pago != null && pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
+            if (pago != null && pago.getId() != null && pago.getTipoPago() == TipoPago.CREDITO) {
                 cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
                 log.info("Cuotas cargadas para cotización: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
             }

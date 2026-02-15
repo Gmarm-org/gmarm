@@ -2,6 +2,7 @@ package com.armasimportacion.service.helper.documentos;
 
 import com.armasimportacion.model.*;
 import com.armasimportacion.enums.TipoDocumentoGenerado;
+import com.armasimportacion.enums.TipoPago;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
 import com.armasimportacion.service.ConfiguracionSistemaService;
@@ -83,7 +84,7 @@ public class ContratoPDFGenerator {
             java.util.List<CuotaPago> cuotas = new java.util.ArrayList<>();
             if (pago != null) {
                 log.info("DEBUG: Pago ID: {}, tipoPago: {}", pago.getId(), pago.getTipoPago());
-                if (pago.getId() != null && "CREDITO".equals(pago.getTipoPago())) {
+                if (pago.getId() != null && pago.getTipoPago() == TipoPago.CREDITO) {
                     cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
                     log.info("Cuotas cargadas: {} cuotas encontradas para pago ID: {}", cuotas.size(), pago.getId());
                     for (CuotaPago cuota : cuotas) {

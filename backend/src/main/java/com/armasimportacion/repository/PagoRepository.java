@@ -1,6 +1,7 @@
 package com.armasimportacion.repository;
 
 import com.armasimportacion.enums.EstadoPago;
+import com.armasimportacion.enums.TipoPago;
 import com.armasimportacion.model.Pago;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,7 +50,7 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     List<Pago> findByClienteAndEstado(@Param("clienteId") Long clienteId, @Param("estado") EstadoPago estado);
     
     @Query("SELECT p FROM Pago p WHERE p.tipoPago = :tipoPago AND p.estado = :estado")
-    List<Pago> findByTipoPagoAndEstado(@Param("tipoPago") String tipoPago, @Param("estado") EstadoPago estado);
+    List<Pago> findByTipoPagoAndEstado(@Param("tipoPago") TipoPago tipoPago, @Param("estado") EstadoPago estado);
     
     @Query("SELECT p FROM Pago p WHERE p.cuotaActual = :cuotaActual AND p.estado = :estado")
     List<Pago> findByCuotaActualAndEstado(@Param("cuotaActual") Integer cuotaActual, @Param("estado") EstadoPago estado);

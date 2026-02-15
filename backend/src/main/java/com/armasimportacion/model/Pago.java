@@ -1,6 +1,7 @@
 package com.armasimportacion.model;
 
 import com.armasimportacion.enums.EstadoPago;
+import com.armasimportacion.enums.TipoPago;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -51,8 +52,9 @@ public class Pago {
     @Column(name = "monto_total", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private BigDecimal montoTotal;  // Total con IVA (subtotal + montoIva)
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_pago", nullable = false, length = 20)
-    private String tipoPago;
+    private TipoPago tipoPago;
 
     @Column(name = "numero_cuotas", nullable = false)
     private Integer numeroCuotas = 1;

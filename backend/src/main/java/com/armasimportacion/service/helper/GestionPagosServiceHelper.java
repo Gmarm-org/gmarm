@@ -6,6 +6,7 @@ import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.repository.CuotaPagoRepository;
 import com.armasimportacion.enums.EstadoPago;
 import com.armasimportacion.enums.EstadoCuotaPago;
+import com.armasimportacion.enums.TipoPago;
 import com.armasimportacion.service.ConfiguracionSistemaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +72,7 @@ public class GestionPagosServiceHelper {
         pago.setMontoTotal(BigDecimal.ZERO);
         pago.setFechaCreacion(LocalDateTime.now());
         pago.setClienteId(clienteId);
-        pago.setTipoPago("CONTADO");
+        pago.setTipoPago(TipoPago.CONTADO);
         pago.setNumeroCuotas(1);
         pago.setMontoCuota(BigDecimal.ZERO);
         pago.setMontoPagado(BigDecimal.ZERO);
@@ -118,22 +119,23 @@ public class GestionPagosServiceHelper {
         log.info("Pago construido: subtotal={}, IVA={}, total={}", subtotal, montoIva, montoTotal);
         
         // Establecer tipo de pago desde los datos o usar valor por defecto
-        // Intentar obtener de "tipoPago" o "metodoPagoCodigo"
-        String tipoPago = Optional.ofNullable(pagoData.get("tipoPago"))
+        String tipoPagoRaw = Optional.ofNullable(pagoData.get("tipoPago"))
             .map(Object::toString)
             .or(() -> Optional.ofNullable(pagoData.get("metodoPagoCodigo")).map(Object::toString))
             .orElse("CONTADO");
-        
-        // Normalizar: el frontend envía "CUOTAS", el backend usa "CREDITO"
-        String tipoPagoNormalizado = "CUOTAS".equals(tipoPago) ? "CREDITO" : tipoPago;
-        pago.setTipoPago(tipoPagoNormalizado);
-        
-        log.info("Tipo de pago normalizado: '{}' → '{}'", tipoPago, tipoPagoNormalizado);
-        
+
+        // Normalizar: el frontend envía "CUOTAS", el backend usa CREDITO
+        TipoPago tipoPagoEnum = "CUOTAS".equalsIgnoreCase(tipoPagoRaw)
+            ? TipoPago.CREDITO
+            : TipoPago.valueOf(tipoPagoRaw);
+        pago.setTipoPago(tipoPagoEnum);
+
+        log.info("Tipo de pago normalizado: '{}' -> '{}'", tipoPagoRaw, tipoPagoEnum);
+
         // Establecer número de cuotas desde los datos o calcular basado en tipo de pago
         Integer numeroCuotas = Optional.ofNullable(pagoData.get("numeroCuotas"))
             .map(obj -> Integer.valueOf(obj.toString()))
-            .orElse("CONTADO".equals(tipoPagoNormalizado) ? 1 : getMaxCuotasConfig());
+            .orElse(tipoPagoEnum == TipoPago.CONTADO ? 1 : getMaxCuotasConfig());
         pago.setNumeroCuotas(numeroCuotas);
         
         // Calcular monto por cuota
@@ -170,10 +172,7 @@ public class GestionPagosServiceHelper {
      * Crea las cuotas usando los datos específicos del frontend o automáticamente
      */
     public void crearCuotasDesdeDatos(Pago pago, Map<String, Object> pagoData) {
-        // El frontend envía "CUOTAS", el backend usa "CREDITO" internamente
-        String tipoPagoNormalizado = "CUOTAS".equals(pago.getTipoPago()) ? "CREDITO" : pago.getTipoPago();
-        
-        if (!"CREDITO".equals(tipoPagoNormalizado) || pago.getNumeroCuotas() <= 1) {
+        if (pago.getTipoPago() != TipoPago.CREDITO || pago.getNumeroCuotas() <= 1) {
             log.info("Pago no requiere cuotas: tipo={}, cuotas={}", 
                 pago.getTipoPago(), pago.getNumeroCuotas());
             return;

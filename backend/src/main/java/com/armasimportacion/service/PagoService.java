@@ -2,6 +2,7 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.dto.CuotaPagoCreateDTO;
 import com.armasimportacion.enums.EstadoPago;
+import com.armasimportacion.enums.TipoPago;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.CuotaPago;
 import com.armasimportacion.model.Cliente;
@@ -57,7 +58,7 @@ public class PagoService {
         Pago pagoGuardado = pagoRepository.save(pago);
         
         // Si es pago en cuotas, crear las cuotas automáticamente
-        if ("CUOTAS".equals(pago.getTipoPago()) && pago.getNumeroCuotas() > 1) {
+        if (pago.getTipoPago() == TipoPago.CREDITO && pago.getNumeroCuotas() > 1) {
             crearCuotasAutomaticamente(pagoGuardado);
         }
         
