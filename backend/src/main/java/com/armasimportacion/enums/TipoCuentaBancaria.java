@@ -1,6 +1,6 @@
 package com.armasimportacion.enums;
 
 public enum TipoCuentaBancaria {
-    AHORROS,
+    AHORRO,
     CORRIENTE
 }
