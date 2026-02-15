@@ -1,8 +1,11 @@
 package com.armasimportacion.model;
 
+import com.armasimportacion.enums.TipoClienteCupo;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -41,8 +44,9 @@ public class GrupoImportacionCupo {
     @JoinColumn(name = "licencia_id", nullable = false)
     private Licencia licencia;
     
-    @Column(name = "tipo_cliente", nullable = false)
-    private String tipoCliente; // CIVIL, MILITAR, EMPRESA, DEPORTISTA
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_cliente", nullable = false, length = 20)
+    private TipoClienteCupo tipoCliente;
     
     @Column(name = "cupo_consumido", nullable = false)
     private Integer cupoConsumido; // Cuánto consume este grupo

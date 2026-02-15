@@ -113,18 +113,6 @@ export async function getTodosClientes(): Promise<any[]> {
   return request<any[]>('/api/clientes/todos');
 }
 
-export async function getDashboardJefeVentas(): Promise<{ clientesNuevosHoy: number; clientesPendientesContrato: number }> {
-  return request<{ clientesNuevosHoy: number; clientesPendientesContrato: number }>('/api/clientes/dashboard/jefe-ventas');
-}
-
-export async function getClientesDeHoy(): Promise<any[]> {
-  return request<any[]>('/api/clientes/dashboard/clientes-hoy');
-}
-
-export async function getClientesPendientesContrato(): Promise<any[]> {
-  return request<any[]>('/api/clientes/dashboard/clientes-pendientes-contrato');
-}
-
 export async function getClientesDisponibles(grupoId?: number): Promise<any[]> {
   const url = grupoId
     ? `/api/grupos-importacion/clientes-disponibles?grupoId=${grupoId}`

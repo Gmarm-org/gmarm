@@ -1,6 +1,7 @@
 package com.armasimportacion.mapper;
 
 import com.armasimportacion.dto.LicenciaDTO;
+import com.armasimportacion.enums.TipoCuentaBancaria;
 import com.armasimportacion.model.Licencia;
 import com.armasimportacion.repository.CantonRepository;
 import com.armasimportacion.repository.ProvinciaRepository;
@@ -32,7 +33,7 @@ public class LicenciaMapper {
                 .ruc(licencia.getRuc())
                 .cuentaBancaria(licencia.getCuentaBancaria())
                 .nombreBanco(licencia.getNombreBanco())
-                .tipoCuenta(licencia.getTipoCuenta())
+                .tipoCuenta(licencia.getTipoCuenta() != null ? licencia.getTipoCuenta().name() : null)
                 .cedulaCuenta(licencia.getCedulaCuenta())
                 .email(licencia.getEmail())
                 .telefono(licencia.getTelefono())
@@ -73,7 +74,7 @@ public class LicenciaMapper {
         licencia.setRuc(dto.getRuc());
         licencia.setCuentaBancaria(dto.getCuentaBancaria());
         licencia.setNombreBanco(dto.getNombreBanco());
-        licencia.setTipoCuenta(dto.getTipoCuenta());
+        licencia.setTipoCuenta(dto.getTipoCuenta() != null && !dto.getTipoCuenta().isEmpty() ? TipoCuentaBancaria.valueOf(dto.getTipoCuenta()) : null);
         licencia.setCedulaCuenta(dto.getCedulaCuenta());
         licencia.setEmail(dto.getEmail());
         licencia.setTelefono(dto.getTelefono());

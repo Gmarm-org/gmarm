@@ -305,7 +305,7 @@ public class EmailService {
             context.setVariable("licenciaTitulo", licenciaTitulo);
             context.setVariable("licenciaNombre", licencia != null ? licencia.getNombre() : "N/A");
             context.setVariable("licenciaBanco", licencia != null ? licencia.getNombreBanco() : "N/A");
-            context.setVariable("licenciaTipoCuenta", licencia != null ? licencia.getTipoCuenta() : "N/A");
+            context.setVariable("licenciaTipoCuenta", licencia != null && licencia.getTipoCuenta() != null ? licencia.getTipoCuenta().name() : "N/A");
             context.setVariable("licenciaCuenta", licencia != null ? licencia.getCuentaBancaria() : "N/A");
             context.setVariable("licenciaCedulaCuenta", licencia != null ? licencia.getCedulaCuenta() : "N/A");
             context.setVariable("licenciaRuc", licencia != null ? licencia.getRuc() : "N/A");

@@ -137,7 +137,7 @@ public class LicenciaController {
                     // Actualizar SIEMPRE campos bancarios (permitir vacíos)
                     existingLicencia.setCuentaBancaria(licenciaDTO.getCuentaBancaria());
                     existingLicencia.setNombreBanco(licenciaDTO.getNombreBanco());
-                    existingLicencia.setTipoCuenta(licenciaDTO.getTipoCuenta());
+                    existingLicencia.setTipoCuenta(licenciaDTO.getTipoCuenta() != null && !licenciaDTO.getTipoCuenta().isEmpty() ? com.armasimportacion.enums.TipoCuentaBancaria.valueOf(licenciaDTO.getTipoCuenta()) : null);
                     existingLicencia.setCedulaCuenta(licenciaDTO.getCedulaCuenta());
                     
                     // Actualizar otros campos

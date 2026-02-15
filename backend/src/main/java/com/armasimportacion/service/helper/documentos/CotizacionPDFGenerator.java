@@ -153,7 +153,7 @@ public class CotizacionPDFGenerator {
                 }
             }
             String licenciaNombreBanco = licencia != null && licencia.getNombreBanco() != null ? licencia.getNombreBanco() : "";
-            String licenciaTipoCuenta = licencia != null && licencia.getTipoCuenta() != null ? licencia.getTipoCuenta() : "";
+            String licenciaTipoCuenta = licencia != null && licencia.getTipoCuenta() != null ? licencia.getTipoCuenta().name() : "";
             String licenciaCuentaBancaria = licencia != null && licencia.getCuentaBancaria() != null ? licencia.getCuentaBancaria() : "";
             String licenciaTitular = licenciaNombre;
 

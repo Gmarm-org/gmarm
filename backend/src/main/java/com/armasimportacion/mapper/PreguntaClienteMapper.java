@@ -1,6 +1,7 @@
 package com.armasimportacion.mapper;
 
 import com.armasimportacion.dto.PreguntaClienteDTO;
+import com.armasimportacion.enums.TipoRespuesta;
 import com.armasimportacion.model.PreguntaCliente;
 import com.armasimportacion.model.TipoProceso;
 import com.armasimportacion.repository.TipoProcesoRepository;
@@ -29,7 +30,7 @@ public class PreguntaClienteMapper {
                 .estado(entity.getEstado())
                 .tipoProcesoId(entity.getTipoProceso().getId())
                 .tipoProcesoNombre(entity.getTipoProceso().getNombre())
-                .tipoRespuesta(entity.getTipoRespuesta())
+                .tipoRespuesta(entity.getTipoRespuesta() != null ? entity.getTipoRespuesta().name() : null)
                 .build();
     }
 
@@ -44,7 +45,7 @@ public class PreguntaClienteMapper {
         entity.setObligatoria(dto.getObligatoria());
         entity.setOrden(dto.getOrden());
         entity.setEstado(dto.getEstado());
-        entity.setTipoRespuesta(dto.getTipoRespuesta());
+        entity.setTipoRespuesta(dto.getTipoRespuesta() != null ? TipoRespuesta.valueOf(dto.getTipoRespuesta()) : TipoRespuesta.TEXTO);
         
         // Cargar TipoProceso si está presente
         if (dto.getTipoProcesoId() != null) {

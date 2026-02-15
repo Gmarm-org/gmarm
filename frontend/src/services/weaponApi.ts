@@ -54,10 +54,6 @@ export async function deleteArma(id: number): Promise<void> {
   return request<void>(`/api/arma/${id}`, { method: 'DELETE' });
 }
 
-export async function getArmasByCategoria(categoriaId: number): Promise<any[]> {
-  return request<any[]>(`/api/arma/categoria/${categoriaId}`);
-}
-
 export async function getArmasDisponibles(): Promise<any[]> {
   return request<any[]>('/api/arma/disponibles');
 }
@@ -98,14 +94,6 @@ export async function getArmasConStock(): Promise<any[]> {
   return request<any[]>('/api/inventario/armas-disponibles');
 }
 
-export async function getStockArma(armaId: number): Promise<number> {
-  return request<number>(`/api/inventario/stock/${armaId}`);
-}
-
-export async function verificarStock(armaId: number, cantidad: number): Promise<boolean> {
-  return request<boolean>(`/api/inventario/verificar-stock/${armaId}/${cantidad}`);
-}
-
 export async function getStockTodasArmas(): Promise<any[]> {
   return request<any[]>('/api/inventario/stock/todas');
 }
@@ -141,18 +129,10 @@ export async function reasignarArmaACliente(clienteArmaId: number, nuevoClienteI
   return request<any>(`/api/cliente-arma/${clienteArmaId}/reasignar/${nuevoClienteId}`, { method: 'PUT' });
 }
 
-export async function getArmasReasignadas(): Promise<any[]> {
-  return request<any[]>(`/api/cliente-arma/reasignadas`);
-}
-
 export async function asignarNumeroSerie(reservaId: number, numeroSerie: string): Promise<any> {
   return request<any>(`/api/cliente-arma/${reservaId}/asignar-serie?numeroSerie=${encodeURIComponent(numeroSerie)}`, {
     method: 'PUT'
   });
-}
-
-export async function getReservasPendientes(): Promise<any[]> {
-  return request<any[]>('/api/cliente-arma/pendientes');
 }
 
 // Asignacion de series

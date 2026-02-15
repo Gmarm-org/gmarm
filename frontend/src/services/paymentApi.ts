@@ -5,10 +5,6 @@ export async function getPagos(page: number = 0, size: number = 10): Promise<Api
   return request<ApiResponse<Pago[]>>(`/api/pagos?page=${page}&size=${size}`);
 }
 
-export async function getPago(id: number): Promise<Pago> {
-  return request<Pago>(`/api/pagos/${id}`);
-}
-
 export async function createPago(pagoData: Partial<Pago>): Promise<Pago> {
   return request<Pago>('/api/pagos', {
     method: 'POST',

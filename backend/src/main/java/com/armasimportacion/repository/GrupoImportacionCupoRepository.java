@@ -1,5 +1,6 @@
 package com.armasimportacion.repository;
 
+import com.armasimportacion.enums.TipoClienteCupo;
 import com.armasimportacion.model.GrupoImportacionCupo;
 import com.armasimportacion.model.GrupoImportacion;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +16,7 @@ public interface GrupoImportacionCupoRepository extends JpaRepository<GrupoImpor
     
     // Búsquedas básicas
     List<GrupoImportacionCupo> findByGrupoImportacion(GrupoImportacion grupoImportacion);
-    List<GrupoImportacionCupo> findByTipoCliente(String tipoCliente);
+    List<GrupoImportacionCupo> findByTipoCliente(TipoClienteCupo tipoCliente);
     
     // Cupos por grupo
     @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId")
@@ -25,8 +26,8 @@ public interface GrupoImportacionCupoRepository extends JpaRepository<GrupoImpor
     @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId AND gic.tipoCliente = :tipoCliente")
     Optional<GrupoImportacionCupo> findByGrupoImportacionIdAndTipoCliente(
             @Param("grupoId") Long grupoId, 
-            @Param("tipoCliente") String tipoCliente);
-    
+            @Param("tipoCliente") TipoClienteCupo tipoCliente);
+
     // Cupos con disponibilidad
     @Query("SELECT gic FROM GrupoImportacionCupo gic WHERE gic.cupoDisponibleLicencia > 0")
     List<GrupoImportacionCupo> findCuposDisponibles();
@@ -37,7 +38,7 @@ public interface GrupoImportacionCupoRepository extends JpaRepository<GrupoImpor
     
     // Verificar disponibilidad
     @Query("SELECT COUNT(gic) > 0 FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId AND gic.tipoCliente = :tipoCliente AND gic.cupoDisponibleLicencia > 0")
-    boolean tieneCupoDisponible(@Param("grupoId") Long grupoId, @Param("tipoCliente") String tipoCliente);
+    boolean tieneCupoDisponible(@Param("grupoId") Long grupoId, @Param("tipoCliente") TipoClienteCupo tipoCliente);
     
     // Total de cupos por grupo
     @Query("SELECT SUM(gic.cupoConsumido) FROM GrupoImportacionCupo gic WHERE gic.grupoImportacion.id = :grupoId")

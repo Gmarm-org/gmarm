@@ -1,10 +1,13 @@
 package com.armasimportacion.model;
 
+import com.armasimportacion.enums.TipoRespuesta;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -56,11 +59,10 @@ public class PreguntaCliente {
     @Builder.Default
     private Boolean estado = true;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_respuesta", nullable = false, length = 20)
     @Builder.Default
-    @Getter
-    @Setter
-    private String tipoRespuesta = "TEXTO"; // TEXTO, SI_NO, NUMERICO, etc.
+    private TipoRespuesta tipoRespuesta = TipoRespuesta.TEXTO;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_proceso_id", nullable = false)

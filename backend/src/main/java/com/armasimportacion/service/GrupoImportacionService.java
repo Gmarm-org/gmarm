@@ -1,6 +1,7 @@
 package com.armasimportacion.service;
 
 import com.armasimportacion.dto.GrupoImportacionResumenDTO;
+import com.armasimportacion.enums.TipoClienteCupo;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
@@ -633,7 +634,7 @@ public class GrupoImportacionService {
     // Gestión de Cupos
     // ============================================================
 
-    public void configurarCupo(Long grupoId, String tipoCliente, Integer cupoAsignado) {
+    public void configurarCupo(Long grupoId, TipoClienteCupo tipoCliente, Integer cupoAsignado) {
         GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
 
         Optional<GrupoImportacionCupo> cupoExistente = cupoRepository
@@ -656,11 +657,11 @@ public class GrupoImportacionService {
         cupoRepository.save(cupo);
     }
 
-    public boolean tieneCupoDisponible(Long grupoId, String tipoCliente) {
+    public boolean tieneCupoDisponible(Long grupoId, TipoClienteCupo tipoCliente) {
         return cupoRepository.tieneCupoDisponible(grupoId, tipoCliente);
     }
 
-    public void decrementarCupo(Long grupoId, String tipoCliente) {
+    public void decrementarCupo(Long grupoId, TipoClienteCupo tipoCliente) {
         GrupoImportacionCupo cupo = cupoRepository
                 .findByGrupoImportacionIdAndTipoCliente(grupoId, tipoCliente)
                 .orElseThrow(() -> new ResourceNotFoundException("Cupo no encontrado"));

@@ -38,10 +38,6 @@ export async function getDocumentosCliente(clienteId: number): Promise<any[]> {
   return request<any[]>(`/api/documentos-cliente/cliente/${clienteId}`);
 }
 
-export async function getDocumentoCliente(documentoId: number): Promise<any> {
-  return request<any>(`/api/documentos-cliente/${documentoId}`);
-}
-
 export async function actualizarDocumentoCliente(documentoId: number, archivo: File, descripcion?: string, usuarioId?: number): Promise<any> {
   const formData = new FormData();
   formData.append('archivo', archivo);
@@ -65,10 +61,6 @@ export async function cambiarEstadoDocumento(documentoId: number, estado: string
 
 export async function verificarDocumentosCompletos(clienteId: number): Promise<boolean> {
   return request<boolean>(`/api/documentos-cliente/cliente/${clienteId}/verificar-completos`);
-}
-
-export async function getResumenDocumentos(clienteId: number): Promise<any> {
-  return request<any>(`/api/documentos-cliente/cliente/${clienteId}/resumen`);
 }
 
 // Respuestas de cliente
@@ -96,10 +88,3 @@ export async function confirmarInicioProceso(clienteId: number): Promise<any> {
   return request<any>(`/api/cliente-proceso/${clienteId}/confirmar-inicio`, { method: 'POST' });
 }
 
-export async function getElementosFaltantes(clienteId: number): Promise<any> {
-  return request<any>(`/api/cliente-proceso/${clienteId}/elementos-faltantes`);
-}
-
-export async function getEstadoProceso(clienteId: number): Promise<any> {
-  return request<any>(`/api/cliente-proceso/${clienteId}/estado`);
-}

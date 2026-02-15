@@ -2,6 +2,7 @@ package com.armasimportacion.model;
 
 import com.armasimportacion.enums.EstadoLicencia;
 import com.armasimportacion.enums.EstadoOcupacionLicencia;
+import com.armasimportacion.enums.TipoCuentaBancaria;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -65,8 +66,9 @@ public class Licencia {
     @Column(name = "nombre_banco", length = 100)
     private String nombreBanco;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_cuenta", length = 20)
-    private String tipoCuenta;
+    private TipoCuentaBancaria tipoCuenta;
 
     @Column(name = "cedula_cuenta", length = 20)
     private String cedulaCuenta;

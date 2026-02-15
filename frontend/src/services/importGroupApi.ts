@@ -83,13 +83,6 @@ export async function getCategoriasArmasParaGrupo(): Promise<Array<{ id: number;
   return request<Array<{ id: number; nombre: string; codigo: string; descripcion: string }>>('/api/grupos-importacion/categorias-armas');
 }
 
-export async function updateGrupoImportacion(id: number, grupoData: Partial<GrupoImportacion>): Promise<GrupoImportacion> {
-  return request<GrupoImportacion>(`/grupos-importacion/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(grupoData),
-  });
-}
-
 export async function getGruposActivos(): Promise<GrupoImportacion[]> {
   return request<GrupoImportacion[]>('/api/grupos-importacion/activos');
 }
@@ -117,13 +110,6 @@ export async function verificarGrupoDisponiblePorTipo(tipoClienteCodigo: string,
 
 export async function removerClienteDelGrupo(grupoId: number, clienteId: number): Promise<void> {
   await request(`/api/grupos-importacion/${grupoId}/clientes/${clienteId}`, { method: 'DELETE' });
-}
-
-export async function configurarCupo(grupoId: number, tipoCliente: string, cupoAsignado: number): Promise<void> {
-  await request(`/api/grupos-importacion/${grupoId}/cupos`, {
-    method: 'POST',
-    body: JSON.stringify({ tipoCliente, cupoAsignado }),
-  });
 }
 
 // Operaciones

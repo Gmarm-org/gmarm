@@ -1,6 +1,7 @@
 package com.armasimportacion.controller;
 
 import com.armasimportacion.dto.PreguntaClienteDTO;
+import com.armasimportacion.enums.TipoRespuesta;
 import com.armasimportacion.mapper.PreguntaClienteMapper;
 import com.armasimportacion.service.PreguntaClienteService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,7 +70,7 @@ public class PreguntaClienteController {
         existing.setOrden(dto.getOrden());
         existing.setObligatoria(dto.getObligatoria());
         existing.setEstado(dto.getEstado());
-        existing.setTipoRespuesta(dto.getTipoRespuesta());
+        existing.setTipoRespuesta(dto.getTipoRespuesta() != null ? TipoRespuesta.valueOf(dto.getTipoRespuesta()) : TipoRespuesta.TEXTO);
         var updated = service.save(existing);
         log.info("Pregunta actualizada: {}", updated.getPregunta());
         return ResponseEntity.ok(mapper.toDTO(updated));
