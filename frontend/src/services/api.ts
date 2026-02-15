@@ -167,6 +167,7 @@ export const apiService = {
   getArmasEnStockVendedor: weapons.getArmasEnStockVendedor,
   reasignarArmaACliente: weapons.reasignarArmaACliente,
   asignarNumeroSerie: weapons.asignarNumeroSerie,
+  getReservasPendientes: weapons.getReservasPendientes,
   getReservasPendientesAsignacion: weapons.getReservasPendientesAsignacion,
   getSeriesDisponibles: weapons.getSeriesDisponibles,
   asignarSerie: weapons.asignarSerie,

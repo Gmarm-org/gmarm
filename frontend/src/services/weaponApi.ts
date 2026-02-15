@@ -135,6 +135,10 @@ export async function asignarNumeroSerie(reservaId: number, numeroSerie: string)
   });
 }
 
+export async function getReservasPendientes(): Promise<any[]> {
+  return request<any[]>('/api/cliente-arma/pendientes');
+}
+
 // Asignacion de series
 export async function getReservasPendientesAsignacion(): Promise<any[]> {
   return request<any[]>('/api/asignacion-series/pendientes');
