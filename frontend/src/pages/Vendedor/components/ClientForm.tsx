@@ -310,10 +310,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
       const armasCliente = await apiService.getArmasCliente(clienteId);
       setLoadedArmas(armasCliente || []);
       
-      // OPTIMIZACIÓN: No cargar pagos y contratos aquí, solo cuando se necesiten (no se usan en el formulario)
-      // Esto reduce significativamente el tiempo de carga
-      setLoadedPagos([]);
-      setLoadedContratos([]);
+      // Cargar contratos/documentos generados del cliente
+      const contratos = await apiService.getContratosCliente(clienteId);
+      setLoadedContratos(contratos || []);
+
+      // Cargar pagos del cliente
+      const pagos = await apiService.getPagosCliente(clienteId);
+      setLoadedPagos(pagos || []);
       
       // Si hay armas asignadas, actualizar el precio modificado y selectedWeapon
       if (armasCliente && armasCliente.length > 0) {
