@@ -2,10 +2,7 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.enums.EstadoOcupacionLicencia;
 import com.armasimportacion.model.Licencia;
-import com.armasimportacion.model.GrupoImportacion;
-import com.armasimportacion.model.GrupoImportacionCupo;
 import com.armasimportacion.repository.LicenciaRepository;
-import com.armasimportacion.repository.GrupoImportacionCupoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +24,6 @@ import org.springframework.data.domain.Pageable;
 public class LicenciaService {
 
     private final LicenciaRepository licenciaRepository;
-    private final GrupoImportacionCupoRepository grupoImportacionCupoRepository;
     private final ConfiguracionSistemaService configuracionSistemaService;
 
     // Métodos CRUD básicos
@@ -184,28 +180,6 @@ public class LicenciaService {
         // Ahora los cupos se manejan a nivel de GrupoImportacion, no de Licencia
         // Retornar todas las licencias activas y no vencidas
         return obtenerLicenciasDisponibles();
-    }
-
-    /**
-     * Libera una licencia cuando se completa un grupo de importación
-     */
-    @Transactional
-    public void liberarLicencia(Long grupoImportacionId) {
-        List<GrupoImportacionCupo> cupos = grupoImportacionCupoRepository.findByGrupoImportacionId(grupoImportacionId);
-
-        if (!cupos.isEmpty()) {
-            Licencia licencia = cupos.get(0).getLicencia();
-
-            // Eliminar todos los registros de consumo
-            grupoImportacionCupoRepository.deleteByGrupoImportacionId(grupoImportacionId);
-
-            // Liberar la licencia
-            licencia.liberar();
-            licenciaRepository.save(licencia);
-
-            log.info("Licencia {} liberada exitosamente del grupo {}",
-                licencia.getNumero(), grupoImportacionId);
-        }
     }
 
     /**

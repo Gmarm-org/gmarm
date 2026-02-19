@@ -35,7 +35,6 @@ public class GrupoImportacionDTO {
     
     // Resúmenes de entidades relacionadas (solo IDs y contadores)
     private List<Long> clientesIds;
-    private List<Long> cuposIds;
     private List<Long> armasFisicasIds;
     private List<Long> accesoriosFisicosIds;
     private List<Long> asignacionesArmaIds;
@@ -45,7 +44,6 @@ public class GrupoImportacionDTO {
     
     // Contadores para estadísticas
     private Integer totalClientes;
-    private Integer totalCupos;
     private Integer totalArmasFisicas;
     private Integer totalAccesoriosFisicos;
     private Integer totalAsignacionesArma;
@@ -69,7 +67,6 @@ public class GrupoImportacionDTO {
     private java.time.LocalDate fechaInicio;
     private java.time.LocalDate fechaFin;
     private Integer cupoTotal;
-    private Integer cupoDisponible;
     private String observaciones;
     
     // Nuevos campos

@@ -73,9 +73,6 @@ public class GrupoImportacion {
     @Column(name = "cupo_total", nullable = false)
     private Integer cupoTotal;
 
-    @Column(name = "cupo_disponible", nullable = false)
-    private Integer cupoDisponible;
-
     @Column(name = "codigo", unique = true, length = 20)
     private String codigo;
 
@@ -114,9 +111,6 @@ public class GrupoImportacion {
     // Relaciones
     @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ClienteGrupoImportacion> clientes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<GrupoImportacionCupo> cupos = new ArrayList<>();
 
     @OneToMany(mappedBy = "grupoImportacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ArmaFisica> armasFisicas = new ArrayList<>();

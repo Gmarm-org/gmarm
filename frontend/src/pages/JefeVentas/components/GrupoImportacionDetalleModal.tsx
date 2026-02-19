@@ -33,9 +33,6 @@ interface GrupoImportacionResumen {
   clientesDeportistas: number;
   totalClientes: number;
   fechaUltimaActualizacion: string;
-  cupoCivilTotal?: number;
-  cupoCivilDisponible?: number;
-  cupoCivilRestante?: number;
 }
 
 interface GrupoImportacionDetalleModalProps {
@@ -167,27 +164,6 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{resumen.clientesCiviles}</div>
                     <div className="text-sm text-gray-600">Civiles</div>
-                    {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante <= 5 && resumen.cupoCivilRestante > 0 && (
-                      <div className={`mt-2 px-2 py-1 rounded text-xs font-medium ${
-                        resumen.cupoCivilRestante <= 1 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : resumen.cupoCivilRestante <= 3
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'bg-blue-50 text-blue-600'
-                      }`}>
-                        ℹ️ {resumen.cupoCivilRestante === 1 ? 'Casi completo' : `${resumen.cupoCivilRestante} cupos restantes`}
-                      </div>
-                    )}
-                    {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0 && (
-                      <div className="mt-2 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✅ Cupo completo ({resumen.cupoCivilTotal || 25}/{resumen.cupoCivilTotal || 25})
-                      </div>
-                    )}
-                    {resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante > 5 && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        Disponible: {resumen.cupoCivilRestante}/{resumen.cupoCivilTotal || 25}
-                      </div>
-                    )}
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600">{resumen.clientesDeportistas}</div>

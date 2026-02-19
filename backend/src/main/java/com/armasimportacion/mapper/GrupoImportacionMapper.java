@@ -29,7 +29,6 @@ public class GrupoImportacionMapper {
                 .fechaInicio(grupoImportacion.getFechaInicio())
                 .fechaFin(grupoImportacion.getFechaFin())
                 .cupoTotal(grupoImportacion.getCupoTotal())
-                .cupoDisponible(grupoImportacion.getCupoDisponible())
                 .observaciones(grupoImportacion.getObservaciones())
                 .tipoGrupo(grupoImportacion.getTipoGrupo() != null ? grupoImportacion.getTipoGrupo().name() : null)
                 .tra(grupoImportacion.getTra());

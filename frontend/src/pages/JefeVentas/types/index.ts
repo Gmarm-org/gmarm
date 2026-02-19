@@ -63,23 +63,6 @@ export interface License {
   descripcion?: string;
   fechaEmision?: string;
   cupoTotal?: number;
-  cupoDisponible?: number;
-  cupos?: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
-  cuposDisponibles?: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
-  cupoCivil?: number;
-  cupoMilitar?: number;
-  cupoEmpresa?: number;
-  cupoDeportista?: number;
   observaciones?: string;
   estado: string;
   clientesAsignados?: number;
@@ -98,24 +81,6 @@ export interface ImportGroup {
   fechaFin: string;
   licenciaAsignada: License | null;
   clientesAsignados: Client[];
-  cuposDisponibles: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
-  cuposUtilizados: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
-  cuposRestantes: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
 }
 
 export interface SalesStats {
@@ -224,10 +189,6 @@ export interface NewImportGroupForm {
   descripcion: string;
   fechaInicio: string;
   fechaFin: string;
-  cuposCivil: number;
-  cuposMilitar: number;
-  cuposEmpresa: number;
-  cuposDeportista: number;
 }
 
 export interface ClientApprovalForm {

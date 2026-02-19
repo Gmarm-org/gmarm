@@ -171,23 +171,6 @@ const ClientAssignmentPage: React.FC = () => {
     ));
   };
 
-  const getCupoDisponible = (tipoCliente: string) => {
-    if (!importGroup) return 0;
-    
-    switch (tipoCliente) {
-      case 'CIVIL':
-        return importGroup.cuposDisponibles.civil - assignments.filter(a => a.cliente.tipoCliente === 'CIVIL').length;
-      case 'MILITAR':
-        return importGroup.cuposDisponibles.militar - assignments.filter(a => a.cliente.tipoCliente === 'MILITAR').length;
-      case 'EMPRESA':
-        return importGroup.cuposDisponibles.empresa - assignments.filter(a => a.cliente.tipoCliente === 'EMPRESA').length;
-      case 'DEPORTISTA':
-        return importGroup.cuposDisponibles.deportista - assignments.filter(a => a.cliente.tipoCliente === 'DEPORTISTA').length;
-      default:
-        return 0;
-    }
-  };
-
   if (!importGroup) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -231,37 +214,6 @@ const ClientAssignmentPage: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Resumen de Cupos */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Resumen de Cupos</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {getCupoDisponible('CIVIL')}
-              </div>
-              <div className="text-sm text-gray-500">Cupos Civiles</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {getCupoDisponible('MILITAR')}
-              </div>
-              <div className="text-sm text-gray-500">Cupos Militares</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {getCupoDisponible('EMPRESA')}
-              </div>
-              <div className="text-sm text-gray-500">Cupos Empresas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {getCupoDisponible('DEPORTISTA')}
-              </div>
-              <div className="text-sm text-gray-500">Cupos Deportistas</div>
-            </div>
-          </div>
-        </div>
-
                  {/* Documentos del Grupo */}
          <div className="bg-white rounded-lg shadow p-6 mb-8">
            <div className="flex items-center justify-between mb-4">
@@ -672,25 +624,6 @@ const ClientAssignmentPage: React.FC = () => {
                     No se encontraron clientes disponibles
                   </div>
                 )}
-              </div>
-              
-              {/* Cupos Disponibles */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                <h4 className="font-medium text-gray-900 mb-2">Cupos Disponibles:</h4>
-                <div className="grid grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Civil:</span> {getCupoDisponible('CIVIL')}
-                  </div>
-                  <div>
-                    <span className="font-medium">Militar:</span> {getCupoDisponible('MILITAR')}
-                  </div>
-                  <div>
-                    <span className="font-medium">Empresa:</span> {getCupoDisponible('EMPRESA')}
-                  </div>
-                  <div>
-                    <span className="font-medium">Deportista:</span> {getCupoDisponible('DEPORTISTA')}
-                  </div>
-                </div>
               </div>
               
               {/* Botones de Acción */}

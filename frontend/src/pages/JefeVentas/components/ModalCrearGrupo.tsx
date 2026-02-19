@@ -5,10 +5,7 @@ interface Licencia {
   id: number;
   numero: string;
   nombre: string;
-  cupoCivil?: number;
-  cupoMilitar?: number;
-  cupoEmpresa?: number;
-  cupoDeportista?: number;
+  cupoTotal?: number;
 }
 
 interface ModalCrearGrupoProps {
@@ -131,10 +128,6 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
                 id: licenciaIdGrupo,
                 numero: (grupo as any).licencia.numero || '',
                 nombre: (grupo as any).licencia.nombre || '',
-                cupoCivil: 0,
-                cupoMilitar: 0,
-                cupoEmpresa: 0,
-                cupoDeportista: 0
               };
               return [...licenciasActuales, licenciaDelGrupo];
             }
@@ -471,18 +464,12 @@ const ModalCrearGrupo: React.FC<ModalCrearGrupoProps> = ({ onClose, onSuccess, g
                     ? 'No hay licencias disponibles' 
                     : 'Selecciona una licencia'}
               </option>
-              {licencias.map((licencia) => {
-                const cupoTotal = (licencia.cupoCivil || 0) + 
-                                 (licencia.cupoMilitar || 0) + 
-                                 (licencia.cupoEmpresa || 0) + 
-                                 (licencia.cupoDeportista || 0);
-                return (
+              {licencias.map((licencia) => (
                   <option key={licencia.id} value={String(licencia.id)}>
-                    {licencia.numero} - {licencia.nombre} 
-                    {cupoTotal > 0 && ` (Cupo Total: ${cupoTotal})`}
+                    {licencia.numero} - {licencia.nombre}
+                    {licencia.cupoTotal && licencia.cupoTotal > 0 && ` (Cupo Total: ${licencia.cupoTotal})`}
                   </option>
-                );
-              })}
+              ))}
             </select>
             {loading && (
               <p className="text-sm text-gray-500 mt-1">⏳ Cargando licencias disponibles...</p>

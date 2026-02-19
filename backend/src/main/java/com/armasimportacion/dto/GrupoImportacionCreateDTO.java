@@ -33,9 +33,8 @@ public class GrupoImportacionCreateDTO {
     // Fecha fin se establece automáticamente al finalizar el proceso
     private LocalDate fechaFin;
     
-    // Cupos se calculan automáticamente desde la licencia
+    // Cupo total se calcula automáticamente o se provee manualmente
     private Integer cupoTotal;
-    private Integer cupoDisponible;
     
     // Código se genera automáticamente, no debe ser visible
     private String codigo;

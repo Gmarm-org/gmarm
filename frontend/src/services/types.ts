@@ -109,18 +109,6 @@ export interface GrupoImportacion {
   fechaCreacion: string;
   fechaActualizacion?: string;
   estado: string;
-  cuposDisponibles: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
-  cuposUtilizados: {
-    civil: number;
-    militar: number;
-    empresa: number;
-    deportista: number;
-  };
   clientesAsignados: number;
 }
 

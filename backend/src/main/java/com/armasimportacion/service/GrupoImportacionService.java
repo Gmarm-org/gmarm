@@ -1,14 +1,12 @@
 package com.armasimportacion.service;
 
 import com.armasimportacion.dto.GrupoImportacionResumenDTO;
-import com.armasimportacion.enums.TipoClienteCupo;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
-import com.armasimportacion.model.GrupoImportacionCupo;
 import com.armasimportacion.model.GrupoImportacionVendedor;
 import com.armasimportacion.model.GrupoImportacionLimiteCategoria;
 import com.armasimportacion.model.CategoriaArma;
@@ -20,7 +18,6 @@ import com.armasimportacion.model.Usuario;
 import com.armasimportacion.dto.GrupoImportacionCreateDTO;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import com.armasimportacion.repository.ClienteArmaRepository;
-import com.armasimportacion.repository.GrupoImportacionCupoRepository;
 import com.armasimportacion.repository.ArmaSerieRepository;
 import com.armasimportacion.repository.CategoriaArmaRepository;
 import com.armasimportacion.repository.GrupoImportacionRepository;
@@ -59,7 +56,6 @@ public class GrupoImportacionService {
 
     private final GrupoImportacionRepository grupoImportacionRepository;
     private final ClienteGrupoImportacionRepository clienteGrupoRepository;
-    private final GrupoImportacionCupoRepository cupoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ClienteArmaRepository clienteArmaRepository;
     private final LicenciaRepository licenciaRepository;
@@ -69,6 +65,8 @@ public class GrupoImportacionService {
     private final CategoriaArmaRepository categoriaArmaRepository;
     private final ArmaSerieRepository armaSerieRepository;
     private final GrupoImportacionWorkflowService workflowService;
+    private final GrupoImportacionMatchingService matchingService;
+    private final NotificacionService notificacionService;
 
     // ============================================================
     // CRUD Operations
@@ -91,6 +89,21 @@ public class GrupoImportacionService {
 
         asignarVendedoresAlGrupo(grupoGuardado, dto.getVendedores());
         asignarLimitesPorCategoria(grupoGuardado, dto.getLimitesCategoria());
+
+        // Auto-asignar armas en espera al nuevo grupo CUPO
+        if (grupoGuardado.getTipoGrupo() == TipoGrupo.CUPO) {
+            try {
+                int armasAsignadas = matchingService.autoAsignarArmasEnEspera(grupoGuardado);
+                if (armasAsignadas > 0) {
+                    notificacionService.notificarAutoAsignacionArmas(
+                        grupoGuardado.getId(), grupoGuardado.getNombre(), armasAsignadas);
+                    log.info("{} arma(s) en espera auto-asignada(s) al nuevo grupo CUPO ID: {}",
+                        armasAsignadas, grupoGuardado.getId());
+                }
+            } catch (Exception e) {
+                log.warn("Error en auto-asignación de armas en espera (no crítico): {}", e.getMessage());
+            }
+        }
 
         return grupoGuardado;
     }
@@ -132,7 +145,6 @@ public class GrupoImportacionService {
         grupo.setFechaInicio(fechaInicio);
         grupo.setFechaFin(dto.getFechaFin());
         grupo.setCupoTotal(cupoTotal);
-        grupo.setCupoDisponible(cupoTotal);
         grupo.setObservaciones(dto.getObservaciones());
 
         if (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) {
@@ -580,8 +592,8 @@ public class GrupoImportacionService {
         if (!asignacionesVendedor.isEmpty()) {
             asignacionesVendedor.forEach(asig -> {
                 GrupoImportacion grupo = asig.getGrupoImportacion();
-                log.info("Grupo encontrado: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}",
-                    grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(), grupo.getCupoDisponible());
+                log.info("Grupo encontrado: ID={}, Nombre={}, Estado={}, Tipo={}, CupoTotal={}",
+                    grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(), grupo.getCupoTotal());
             });
         }
 
@@ -592,24 +604,8 @@ public class GrupoImportacionService {
 
         List<GrupoImportacion> gruposDisponibles = asignacionesVendedor.stream()
             .map(GrupoImportacionVendedor::getGrupoImportacion)
-            .filter(grupo -> {
-                if (grupo.getTipoGrupo() == TipoGrupo.CUPO) {
-                    boolean tieneCupo = grupo.getCupoDisponible() != null && grupo.getCupoDisponible() > 0;
-                    if (!tieneCupo) {
-                        log.warn("Grupo ID={} (CUPO) filtrado: sin cupo disponible (disponible={}, total={})",
-                            grupo.getId(), grupo.getCupoDisponible(), grupo.getCupoTotal());
-                    }
-                    return tieneCupo;
-                } else if (grupo.getTipoGrupo() == TipoGrupo.JUSTIFICATIVO) {
-                    log.debug("Grupo ID={} (JUSTIFICATIVO) disponible", grupo.getId());
-                    return true;
-                }
-                log.warn("Grupo ID={} sin tipo definido, considerando disponible", grupo.getId());
-                return true;
-            })
-            .peek(grupo -> log.info("Grupo DISPONIBLE: ID={}, Nombre={}, Estado={}, Tipo={}, CupoDisponible={}, CupoTotal={}",
-                grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(),
-                grupo.getCupoDisponible(), grupo.getCupoTotal()))
+            .peek(grupo -> log.info("Grupo DISPONIBLE: ID={}, Nombre={}, Estado={}, Tipo={}, CupoTotal={}",
+                grupo.getId(), grupo.getNombre(), grupo.getEstado(), grupo.getTipoGrupo(), grupo.getCupoTotal()))
             .collect(Collectors.toList());
 
         log.info("RESULTADO FINAL: {} grupo(s) disponible(s) para vendedor ID: {}",
@@ -628,50 +624,6 @@ public class GrupoImportacionService {
 
     public void cambiarEstado(Long id, EstadoGrupoImportacion nuevoEstado) {
         workflowService.cambiarEstado(id, nuevoEstado, null);
-    }
-
-    // ============================================================
-    // Gestión de Cupos
-    // ============================================================
-
-    public void configurarCupo(Long grupoId, TipoClienteCupo tipoCliente, Integer cupoAsignado) {
-        GrupoImportacion grupo = obtenerGrupoImportacion(grupoId);
-
-        Optional<GrupoImportacionCupo> cupoExistente = cupoRepository
-                .findByGrupoImportacionIdAndTipoCliente(grupoId, tipoCliente);
-
-        GrupoImportacionCupo cupo;
-        if (cupoExistente.isPresent()) {
-            cupo = cupoExistente.get();
-            cupo.setCupoConsumido(cupoAsignado);
-            cupo.setCupoDisponibleLicencia(cupoAsignado);
-        } else {
-            cupo = new GrupoImportacionCupo();
-            cupo.setGrupoImportacion(grupo);
-            cupo.setTipoCliente(tipoCliente);
-            cupo.setCupoConsumido(cupoAsignado);
-            cupo.setCupoDisponibleLicencia(cupoAsignado);
-            cupo.setFechaCreacion(LocalDateTime.now());
-        }
-
-        cupoRepository.save(cupo);
-    }
-
-    public boolean tieneCupoDisponible(Long grupoId, TipoClienteCupo tipoCliente) {
-        return cupoRepository.tieneCupoDisponible(grupoId, tipoCliente);
-    }
-
-    public void decrementarCupo(Long grupoId, TipoClienteCupo tipoCliente) {
-        GrupoImportacionCupo cupo = cupoRepository
-                .findByGrupoImportacionIdAndTipoCliente(grupoId, tipoCliente)
-                .orElseThrow(() -> new ResourceNotFoundException("Cupo no encontrado"));
-
-        if (!cupo.tieneCupoDisponible()) {
-            throw new BadRequestException("No hay cupo disponible para el tipo: " + tipoCliente);
-        }
-
-        cupo.incrementarCupoConsumido();
-        cupoRepository.save(cupo);
     }
 
     // ============================================================

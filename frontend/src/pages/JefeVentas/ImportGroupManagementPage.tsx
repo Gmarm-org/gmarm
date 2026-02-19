@@ -45,20 +45,6 @@ const ImportGroupManagementPage: React.FC = () => {
     }
   };
 
-  const getTotalCupos = (group: ImportGroup) => {
-    return group.cuposDisponibles.civil + 
-           group.cuposDisponibles.militar + 
-           group.cuposDisponibles.empresa + 
-           group.cuposDisponibles.deportista;
-  };
-
-  const getCuposUtilizados = (group: ImportGroup) => {
-    return group.cuposUtilizados.civil + 
-           group.cuposUtilizados.militar + 
-           group.cuposUtilizados.empresa + 
-           group.cuposUtilizados.deportista;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -148,50 +134,6 @@ const ImportGroupManagementPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Cupos */}
-                    <div className="mb-4">
-                      <h5 className="font-medium text-gray-900 mb-2">Cupos Disponibles:</h5>
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-blue-600">
-                            {group.cuposDisponibles.civil}
-                          </div>
-                          <div className="text-gray-500">Civiles</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-green-600">
-                            {group.cuposDisponibles.militar}
-                          </div>
-                          <div className="text-gray-500">Militares</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-purple-600">
-                            {group.cuposDisponibles.empresa}
-                          </div>
-                          <div className="text-gray-500">Empresas</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-orange-600">
-                            {group.cuposDisponibles.deportista}
-                          </div>
-                          <div className="text-gray-500">Deportistas</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progreso de Cupos */}
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>Cupos Utilizados</span>
-                        <span>{getCuposUtilizados(group)} / {getTotalCupos(group)}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(getCuposUtilizados(group) / getTotalCupos(group)) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
                   </div>
                   
                   <div className="flex items-center space-x-2 ml-4">
