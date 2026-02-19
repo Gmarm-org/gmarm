@@ -408,6 +408,71 @@ public class GrupoImportacionMatchingService {
         return null;
     }
 
+    /**
+     * Auto-asigna armas en estado EN_ESPERA al nuevo grupo CUPO.
+     * Retorna la cantidad de armas asignadas.
+     */
+    public int autoAsignarArmasEnEspera(GrupoImportacion nuevoGrupo) {
+        if (nuevoGrupo.getTipoGrupo() != TipoGrupo.CUPO) {
+            return 0;
+        }
+
+        log.info("Buscando armas en espera para auto-asignar al grupo CUPO ID: {}", nuevoGrupo.getId());
+
+        List<ClienteArma> armasEnEspera = clienteArmaRepository.findByEstado(ClienteArma.EstadoClienteArma.EN_ESPERA);
+        if (armasEnEspera.isEmpty()) {
+            log.info("No hay armas en espera para auto-asignar");
+            return 0;
+        }
+
+        Map<Long, Integer> cuposDisponibles = calcularCuposDisponiblesPorCategoria(nuevoGrupo.getId());
+        int asignadas = 0;
+
+        for (ClienteArma clienteArma : armasEnEspera) {
+            Cliente cliente = clienteArma.getCliente();
+
+            // Verificar compatibilidad cliente-grupo
+            if (!esClienteCompatibleConGrupo(cliente, nuevoGrupo)) {
+                continue;
+            }
+
+            Long categoriaId = clienteArma.getArma().getCategoria() != null
+                ? clienteArma.getArma().getCategoria().getId() : null;
+            if (categoriaId == null) continue;
+
+            Integer disponibles = cuposDisponibles.get(categoriaId);
+            if (disponibles == null || disponibles <= 0) continue;
+
+            // Verificar que el cliente no esté ya en este grupo
+            if (clienteGrupoRepository.existsByClienteAndGrupoImportacion(cliente, nuevoGrupo)) {
+                continue;
+            }
+
+            // Asignar al grupo
+            ClienteGrupoImportacion clienteGrupo = new ClienteGrupoImportacion();
+            clienteGrupo.setCliente(cliente);
+            clienteGrupo.setGrupoImportacion(nuevoGrupo);
+            clienteGrupo.setEstado(EstadoClienteGrupo.PENDIENTE);
+            clienteGrupo.setFechaAsignacion(java.time.LocalDateTime.now());
+            clienteGrupo.setFechaCreacion(java.time.LocalDateTime.now());
+            clienteGrupoRepository.save(clienteGrupo);
+
+            // Cambiar estado del arma de EN_ESPERA a RESERVADA
+            clienteArma.reservar();
+            clienteArmaRepository.save(clienteArma);
+
+            // Decrementar cupo local
+            cuposDisponibles.put(categoriaId, disponibles - 1);
+            asignadas++;
+
+            log.info("Arma en espera ID {} auto-asignada al grupo ID {} (cliente: {}, categoría: {})",
+                clienteArma.getId(), nuevoGrupo.getId(), cliente.getId(), categoriaId);
+        }
+
+        log.info("Auto-asignación completada: {} arma(s) asignada(s) al grupo ID {}", asignadas, nuevoGrupo.getId());
+        return asignadas;
+    }
+
     private static class GrupoImportacionConPrioridad {
         GrupoImportacion grupo;
         int porcentajeOcupado;

@@ -203,6 +203,97 @@ public class NotificacionService {
         crearNotificacion(notificacion);
     }
     
+    // Alertas de cupo de grupos de importación
+
+    private static final int UMBRAL_ALERTA_AMARILLA = 10;
+    private static final int UMBRAL_ALERTA_ROJA = 5;
+
+    public void notificarCupoBajo(Long grupoId, String grupoNombre, String categoriaNombre, int cuposRestantes, int limiteMaximo) {
+        boolean esUrgente = cuposRestantes <= UMBRAL_ALERTA_ROJA;
+        boolean esAgotado = cuposRestantes == 0;
+
+        String titulo;
+        if (esAgotado) {
+            titulo = "Cupo agotado: " + categoriaNombre;
+        } else if (esUrgente) {
+            titulo = "Cupo critico: " + categoriaNombre;
+        } else {
+            titulo = "Cupo bajo: " + categoriaNombre;
+        }
+
+        String mensaje = String.format(
+            "El grupo \"%s\" tiene %d/%d cupos disponibles para la categoría %s. %s",
+            grupoNombre, cuposRestantes, limiteMaximo, categoriaNombre,
+            esAgotado ? "No se pueden asignar más armas de esta categoría." :
+            esUrgente ? "Se recomienda crear un nuevo grupo CUPO." :
+            "Considere preparar un nuevo grupo CUPO."
+        );
+
+        List<Usuario> jefesVentas = usuarioRepository.findByRolesNombre("JEFE_VENTAS");
+        for (Usuario jefe : jefesVentas) {
+            Notificacion notificacion = new Notificacion();
+            notificacion.setTitulo(titulo);
+            notificacion.setMensaje(mensaje);
+            notificacion.setTipo(TipoNotificacion.ALERTA);
+            notificacion.setUsuarioDestinatario(jefe);
+            notificacion.setUrlRedireccion("/jefe-ventas/grupos/" + grupoId);
+            crearNotificacion(notificacion);
+        }
+
+        log.info("Alerta de cupo bajo enviada: grupo={}, categoría={}, restantes={}/{}",
+            grupoNombre, categoriaNombre, cuposRestantes, limiteMaximo);
+    }
+
+    public void notificarArmaEnEspera(String clienteNombre, String categoriaNombre) {
+        List<Usuario> jefesVentas = usuarioRepository.findByRolesNombre("JEFE_VENTAS");
+        for (Usuario jefe : jefesVentas) {
+            Notificacion notificacion = new Notificacion();
+            notificacion.setTitulo("Arma en espera de grupo");
+            notificacion.setMensaje(String.format(
+                "El cliente %s tiene un arma de categoría %s sin grupo CUPO disponible. " +
+                "Cree un nuevo grupo CUPO para asignarla automáticamente.",
+                clienteNombre, categoriaNombre
+            ));
+            notificacion.setTipo(TipoNotificacion.ALERTA);
+            notificacion.setUsuarioDestinatario(jefe);
+            crearNotificacion(notificacion);
+        }
+    }
+
+    public void notificarArmasDistribuidasEnGrupos(String clienteNombre, String grupo1Nombre, String grupo2Nombre) {
+        List<Usuario> jefesVentas = usuarioRepository.findByRolesNombre("JEFE_VENTAS");
+        for (Usuario jefe : jefesVentas) {
+            Notificacion notificacion = new Notificacion();
+            notificacion.setTitulo("Armas en grupos diferentes");
+            notificacion.setMensaje(String.format(
+                "El cliente %s tiene armas asignadas en grupos diferentes: \"%s\" y \"%s\".",
+                clienteNombre, grupo1Nombre, grupo2Nombre
+            ));
+            notificacion.setTipo(TipoNotificacion.ALERTA);
+            notificacion.setUsuarioDestinatario(jefe);
+            crearNotificacion(notificacion);
+        }
+    }
+
+    public void notificarAutoAsignacionArmas(Long grupoId, String grupoNombre, int cantidadAsignada) {
+        List<Usuario> jefesVentas = usuarioRepository.findByRolesNombre("JEFE_VENTAS");
+        for (Usuario jefe : jefesVentas) {
+            Notificacion notificacion = new Notificacion();
+            notificacion.setTitulo("Armas auto-asignadas");
+            notificacion.setMensaje(String.format(
+                "Se asignaron automáticamente %d arma(s) en espera al nuevo grupo \"%s\".",
+                cantidadAsignada, grupoNombre
+            ));
+            notificacion.setTipo(TipoNotificacion.SISTEMA);
+            notificacion.setUsuarioDestinatario(jefe);
+            notificacion.setUrlRedireccion("/jefe-ventas/grupos/" + grupoId);
+            crearNotificacion(notificacion);
+        }
+    }
+
+    public static int getUmbralAlertaAmarilla() { return UMBRAL_ALERTA_AMARILLA; }
+    public static int getUmbralAlertaRoja() { return UMBRAL_ALERTA_ROJA; }
+
     // Utilidades
     public int contarNotificacionesNoLeidas(Long usuarioId) {
         return notificacionRepository.countByUsuarioDestinatarioIdAndEstado(usuarioId, EstadoNotificacion.NO_LEIDA);

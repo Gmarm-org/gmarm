@@ -64,6 +64,7 @@ public class ClienteArma {
     public enum EstadoClienteArma {
         DISPONIBLE,
         RESERVADA,
+        EN_ESPERA,
         ASIGNADA,
         CANCELADA,
         COMPLETADA,
@@ -74,6 +75,10 @@ public class ClienteArma {
     public void reservar() {
         this.estado = EstadoClienteArma.RESERVADA;
         this.fechaAsignacion = LocalDateTime.now();
+    }
+
+    public void ponerEnEspera() {
+        this.estado = EstadoClienteArma.EN_ESPERA;
     }
 
     public void asignar(String numeroSerie) {
@@ -96,6 +101,10 @@ public class ClienteArma {
 
     public boolean estaReservada() {
         return EstadoClienteArma.RESERVADA.equals(this.estado);
+    }
+
+    public boolean estaEnEspera() {
+        return EstadoClienteArma.EN_ESPERA.equals(this.estado);
     }
 
     public boolean estaAsignada() {

@@ -254,29 +254,37 @@ export const useVendedorHandlers = (
       try {
         // Buscar o crear el cliente fantasma del vendedor en el backend
         const clienteFantasma = await apiService.buscarOCrearClienteFantasmaVendedor();
-        
+
         // Crear reservas para todas las armas seleccionadas
+        const todasAdvertencias: string[] = [];
         for (const arma of armasParaReservar) {
           const precioUnitario = arma.precioUnitario !== undefined
             ? arma.precioUnitario
             : (weaponPrices[arma.id] !== undefined ? weaponPrices[arma.id] : precioModificado);
           const cantidadArma = arma.cantidad !== undefined ? arma.cantidad : cantidad;
           const precioTotal = precioUnitario * cantidadArma;
-          await apiService.crearReservaArma(
+          const resultado = await apiService.crearReservaArma(
             parseInt(clienteFantasma.id.toString()),
             parseInt(arma.id.toString()),
             cantidadArma,
             precioUnitario,
             precioTotal
           );
+          if (resultado?.advertencias?.length) {
+            todasAdvertencias.push(...resultado.advertencias);
+          }
         }
-        
+
         // Refrescar datos y mostrar mensaje
         await loadWeapons();
         await loadClients();
 
-        // Mostrar mensaje y volver al dashboard
-        alert(`✅ ${armasParaReservar.length} arma(s) asignada(s) exitosamente. Las armas quedarán en tu stock.`);
+        // Mostrar mensaje y advertencias si existen
+        let mensaje = `✅ ${armasParaReservar.length} arma(s) asignada(s) exitosamente. Las armas quedaran en tu stock.`;
+        if (todasAdvertencias.length > 0) {
+          mensaje += '\n\n⚠️ Advertencias:\n' + todasAdvertencias.map(a => '- ' + a).join('\n');
+        }
+        alert(mensaje);
         
         // Limpiar selección y volver al dashboard
         setSelectedWeapon(null);
@@ -302,23 +310,31 @@ export const useVendedorHandlers = (
     const clienteActual = clientFormData || selectedClient;
     if (clienteActual?.id && armasParaReservar.length > 0) {
       try {
-        
+
         // Crear reservas para todas las armas seleccionadas
+        const todasAdvertenciasCliente: string[] = [];
         for (const arma of armasParaReservar) {
           const precioUnitario = arma.precioUnitario !== undefined
             ? arma.precioUnitario
             : (weaponPrices[arma.id] !== undefined ? weaponPrices[arma.id] : precioModificado);
           const cantidadArma = arma.cantidad !== undefined ? arma.cantidad : cantidad;
           const precioTotal = precioUnitario * cantidadArma;
-          await apiService.crearReservaArma(
+          const resultado = await apiService.crearReservaArma(
             parseInt(clienteActual.id.toString()),
             parseInt(arma.id.toString()),
             cantidadArma,
             precioUnitario,
             precioTotal
           );
+          if (resultado?.advertencias?.length) {
+            todasAdvertenciasCliente.push(...resultado.advertencias);
+          }
         }
-        
+
+        if (todasAdvertenciasCliente.length > 0) {
+          alert('⚠️ Advertencias de asignacion:\n' + todasAdvertenciasCliente.map(a => '- ' + a).join('\n'));
+        }
+
       } catch (error: any) {
         console.error('Error guardando reserva(s) de arma:', error instanceof Error ? error.message : 'Unknown error');
         const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al guardar reserva';

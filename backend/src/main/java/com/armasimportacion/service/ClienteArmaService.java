@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +42,7 @@ public class ClienteArmaService {
     private final GrupoImportacionClienteService grupoImportacionClienteService;
     private final GrupoImportacionMatchingService grupoImportacionMatchingService;
     private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
+    private final NotificacionService notificacionService;
 
     /**
      * Verifica si un cliente tiene armas asignadas (en estado ASIGNADA)
@@ -170,91 +173,102 @@ public class ClienteArmaService {
         log.info("Reserva creada exitosamente con ID: {}", saved.getId());
         
         // ASIGNACIÓN AUTOMÁTICA INTELIGENTE: Asignar cliente a grupo basado en la categoría del arma
-        // Para cliente fantasma, asignar como CUPO (mismo flujo de civil)
-        {
-            try {
-                // Obtener vendedor del cliente
-                Long vendedorId = cliente.getUsuarioCreador() != null ? cliente.getUsuarioCreador().getId() : null;
-                
-                if (vendedorId != null) {
-                    if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
-                        ClienteGrupoImportacion asignacion =
-                            grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
-                        if (asignacion == null) {
-                            log.warn("No se encontró grupo CUPO disponible para cliente fantasma ID {}", cliente.getId());
+        List<String> advertencias = new ArrayList<>();
+
+        try {
+            Long vendedorId = cliente.getUsuarioCreador() != null ? cliente.getUsuarioCreador().getId() : null;
+
+            if (vendedorId != null) {
+                if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
+                    ClienteGrupoImportacion asignacion =
+                        grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, vendedorId);
+                    if (asignacion == null) {
+                        saved.ponerEnEspera();
+                        saved = clienteArmaRepository.save(saved);
+                        advertencias.add("No se encontró grupo CUPO disponible. El arma quedó en espera de asignación.");
+                        notificarArmaEnEsperaSeguro(cliente.getNombreCompleto(),
+                            arma.getCategoria() != null ? arma.getCategoria().getNombre() : "Sin categoría");
+                    }
+                } else {
+                    Long categoriaArmaId = arma.getCategoria() != null ? arma.getCategoria().getId() : null;
+                    String categoriaNombre = arma.getCategoria() != null ? arma.getCategoria().getNombre() : "Sin categoría";
+
+                    if (categoriaArmaId != null) {
+                        boolean esSegundaArma = reservasActivas.size() >= 1;
+
+                        // Obtener grupo de la primera arma (para detectar split)
+                        String grupoPrimeraArmaNombre = null;
+                        if (esSegundaArma) {
+                            List<ClienteGrupoImportacion> asignacionesExistentes = clienteGrupoImportacionRepository.findByClienteId(clienteId);
+                            grupoPrimeraArmaNombre = asignacionesExistentes.stream()
+                                .filter(cgi -> cgi.getEstado() != EstadoClienteGrupo.CANCELADO && cgi.getEstado() != EstadoClienteGrupo.COMPLETADO)
+                                .map(cgi -> cgi.getGrupoImportacion().getNombre())
+                                .findFirst().orElse(null);
                         }
-                    } else {
-                        // Obtener categoría del arma
-                        Long categoriaArmaId = arma.getCategoria() != null ? arma.getCategoria().getId() : null;
-                    
-                        if (categoriaArmaId != null) {
-                        // Verificar si es segunda arma (para Cliente Civil con 2 armas)
-                        // reservasActivas ya incluye la reserva que acabamos de crear (aún no está guardada, pero la contamos)
-                        boolean esSegundaArma = reservasActivas.size() >= 1; // Si ya había 1 reserva activa, esta es la segunda
-                        
-                        // Buscar grupo disponible para esta categoría de arma
-                        GrupoImportacion grupoDisponible = 
+
+                        GrupoImportacion grupoDisponible =
                             grupoImportacionMatchingService.encontrarGrupoDisponibleParaArma(
-                                vendedorId, 
-                                cliente, 
-                                categoriaArmaId,
-                                esSegundaArma
-                            );
-                        
+                                vendedorId, cliente, categoriaArmaId, esSegundaArma);
+
                         if (grupoDisponible != null) {
-                            // Verificar si el cliente ya está asignado a este grupo
                             boolean yaAsignado = clienteGrupoImportacionRepository.existsByClienteAndGrupoImportacion(
                                 cliente, grupoDisponible);
-                            
+
                             if (!yaAsignado) {
-                                // Crear asignación al grupo (estado PENDIENTE)
-                                ClienteGrupoImportacion clienteGrupo = 
-                                    new ClienteGrupoImportacion();
+                                ClienteGrupoImportacion clienteGrupo = new ClienteGrupoImportacion();
                                 clienteGrupo.setCliente(cliente);
                                 clienteGrupo.setGrupoImportacion(grupoDisponible);
                                 clienteGrupo.setEstado(EstadoClienteGrupo.PENDIENTE);
                                 clienteGrupo.setFechaAsignacion(java.time.LocalDateTime.now());
-                                
                                 clienteGrupoImportacionRepository.save(clienteGrupo);
-                                
-                                log.info("Cliente ID {} asignado automáticamente al grupo ID {} (categoría arma: {}, segunda arma: {})",
+
+                                log.info("Cliente ID {} asignado al grupo ID {} (categoría: {}, segunda arma: {})",
                                     cliente.getId(), grupoDisponible.getId(), categoriaArmaId, esSegundaArma);
-                            } else {
-                                log.info("Cliente ID {} ya está asignado al grupo ID {}",
-                                    cliente.getId(), grupoDisponible.getId());
                             }
+
+                            // Detectar split de grupos (segunda arma en grupo diferente)
+                            if (esSegundaArma && grupoPrimeraArmaNombre != null
+                                && !grupoPrimeraArmaNombre.equals(grupoDisponible.getNombre())) {
+                                String advertenciaSplit = String.format(
+                                    "Esta arma fue asignada al grupo \"%s\" porque el grupo \"%s\" no tiene cupo disponible para esta categoría.",
+                                    grupoDisponible.getNombre(), grupoPrimeraArmaNombre);
+                                advertencias.add(advertenciaSplit);
+                                notificarSplitSeguro(cliente.getNombreCompleto(), grupoPrimeraArmaNombre, grupoDisponible.getNombre());
+                            }
+
+                            // Verificar cupos restantes y enviar alertas
+                            verificarYNotificarCupoBajo(grupoDisponible, categoriaArmaId, categoriaNombre);
+
                         } else {
-                            // Si no hay grupo disponible, informar pero solo lanzar excepción si no es cliente fantasma
-                            String mensajeError = esSegundaArma
-                                ? String.format(
-                                    "No se encontró un segundo grupo de importación disponible para asignar la segunda arma del cliente. " +
-                                    "El cliente ya está asignado a un grupo para su primera arma. " +
-                                    "Solo se procesará la primera arma seleccionada. Por favor, contacte al jefe de ventas para crear grupos adicionales."
-                                )
-                                : String.format(
-                                    "No se encontró grupo de importación disponible para asignar el cliente con arma de categoría %s. " +
-                                    "Por favor, comuníquese con el jefe de ventas para crear un grupo de importación o verificar la disponibilidad.",
-                                    categoriaArmaId
-                                );
-                            
-                            log.warn("No se encontró grupo disponible para asignar cliente ID {} con arma categoría {} (segunda arma: {})",
+                            // No hay grupo disponible → poner en espera
+                            saved.ponerEnEspera();
+                            saved = clienteArmaRepository.save(saved);
+
+                            String mensajeEspera = esSegundaArma
+                                ? String.format("La segunda arma (%s) quedó en espera porque no hay grupo CUPO disponible. " +
+                                    "Se asignará automáticamente cuando se cree un nuevo grupo.", categoriaNombre)
+                                : String.format("El arma (%s) quedó en espera porque no hay grupo CUPO disponible. " +
+                                    "Se asignará automáticamente cuando se cree un nuevo grupo.", categoriaNombre);
+                            advertencias.add(mensajeEspera);
+
+                            notificarArmaEnEsperaSeguro(cliente.getNombreCompleto(), categoriaNombre);
+
+                            log.warn("Arma en espera: cliente ID {} con arma categoría {} (segunda arma: {})",
                                 cliente.getId(), categoriaArmaId, esSegundaArma);
-                            
-                            throw new BadRequestException(mensajeError);
-                        }
                         }
                     }
                 }
-            } catch (Exception e) {
-                // No fallar la creación de la reserva si falla la asignación automática
-                log.error("Error en asignación automática a grupo (no crítico): {}", e.getMessage(), e);
             }
+        } catch (Exception e) {
+            log.error("Error en asignación automática a grupo (no crítico): {}", e.getMessage(), e);
+            advertencias.add("Error en asignación automática: " + e.getMessage());
         }
-        
-        // NOTA: El contrato se genera en ClienteCompletoService, no aquí
+
         log.info("Reserva creada. El contrato será generado por ClienteCompletoService");
-        
-        return convertirADTO(saved);
+
+        ClienteArmaDTO resultado = convertirADTO(saved);
+        resultado.setAdvertencias(advertencias);
+        return resultado;
     }
 
     /**
@@ -591,6 +605,63 @@ public class ClienteArmaService {
             .collect(Collectors.toList());
     }
     
+    /**
+     * Verifica los cupos restantes en un grupo y envía alertas si están bajos.
+     */
+    private void verificarYNotificarCupoBajo(GrupoImportacion grupo, Long categoriaArmaId, String categoriaNombre) {
+        try {
+            Map<Long, Integer> cupos = grupoImportacionMatchingService.calcularCuposDisponiblesPorCategoria(grupo.getId());
+            Integer cuposRestantes = cupos.get(categoriaArmaId);
+            if (cuposRestantes == null) return;
+
+            // Obtener límite máximo de la categoría en este grupo
+            int limiteMaximo = cuposRestantes; // fallback
+            if (grupo.getLimitesCategoria() != null) {
+                limiteMaximo = grupo.getLimitesCategoria().stream()
+                    .filter(l -> l.getCategoriaArma().getId().equals(categoriaArmaId))
+                    .findFirst()
+                    .map(l -> l.getLimiteMaximo())
+                    .orElse(cuposRestantes);
+            }
+
+            if (cuposRestantes <= NotificacionService.getUmbralAlertaAmarilla()) {
+                notificacionService.notificarCupoBajo(
+                    grupo.getId(), grupo.getNombre(), categoriaNombre, cuposRestantes, limiteMaximo);
+            }
+        } catch (Exception e) {
+            log.warn("Error verificando cupo bajo (no crítico): {}", e.getMessage());
+        }
+    }
+
+    private void notificarArmaEnEsperaSeguro(String clienteNombre, String categoriaNombre) {
+        try {
+            notificacionService.notificarArmaEnEspera(clienteNombre, categoriaNombre);
+        } catch (Exception e) {
+            log.warn("Error notificando arma en espera (no crítico): {}", e.getMessage());
+        }
+    }
+
+    private void notificarSplitSeguro(String clienteNombre, String grupo1, String grupo2) {
+        try {
+            notificacionService.notificarArmasDistribuidasEnGrupos(clienteNombre, grupo1, grupo2);
+        } catch (Exception e) {
+            log.warn("Error notificando split de grupos (no crítico): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Obtener armas en estado EN_ESPERA (sin grupo disponible).
+     */
+    @Transactional(readOnly = true)
+    public List<ClienteArmaDTO> obtenerArmasEnEspera() {
+        log.info("Obteniendo armas en estado EN_ESPERA");
+        List<ClienteArma> armasEnEspera = clienteArmaRepository.findByEstado(ClienteArma.EstadoClienteArma.EN_ESPERA);
+        log.info("Se encontraron {} armas en espera", armasEnEspera.size());
+        return armasEnEspera.stream()
+            .map(this::convertirADTO)
+            .collect(Collectors.toList());
+    }
+
     /**
      * Convertir entidad a DTO
      */

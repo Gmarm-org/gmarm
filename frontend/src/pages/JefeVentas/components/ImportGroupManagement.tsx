@@ -14,9 +14,22 @@ interface GrupoImportacionResumen {
   clientesDeportistas: number;
   totalClientes: number;
   fechaUltimaActualizacion: string;
-  cupoCivilTotal?: number;
-  cupoCivilDisponible?: number;
-  cupoCivilRestante?: number;
+}
+
+interface ArmaEnEspera {
+  clienteArmaId: number;
+  clienteNombre: string;
+  armaNombre: string;
+  categoriaNombre: string;
+  fechaReserva: string;
+  estado: string;
+}
+
+interface LimiteCategoria {
+  categoriaArmaId: number;
+  categoriaArmaNombre: string;
+  categoriaArmaCodigo?: string;
+  limiteMaximo: number;
 }
 
 interface GrupoImportacion {
@@ -26,6 +39,9 @@ interface GrupoImportacion {
   estado: string;
   fechaCreacion: string;
   fechaActualizacion?: string;
+  tipoGrupo?: 'CUPO' | 'JUSTIFICATIVO';
+  limitesCategoria?: LimiteCategoria[];
+  cuposDisponiblesPorCategoria?: Record<number, number>;
   licencia?: {
     id: number;
     numero: string;
@@ -54,10 +70,21 @@ const ImportGroupManagement: React.FC = () => {
     nombreArchivo: string;
     grupoId: number;
   } | null>(null);
+  const [armasEnEspera, setArmasEnEspera] = useState<ArmaEnEspera[]>([]);
 
   useEffect(() => {
     cargarGrupos();
+    cargarArmasEnEspera();
   }, []);
+
+  const cargarArmasEnEspera = async () => {
+    try {
+      const data = await apiService.getArmasEnEspera();
+      setArmasEnEspera(Array.isArray(data) ? data : []);
+    } catch {
+      setArmasEnEspera([]);
+    }
+  };
 
   const cargarGrupos = async () => {
     setLoading(true);
@@ -112,6 +139,7 @@ const ImportGroupManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
+    cargarArmasEnEspera();
   };
 
   const handleDefinirPedido = async (grupoId: number) => {
@@ -178,6 +206,19 @@ const ImportGroupManagement: React.FC = () => {
     return gruposCompletos.find(g => g.id === grupoId);
   };
 
+  const getAlertaCupo = (grupo: GrupoImportacion): 'rojo' | 'amarillo' | null => {
+    if (grupo.tipoGrupo !== 'CUPO' || !grupo.limitesCategoria || !grupo.cuposDisponiblesPorCategoria) return null;
+    let peor: 'rojo' | 'amarillo' | null = null;
+    for (const limite of grupo.limitesCategoria) {
+      const disponible = grupo.cuposDisponiblesPorCategoria[limite.categoriaArmaId] ?? limite.limiteMaximo;
+      if (disponible <= 5) return 'rojo';
+      if (disponible <= 10) peor = 'amarillo';
+    }
+    return peor;
+  };
+
+  const gruposConCupoBajo = gruposCompletos.filter(g => getAlertaCupo(g) !== null);
+
   if (loading) {
     return (
       <div className="p-6">
@@ -188,22 +229,11 @@ const ImportGroupManagement: React.FC = () => {
     );
   }
 
-  const gruposProximosACompletar = grupos.filter(g => 
-    g.cupoCivilRestante !== undefined && g.cupoCivilRestante <= 5 && g.cupoCivilRestante > 0
-  );
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">📦 Importaciones</h2>
-          {gruposProximosACompletar.length > 0 && (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
-                ℹ️ {gruposProximosACompletar.length} grupo(s) próximo(s) a completar cupo civil (≤5 cupos restantes) - Listos para Operaciones
-              </div>
-            </div>
-          )}
         </div>
         <div className="flex gap-3">
           <button
@@ -220,6 +250,54 @@ const ImportGroupManagement: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Banner: Armas en espera */}
+      {armasEnEspera.length > 0 && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-red-600 font-semibold">Armas en Espera ({armasEnEspera.length})</span>
+          </div>
+          <p className="text-sm text-red-700 mb-3">
+            Hay {armasEnEspera.length} arma(s) esperando asignacion a un grupo CUPO. Cree un nuevo grupo para asignarlas automaticamente.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-red-600 uppercase">
+                  <th className="pb-2 pr-4">Cliente</th>
+                  <th className="pb-2 pr-4">Arma</th>
+                  <th className="pb-2 pr-4">Categoria</th>
+                  <th className="pb-2">Fecha Reserva</th>
+                </tr>
+              </thead>
+              <tbody>
+                {armasEnEspera.map((arma) => (
+                  <tr key={arma.clienteArmaId} className="border-t border-red-100">
+                    <td className="py-1 pr-4 text-red-800">{arma.clienteNombre}</td>
+                    <td className="py-1 pr-4 text-red-800">{arma.armaNombre}</td>
+                    <td className="py-1 pr-4 text-red-800">{arma.categoriaNombre}</td>
+                    <td className="py-1 text-red-800">
+                      {arma.fechaReserva ? new Date(arma.fechaReserva).toLocaleDateString('es-ES') : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Banner: Grupos con cupo bajo */}
+      {gruposConCupoBajo.length > 0 && (
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <span className="text-amber-700 font-semibold">
+            {gruposConCupoBajo.length} grupo(s) con cupos bajos
+          </span>
+          <p className="text-sm text-amber-600 mt-1">
+            Revise los grupos marcados y considere crear nuevos grupos CUPO si es necesario.
+          </p>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -249,25 +327,22 @@ const ImportGroupManagement: React.FC = () => {
                 const puedeDefinir = puedeDefinirPedido[resumen.grupoId] || false;
                 const estaDefiniendo = definiendoPedido === resumen.grupoId;
 
-                const proximoACompletar = resumen.cupoCivilRestante !== undefined && 
-                                         resumen.cupoCivilRestante <= 5 && 
-                                         resumen.cupoCivilRestante > 0;
-                const cupoCompleto = resumen.cupoCivilRestante !== undefined && resumen.cupoCivilRestante === 0;
-
                 return (
-                  <tr 
-                    key={resumen.grupoId} 
-                    className={`hover:bg-gray-50 ${
-                      proximoACompletar 
-                        ? 'bg-blue-50 border-l-4 border-blue-400' 
-                        : cupoCompleto
-                        ? 'bg-green-50 border-l-4 border-green-400'
-                        : ''
-                    }`}
+                  <tr
+                    key={resumen.grupoId}
+                    className="hover:bg-gray-50"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">ID: {resumen.grupoId}</div>
+                        <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                          ID: {resumen.grupoId}
+                          {grupoCompleto && (() => {
+                            const alerta = getAlertaCupo(grupoCompleto);
+                            if (alerta === 'rojo') return <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded">Cupo critico</span>;
+                            if (alerta === 'amarillo') return <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded">Cupo bajo</span>;
+                            return null;
+                          })()}
+                        </div>
                         <div className="text-sm text-gray-500">{resumen.grupoNombre}</div>
                         <div className="text-xs text-gray-400">{resumen.grupoCodigo}</div>
                       </div>

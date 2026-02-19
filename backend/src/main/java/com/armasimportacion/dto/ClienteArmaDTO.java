@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * DTO para la relación cliente-arma
@@ -33,8 +35,13 @@ public class ClienteArmaDTO {
     private LocalDateTime fechaAsignacion;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
+    private List<String> advertencias = new ArrayList<>();
 
     // Métodos de utilidad
+    public boolean estaEnEspera() {
+        return "EN_ESPERA".equals(this.estado);
+    }
+
     public boolean estaDisponible() {
         return "DISPONIBLE".equals(this.estado);
     }

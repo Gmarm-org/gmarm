@@ -44,7 +44,6 @@ export async function crearGrupoImportacion(dto: {
   fechaInicio?: string;
   fechaFin?: string;
   cupoTotal?: number;
-  cupoDisponible?: number;
   observaciones?: string;
   tipoGrupo?: 'CUPO' | 'JUSTIFICATIVO';
   tra?: string;
@@ -212,4 +211,15 @@ export async function registrarFechaLlegada(grupoId: number, fechaLlegada: strin
 
 export async function registrarNumeroPrevia(grupoId: number, numeroPrevia: string): Promise<{ message: string }> {
   return request(`/operaciones/grupos/${grupoId}/numero-previa?numeroPrevia=${encodeURIComponent(numeroPrevia)}`, { method: 'PUT' });
+}
+
+export async function getArmasEnEspera(): Promise<Array<{
+  clienteArmaId: number;
+  clienteNombre: string;
+  armaNombre: string;
+  categoriaNombre: string;
+  fechaReserva: string;
+  estado: string;
+}>> {
+  return request('/api/grupos-importacion/armas-en-espera');
 }

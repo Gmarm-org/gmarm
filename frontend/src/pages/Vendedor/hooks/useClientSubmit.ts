@@ -185,13 +185,16 @@ export function useClientSubmit(props: UseClientSubmitProps) {
 
       if (!armaYaReservada) {
         const precioTotal = precioModificado * cantidad;
-        await apiService.crearReservaArma(
+        const resultado = await apiService.crearReservaArma(
           clienteId,
           parseInt(currentSelectedWeapon.id.toString()),
           cantidad,
           precioModificado,
           precioTotal
         );
+        if (resultado?.advertencias?.length) {
+          alert('⚠️ Advertencias de asignacion:\n' + resultado.advertencias.map((a: string) => '- ' + a).join('\n'));
+        }
       }
       return null;
     } catch (error: any) {
@@ -501,7 +504,10 @@ export function useClientSubmit(props: UseClientSubmitProps) {
       }
 
       // Navigate or save
-      if (clientStatus === 'LISTO_IMPORTACION') {
+      if (mode === 'edit') {
+        // En modo edición, siempre volver al dashboard
+        onSave(updatedClient as any);
+      } else if (clientStatus === 'LISTO_IMPORTACION') {
         if (onConfirmData && updatedClient) {
           const clientDataWithId = {
             ...formData,

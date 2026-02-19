@@ -129,6 +129,7 @@ export const apiService = {
   puedeNotificarPago: importGroups.puedeNotificarPago,
   registrarFechaLlegada: importGroups.registrarFechaLlegada,
   registrarNumeroPrevia: importGroups.registrarNumeroPrevia,
+  getArmasEnEspera: importGroups.getArmasEnEspera,
 
   // Payments
   getPagos: payments.getPagos,

@@ -66,6 +66,7 @@ public class GrupoImportacionController {
     private final CategoriaArmaService categoriaArmaService;
     private final ClienteArmaRepository clienteArmaRepository;
     private final TipoClienteRepository tipoClienteRepository;
+    private final com.armasimportacion.service.ClienteArmaService clienteArmaService;
 
     /**
      * Obtiene el usuario actual desde el token JWT
@@ -148,7 +149,6 @@ public class GrupoImportacionController {
             grupoDTO.put("fechaInicio", grupo.getFechaInicio());
             grupoDTO.put("fechaFin", grupo.getFechaFin());
             grupoDTO.put("cupoTotal", grupo.getCupoTotal());
-            grupoDTO.put("cupoDisponible", grupo.getCupoDisponible());
             grupoDTO.put("observaciones", grupo.getObservaciones());
             grupoDTO.put("fechaCreacion", grupo.getFechaCreacion());
             grupoDTO.put("fechaActualizacion", grupo.getFechaActualizacion());
@@ -349,7 +349,6 @@ public class GrupoImportacionController {
                 grupoMap.put("tipoGrupo", grupo.getTipoGrupo());
                 grupoMap.put("fechaInicio", grupo.getFechaInicio());
                 grupoMap.put("fechaFin", grupo.getFechaFin());
-                grupoMap.put("cupoDisponible", grupo.getCupoDisponible());
                 grupoMap.put("cupoTotal", grupo.getCupoTotal());
                 return grupoMap;
             }).collect(Collectors.toList());
@@ -736,6 +735,23 @@ public class GrupoImportacionController {
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of(error));
+        }
+    }
+
+    /**
+     * Obtiene las armas en estado EN_ESPERA (sin grupo CUPO disponible)
+     */
+    @GetMapping("/armas-en-espera")
+    @Operation(summary = "Obtener armas en espera",
+               description = "Obtiene la lista de armas que están esperando asignación a un grupo CUPO")
+    public ResponseEntity<?> obtenerArmasEnEspera() {
+        try {
+            var armasEnEspera = clienteArmaService.obtenerArmasEnEspera();
+            return ResponseEntity.ok(armasEnEspera);
+        } catch (Exception e) {
+            log.error("Error obteniendo armas en espera: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
         }
     }
 
