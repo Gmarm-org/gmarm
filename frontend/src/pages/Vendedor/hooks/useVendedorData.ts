@@ -56,33 +56,39 @@ export const useVendedorData = (
       setTotalClients(totalElements);
       setCurrentPageNumber(page);
       
-      const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
-      
-      for (const client of clientsPaginados) {
-        try {
-          const armasResponse = await apiService.getArmasCliente(client.id);
-          if (armasResponse && armasResponse.length > 0) {
-            const arma = armasResponse[0];
-            weaponAssignments[client.id] = {
-              weapon: {
-                id: arma.armaId,
-                modelo: arma.armaModelo || 'N/A',
-                calibre: arma.armaCalibre || 'N/A',
-                codigo: arma.armaCodigo,
-                urlImagen: arma.armaImagen,
-                precioReferencia: parseFloat(arma.precioUnitario) || 0
-              },
-              precio: parseFloat(arma.precioUnitario) || 0,
-              cantidad: parseInt(arma.cantidad) || 1,
-              numeroSerie: arma.numeroSerie,
-              estado: arma.estado
-            };
+      // Obtener armas de todos los clientes paginados en paralelo
+      const armasResults = await Promise.all(
+        clientsPaginados.map(async (client) => {
+          try {
+            const armasResponse = await apiService.getArmasCliente(client.id);
+            return { clientId: client.id, armas: armasResponse || [] };
+          } catch {
+            return { clientId: client.id, armas: [] };
           }
-        } catch (error) {
-          // No se pudieron cargar armas para este cliente
+        })
+      );
+
+      const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
+      for (const { clientId, armas } of armasResults) {
+        if (armas.length > 0) {
+          const arma = armas[0];
+          weaponAssignments[clientId] = {
+            weapon: {
+              id: arma.armaId,
+              modelo: arma.armaModelo || 'N/A',
+              calibre: arma.armaCalibre || 'N/A',
+              codigo: arma.armaCodigo,
+              urlImagen: arma.armaImagen,
+              precioReferencia: parseFloat(arma.precioUnitario) || 0
+            },
+            precio: parseFloat(arma.precioUnitario) || 0,
+            cantidad: parseInt(arma.cantidad) || 1,
+            numeroSerie: arma.numeroSerie,
+            estado: arma.estado
+          };
         }
       }
-      
+
       setClientWeaponAssignments(weaponAssignments);
     } catch (error) {
       console.error('Error al cargar clientes:', error instanceof Error ? error.message : 'Unknown error');

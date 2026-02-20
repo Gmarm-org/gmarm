@@ -31,21 +31,23 @@ export function useJefeVentasData(state: State) {
     try {
       const response = await apiService.getTodosClientes();
 
-      const clientesSinArmaAsignada: any[] = [];
-
-      for (const cliente of response) {
-        try {
-          const armasResponse = await apiService.getArmasCliente(cliente.id);
-          const tieneArmaAsignada = armasResponse && armasResponse.length > 0 &&
-                                     armasResponse.some((arma: any) => arma.estado === 'ASIGNADA');
-
-          if (!tieneArmaAsignada) {
-            clientesSinArmaAsignada.push(cliente);
+      // Obtener armas de TODOS los clientes en paralelo
+      const armasResults = await Promise.all(
+        response.map(async (cliente) => {
+          try {
+            const armasResponse = await apiService.getArmasCliente(cliente.id);
+            const tieneArmaAsignada = armasResponse && armasResponse.length > 0 &&
+                                       armasResponse.some((arma: any) => arma.estado === 'ASIGNADA');
+            return { cliente, tieneArmaAsignada };
+          } catch {
+            return { cliente, tieneArmaAsignada: false };
           }
-        } catch (error) {
-          clientesSinArmaAsignada.push(cliente);
-        }
-      }
+        })
+      );
+
+      const clientesSinArmaAsignada = armasResults
+        .filter(({ tieneArmaAsignada }) => !tieneArmaAsignada)
+        .map(({ cliente }) => cliente);
 
       setClientes(clientesSinArmaAsignada);
     } catch (error) {
@@ -61,48 +63,64 @@ export function useJefeVentasData(state: State) {
     try {
       const response = await apiService.getTodosClientes();
 
+      // Paso 1: Obtener armas de TODOS los clientes en paralelo
+      const armasResults = await Promise.all(
+        response.map(async (client) => {
+          try {
+            const armasResponse = await apiService.getArmasCliente(client.id);
+            return { client, armas: armasResponse || [] };
+          } catch {
+            return { client, armas: [] };
+          }
+        })
+      );
+
+      // Paso 2: Procesar resultados y encontrar clientes con arma ASIGNADA
       const weaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }> = {};
       const clientesConArmaAsignada: any[] = [];
-      const autorizacionesTemp: Record<string, any[]> = {};
 
-      for (const client of response) {
-        try {
-          const armasResponse = await apiService.getArmasCliente(client.id);
-          if (armasResponse && armasResponse.length > 0) {
-            const arma = armasResponse[0];
-            const armaModelo = arma.armaModelo || arma.armaNombre || 'N/A';
-            weaponAssignments[client.id] = {
-              weapon: {
-                id: arma.armaId,
-                nombre: armaModelo,
-                modelo: armaModelo,
-                marca: arma.armaMarca,
-                alimentadora: arma.armaAlimentadora,
-                calibre: arma.armaCalibre || 'N/A',
-                codigo: arma.armaCodigo,
-                urlImagen: arma.armaImagen,
-                precioReferencia: parseFloat(arma.precioUnitario) || 0
-              },
-              precio: parseFloat(arma.precioUnitario) || 0,
-              cantidad: parseInt(arma.cantidad) || 1,
-              numeroSerie: arma.numeroSerie,
-              estado: arma.estado
-            };
-
-            if (arma.estado === 'ASIGNADA') {
-              clientesConArmaAsignada.push(client);
-
-              try {
-                const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
-                autorizacionesTemp[client.id] = autorizacionesResponse || [];
-              } catch {
-                autorizacionesTemp[client.id] = [];
-              }
-            }
+      for (const { client, armas } of armasResults) {
+        if (armas.length > 0) {
+          const arma = armas[0];
+          const armaModelo = arma.armaModelo || arma.armaNombre || 'N/A';
+          weaponAssignments[client.id] = {
+            weapon: {
+              id: arma.armaId,
+              nombre: armaModelo,
+              modelo: armaModelo,
+              marca: arma.armaMarca,
+              alimentadora: arma.armaAlimentadora,
+              calibre: arma.armaCalibre || 'N/A',
+              codigo: arma.armaCodigo,
+              urlImagen: arma.armaImagen,
+              precioReferencia: parseFloat(arma.precioUnitario) || 0
+            },
+            precio: parseFloat(arma.precioUnitario) || 0,
+            cantidad: parseInt(arma.cantidad) || 1,
+            numeroSerie: arma.numeroSerie,
+            estado: arma.estado
+          };
+          if (arma.estado === 'ASIGNADA') {
+            clientesConArmaAsignada.push(client);
           }
-        } catch {
-          // Si falla cargar armas de un cliente, continuar con el siguiente
         }
+      }
+
+      // Paso 3: Obtener autorizaciones de clientes ASIGNADOS en paralelo
+      const autorizacionesResults = await Promise.all(
+        clientesConArmaAsignada.map(async (client) => {
+          try {
+            const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
+            return { clientId: client.id, autorizaciones: autorizacionesResponse || [] };
+          } catch {
+            return { clientId: client.id, autorizaciones: [] };
+          }
+        })
+      );
+
+      const autorizacionesTemp: Record<string, any[]> = {};
+      for (const { clientId, autorizaciones: auths } of autorizacionesResults) {
+        autorizacionesTemp[clientId] = auths;
       }
 
       setClientesAsignados(clientesConArmaAsignada);

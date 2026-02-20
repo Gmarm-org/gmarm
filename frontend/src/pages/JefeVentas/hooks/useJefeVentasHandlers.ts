@@ -43,38 +43,39 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     setLoadingDetalleCliente(true);
 
     try {
-      const armas = await apiService.getArmasCliente(Number(cliente.id));
+      // Cargar armas, documentos, contratos y pagos en paralelo
+      const [armas, documentos, contratos, pagos] = await Promise.all([
+        apiService.getArmasCliente(Number(cliente.id)),
+        apiService.getDocumentosCliente(Number(cliente.id)),
+        apiService.getContratosCliente(Number(cliente.id)),
+        apiService.getPagosCliente(Number(cliente.id)),
+      ]);
+
       setArmasCliente(armas);
-
-      const documentos = await apiService.getDocumentosCliente(Number(cliente.id));
       setDocumentosCliente(documentos);
-
-      const contratos = await apiService.getContratosCliente(Number(cliente.id));
       setContratosCliente(contratos);
 
-      const pagos = await apiService.getPagosCliente(Number(cliente.id));
-
-      const cuotasTemp: any[] = [];
-      for (const pago of pagos) {
-        if (pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') {
-          try {
-            const cuotas = await apiService.getCuotasPorPago(pago.id);
-            cuotasTemp.push(...cuotas);
-          } catch (error) {
-            // Cuotas no disponibles para este pago
+      // Obtener cuotas de todos los pagos CREDITO en paralelo
+      const cuotasResults = await Promise.all(
+        pagos.map(async (pago: any) => {
+          if (pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') {
+            try {
+              return await apiService.getCuotasPorPago(pago.id);
+            } catch {
+              return [];
+            }
           }
-        } else {
-          cuotasTemp.push({
+          return [{
             numeroCuota: 1,
             monto: pago.montoTotal,
             estado: pago.estado,
             fechaVencimiento: null,
             fechaPago: pago.fechaCreacion
-          });
-        }
-      }
+          }];
+        })
+      );
 
-      setPagosCliente(cuotasTemp);
+      setPagosCliente(cuotasResults.flat());
     } catch (error) {
       console.error('Error cargando detalle del cliente:', error instanceof Error ? error.message : 'Unknown error');
     } finally {

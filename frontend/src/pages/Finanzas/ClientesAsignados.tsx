@@ -66,49 +66,62 @@ const ClientesAsignados: React.FC = () => {
     try {
       const response = await apiService.getTodosClientes();
       
+      // Paso 1: Obtener armas de TODOS los clientes en paralelo
+      const armasResults = await Promise.all(
+        response.map(async (client) => {
+          try {
+            const armasResponse = await apiService.getArmasCliente(client.id);
+            return { client, armas: armasResponse || [] };
+          } catch {
+            return { client, armas: [] };
+          }
+        })
+      );
+
+      // Paso 2: Procesar resultados y encontrar clientes con arma ASIGNADA
       const weaponAssignments: Record<string, WeaponAssignment> = {};
       const clientesConArmaAsignada: ClienteConVendedor[] = [];
-      
-      const autorizacionesTemp: Record<string, any[]> = {};
-      
-      for (const client of response) {
-        try {
-          const armasResponse = await apiService.getArmasCliente(client.id);
-          if (armasResponse && armasResponse.length > 0) {
-            const arma = armasResponse[0];
-            weaponAssignments[client.id] = {
-              weapon: {
-                id: arma.armaId,
-                modelo: arma.armaModelo || 'N/A',
-                calibre: arma.armaCalibre || 'N/A',
-                codigo: arma.armaCodigo,
-                urlImagen: arma.armaImagen,
-                precioReferencia: parseFloat(arma.precioUnitario) || 0
-              },
-              precio: parseFloat(arma.precioUnitario) || 0,
-              cantidad: parseInt(arma.cantidad) || 1,
-              numeroSerie: arma.numeroSerie,
-              estado: arma.estado
-            };
-            
-            if (arma.estado === 'ASIGNADA') {
-              clientesConArmaAsignada.push(client);
-              
-              // Cargar autorizaciones del cliente
-              try {
-                const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
-                autorizacionesTemp[client.id] = autorizacionesResponse || [];
-              } catch (error) {
-                // No se pudieron cargar autorizaciones para este cliente
-                autorizacionesTemp[client.id] = [];
-              }
-            }
+
+      for (const { client, armas } of armasResults) {
+        if (armas.length > 0) {
+          const arma = armas[0];
+          weaponAssignments[client.id] = {
+            weapon: {
+              id: arma.armaId,
+              modelo: arma.armaModelo || 'N/A',
+              calibre: arma.armaCalibre || 'N/A',
+              codigo: arma.armaCodigo,
+              urlImagen: arma.armaImagen,
+              precioReferencia: parseFloat(arma.precioUnitario) || 0
+            },
+            precio: parseFloat(arma.precioUnitario) || 0,
+            cantidad: parseInt(arma.cantidad) || 1,
+            numeroSerie: arma.numeroSerie,
+            estado: arma.estado
+          };
+          if (arma.estado === 'ASIGNADA') {
+            clientesConArmaAsignada.push(client);
           }
-        } catch (error) {
-          // No se pudieron cargar armas para este cliente
         }
       }
-      
+
+      // Paso 3: Obtener autorizaciones de clientes ASIGNADOS en paralelo
+      const autorizacionesResults = await Promise.all(
+        clientesConArmaAsignada.map(async (client) => {
+          try {
+            const autorizacionesResponse = await apiService.getAutorizacionesPorCliente(parseInt(client.id));
+            return { clientId: client.id, autorizaciones: autorizacionesResponse || [] };
+          } catch {
+            return { clientId: client.id, autorizaciones: [] };
+          }
+        })
+      );
+
+      const autorizacionesTemp: Record<string, any[]> = {};
+      for (const { clientId, autorizaciones: auths } of autorizacionesResults) {
+        autorizacionesTemp[clientId] = auths;
+      }
+
       setClientesAsignados(clientesConArmaAsignada);
       setClientWeaponAssignments(weaponAssignments);
       setAutorizaciones(autorizacionesTemp);

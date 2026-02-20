@@ -9,131 +9,84 @@ import { apiService } from '../../../services/api';
 export const useJefeVentasExport = () => {
   const exportarClientesAExcel = useCallback(async () => {
     try {
-      // Obtener TODOS los clientes del sistema
-      const todosLosClientes = await apiService.getTodosClientes();
-      
-      const datosExportacion: any[] = [];
-      
-      for (const cliente of todosLosClientes) {
-        try {
-          const armasResponse = await apiService.getArmasCliente(cliente.id);
-          const arma = armasResponse && armasResponse.length > 0 ? armasResponse[0] : null;
-          const clienteData = cliente as any;
-          const tipoClienteNombre = clienteData.tipoProcesoNombre || clienteData.tipoClienteNombre || clienteData.tipoCliente || 'N/A';
-          
-          // Obtener información del vendedor si está disponible
-          const vendedorNombre = clienteData.vendedorNombre || clienteData.vendedor?.nombres || '';
-          const vendedorApellidos = clienteData.vendedorApellidos || clienteData.vendedor?.apellidos || '';
-          const vendedorCompleto = vendedorNombre && vendedorApellidos 
-            ? `${vendedorNombre} ${vendedorApellidos}`.trim()
-            : clienteData.vendedor?.email || clienteData.usuarioCreador?.email || 'N/A';
-          
-          // Construir fila solo con campos que tengan información
-          const fila: Record<string, any> = {};
-          
-          // Campos básicos (siempre presentes)
-          if (cliente.numeroIdentificacion) fila['CI/RUC'] = cliente.numeroIdentificacion;
-          const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
-          if (nombreCompleto) fila['Nombre Completo'] = nombreCompleto;
-          if (tipoClienteNombre && tipoClienteNombre !== 'N/A') fila['Tipo Cliente'] = tipoClienteNombre;
-          if (cliente.email) fila['Email'] = cliente.email;
-          if (cliente.telefonoPrincipal) fila['Teléfono Principal'] = cliente.telefonoPrincipal;
-          if (clienteData.telefonoSecundario) fila['Teléfono Secundario'] = clienteData.telefonoSecundario;
-          if (clienteData.direccion) fila['Dirección'] = clienteData.direccion;
-          if (clienteData.provincia) fila['Provincia'] = clienteData.provincia;
-          if (clienteData.canton) fila['Cantón'] = clienteData.canton;
-          if (clienteData.fechaNacimiento) fila['Fecha Nacimiento'] = new Date(clienteData.fechaNacimiento).toLocaleDateString('es-EC');
-          
-          // Campos militares (solo si aplica)
-          if (clienteData.estadoMilitar) fila['Estado Militar'] = clienteData.estadoMilitar;
-          if (clienteData.codigoIssfa) fila['Código ISSFA'] = clienteData.codigoIssfa;
-          if (clienteData.rango) fila['Rango'] = clienteData.rango;
-          
-          // Campos de empresa (solo si aplica)
-          if (clienteData.representanteLegal) fila['Representante Legal'] = clienteData.representanteLegal;
-          if (clienteData.ruc) fila['RUC Empresa'] = clienteData.ruc;
-          if (clienteData.nombreEmpresa) fila['Nombre Empresa'] = clienteData.nombreEmpresa;
-          if (clienteData.direccionFiscal) fila['Dirección Fiscal'] = clienteData.direccionFiscal;
-          if (clienteData.telefonoReferencia) fila['Teléfono Referencia'] = clienteData.telefonoReferencia;
-          if (clienteData.correoEmpresa) fila['Correo Empresa'] = clienteData.correoEmpresa;
-          if (clienteData.provinciaEmpresa) fila['Provincia Empresa'] = clienteData.provinciaEmpresa;
-          if (clienteData.cantonEmpresa) fila['Cantón Empresa'] = clienteData.cantonEmpresa;
-          
-          // Campos generales
-          if (cliente.estado) fila['Estado Cliente'] = cliente.estado;
-          if (clienteData.fechaCreacion) fila['Fecha Creación'] = new Date(clienteData.fechaCreacion).toLocaleDateString('es-EC');
-          if (vendedorCompleto && vendedorCompleto !== 'N/A') fila['Vendedor'] = vendedorCompleto;
-          
-          // Campos de arma (solo si hay arma)
-          if (arma) {
-            if (arma.armaModelo) fila['Arma Nombre'] = arma.armaModelo;
-            if (arma.armaModelo) fila['Arma Modelo'] = arma.armaModelo;
-            if (arma.armaCalibre) fila['Arma Calibre'] = arma.armaCalibre;
-            if (arma.numeroSerie) fila['Número de Serie'] = arma.numeroSerie;
-            if (arma.estado) fila['Estado Arma'] = arma.estado;
-            if (arma.cantidad) fila['Cantidad'] = arma.cantidad;
-            const precioUnitario = parseFloat(arma.precioUnitario || '0');
-            if (precioUnitario > 0) {
-              // Precio unitario SIN IVA
-              fila['Precio Unitario'] = precioUnitario.toFixed(2);
-              // Precio total CON IVA (cargado desde configuracion_sistema)
-              const cantidad = parseInt(arma.cantidad || '1');
-              try {
-                const configuraciones = await apiService.getConfiguracionSistema();
-                const ivaValue = configuraciones?.IVA || configuraciones?.['IVA'];
-                const ivaPercent = typeof ivaValue === 'number' ? ivaValue : parseFloat(String(ivaValue || '15'));
-                const ivaDecimal = isNaN(ivaPercent) ? 0.15 : ivaPercent / 100;
-                const precioTotalConIva = precioUnitario * cantidad * (1 + ivaDecimal);
-                fila['Precio Total'] = precioTotalConIva.toFixed(2);
-              } catch (error) {
-                console.error('Error cargando IVA para exportación:', error instanceof Error ? error.message : 'Error desconocido');
-                // Fallback: usar 15% si falla la carga (pero registrar el error)
-                const precioTotalConIva = precioUnitario * cantidad * 1.15;
-                fila['Precio Total'] = precioTotalConIva.toFixed(2);
-              }
-            }
+      // Obtener clientes y configuración IVA en paralelo
+      const [todosLosClientes, configuraciones] = await Promise.all([
+        apiService.getTodosClientes(),
+        apiService.getConfiguracionSistema(),
+      ]);
+
+      // Calcular IVA una sola vez
+      const ivaValue = configuraciones?.IVA || configuraciones?.['IVA'];
+      const ivaPercent = typeof ivaValue === 'number' ? ivaValue : parseFloat(String(ivaValue || '15'));
+      const ivaDecimal = isNaN(ivaPercent) ? 0.15 : ivaPercent / 100;
+
+      // Obtener armas de todos los clientes en paralelo
+      const armasResults = await Promise.all(
+        todosLosClientes.map(async (cliente) => {
+          try {
+            const armasResponse = await apiService.getArmasCliente(cliente.id);
+            return { cliente, arma: armasResponse && armasResponse.length > 0 ? armasResponse[0] : null };
+          } catch {
+            return { cliente, arma: null };
           }
-          
-          datosExportacion.push(fila);
-        } catch (error) {
-          const clienteData = cliente as any;
-          const tipoClienteNombre = clienteData.tipoProcesoNombre || clienteData.tipoClienteNombre || clienteData.tipoCliente || 'N/A';
-          const vendedorNombre = clienteData.vendedorNombre || clienteData.vendedor?.nombres || '';
-          const vendedorApellidos = clienteData.vendedorApellidos || clienteData.vendedor?.apellidos || '';
-          const vendedorCompleto = vendedorNombre && vendedorApellidos 
-            ? `${vendedorNombre} ${vendedorApellidos}`.trim()
-            : clienteData.vendedor?.email || clienteData.usuarioCreador?.email || 'N/A';
-          // Construir fila solo con campos que tengan información (sin arma)
-          const fila: Record<string, any> = {};
-          
-          if (cliente.numeroIdentificacion) fila['CI/RUC'] = cliente.numeroIdentificacion;
-          const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
-          if (nombreCompleto) fila['Nombre Completo'] = nombreCompleto;
-          if (tipoClienteNombre && tipoClienteNombre !== 'N/A') fila['Tipo Cliente'] = tipoClienteNombre;
-          if (cliente.email) fila['Email'] = cliente.email;
-          if (cliente.telefonoPrincipal) fila['Teléfono Principal'] = cliente.telefonoPrincipal;
-          if (clienteData.telefonoSecundario) fila['Teléfono Secundario'] = clienteData.telefonoSecundario;
-          if (clienteData.direccion) fila['Dirección'] = clienteData.direccion;
-          if (clienteData.provincia) fila['Provincia'] = clienteData.provincia;
-          if (clienteData.canton) fila['Cantón'] = clienteData.canton;
-          if (clienteData.fechaNacimiento) fila['Fecha Nacimiento'] = new Date(clienteData.fechaNacimiento).toLocaleDateString('es-EC');
-          if (clienteData.estadoMilitar) fila['Estado Militar'] = clienteData.estadoMilitar;
-          if (clienteData.codigoIssfa) fila['Código ISSFA'] = clienteData.codigoIssfa;
-          if (clienteData.rango) fila['Rango'] = clienteData.rango;
-          if (clienteData.representanteLegal) fila['Representante Legal'] = clienteData.representanteLegal;
-          if (clienteData.ruc) fila['RUC Empresa'] = clienteData.ruc;
-          if (clienteData.nombreEmpresa) fila['Nombre Empresa'] = clienteData.nombreEmpresa;
-          if (clienteData.direccionFiscal) fila['Dirección Fiscal'] = clienteData.direccionFiscal;
-          if (clienteData.telefonoReferencia) fila['Teléfono Referencia'] = clienteData.telefonoReferencia;
-          if (clienteData.correoEmpresa) fila['Correo Empresa'] = clienteData.correoEmpresa;
-          if (clienteData.provinciaEmpresa) fila['Provincia Empresa'] = clienteData.provinciaEmpresa;
-          if (clienteData.cantonEmpresa) fila['Cantón Empresa'] = clienteData.cantonEmpresa;
-          if (cliente.estado) fila['Estado Cliente'] = cliente.estado;
-          if (clienteData.fechaCreacion) fila['Fecha Creación'] = new Date(clienteData.fechaCreacion).toLocaleDateString('es-EC');
-          if (vendedorCompleto && vendedorCompleto !== 'N/A') fila['Vendedor'] = vendedorCompleto;
-          
-          datosExportacion.push(fila);
+        })
+      );
+
+      const datosExportacion: any[] = [];
+
+      for (const { cliente, arma } of armasResults) {
+        const clienteData = cliente as any;
+        const tipoClienteNombre = clienteData.tipoProcesoNombre || clienteData.tipoClienteNombre || clienteData.tipoCliente || 'N/A';
+        const vendedorNombre = clienteData.vendedorNombre || clienteData.vendedor?.nombres || '';
+        const vendedorApellidos = clienteData.vendedorApellidos || clienteData.vendedor?.apellidos || '';
+        const vendedorCompleto = vendedorNombre && vendedorApellidos
+          ? `${vendedorNombre} ${vendedorApellidos}`.trim()
+          : clienteData.vendedor?.email || clienteData.usuarioCreador?.email || 'N/A';
+
+        const fila: Record<string, any> = {};
+
+        if (cliente.numeroIdentificacion) fila['CI/RUC'] = cliente.numeroIdentificacion;
+        const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
+        if (nombreCompleto) fila['Nombre Completo'] = nombreCompleto;
+        if (tipoClienteNombre && tipoClienteNombre !== 'N/A') fila['Tipo Cliente'] = tipoClienteNombre;
+        if (cliente.email) fila['Email'] = cliente.email;
+        if (cliente.telefonoPrincipal) fila['Teléfono Principal'] = cliente.telefonoPrincipal;
+        if (clienteData.telefonoSecundario) fila['Teléfono Secundario'] = clienteData.telefonoSecundario;
+        if (clienteData.direccion) fila['Dirección'] = clienteData.direccion;
+        if (clienteData.provincia) fila['Provincia'] = clienteData.provincia;
+        if (clienteData.canton) fila['Cantón'] = clienteData.canton;
+        if (clienteData.fechaNacimiento) fila['Fecha Nacimiento'] = new Date(clienteData.fechaNacimiento).toLocaleDateString('es-EC');
+        if (clienteData.estadoMilitar) fila['Estado Militar'] = clienteData.estadoMilitar;
+        if (clienteData.codigoIssfa) fila['Código ISSFA'] = clienteData.codigoIssfa;
+        if (clienteData.rango) fila['Rango'] = clienteData.rango;
+        if (clienteData.representanteLegal) fila['Representante Legal'] = clienteData.representanteLegal;
+        if (clienteData.ruc) fila['RUC Empresa'] = clienteData.ruc;
+        if (clienteData.nombreEmpresa) fila['Nombre Empresa'] = clienteData.nombreEmpresa;
+        if (clienteData.direccionFiscal) fila['Dirección Fiscal'] = clienteData.direccionFiscal;
+        if (clienteData.telefonoReferencia) fila['Teléfono Referencia'] = clienteData.telefonoReferencia;
+        if (clienteData.correoEmpresa) fila['Correo Empresa'] = clienteData.correoEmpresa;
+        if (clienteData.provinciaEmpresa) fila['Provincia Empresa'] = clienteData.provinciaEmpresa;
+        if (clienteData.cantonEmpresa) fila['Cantón Empresa'] = clienteData.cantonEmpresa;
+        if (cliente.estado) fila['Estado Cliente'] = cliente.estado;
+        if (clienteData.fechaCreacion) fila['Fecha Creación'] = new Date(clienteData.fechaCreacion).toLocaleDateString('es-EC');
+        if (vendedorCompleto && vendedorCompleto !== 'N/A') fila['Vendedor'] = vendedorCompleto;
+
+        if (arma) {
+          if (arma.armaModelo) fila['Arma Nombre'] = arma.armaModelo;
+          if (arma.armaModelo) fila['Arma Modelo'] = arma.armaModelo;
+          if (arma.armaCalibre) fila['Arma Calibre'] = arma.armaCalibre;
+          if (arma.numeroSerie) fila['Número de Serie'] = arma.numeroSerie;
+          if (arma.estado) fila['Estado Arma'] = arma.estado;
+          if (arma.cantidad) fila['Cantidad'] = arma.cantidad;
+          const precioUnitario = parseFloat(arma.precioUnitario || '0');
+          if (precioUnitario > 0) {
+            fila['Precio Unitario'] = precioUnitario.toFixed(2);
+            const cantidad = parseInt(arma.cantidad || '1');
+            fila['Precio Total'] = (precioUnitario * cantidad * (1 + ivaDecimal)).toFixed(2);
+          }
         }
+
+        datosExportacion.push(fila);
       }
       
       // Crear worksheet con datos (XLSX manejará automáticamente las columnas presentes)

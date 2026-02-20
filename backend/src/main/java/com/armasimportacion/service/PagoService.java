@@ -492,4 +492,5 @@ public class PagoService {
         return cuotaPagoRepository.findById(cuotaId)
             .orElseThrow(() -> new IllegalArgumentException("Cuota no encontrada"));
     }
-} 
+
+}
