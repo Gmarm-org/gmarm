@@ -40,4 +40,8 @@ public interface DocumentoClienteRepository extends JpaRepository<DocumentoClien
     
     @Query("SELECT COUNT(dc) FROM DocumentoCliente dc WHERE dc.cliente.id = :clienteId AND dc.estado = 'PENDIENTE'")
     long countPendientesByClienteId(@Param("clienteId") Long clienteId);
+
+    // Batch: contar documentos por cliente para múltiples clientes
+    @Query("SELECT dc.cliente.id, COUNT(dc) FROM DocumentoCliente dc WHERE dc.cliente.id IN :clienteIds GROUP BY dc.cliente.id")
+    List<Object[]> countByClienteIdIn(@Param("clienteIds") List<Long> clienteIds);
 }

@@ -54,4 +54,15 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     
     @Query("SELECT p FROM Pago p WHERE p.cuotaActual = :cuotaActual AND p.estado = :estado")
     List<Pago> findByCuotaActualAndEstado(@Param("cuotaActual") Integer cuotaActual, @Param("estado") EstadoPago estado);
+
+    // Batch: estado de pago para múltiples clientes en una sola query
+    @Query("SELECT p.clienteId, COALESCE(SUM(p.montoPagado), 0), COALESCE(SUM(p.montoPendiente), 0) " +
+           "FROM Pago p WHERE p.clienteId IN :clienteIds GROUP BY p.clienteId")
+    List<Object[]> findEstadoPagoBatchByClienteIds(@Param("clienteIds") List<Long> clienteIds);
+
+    // Paginación para pagos por cliente
+    Page<Pago> findByClienteId(Long clienteId, Pageable pageable);
+
+    // Paginación para pagos por estado
+    Page<Pago> findByEstado(EstadoPago estado, Pageable pageable);
 } 

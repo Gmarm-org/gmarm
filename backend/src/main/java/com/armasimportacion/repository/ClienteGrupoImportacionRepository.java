@@ -49,4 +49,12 @@ public interface ClienteGrupoImportacionRepository extends JpaRepository<Cliente
     // Clientes pendientes por grupo
     @Query("SELECT cgi FROM ClienteGrupoImportacion cgi WHERE cgi.grupoImportacion.id = :grupoId AND cgi.estado = 'PENDIENTE'")
     List<ClienteGrupoImportacion> findPendientesByGrupoImportacionId(@Param("grupoId") Long grupoId);
+
+    // Batch: grupos para múltiples clientes con JOIN FETCH (evita N+1)
+    @Query("SELECT cgi FROM ClienteGrupoImportacion cgi " +
+           "JOIN FETCH cgi.grupoImportacion g " +
+           "LEFT JOIN FETCH g.licencia " +
+           "WHERE cgi.cliente.id IN :clienteIds " +
+           "AND cgi.estado NOT IN ('COMPLETADO', 'CANCELADO')")
+    List<ClienteGrupoImportacion> findActivosByClienteIdInWithGrupoAndLicencia(@Param("clienteIds") List<Long> clienteIds);
 } 
