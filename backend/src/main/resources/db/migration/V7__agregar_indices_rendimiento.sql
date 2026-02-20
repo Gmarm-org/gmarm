@@ -25,6 +25,6 @@ CREATE INDEX IF NOT EXISTS idx_pago_cliente_montos
 CREATE INDEX IF NOT EXISTS idx_cuota_pago_estado_vencimiento
     ON cuota_pago(estado, fecha_vencimiento);
 
--- Índice para notificaciones por usuario (usado en panel de notificaciones)
-CREATE INDEX IF NOT EXISTS idx_notificacion_usuario_leida
-    ON notificacion(usuario_id, leida);
+-- Índice para notificaciones por usuario destinatario y estado (usado en panel de notificaciones)
+CREATE INDEX IF NOT EXISTS idx_notificacion_destinatario_estado
+    ON notificacion(usuario_destinatario_id, estado);
