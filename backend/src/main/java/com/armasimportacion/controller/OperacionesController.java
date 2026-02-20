@@ -2,6 +2,7 @@ package com.armasimportacion.controller;
 
 import com.armasimportacion.dto.DocumentoGrupoImportacionDTO;
 import com.armasimportacion.dto.GrupoImportacionDTO;
+import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.dto.GrupoImportacionResumenDTO;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
@@ -16,7 +17,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,13 +45,13 @@ public class OperacionesController {
      */
     private Long obtenerUsuarioId(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Token JWT requerido");
+            throw new BadRequestException("Token JWT requerido");
         }
-        
+
         String token = authHeader.substring(7);
         String email = jwtTokenProvider.getUsernameFromToken(token);
         if (email == null) {
-            throw new RuntimeException("Token JWT inválido");
+            throw new BadRequestException("Token JWT inválido");
         }
         
         Usuario usuario = usuarioService.findByEmail(email);
@@ -67,51 +67,46 @@ public class OperacionesController {
                description = "Obtiene la lista de grupos de importación que están en proceso de operaciones")
     public ResponseEntity<List<GrupoImportacionDTO>> listarGrupos(
             @RequestHeader("Authorization") String authHeader) {
-        try {
-            log.info("Listando grupos para operaciones");
-            
-            // TODO: Implementar filtrado por estado en el repositorio
-            // Por ahora retornamos todos, el frontend filtrará
-            List<GrupoImportacion> grupos = 
-                grupoImportacionService.obtenerGruposActivos();
-            
-            // Filtrar solo los que están en proceso de operaciones
-            List<GrupoImportacion> gruposOperaciones = grupos.stream()
-                .filter(g -> g.getEstado() == EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA ||
-                            g.getEstado() == EstadoGrupoImportacion.EN_PROCESO_OPERACIONES)
-                .toList();
-            
-            // Convertir a DTOs con información de documentos
-            List<GrupoImportacionDTO> dtos = gruposOperaciones.stream()
-                .map(g -> {
-                    GrupoImportacionDTO dto = new GrupoImportacionDTO();
-                    dto.setId(g.getId());
-                    dto.setNombre(g.getNombre());
-                    dto.setDescripcion(g.getDescripcion());
-                    dto.setEstado(g.getEstado());
-                    dto.setFechaCreacion(g.getFechaCreacion());
-                    dto.setFechaActualizacion(g.getFechaActualizacion());
-                    
-                    // Agregar información de estado de documentos
-                    try {
-                        Map<String, Object> estadoDocs = documentoGrupoImportacionService.obtenerEstadoDocumentos(g.getId());
-                        dto.setDocumentosCargados((Integer) estadoDocs.get("documentosCargados"));
-                        dto.setDocumentosFaltantes((Integer) estadoDocs.get("documentosFaltantes"));
-                        dto.setDocumentosRequeridosCargados((Integer) estadoDocs.get("documentosRequeridosCargados"));
-                        dto.setPuedeNotificarPago((Boolean) estadoDocs.get("puedeNotificarPago"));
-                    } catch (Exception e) {
-                        log.warn("Error obteniendo estado de documentos para grupo {}: {}", g.getId(), e.getMessage());
-                    }
-                    
-                    return dto;
-                })
-                .toList();
-            
-            return ResponseEntity.ok(dtos);
-        } catch (Exception e) {
-            log.error("Error listando grupos para operaciones: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        log.info("Listando grupos para operaciones");
+
+        // TODO: Implementar filtrado por estado en el repositorio
+        // Por ahora retornamos todos, el frontend filtrará
+        List<GrupoImportacion> grupos =
+            grupoImportacionService.obtenerGruposActivos();
+
+        // Filtrar solo los que están en proceso de operaciones
+        List<GrupoImportacion> gruposOperaciones = grupos.stream()
+            .filter(g -> g.getEstado() == EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA ||
+                        g.getEstado() == EstadoGrupoImportacion.EN_PROCESO_OPERACIONES)
+            .toList();
+
+        // Convertir a DTOs con información de documentos
+        List<GrupoImportacionDTO> dtos = gruposOperaciones.stream()
+            .map(g -> {
+                GrupoImportacionDTO dto = new GrupoImportacionDTO();
+                dto.setId(g.getId());
+                dto.setNombre(g.getNombre());
+                dto.setDescripcion(g.getDescripcion());
+                dto.setEstado(g.getEstado());
+                dto.setFechaCreacion(g.getFechaCreacion());
+                dto.setFechaActualizacion(g.getFechaActualizacion());
+
+                // Agregar información de estado de documentos
+                try {
+                    Map<String, Object> estadoDocs = documentoGrupoImportacionService.obtenerEstadoDocumentos(g.getId());
+                    dto.setDocumentosCargados((Integer) estadoDocs.get("documentosCargados"));
+                    dto.setDocumentosFaltantes((Integer) estadoDocs.get("documentosFaltantes"));
+                    dto.setDocumentosRequeridosCargados((Integer) estadoDocs.get("documentosRequeridosCargados"));
+                    dto.setPuedeNotificarPago((Boolean) estadoDocs.get("puedeNotificarPago"));
+                } catch (Exception e) {
+                    log.warn("Error obteniendo estado de documentos para grupo {}: {}", g.getId(), e.getMessage());
+                }
+
+                return dto;
+            })
+            .toList();
+
+        return ResponseEntity.ok(dtos);
     }
 
     /**
@@ -122,16 +117,11 @@ public class OperacionesController {
                description = "Obtiene la información completa de un grupo de importación")
     public ResponseEntity<GrupoImportacionResumenDTO> obtenerGrupo(
             @PathVariable Long id) {
-        try {
-            log.info("Obteniendo detalle del grupo ID: {}", id);
-            
-            GrupoImportacionResumenDTO resumen = grupoImportacionService.obtenerResumenGrupo(id);
-            
-            return ResponseEntity.ok(resumen);
-        } catch (Exception e) {
-            log.error("Error obteniendo grupo ID {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        log.info("Obteniendo detalle del grupo ID: {}", id);
+
+        GrupoImportacionResumenDTO resumen = grupoImportacionService.obtenerResumenGrupo(id);
+
+        return ResponseEntity.ok(resumen);
     }
 
     /**
@@ -145,21 +135,15 @@ public class OperacionesController {
             @RequestParam("tipoDocumentoId") Long tipoDocumentoId,
             @RequestParam("archivo") MultipartFile archivo,
             @RequestParam(value = "descripcion", required = false) String descripcion,
-            @RequestHeader("Authorization") String authHeader) {
-        try {
-            log.info("Cargando documento para grupo ID: {}, tipo: {}", grupoId, tipoDocumentoId);
-            
-            Long usuarioId = obtenerUsuarioId(authHeader);
-            
-            DocumentoGrupoImportacionDTO documento = documentoGrupoImportacionService.cargarDocumento(
-                grupoId, tipoDocumentoId, archivo, descripcion, usuarioId);
-            
-            return ResponseEntity.ok(documento);
-        } catch (Exception e) {
-            log.error("Error cargando documento: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(null);
-        }
+            @RequestHeader("Authorization") String authHeader) throws java.io.IOException {
+        log.info("Cargando documento para grupo ID: {}, tipo: {}", grupoId, tipoDocumentoId);
+
+        Long usuarioId = obtenerUsuarioId(authHeader);
+
+        DocumentoGrupoImportacionDTO documento = documentoGrupoImportacionService.cargarDocumento(
+            grupoId, tipoDocumentoId, archivo, descripcion, usuarioId);
+
+        return ResponseEntity.ok(documento);
     }
 
     /**
@@ -170,17 +154,12 @@ public class OperacionesController {
                description = "Obtiene todos los documentos cargados para un grupo de importación")
     public ResponseEntity<List<DocumentoGrupoImportacionDTO>> listarDocumentos(
             @PathVariable Long grupoId) {
-        try {
-            log.info("Listando documentos del grupo ID: {}", grupoId);
-            
-            List<DocumentoGrupoImportacionDTO> documentos = 
-                documentoGrupoImportacionService.obtenerDocumentosPorGrupo(grupoId);
-            
-            return ResponseEntity.ok(documentos);
-        } catch (Exception e) {
-            log.error("Error listando documentos: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        log.info("Listando documentos del grupo ID: {}", grupoId);
+
+        List<DocumentoGrupoImportacionDTO> documentos =
+            documentoGrupoImportacionService.obtenerDocumentosPorGrupo(grupoId);
+
+        return ResponseEntity.ok(documentos);
     }
 
     /**
@@ -192,16 +171,11 @@ public class OperacionesController {
     public ResponseEntity<Void> eliminarDocumento(
             @PathVariable Long grupoId,
             @PathVariable Long documentoId) {
-        try {
-            log.info("Eliminando documento ID: {} del grupo ID: {}", documentoId, grupoId);
-            
-            documentoGrupoImportacionService.eliminarDocumento(documentoId);
-            
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            log.error("Error eliminando documento: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        log.info("Eliminando documento ID: {} del grupo ID: {}", documentoId, grupoId);
+
+        documentoGrupoImportacionService.eliminarDocumento(documentoId);
+
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -213,23 +187,16 @@ public class OperacionesController {
     public ResponseEntity<Map<String, String>> notificarPagoFabrica(
             @PathVariable Long grupoId,
             @RequestHeader("Authorization") String authHeader) {
-        try {
-            log.info("Notificando pago a fabrica para grupo ID: {}", grupoId);
-            
-            Long usuarioId = obtenerUsuarioId(authHeader);
-            
-            grupoImportacionWorkflowService.notificarPagoFabrica(grupoId, usuarioId);
-            
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Pago a fábrica notificado exitosamente");
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error notificando pago a fabrica: {}", e.getMessage(), e);
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+        log.info("Notificando pago a fabrica para grupo ID: {}", grupoId);
+
+        Long usuarioId = obtenerUsuarioId(authHeader);
+
+        grupoImportacionWorkflowService.notificarPagoFabrica(grupoId, usuarioId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Pago a fábrica notificado exitosamente");
+
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -240,22 +207,15 @@ public class OperacionesController {
                description = "Verifica si los documentos requeridos están cargados para notificar pago")
     public ResponseEntity<Map<String, Object>> puedeNotificarPago(
             @PathVariable Long grupoId) {
-        try {
-            boolean puedeNotificar = documentoGrupoImportacionService.verificarDocumentosRequeridos(grupoId);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("puedeNotificar", puedeNotificar);
-            response.put("mensaje", puedeNotificar ? 
-                "Todos los documentos requeridos están cargados" : 
-                "Faltan documentos requeridos (1, 2, 3)");
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error verificando documentos: {}", e.getMessage(), e);
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        boolean puedeNotificar = documentoGrupoImportacionService.verificarDocumentosRequeridos(grupoId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("puedeNotificar", puedeNotificar);
+        response.put("mensaje", puedeNotificar ?
+            "Todos los documentos requeridos están cargados" :
+            "Faltan documentos requeridos (1, 2, 3)");
+
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -268,23 +228,16 @@ public class OperacionesController {
             @PathVariable Long grupoId,
             @RequestParam("fechaLlegada") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaLlegada,
             @RequestHeader("Authorization") String authHeader) {
-        try {
-            log.info("Registrando fecha de llegada para grupo ID: {} - Fecha: {}", grupoId, fechaLlegada);
-            
-            Long usuarioId = obtenerUsuarioId(authHeader);
-            
-            grupoImportacionWorkflowService.registrarFechaLlegada(grupoId, fechaLlegada, usuarioId);
-            
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Fecha de llegada registrada exitosamente");
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error registrando fecha de llegada: {}", e.getMessage(), e);
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+        log.info("Registrando fecha de llegada para grupo ID: {} - Fecha: {}", grupoId, fechaLlegada);
+
+        Long usuarioId = obtenerUsuarioId(authHeader);
+
+        grupoImportacionWorkflowService.registrarFechaLlegada(grupoId, fechaLlegada, usuarioId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Fecha de llegada registrada exitosamente");
+
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -297,23 +250,16 @@ public class OperacionesController {
             @PathVariable Long grupoId,
             @RequestParam("numeroPrevia") String numeroPrevia,
             @RequestHeader("Authorization") String authHeader) {
-        try {
-            log.info("Registrando numero de previa para grupo ID: {} - Numero: {}", grupoId, numeroPrevia);
-            
-            Long usuarioId = obtenerUsuarioId(authHeader);
-            
-            grupoImportacionWorkflowService.registrarNumeroPreviaImportacion(grupoId, numeroPrevia, usuarioId);
-            
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Número de previa importación registrado exitosamente");
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error registrando numero de previa: {}", e.getMessage(), e);
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+        log.info("Registrando numero de previa para grupo ID: {} - Numero: {}", grupoId, numeroPrevia);
+
+        Long usuarioId = obtenerUsuarioId(authHeader);
+
+        grupoImportacionWorkflowService.registrarNumeroPreviaImportacion(grupoId, numeroPrevia, usuarioId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Número de previa importación registrado exitosamente");
+
+        return ResponseEntity.ok(response);
     }
 }
 

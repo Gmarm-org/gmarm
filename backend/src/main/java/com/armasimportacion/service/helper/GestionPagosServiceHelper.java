@@ -1,5 +1,6 @@
 package com.armasimportacion.service.helper;
 
+import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.model.Pago;
 import com.armasimportacion.model.CuotaPago;
 import com.armasimportacion.repository.PagoRepository;
@@ -58,7 +59,7 @@ public class GestionPagosServiceHelper {
             
         } catch (Exception e) {
             log.error("Error creando pago para cliente ID: {}: {}", clienteId, e.getMessage(), e);
-            throw new RuntimeException("Error creando pago", e);
+            throw new BadRequestException("Error creando pago", e);
         }
     }
 
@@ -221,7 +222,7 @@ public class GestionPagosServiceHelper {
                     
             } catch (Exception e) {
                 log.error("Error creando cuota específica: {}", e.getMessage(), e);
-                throw new RuntimeException("Error creando cuota específica", e);
+                throw new BadRequestException("Error creando cuota específica", e);
             }
         }
     }
@@ -293,7 +294,7 @@ public class GestionPagosServiceHelper {
             
         } catch (Exception e) {
             log.error("Error parseando fecha '{}': {}", fechaStr, e.getMessage());
-            throw new RuntimeException("Error parseando fecha: " + fechaStr, e);
+            throw new BadRequestException("Error parseando fecha: " + fechaStr, e);
         }
     }
 

@@ -1,5 +1,7 @@
 package com.armasimportacion.service;
 
+import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.ArmaStock;
 import com.armasimportacion.repository.ArmaStockRepository;
 import com.armasimportacion.repository.ConfiguracionSistemaRepository;
@@ -73,11 +75,11 @@ public class InventarioService {
     @Transactional
     public void reducirStock(Long armaId, Integer cantidad) {
         ArmaStock armaStock = armaStockRepository.findByArmaIdAndActivoTrue(armaId)
-                .orElseThrow(() -> new RuntimeException("Stock no encontrado para arma ID: " + armaId));
+                .orElseThrow(() -> new ResourceNotFoundException("Stock no encontrado para arma ID: " + armaId));
 
         if (!armaStock.tieneStockSuficiente(cantidad)) {
-            throw new RuntimeException("Stock insuficiente para arma: " + armaStock.getArma().getModelo() + 
-                                     ". Disponible: " + armaStock.getCantidadDisponible() + 
+            throw new BadRequestException("Stock insuficiente para arma: " + armaStock.getArma().getModelo() +
+                                     ". Disponible: " + armaStock.getCantidadDisponible() +
                                      ", Solicitado: " + cantidad);
         }
 
@@ -94,7 +96,7 @@ public class InventarioService {
     @Transactional
     public void aumentarStock(Long armaId, Integer cantidad) {
         ArmaStock armaStock = armaStockRepository.findByArmaIdAndActivoTrue(armaId)
-                .orElseThrow(() -> new RuntimeException("Stock no encontrado para arma ID: " + armaId));
+                .orElseThrow(() -> new ResourceNotFoundException("Stock no encontrado para arma ID: " + armaId));
 
         armaStock.aumentarStock(cantidad);
         armaStockRepository.save(armaStock);

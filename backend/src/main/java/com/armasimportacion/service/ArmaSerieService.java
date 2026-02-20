@@ -91,7 +91,7 @@ public class ArmaSerieService {
                     
                     // Procesar línea
                     String[] columnas = line.trim().split(",");
-                    if (columnas.length == 0 || line.trim().isEmpty()) {
+                    if (columnas.length == 0 || line.isBlank()) {
                         continue;
                     }
                     
@@ -415,7 +415,7 @@ public class ArmaSerieService {
                 String observaciones = row.get("observaciones");
                 
                 // Validar datos requeridos
-                if (serialNumber == null || serialNumber.trim().isEmpty()) {
+                if (serialNumber == null || serialNumber.isBlank()) {
                     errors.add("Fila " + rowNum + ": Número de serie vacío");
                     continue;
                 }
@@ -428,7 +428,7 @@ public class ArmaSerieService {
                 
                 // Buscar el arma por código (si viene), o por características del Excel
                 Arma arma = null;
-                if (codigo != null && !codigo.trim().isEmpty()) {
+                if (codigo != null && !codigo.isBlank()) {
                     arma = armaRepository.findByCodigo(codigo.trim()).orElse(null);
                 }
                 if (arma == null) {
@@ -513,7 +513,7 @@ public class ArmaSerieService {
     }
 
     private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+        return value == null || value.isBlank();
     }
 
     private String firstNonBlank(String first, String second) {

@@ -1,5 +1,6 @@
 package com.armasimportacion.service.helper;
 
+import com.armasimportacion.exception.DocumentGenerationException;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.CuotaPago;
@@ -79,7 +80,7 @@ public class GestionDocumentosServiceHelper {
 
         } catch (Exception e) {
             log.error("Error generando documentos para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
-            throw new RuntimeException("Error generando documentos", e);
+            throw new DocumentGenerationException("Error generando documentos", e);
         }
     }
 
@@ -113,17 +114,17 @@ public class GestionDocumentosServiceHelper {
             return false;
         }
 
-        if (cliente.getNombres() == null || cliente.getNombres().trim().isEmpty()) {
+        if (cliente.getNombres() == null || cliente.getNombres().isBlank()) {
             log.warn("Cliente sin nombres: ID {}", cliente.getId());
             return false;
         }
 
-        if (cliente.getApellidos() == null || cliente.getApellidos().trim().isEmpty()) {
+        if (cliente.getApellidos() == null || cliente.getApellidos().isBlank()) {
             log.warn("Cliente sin apellidos: ID {}", cliente.getId());
             return false;
         }
 
-        if (cliente.getNumeroIdentificacion() == null || cliente.getNumeroIdentificacion().trim().isEmpty()) {
+        if (cliente.getNumeroIdentificacion() == null || cliente.getNumeroIdentificacion().isBlank()) {
             log.warn("Cliente sin número de identificación: ID {}", cliente.getId());
             return false;
         }

@@ -153,7 +153,7 @@ public class PagoService {
         cuota.setEstado(EstadoCuotaPago.PAGADA);
         cuota.setFechaPago(LocalDateTime.now());
         cuota.setReferenciaPago(referenciaPago);
-        if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().trim().isEmpty()) {
+        if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().isBlank()) {
             cuota.setNumeroRecibo(generarNumeroReciboUnico(cliente));
         }
         if (comprobanteArchivo != null) {
@@ -444,7 +444,7 @@ public class PagoService {
         try {
             log.info("Enviando recibo automáticamente al cliente: {}", cliente.getEmail());
             
-            if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
+            if (cliente.getEmail() == null || cliente.getEmail().isBlank()) {
                 log.warn("Cliente no tiene email configurado. No se puede enviar recibo.");
                 return;
             }
@@ -480,7 +480,7 @@ public class PagoService {
         Pago pago = cuota.getPago();
         Cliente cliente = clienteRepository.findById(pago.getClienteId())
             .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-        if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().trim().isEmpty()) {
+        if (cuota.getNumeroRecibo() == null || cuota.getNumeroRecibo().isBlank()) {
             cuota.setNumeroRecibo(generarNumeroReciboUnico(cliente));
             cuotaPagoRepository.save(cuota);
         }

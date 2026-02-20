@@ -162,7 +162,7 @@ public class GestionRespuestasServiceHelper {
         try {
             List<RespuestaCliente> respuestas = obtenerRespuestasCliente(clienteId);
             long respuestasConContenido = respuestas.stream()
-                .filter(r -> r.getRespuesta() != null && !r.getRespuesta().trim().isEmpty())
+                .filter(r -> r.getRespuesta() != null && !r.getRespuesta().isBlank())
                 .count();
             
             boolean completas = respuestasConContenido == respuestas.size() && !respuestas.isEmpty();

@@ -129,7 +129,7 @@ public class SecurityConfig {
 
         // Obtener orígenes permitidos desde variables de entorno
         String allowedOrigins = System.getenv("SPRING_CORS_ALLOWED_ORIGINS");
-        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
             // Limpiar espacios y dividir por comas
             String[] origins = allowedOrigins.split(",");
             List<String> originList = new ArrayList<>();
@@ -153,7 +153,7 @@ public class SecurityConfig {
         
         // Obtener métodos permitidos desde variables de entorno
         String allowedMethods = System.getenv("SPRING_CORS_ALLOWED_METHODS");
-        if (allowedMethods != null && !allowedMethods.trim().isEmpty()) {
+        if (allowedMethods != null && !allowedMethods.isBlank()) {
             // Limpiar espacios y dividir por comas
             String[] methods = allowedMethods.split(",");
             List<String> methodList = new ArrayList<>();
@@ -183,7 +183,7 @@ public class SecurityConfig {
         
         // Obtener headers permitidos desde variables de entorno
         String allowedHeaders = System.getenv("SPRING_CORS_ALLOWED_HEADERS");
-        if (allowedHeaders != null && !allowedHeaders.trim().isEmpty()) {
+        if (allowedHeaders != null && !allowedHeaders.isBlank()) {
             if (allowedHeaders.trim().equals("*")) {
                 configuration.setAllowedHeaders(Arrays.asList("*"));
             } else {

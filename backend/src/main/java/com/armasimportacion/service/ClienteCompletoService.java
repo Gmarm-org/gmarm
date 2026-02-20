@@ -705,7 +705,7 @@ public class ClienteCompletoService {
     private java.time.LocalDate parsearFechaCompleta(String fechaStr) {
         log.info("Parseando fecha: '{}'", fechaStr);
         
-        if (fechaStr == null || fechaStr.trim().isEmpty()) {
+        if (fechaStr == null || fechaStr.isBlank()) {
             throw new IllegalArgumentException("Fecha vacía");
         }
         
@@ -794,7 +794,7 @@ public class ClienteCompletoService {
             return;
         }
         
-        if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
+        if (cliente.getEmail() == null || cliente.getEmail().isBlank()) {
             log.info("Cliente ID {} no tiene email, no se enviará correo de verificación", cliente.getId());
             return;
         }

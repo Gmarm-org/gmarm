@@ -7,6 +7,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
+import com.armasimportacion.exception.DocumentGenerationException;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
@@ -47,7 +48,7 @@ public class FlyingSaucerPdfService {
             
         } catch (Exception e) {
             log.error("Error generando PDF con Flying Saucer: {}", e.getMessage(), e);
-            throw new RuntimeException("Error generando PDF con Flying Saucer", e);
+            throw new DocumentGenerationException("Error generando PDF con Flying Saucer", e);
         }
     }
 }

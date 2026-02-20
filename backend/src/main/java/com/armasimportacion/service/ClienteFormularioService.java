@@ -59,21 +59,13 @@ public class ClienteFormularioService {
     }
 
     private Long determinarTipoProceso(String nombreTipoCliente) {
-        // Mapeo de tipos de cliente a tipos de proceso
-        switch (nombreTipoCliente) {
-            case "Civil":
-                return 1L; // Cupo Civil
-            case "Militar Fuerza Terrestre":
-            case "Militar Fuerza Naval":
-            case "Militar Fuerza Aérea":
-            case "Uniformado Policial":
-                return 2L; // Extracupo Uniformado
-            case "Compañía de Seguridad":
-                return 3L; // Extracupo Empresa
-            case "Deportista":
-                return 4L; // Cupo Deportista
-            default:
-                return 1L; // Por defecto Cupo Civil
-        }
+        return switch (nombreTipoCliente) {
+            case "Civil" -> 1L;
+            case "Militar Fuerza Terrestre", "Militar Fuerza Naval",
+                 "Militar Fuerza Aérea", "Uniformado Policial" -> 2L;
+            case "Compañía de Seguridad" -> 3L;
+            case "Deportista" -> 4L;
+            default -> 1L;
+        };
     }
 }

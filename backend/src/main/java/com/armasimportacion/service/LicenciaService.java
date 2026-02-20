@@ -1,6 +1,8 @@
 package com.armasimportacion.service;
 
 import com.armasimportacion.enums.EstadoOcupacionLicencia;
+import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Licencia;
 import com.armasimportacion.repository.LicenciaRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,7 @@ public class LicenciaService {
     public Licencia crearLicencia(Licencia licencia, Long usuarioId) {
         // Validar que el número de licencia sea único
         if (licenciaRepository.existsByNumero(licencia.getNumero())) {
-            throw new RuntimeException("Ya existe una licencia con el número: " + licencia.getNumero());
+            throw new BadRequestException("Ya existe una licencia con el número: " + licencia.getNumero());
         }
 
         // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
@@ -41,7 +43,7 @@ public class LicenciaService {
 
     public Licencia actualizarLicencia(Long id, Licencia licencia, Long usuarioId) {
         Licencia licenciaExistente = licenciaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + id));
 
         // Actualizar campos permitidos
         licenciaExistente.setNombre(licencia.getNombre());
@@ -60,7 +62,7 @@ public class LicenciaService {
 
     public Licencia obtenerLicencia(Long id) {
         return licenciaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + id));
     }
 
     public Page<Licencia> obtenerLicencias(Pageable pageable) {
@@ -69,7 +71,7 @@ public class LicenciaService {
 
     public void eliminarLicencia(Long id) {
         if (!licenciaRepository.existsById(id)) {
-            throw new RuntimeException("Licencia no encontrada con ID: " + id);
+            throw new ResourceNotFoundException("Licencia no encontrada con ID: " + id);
         }
         licenciaRepository.deleteById(id);
     }
@@ -142,7 +144,7 @@ public class LicenciaService {
     }
 
     public String obtenerInicialesDesdeNombre(String nombre) {
-        if (nombre == null || nombre.trim().isEmpty()) {
+        if (nombre == null || nombre.isBlank()) {
             return "";
         }
         String limpio = nombre.replaceAll("[^\\p{L}\\p{N} ]", " ").trim();
@@ -164,7 +166,7 @@ public class LicenciaService {
     public String obtenerInicialesFallback() {
         try {
             String valor = configuracionSistemaService.getValorConfiguracion("RECIBO_INICIALES_IMPORTADOR");
-            if (valor != null && !valor.trim().isEmpty()) {
+            if (valor != null && !valor.isBlank()) {
                 return valor.trim().toUpperCase();
             }
         } catch (Exception e) {
@@ -195,16 +197,13 @@ public class LicenciaService {
      * NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
      */
     public String getResumenLicencia(Long licenciaId) {
-        Optional<Licencia> licenciaOpt = licenciaRepository.findById(licenciaId);
-        if (licenciaOpt.isPresent()) {
-            Licencia licencia = licenciaOpt.get();
-            return String.format("Licencia %s: Nombre=%s, Estado=%s, Ocupación=%s",
+        return licenciaRepository.findById(licenciaId)
+            .map(licencia -> String.format("Licencia %s: Nombre=%s, Estado=%s, Ocupación=%s",
                 licencia.getNumero(),
                 licencia.getNombre(),
                 licencia.getEstado() ? "Activa" : "Inactiva",
-                licencia.getEstadoOcupacion());
-        }
-        return "Licencia no encontrada";
+                licencia.getEstadoOcupacion()))
+            .orElse("Licencia no encontrada");
     }
 
     /**
@@ -215,7 +214,7 @@ public class LicenciaService {
         log.info("Reseteando estado de licencia ID: {}", licenciaId);
 
         Licencia licencia = licenciaRepository.findById(licenciaId)
-            .orElseThrow(() -> new RuntimeException("Licencia no encontrada con ID: " + licenciaId));
+            .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + licenciaId));
 
         // Cambiar estado a DISPONIBLE
         licencia.setEstadoOcupacion(EstadoOcupacionLicencia.DISPONIBLE);

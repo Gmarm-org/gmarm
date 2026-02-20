@@ -72,7 +72,7 @@ public class ArmaImageService {
      * @param imageUrl URL de la imagen a eliminar
      */
     public void deleteWeaponImage(String imageUrl) {
-        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+        if (imageUrl == null || imageUrl.isBlank()) {
             return;
         }
         
@@ -103,7 +103,7 @@ public class ArmaImageService {
         }
 
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+        if (originalFilename == null || originalFilename.isBlank()) {
             throw new IOException("Nombre de archivo de imagen inválido");
         }
 
@@ -134,7 +134,7 @@ public class ArmaImageService {
      * Verifica si una imagen existe
      */
     public boolean imageExists(String imageUrl) {
-        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+        if (imageUrl == null || imageUrl.isBlank()) {
             return false;
         }
         

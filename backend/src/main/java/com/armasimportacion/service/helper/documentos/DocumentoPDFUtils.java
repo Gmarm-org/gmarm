@@ -56,7 +56,7 @@ public class DocumentoPDFUtils {
 
     public String obtenerFechaActualFormateadaConCiudad(String ciudad) {
         LocalDate fecha = LocalDate.now(ZoneId.of("America/Guayaquil"));
-        String ciudadFinal = ciudad != null && !ciudad.trim().isEmpty() ? ciudad.trim() : "Quito";
+        String ciudadFinal = ciudad != null && !ciudad.isBlank() ? ciudad.trim() : "Quito";
         String mes = obtenerNombreMes(fecha.getMonthValue());
         return String.format("%s, %d de %s del %d", ciudadFinal, fecha.getDayOfMonth(), mes, fecha.getYear());
     }

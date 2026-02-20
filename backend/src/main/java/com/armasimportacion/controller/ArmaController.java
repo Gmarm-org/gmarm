@@ -104,42 +104,30 @@ public class ArmaController {
             @RequestParam("estado") Boolean estado,
             @RequestParam(value = "codigo", required = false) String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
-            @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
+            @RequestParam(value = "imagen", required = false) MultipartFile imagen) throws IOException {
 
         log.info("Solicitud para crear nueva arma con imagen");
 
-        try {
-            // Crear DTO con los datos recibidos
-            // El código se generará automáticamente desde el modelo si no se proporciona
-            ArmaCreateDTO createDTO = ArmaCreateDTO.builder()
-                    .modelo(modelo) // Cambiado de nombre a modelo
-                    .marca(marca) // Nuevo campo
-                    .alimentadora(alimentadora) // Nuevo campo
-                    .color(color)
-                    .calibre(calibre)
-                    .capacidad(capacidad)
-                    .precioReferencia(new java.math.BigDecimal(precioReferencia))
-                    .categoriaId(categoriaId)
-                    .estado(estado)
-                    .codigo(codigo) // Opcional, se generará automáticamente desde el modelo si no se proporciona
-                    .urlProducto(urlProducto)
-                    .imagen(imagen)
-                    .build();
+        ArmaCreateDTO createDTO = ArmaCreateDTO.builder()
+                .modelo(modelo)
+                .marca(marca)
+                .alimentadora(alimentadora)
+                .color(color)
+                .calibre(calibre)
+                .capacidad(capacidad)
+                .precioReferencia(new java.math.BigDecimal(precioReferencia))
+                .categoriaId(categoriaId)
+                .estado(estado)
+                .codigo(codigo)
+                .urlProducto(urlProducto)
+                .imagen(imagen)
+                .build();
 
-            // Crear arma con imagen
-            Arma armaCreada = armaService.createWithImage(createDTO);
-            ArmaDTO armaDTO = armaMapper.toDTO(armaCreada);
+        Arma armaCreada = armaService.createWithImage(createDTO);
+        ArmaDTO armaDTO = armaMapper.toDTO(armaCreada);
 
-            log.info("Arma creada exitosamente con ID: {}", armaCreada.getId());
-            return ResponseEntity.ok(armaDTO);
-
-        } catch (IOException e) {
-            log.error("Error procesando imagen para nueva arma", e);
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("Error creando arma", e);
-            return ResponseEntity.internalServerError().build();
-        }
+        log.info("Arma creada exitosamente con ID: {}", armaCreada.getId());
+        return ResponseEntity.ok(armaDTO);
     }
 
     @PutMapping("/{id}")
@@ -166,46 +154,34 @@ public class ArmaController {
             @RequestParam("estado") Boolean estado,
             @RequestParam(value = "codigo", required = false) String codigo,
             @RequestParam(value = "urlProducto", required = false) String urlProducto,
-            @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
-        
+            @RequestParam(value = "imagen", required = false) MultipartFile imagen) throws IOException {
+
         log.info("Solicitud para actualizar arma con ID: {} e imagen", id);
         log.info("DEBUG - Precio recibido como string: {}", precioReferencia);
 
-        try {
-            // Crear DTO con los datos recibidos
-            // El código se generará automáticamente desde el modelo si no se proporciona
-            java.math.BigDecimal precioDecimal = new java.math.BigDecimal(precioReferencia);
-            log.info("DEBUG - Precio convertido a BigDecimal: {}", precioDecimal);
-            
-            ArmaUpdateDTO updateDTO = ArmaUpdateDTO.builder()
-                    .modelo(modelo)
-                    .marca(marca)
-                    .alimentadora(alimentadora)
-                    .color(color)
-                    .calibre(calibre)
-                    .capacidad(capacidad)
-                    .precioReferencia(precioDecimal)
-                    .categoriaId(categoriaId)
-                    .estado(estado)
-                    .codigo(codigo) // Opcional, se generará automáticamente desde el modelo si no se proporciona
-                    .urlProducto(urlProducto)
-                    .imagen(imagen)
-                    .build();
-            
-            // Actualizar arma con imagen
-            Arma armaActualizada = armaService.updateWithImage(id, updateDTO);
-            ArmaDTO armaDTO = armaMapper.toDTO(armaActualizada);
-            
-            log.info("Arma actualizada exitosamente con ID: {}", id);
-            return ResponseEntity.ok(armaDTO);
-            
-        } catch (IOException e) {
-            log.error("Error procesando imagen para arma ID: {}", id, e);
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("Error actualizando arma con ID: {}", id, e);
-            return ResponseEntity.internalServerError().build();
-        }
+        java.math.BigDecimal precioDecimal = new java.math.BigDecimal(precioReferencia);
+        log.info("DEBUG - Precio convertido a BigDecimal: {}", precioDecimal);
+
+        ArmaUpdateDTO updateDTO = ArmaUpdateDTO.builder()
+                .modelo(modelo)
+                .marca(marca)
+                .alimentadora(alimentadora)
+                .color(color)
+                .calibre(calibre)
+                .capacidad(capacidad)
+                .precioReferencia(precioDecimal)
+                .categoriaId(categoriaId)
+                .estado(estado)
+                .codigo(codigo)
+                .urlProducto(urlProducto)
+                .imagen(imagen)
+                .build();
+
+        Arma armaActualizada = armaService.updateWithImage(id, updateDTO);
+        ArmaDTO armaDTO = armaMapper.toDTO(armaActualizada);
+
+        log.info("Arma actualizada exitosamente con ID: {}", id);
+        return ResponseEntity.ok(armaDTO);
     }
 
     @PatchMapping("/{id}/estado")

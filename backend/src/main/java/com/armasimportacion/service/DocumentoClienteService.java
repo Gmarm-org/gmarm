@@ -67,7 +67,7 @@ public class DocumentoClienteService {
             
             for (DocumentoCliente docAnterior : documentosAnteriores) {
                 // Eliminar archivo físico para liberar espacio en disco
-                if (docAnterior.getRutaArchivo() != null && !docAnterior.getRutaArchivo().trim().isEmpty()) {
+                if (docAnterior.getRutaArchivo() != null && !docAnterior.getRutaArchivo().isBlank()) {
                     try {
                         // La ruta en BD es relativa (ej: "documentos_clientes/{cedula}/documentos_cargados/archivo.pdf")
                         // FileStorageService.deleteFile ya maneja la construcción de la ruta completa

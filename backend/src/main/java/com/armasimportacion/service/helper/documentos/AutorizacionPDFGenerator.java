@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import com.armasimportacion.exception.DocumentGenerationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -48,7 +49,7 @@ public class AutorizacionPDFGenerator {
 
         } catch (Exception e) {
             log.error("Error generando autorización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
-            throw new RuntimeException("Error generando autorización", e);
+            throw new DocumentGenerationException("Error generando autorización", e);
         }
     }
 
@@ -71,7 +72,7 @@ public class AutorizacionPDFGenerator {
             String anioActual = String.valueOf(java.time.LocalDate.now().getYear());
 
             Licencia licencia = utils.obtenerLicenciaActiva(cliente);
-            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().isBlank()
                 ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
             String licenciaRUC = licencia != null && licencia.getRuc() != null ? licencia.getRuc() : "";

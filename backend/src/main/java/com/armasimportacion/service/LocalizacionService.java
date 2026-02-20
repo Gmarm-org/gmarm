@@ -61,7 +61,7 @@ public class LocalizacionService {
     }
     
     public String getNombreProvinciaPorCodigo(String codigo) {
-        if (codigo == null || codigo.trim().isEmpty()) {
+        if (codigo == null || codigo.isBlank()) {
             return "No especificado";
         }
         try {

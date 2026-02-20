@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import com.armasimportacion.exception.DocumentGenerationException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +62,7 @@ public class CotizacionPDFGenerator {
 
         } catch (Exception e) {
             log.error("Error generando cotización para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
-            throw new RuntimeException("Error generando cotización", e);
+            throw new DocumentGenerationException("Error generando cotización", e);
         }
     }
 
@@ -98,7 +100,7 @@ public class CotizacionPDFGenerator {
             List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
             if (armasCliente == null || armasCliente.isEmpty()) {
                 log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());
-                throw new RuntimeException("No se encontró arma asignada al cliente");
+                throw new ResourceNotFoundException("No se encontró arma asignada al cliente");
             }
 
             String ivaValor = configuracionService.getValorConfiguracion("IVA");
@@ -141,12 +143,12 @@ public class CotizacionPDFGenerator {
                 + (totalArmas == 1 ? " arma" : " armas");
 
             Licencia licencia = utils.obtenerLicenciaActiva(cliente);
-            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().isBlank()
                 ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "";
             String licenciaCedula = "";
             if (licencia != null) {
-                if (licencia.getCedulaCuenta() != null && !licencia.getCedulaCuenta().trim().isEmpty()) {
+                if (licencia.getCedulaCuenta() != null && !licencia.getCedulaCuenta().isBlank()) {
                     licenciaCedula = licencia.getCedulaCuenta();
                 } else if (licencia.getRuc() != null) {
                     licenciaCedula = licencia.getRuc();

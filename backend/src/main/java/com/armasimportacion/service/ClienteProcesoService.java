@@ -3,6 +3,7 @@ package com.armasimportacion.service;
 import com.armasimportacion.dto.ClienteDTO;
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.EmailSendException;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.DocumentoCliente;
@@ -110,7 +111,7 @@ public class ClienteProcesoService {
             log.info("Confirmación enviada para cliente: {}", cliente.getNombreCompleto());
         } catch (Exception e) {
             log.error("Error al enviar confirmación: {}", e.getMessage());
-            throw new RuntimeException("Error al enviar confirmación", e);
+            throw new EmailSendException("Error al enviar confirmación", e);
         }
     }
 

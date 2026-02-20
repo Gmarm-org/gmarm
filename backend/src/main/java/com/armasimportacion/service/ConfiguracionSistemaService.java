@@ -90,7 +90,7 @@ public class ConfiguracionSistemaService {
         
         try {
             String valor = getValorConfiguracion("CORREOS_RECIBO");
-            if (valor == null || valor.trim().isEmpty()) {
+            if (valor == null || valor.isBlank()) {
                 log.warn("CORREOS_RECIBO está vacío o no configurado");
                 return new ArrayList<>();
             }
@@ -118,7 +118,7 @@ public class ConfiguracionSistemaService {
             
             // Filtrar correos vacíos
             correos = correos.stream()
-                    .filter(correo -> correo != null && !correo.trim().isEmpty())
+                    .filter(correo -> correo != null && !correo.isBlank())
                     .map(String::trim)
                     .collect(Collectors.toList());
             

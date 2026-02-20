@@ -2,6 +2,8 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.dto.GrupoImportacionResumenDTO;
 import com.armasimportacion.enums.EstadoDocumentoGenerado;
+import com.armasimportacion.exception.DocumentGenerationException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.TipoDocumentoGenerado;
 import com.armasimportacion.model.ClienteArma;
@@ -74,16 +76,16 @@ public class PedidoArmasGrupoImportacionService {
         
         // Validar que el grupo existe
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
-            .orElseThrow(() -> new RuntimeException("Grupo de importación no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
         
         // Validar que el usuario existe
         Usuario usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         
         // Validar que el grupo puede definir pedido (estado permitido)
         if (grupo.getEstado() != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES &&
             grupo.getEstado() != EstadoGrupoImportacion.EN_PREPARACION) {
-            throw new RuntimeException("El grupo no está en un estado válido para definir pedido. Estado actual: " + grupo.getEstado());
+            throw new IllegalStateException("El grupo no está en un estado válido para definir pedido. Estado actual: " + grupo.getEstado());
         }
         
         try {
@@ -143,7 +145,7 @@ public class PedidoArmasGrupoImportacionService {
             
         } catch (Exception e) {
             log.error("Error generando pedido de armas para grupo ID: {}: {}", grupoId, e.getMessage(), e);
-            throw new RuntimeException("Error generando pedido de armas", e);
+            throw new DocumentGenerationException("Error generando pedido de armas", e);
         }
     }
 

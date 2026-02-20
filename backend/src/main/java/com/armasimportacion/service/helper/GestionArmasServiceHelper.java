@@ -10,6 +10,8 @@ import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.service.ConfiguracionSistemaService;
 import com.armasimportacion.service.InventarioService;
+import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -93,7 +95,7 @@ public class GestionArmasServiceHelper {
             
         } catch (Exception e) {
             log.error("Error asignando arma a cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
-            throw new RuntimeException("Error asignando arma: " + e.getMessage(), e);
+            throw new BadRequestException("Error asignando arma: " + e.getMessage());
         }
     }
 
@@ -181,7 +183,7 @@ public class GestionArmasServiceHelper {
             
             if (serieOpt.isEmpty()) {
                 log.error("No se encontró la serie {} para el arma ID: {}", numeroSerie, armaId);
-                throw new RuntimeException("Serie no encontrada: " + numeroSerie);
+                throw new ResourceNotFoundException("Serie no encontrada: " + numeroSerie);
             }
             
             ArmaSerie serie = serieOpt.get();
@@ -189,7 +191,7 @@ public class GestionArmasServiceHelper {
             // Verificar que la serie esté disponible
             if (!ArmaSerie.EstadoSerie.DISPONIBLE.equals(serie.getEstado())) {
                 log.error("La serie {} no está disponible. Estado actual: {}", numeroSerie, serie.getEstado());
-                throw new RuntimeException("La serie " + numeroSerie + " no está disponible");
+                throw new BadRequestException("La serie " + numeroSerie + " no está disponible");
             }
             
             // Obtener usuario asignador (vendedor) desde el cliente
@@ -205,7 +207,7 @@ public class GestionArmasServiceHelper {
             
         } catch (Exception e) {
             log.error("Error asignando serie: {}", e.getMessage(), e);
-            throw new RuntimeException("Error asignando serie: " + e.getMessage(), e);
+            throw new BadRequestException("Error asignando serie: " + e.getMessage());
         }
     }
 

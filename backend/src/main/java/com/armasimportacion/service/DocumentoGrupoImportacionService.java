@@ -2,6 +2,8 @@ package com.armasimportacion.service;
 
 import com.armasimportacion.dto.DocumentoGrupoImportacionDTO;
 import com.armasimportacion.enums.EstadoDocumentoGrupo;
+import com.armasimportacion.exception.BadRequestException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.mapper.DocumentoGrupoImportacionMapper;
 import com.armasimportacion.model.DocumentoGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
@@ -51,19 +53,19 @@ public class DocumentoGrupoImportacionService {
         
         // Validar que el grupo existe
         GrupoImportacion grupo = grupoImportacionRepository.findById(grupoId)
-            .orElseThrow(() -> new RuntimeException("Grupo de importación no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Grupo de importación no encontrado"));
         
         // Validar que el tipo de documento existe y es para grupos de importación
         TipoDocumento tipoDocumento = tipoDocumentoRepository.findById(tipoDocumentoId)
-            .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no encontrado"));
         
         if (!tipoDocumento.getGruposImportacion()) {
-            throw new RuntimeException("El tipo de documento no es válido para grupos de importación");
+            throw new BadRequestException("El tipo de documento no es válido para grupos de importación");
         }
         
         // Validar que el usuario existe
         Usuario usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         
         // Crear nuevo documento
         DocumentoGrupoImportacion documento = new DocumentoGrupoImportacion();
@@ -118,7 +120,7 @@ public class DocumentoGrupoImportacionService {
     @Transactional(readOnly = true)
     public DocumentoGrupoImportacionDTO obtenerDocumentoPorId(Long documentoId) {
         DocumentoGrupoImportacion documento = repository.findById(documentoId)
-            .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Documento no encontrado"));
         return mapper.toDTO(documento);
     }
 
@@ -127,7 +129,7 @@ public class DocumentoGrupoImportacionService {
      */
     public void eliminarDocumento(Long documentoId) {
         DocumentoGrupoImportacion documento = repository.findById(documentoId)
-            .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Documento no encontrado"));
         
         // Eliminar archivo físico
         if (documento.getRutaArchivo() != null) {
@@ -188,7 +190,7 @@ public class DocumentoGrupoImportacionService {
      */
     public DocumentoGrupoImportacionDTO cambiarEstado(Long documentoId, EstadoDocumentoGrupo nuevoEstado) {
         DocumentoGrupoImportacion documento = repository.findById(documentoId)
-            .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Documento no encontrado"));
         
         documento.setEstado(nuevoEstado);
         documento.setFechaActualizacion(LocalDateTime.now());

@@ -1,6 +1,9 @@
 package com.armasimportacion.service;
 
 import com.armasimportacion.enums.TipoDocumentoGenerado;
+import com.armasimportacion.exception.DocumentGenerationException;
+import com.armasimportacion.exception.EmailSendException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.model.*;
 import com.armasimportacion.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +53,7 @@ public class ContratoService {
 
         } catch (Exception e) {
             log.error("Error al generar contrato: {}", e.getMessage(), e);
-            throw new RuntimeException("Error al generar contrato", e);
+            throw new DocumentGenerationException("Error al generar contrato", e);
         }
     }
 
@@ -60,11 +63,11 @@ public class ContratoService {
     @Transactional
     protected ContratoData guardarContrato(Long clienteId, Long pagoId, Long vendedorId) throws IOException {
         Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
         Usuario vendedor = usuarioRepository.findById(vendedorId)
-                .orElseThrow(() -> new RuntimeException("Vendedor no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado"));
         Pago pago = pagoRepository.findById(pagoId)
-                .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pago no encontrado"));
 
         byte[] pdfBytes = generarPDFContrato(cliente, pago, vendedor);
         String nombreArchivo = generarNombreArchivo(cliente, pago);
@@ -200,7 +203,7 @@ public class ContratoService {
 
         } catch (Exception e) {
             log.error("Error al enviar contrato por email: {}", e.getMessage(), e);
-            throw new RuntimeException("Error al enviar contrato por email", e);
+            throw new EmailSendException("Error al enviar contrato por email", e);
         }
     }
 

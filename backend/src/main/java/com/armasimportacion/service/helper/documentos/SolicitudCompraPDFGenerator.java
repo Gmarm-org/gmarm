@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import com.armasimportacion.exception.DocumentGenerationException;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +51,7 @@ public class SolicitudCompraPDFGenerator {
 
         } catch (Exception e) {
             log.error("Error generando solicitud de compra para cliente ID: {}: {}", cliente.getId(), e.getMessage(), e);
-            throw new RuntimeException("Error generando solicitud de compra", e);
+            throw new DocumentGenerationException("Error generando solicitud de compra", e);
         }
     }
 
@@ -60,7 +62,7 @@ public class SolicitudCompraPDFGenerator {
             List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
             if (armasCliente == null || armasCliente.isEmpty()) {
                 log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());
-                throw new RuntimeException("No se encontró arma asignada al cliente");
+                throw new ResourceNotFoundException("No se encontró arma asignada al cliente");
             }
 
             int totalArmas = armasCliente.stream()
@@ -85,13 +87,13 @@ public class SolicitudCompraPDFGenerator {
             }
 
             Licencia licencia = utils.obtenerLicenciaActiva(cliente);
-            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().isBlank()
                 ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null ? licencia.getNombre() : "";
             String licenciaCiudad = licencia != null && licencia.getCanton() != null
                 ? licencia.getCanton().getNombre()
                 : null;
-            if (licenciaCiudad == null || licenciaCiudad.trim().isEmpty()) {
+            if (licenciaCiudad == null || licenciaCiudad.isBlank()) {
                 licenciaCiudad = "Quito";
             }
             String fechaSolicitud = utils.obtenerFechaActualFormateadaConCiudad(licenciaCiudad);

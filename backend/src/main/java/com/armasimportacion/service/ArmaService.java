@@ -143,7 +143,7 @@ public class ArmaService {
             log.info("Procesando nueva imagen para arma ID: {}", id);
             
             // Eliminar imagen anterior si existe
-            if (arma.getUrlImagen() != null && !arma.getUrlImagen().trim().isEmpty()) {
+            if (arma.getUrlImagen() != null && !arma.getUrlImagen().isBlank()) {
                 armaImageService.deleteWeaponImage(arma.getUrlImagen());
                 log.info("Imagen anterior eliminada para arma ID: {}", id);
             }
@@ -191,7 +191,7 @@ public class ArmaService {
         if (updateDTO.getEstado() != null) {
             arma.setEstado(updateDTO.getEstado());
         }
-        if (updateDTO.getUrlImagen() != null && !updateDTO.getUrlImagen().trim().isEmpty()) {
+        if (updateDTO.getUrlImagen() != null && !updateDTO.getUrlImagen().isBlank()) {
             arma.setUrlImagen(updateDTO.getUrlImagen());
         }
         
@@ -291,7 +291,7 @@ public class ArmaService {
      * Ejemplo: "CZ P09 C NOCTURNE" -> "CZ-P09-C-NOCTURNE"
      */
     private String generarCodigoDesdeModelo(String modelo) {
-        if (modelo == null || modelo.trim().isEmpty()) {
+        if (modelo == null || modelo.isBlank()) {
             return "";
         }
         // Convertir a mayúsculas y reemplazar espacios con guiones

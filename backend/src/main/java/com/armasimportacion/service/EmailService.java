@@ -19,6 +19,7 @@ import org.thymeleaf.context.Context;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.File;
+import com.armasimportacion.exception.EmailSendException;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.List;
@@ -100,7 +101,7 @@ public class EmailService {
             context.setVariable("direccion", cliente.getDireccion() != null ? cliente.getDireccion() : "No especificada");
             // Obtener el nombre de la provincia desde el código
             String nombreProvincia = "No especificada";
-            if (cliente.getProvincia() != null && !cliente.getProvincia().trim().isEmpty()) {
+            if (cliente.getProvincia() != null && !cliente.getProvincia().isBlank()) {
                 nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());
             }
             context.setVariable("provincia", nombreProvincia);
@@ -123,10 +124,10 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Error enviando correo de verificación a {}: {}", cliente.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error al enviar correo de verificación: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar correo de verificación: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando correo a {}: {}", cliente.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar correo: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar correo: " + e.getMessage(), e);
         }
     }
 
@@ -172,10 +173,10 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Error enviando contrato a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error al enviar contrato: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar contrato: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando contrato a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar contrato: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar contrato: " + e.getMessage(), e);
         }
     }
 
@@ -225,10 +226,10 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Error enviando contrato con adjunto a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error al enviar contrato con adjunto: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar contrato con adjunto: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando contrato con adjunto a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar contrato con adjunto: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar contrato con adjunto: " + e.getMessage(), e);
         }
     }
 
@@ -274,16 +275,16 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Error enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error al enviar confirmación a vendedor: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar confirmación a vendedor: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando confirmación a vendedor {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar confirmación a vendedor: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar confirmación a vendedor: " + e.getMessage(), e);
         }
     }
 
     public void enviarDocumentosGenerados(String email, String nombreCliente, String nombreVendedor, Licencia licencia,
                                           List<DocumentoAdjunto> adjuntos) {
-        if (email == null || email.trim().isEmpty()) {
+        if (email == null || email.isBlank()) {
             log.warn("Email vacío, omitiendo envío de documentos generados");
             return;
         }
@@ -300,7 +301,7 @@ public class EmailService {
             Context context = new Context();
             context.setVariable("nombreCliente", nombreCliente);
             context.setVariable("nombreVendedor", nombreVendedor);
-            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().isBlank()
                 ? licencia.getTitulo() : "";
             context.setVariable("licenciaTitulo", licenciaTitulo);
             context.setVariable("licenciaNombre", licencia != null ? licencia.getNombre() : "N/A");
@@ -328,15 +329,15 @@ public class EmailService {
             log.info("Documentos generados enviados exitosamente a: {}", email);
         } catch (MessagingException e) {
             log.error("Error enviando documentos generados a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error al enviar documentos generados: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar documentos generados: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando documentos generados a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar documentos generados: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar documentos generados: " + e.getMessage(), e);
         }
     }
 
     public void enviarAlertasProcesoImportacion(String email, String nombreDestinatario, List<AlertaProcesoImportacionDTO> alertas) {
-        if (email == null || email.trim().isEmpty() || alertas == null || alertas.isEmpty()) {
+        if (email == null || email.isBlank() || alertas == null || alertas.isEmpty()) {
             return;
         }
 
@@ -360,10 +361,10 @@ public class EmailService {
             log.info("Alertas enviadas exitosamente a: {}", email);
         } catch (MessagingException e) {
             log.error("Error enviando alertas a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error al enviar alertas de proceso: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar alertas de proceso: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando alertas a {}: {}", email, e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar alertas: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar alertas: " + e.getMessage(), e);
         }
     }
 
@@ -402,10 +403,10 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Error enviando contrato con documentos a {}: {}", cliente.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error al enviar contrato con documentos: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar contrato con documentos: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando contrato con documentos a {}: {}", cliente.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar contrato con documentos: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar contrato con documentos: " + e.getMessage(), e);
         }
     }
 
@@ -439,10 +440,10 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Error enviando confirmación de proceso a {}: {}", cliente.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error al enviar confirmación de proceso: " + e.getMessage(), e);
+            throw new EmailSendException("Error al enviar confirmación de proceso: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Error inesperado enviando confirmación de proceso a {}: {}", cliente.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error inesperado al enviar confirmación de proceso: " + e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar confirmación de proceso: " + e.getMessage(), e);
         }
     }
 
@@ -463,7 +464,7 @@ public class EmailService {
         log.info("Enviando recibo a {} destinatarios", emails.size());
 
         for (String email : emails) {
-            if (email == null || email.trim().isEmpty()) {
+            if (email == null || email.isBlank()) {
                 log.warn("Email vacío, omitiendo envío");
                 continue;
             }

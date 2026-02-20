@@ -37,7 +37,7 @@ public class AccesorioService {
         }
         
         // Validar nombre
-        if (accesorioDTO.getNombre() == null || accesorioDTO.getNombre().trim().isEmpty()) {
+        if (accesorioDTO.getNombre() == null || accesorioDTO.getNombre().isBlank()) {
             throw new BadRequestException("El nombre del accesorio es obligatorio");
         }
         
@@ -162,10 +162,10 @@ public class AccesorioService {
         }
         
         // Actualizar campos
-        if (accesorioDTO.getNombre() != null && !accesorioDTO.getNombre().trim().isEmpty()) {
+        if (accesorioDTO.getNombre() != null && !accesorioDTO.getNombre().isBlank()) {
             accesorio.setNombre(accesorioDTO.getNombre().trim());
         }
-        if (accesorioDTO.getCodigo() != null && !accesorioDTO.getCodigo().trim().isEmpty()) {
+        if (accesorioDTO.getCodigo() != null && !accesorioDTO.getCodigo().isBlank()) {
             accesorio.setCodigo(accesorioDTO.getCodigo().trim());
         }
         if (accesorioDTO.getDescripcion() != null) {

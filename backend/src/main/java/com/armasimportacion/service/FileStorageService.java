@@ -1,5 +1,6 @@
 package com.armasimportacion.service;
 
+import com.armasimportacion.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -83,7 +84,7 @@ public class FileStorageService {
      * Sanitiza el nombre de archivo removiendo caracteres especiales y espacios
      */
     private String sanitizeFileName(String fileName) {
-        if (fileName == null || fileName.trim().isEmpty()) {
+        if (fileName == null || fileName.isBlank()) {
             return "documento";
         }
         
@@ -149,7 +150,7 @@ public class FileStorageService {
             }
         } catch (IOException e) {
             log.error("Error eliminando archivo {}: {}", filePath, e.getMessage(), e);
-            throw new RuntimeException("Error eliminando archivo: " + e.getMessage(), e);
+            throw new BadRequestException("Error eliminando archivo: " + e.getMessage(), e);
         }
     }
 
@@ -163,7 +164,7 @@ public class FileStorageService {
         }
 
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+        if (originalFilename == null || originalFilename.isBlank()) {
             throw new IOException("Nombre de archivo inválido");
         }
 
@@ -266,37 +267,23 @@ public class FileStorageService {
     }
     
     private String getTipoDocumentoShortName(Long tipoDocumentoId) {
-        // Mapeo de IDs a nombres cortos basado en la base de datos
-        switch (tipoDocumentoId.intValue()) {
-            case 1: return "cedula";           // Copia de cédula (Cupo Civil)
-            case 2: return "formulario";       // Formulario de solicitud (Cupo Civil)
-            case 3: return "antecedentes";     // Antecedentes Penales (Cupo Civil)
-            case 4: return "consejo";          // Consejo de la Judicatura (Cupo Civil)
-            case 5: return "fiscalia";         // Fiscalía (Cupo Civil)
-            case 6: return "satje";            // SATJE (Cupo Civil)
-            case 7: return "credencial";       // Credencial militar/policial (Extracupo Uniformado)
-            case 8: return "servicio_activo";  // Certificado de servicio activo (Extracupo Uniformado)
-            case 9: return "cedula";           // Copia de cédula (Extracupo Uniformado)
-            case 10: return "formulario";      // Formulario de solicitud (Extracupo Uniformado)
-            case 11: return "antecedentes";    // Antecedentes Penales (Extracupo Uniformado)
-            case 12: return "consejo";         // Consejo de la Judicatura (Extracupo Uniformado)
-            case 13: return "fiscalia";        // Fiscalía (Extracupo Uniformado)
-            case 14: return "satje";           // SATJE (Extracupo Uniformado)
-            case 15: return "cedula_rep";      // Cédula del representante legal (Extracupo Empresa)
-            case 16: return "nombramiento";    // Nombramiento representante legal (Extracupo Empresa)
-            case 17: return "permiso";         // Permiso de funcionamiento (Extracupo Empresa)
-            case 18: return "ruc";             // RUC de la empresa (Extracupo Empresa)
-            case 19: return "formulario";      // Formulario de solicitud (Extracupo Empresa)
-            case 20: return "cedula";          // Copia de cédula (Cupo Deportista)
-            case 21: return "formulario";      // Formulario de solicitud (Cupo Deportista)
-            case 22: return "club_deportivo";  // Credencial de club deportivo (Cupo Deportista)
-            case 23: return "tenencia_armas";  // Credencial de tenencia de armas (Cupo Deportista)
-            case 24: return "antecedentes";    // Antecedentes Penales (Cupo Deportista)
-            case 25: return "consejo";         // Consejo de la Judicatura (Cupo Deportista)
-            case 26: return "fiscalia";        // Fiscalía (Cupo Deportista)
-            case 27: return "satje";           // SATJE (Cupo Deportista)
-            default: return "documento";       // Fallback
-        }
+        return switch (tipoDocumentoId.intValue()) {
+            case 1, 9, 20 -> "cedula";
+            case 2, 10, 19, 21 -> "formulario";
+            case 3, 11, 24 -> "antecedentes";
+            case 4, 12, 25 -> "consejo";
+            case 5, 13, 26 -> "fiscalia";
+            case 6, 14, 27 -> "satje";
+            case 7 -> "credencial";
+            case 8 -> "servicio_activo";
+            case 15 -> "cedula_rep";
+            case 16 -> "nombramiento";
+            case 17 -> "permiso";
+            case 18 -> "ruc";
+            case 22 -> "club_deportivo";
+            case 23 -> "tenencia_armas";
+            default -> "documento";
+        };
     }
 
     private String generateUniqueFileName(String originalFilename) {

@@ -150,7 +150,7 @@ public class GrupoImportacionProcesoService {
 
         try {
             for (Usuario usuario : destinatarios) {
-                if (usuario.getEmail() != null && !usuario.getEmail().trim().isEmpty()) {
+                if (usuario.getEmail() != null && !usuario.getEmail().isBlank()) {
                     emailService.enviarAlertasProcesoImportacion(
                         usuario.getEmail(),
                         usuario.getNombreCompleto(),

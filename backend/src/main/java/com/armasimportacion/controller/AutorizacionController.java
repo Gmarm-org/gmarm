@@ -52,13 +52,13 @@ public class AutorizacionController {
                     "error", "El ID del cliente es requerido"
                 ));
             }
-            if (requestData.get("numeroFactura") == null || requestData.get("numeroFactura").toString().trim().isEmpty()) {
+            if (requestData.get("numeroFactura") == null || requestData.get("numeroFactura").toString().isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "error", "El número de factura es requerido"
                 ));
             }
-            if (requestData.get("tramite") == null || requestData.get("tramite").toString().trim().isEmpty()) {
+            if (requestData.get("tramite") == null || requestData.get("tramite").toString().isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "error", "El número de trámite es requerido"
@@ -92,7 +92,7 @@ public class AutorizacionController {
             ClienteArma clienteArma = armas.get(0);
 
             // Verificar que el arma tenga número de serie
-            if (clienteArma.getNumeroSerie() == null || clienteArma.getNumeroSerie().trim().isEmpty()) {
+            if (clienteArma.getNumeroSerie() == null || clienteArma.getNumeroSerie().isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "error", "El arma asignada al cliente no tiene número de serie. Primero debe asignar un número de serie al arma."

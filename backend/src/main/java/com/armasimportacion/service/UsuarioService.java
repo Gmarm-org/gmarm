@@ -89,7 +89,7 @@ public class UsuarioService {
         if (usuarioUpdate.getEstado() != null) {
             usuario.setEstado(usuarioUpdate.getEstado());
         }
-        if (usuarioUpdate.getPasswordHash() != null && !usuarioUpdate.getPasswordHash().trim().isEmpty()) {
+        if (usuarioUpdate.getPasswordHash() != null && !usuarioUpdate.getPasswordHash().isBlank()) {
             usuario.setPasswordHash(usuarioUpdate.getPasswordHash());
         }
 
@@ -203,7 +203,7 @@ public class UsuarioService {
         }
 
         // Validar campos obligatorios
-        if (usuario.getPasswordHash() == null || usuario.getPasswordHash().trim().isEmpty()) {
+        if (usuario.getPasswordHash() == null || usuario.getPasswordHash().isBlank()) {
             throw new BadRequestException("La contraseña es obligatoria");
         }
 
@@ -219,11 +219,11 @@ public class UsuarioService {
         }
 
         // Validar campos obligatorios
-        if (usuarioUpdate.getNombres() == null || usuarioUpdate.getNombres().trim().isEmpty()) {
+        if (usuarioUpdate.getNombres() == null || usuarioUpdate.getNombres().isBlank()) {
             throw new BadRequestException("Los nombres son obligatorios");
         }
 
-        if (usuarioUpdate.getEmail() == null || usuarioUpdate.getEmail().trim().isEmpty()) {
+        if (usuarioUpdate.getEmail() == null || usuarioUpdate.getEmail().isBlank()) {
             throw new BadRequestException("El email es obligatorio");
         }
     }

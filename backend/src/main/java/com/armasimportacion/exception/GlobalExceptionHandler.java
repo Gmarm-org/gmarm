@@ -86,6 +86,24 @@ public class GlobalExceptionHandler {
         );
     }
 
+    /**
+     * Maneja DocumentGenerationException (errores de generación PDF/templates)
+     */
+    @ExceptionHandler(DocumentGenerationException.class)
+    public ResponseEntity<Map<String, Object>> handleDocumentGenerationException(DocumentGenerationException ex) {
+        log.error("Error generando documento: {}", ex.getMessage(), ex);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), null);
+    }
+
+    /**
+     * Maneja EmailSendException (errores de envío de correo)
+     */
+    @ExceptionHandler(EmailSendException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailSendException(EmailSendException ex) {
+        log.error("Error enviando email: {}", ex.getMessage(), ex);
+        return buildErrorResponse(HttpStatus.BAD_GATEWAY, ex.getMessage(), null);
+    }
+
     // ==================== ERRORES DE BASE DE DATOS ====================
 
     /**

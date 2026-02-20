@@ -176,7 +176,7 @@ public class GrupoImportacionWorkflowService {
             throw new BadRequestException("El grupo no está en un estado válido para registrar número de previa. Estado actual: " + grupo.getEstado());
         }
 
-        if (numeroPrevia == null || numeroPrevia.trim().isEmpty()) {
+        if (numeroPrevia == null || numeroPrevia.isBlank()) {
             throw new BadRequestException("El número de previa importación no puede estar vacío");
         }
 

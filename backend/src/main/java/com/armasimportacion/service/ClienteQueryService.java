@@ -91,11 +91,11 @@ public class ClienteQueryService {
     // ===== MÉTODOS PARA JEFE DE VENTAS =====
 
     public Page<Cliente> findAllForJefeVentas(EstadoCliente estado, String vendedor, Pageable pageable) {
-        if (estado != null && vendedor != null && !vendedor.trim().isEmpty()) {
+        if (estado != null && vendedor != null && !vendedor.isBlank()) {
             return clienteRepository.findByEstadoAndUsuarioCreadorNombreContainingIgnoreCase(estado, vendedor, pageable);
         } else if (estado != null) {
             return clienteRepository.findByEstado(estado, pageable);
-        } else if (vendedor != null && !vendedor.trim().isEmpty()) {
+        } else if (vendedor != null && !vendedor.isBlank()) {
             return clienteRepository.findByUsuarioCreadorNombreContainingIgnoreCase(vendedor, pageable);
         } else {
             return clienteRepository.findAll(pageable);

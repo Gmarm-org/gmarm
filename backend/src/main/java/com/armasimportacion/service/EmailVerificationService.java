@@ -61,7 +61,7 @@ public class EmailVerificationService {
         log.info("Generando token de verificacion para cliente ID: {}", cliente.getId());
 
         // Validar que el cliente tenga email
-        if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
+        if (cliente.getEmail() == null || cliente.getEmail().isBlank()) {
             log.warn("Cliente ID {} no tiene email, no se puede generar token", cliente.getId());
             throw new IllegalArgumentException("El cliente debe tener un correo electrónico para verificación");
         }
@@ -173,7 +173,7 @@ public class EmailVerificationService {
         result.put("direccion", cliente.getDireccion());
         // Obtener el nombre de la provincia desde el código
         String nombreProvincia = "No especificada";
-        if (cliente.getProvincia() != null && !cliente.getProvincia().trim().isEmpty()) {
+        if (cliente.getProvincia() != null && !cliente.getProvincia().isBlank()) {
             nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());
         }
         result.put("provincia", nombreProvincia);
@@ -221,7 +221,7 @@ public class EmailVerificationService {
             info.put("direccion", cliente.getDireccion());
             // Obtener el nombre de la provincia desde el código
             String nombreProvincia = "No especificada";
-            if (cliente.getProvincia() != null && !cliente.getProvincia().trim().isEmpty()) {
+            if (cliente.getProvincia() != null && !cliente.getProvincia().isBlank()) {
                 nombreProvincia = localizacionService.getNombreProvinciaPorCodigo(cliente.getProvincia());
             }
             info.put("provincia", nombreProvincia);

@@ -147,7 +147,7 @@ public class GrupoImportacionService {
         grupo.setCupoTotal(cupoTotal);
         grupo.setObservaciones(dto.getObservaciones());
 
-        if (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) {
+        if (dto.getCodigo() == null || dto.getCodigo().isBlank()) {
             grupo.setCodigo(generarCodigoAutomatico());
         } else {
             if (grupoImportacionRepository.existsByCodigo(dto.getCodigo())) {
@@ -164,7 +164,7 @@ public class GrupoImportacionService {
     }
 
     private void configurarTipoGrupoYTra(GrupoImportacion grupo, GrupoImportacionCreateDTO dto) {
-        if (dto.getTipoGrupo() != null && !dto.getTipoGrupo().trim().isEmpty()) {
+        if (dto.getTipoGrupo() != null && !dto.getTipoGrupo().isBlank()) {
             try {
                 grupo.setTipoGrupo(TipoGrupo.valueOf(dto.getTipoGrupo()));
             } catch (IllegalArgumentException e) {
@@ -174,7 +174,7 @@ public class GrupoImportacionService {
             grupo.setTipoGrupo(TipoGrupo.CUPO);
         }
 
-        if (dto.getTra() != null && !dto.getTra().trim().isEmpty()) {
+        if (dto.getTra() != null && !dto.getTra().isBlank()) {
             if (!dto.getTra().matches("TRA-\\d+")) {
                 throw new BadRequestException("El formato de TRA debe ser TRA- seguido de números (ej: TRA-1212121212)");
             }
@@ -254,7 +254,7 @@ public class GrupoImportacionService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        if (grupo.getCodigo() == null || grupo.getCodigo().trim().isEmpty()) {
+        if (grupo.getCodigo() == null || grupo.getCodigo().isBlank()) {
             grupo.setCodigo(generarCodigoAutomatico());
         }
 
@@ -306,7 +306,7 @@ public class GrupoImportacionService {
         }
 
         // Actualizar campos básicos si se proporcionan
-        if (dto.getNombre() != null && !dto.getNombre().trim().isEmpty()) {
+        if (dto.getNombre() != null && !dto.getNombre().isBlank()) {
             grupo.setNombre(dto.getNombre());
         }
         if (dto.getDescripcion() != null) {
@@ -316,7 +316,7 @@ public class GrupoImportacionService {
             grupo.setObservaciones(dto.getObservaciones());
         }
 
-        if (dto.getTipoGrupo() != null && !dto.getTipoGrupo().trim().isEmpty()) {
+        if (dto.getTipoGrupo() != null && !dto.getTipoGrupo().isBlank()) {
             try {
                 grupo.setTipoGrupo(TipoGrupo.valueOf(dto.getTipoGrupo()));
             } catch (IllegalArgumentException e) {
@@ -324,7 +324,7 @@ public class GrupoImportacionService {
             }
         }
 
-        if (dto.getTra() != null && !dto.getTra().trim().isEmpty()) {
+        if (dto.getTra() != null && !dto.getTra().isBlank()) {
             if (!dto.getTra().matches("TRA-\\d+")) {
                 throw new BadRequestException("El formato de TRA debe ser TRA- seguido de números (ej: TRA-1212121212)");
             }
@@ -530,7 +530,7 @@ public class GrupoImportacionService {
             throw new BadRequestException("Ya existe un grupo con el código: " + grupoImportacion.getCodigo());
         }
 
-        if (grupoImportacion.getCodigo() == null || grupoImportacion.getCodigo().trim().isEmpty()) {
+        if (grupoImportacion.getCodigo() == null || grupoImportacion.getCodigo().isBlank()) {
             grupoImportacion.setCodigo(generarCodigoAutomatico());
         }
 

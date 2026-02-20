@@ -33,6 +33,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.armasimportacion.exception.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -168,162 +169,143 @@ public class PagoController {
     @PostMapping("/cuota/{cuotaId}/generar-recibo")
     public ResponseEntity<Map<String, Object>> generarRecibo(@PathVariable Long cuotaId) {
         log.info("Generando recibo para cuota ID: {}", cuotaId);
-        try {
-            DocumentoGenerado recibo = pagoService.generarRecibo(cuotaId);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Recibo generado exitosamente");
-            response.put("documentoId", recibo.getId());
-            response.put("nombreArchivo", recibo.getNombreArchivo());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error generando recibo: {}", e.getMessage(), e);
-            return ResponseEntity.status(500)
-                .body(Map.of("success", false, "error", "Error al generar recibo: " + e.getMessage()));
-        }
+        DocumentoGenerado recibo = pagoService.generarRecibo(cuotaId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Recibo generado exitosamente");
+        response.put("documentoId", recibo.getId());
+        response.put("nombreArchivo", recibo.getNombreArchivo());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/cuota/{cuotaId}/descargar-recibo")
-    public ResponseEntity<Resource> descargarRecibo(@PathVariable Long cuotaId) {
+    public ResponseEntity<Resource> descargarRecibo(@PathVariable Long cuotaId) throws java.io.IOException {
         log.info("Descargando recibo para cuota ID: {}", cuotaId);
-        try {
-            CuotaPago cuota = cuotaPagoRepository.findById(cuotaId)
-                .orElseThrow(() -> new RuntimeException("Cuota no encontrada"));
-            
-            DocumentoGenerado recibo = null;
-            if (cuota.getNumeroRecibo() != null && !cuota.getNumeroRecibo().trim().isEmpty()) {
-                // Buscar el recibo generado para esta cuota
-                List<DocumentoGenerado> recibos = documentoGeneradoRepository.findByClienteIdAndTipo(
-                    cuota.getPago().getClienteId(),
-                    TipoDocumentoGenerado.RECIBO
-                );
-                
+        CuotaPago cuota = cuotaPagoRepository.findById(cuotaId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cuota no encontrada"));
+
+        DocumentoGenerado recibo = null;
+        if (cuota.getNumeroRecibo() != null && !cuota.getNumeroRecibo().isBlank()) {
+            // Buscar el recibo generado para esta cuota
+            List<DocumentoGenerado> recibos = documentoGeneradoRepository.findByClienteIdAndTipo(
+                cuota.getPago().getClienteId(),
+                TipoDocumentoGenerado.RECIBO
+            );
+
+            recibo = recibos.stream()
+                .filter(doc -> {
+                    String numeroRecibo = cuota.getNumeroRecibo();
+                    return numeroRecibo != null && doc.getNombreArchivo() != null &&
+                           doc.getNombreArchivo().contains(numeroRecibo);
+                })
+                .findFirst()
+                .orElse(null);
+
+            if (recibo == null) {
+                // Fallback: usar el último recibo generado del cliente
                 recibo = recibos.stream()
-                    .filter(doc -> {
-                        String numeroRecibo = cuota.getNumeroRecibo();
-                        return numeroRecibo != null && doc.getNombreArchivo() != null &&
-                               doc.getNombreArchivo().contains(numeroRecibo);
+                    .filter(doc -> doc.getNombreArchivo() != null)
+                    .sorted((a, b) -> {
+                        if (a.getFechaGeneracion() == null || b.getFechaGeneracion() == null) {
+                            return 0;
+                        }
+                        return b.getFechaGeneracion().compareTo(a.getFechaGeneracion());
                     })
                     .findFirst()
                     .orElse(null);
-                
-                if (recibo == null) {
-                    // Fallback: usar el último recibo generado del cliente
-                    recibo = recibos.stream()
-                        .filter(doc -> doc.getNombreArchivo() != null)
-                        .sorted((a, b) -> {
-                            if (a.getFechaGeneracion() == null || b.getFechaGeneracion() == null) {
-                                return 0;
-                            }
-                            return b.getFechaGeneracion().compareTo(a.getFechaGeneracion());
-                        })
-                        .findFirst()
-                        .orElse(null);
-                }
             }
-            
-            if (recibo == null) {
-                recibo = pagoService.generarRecibo(cuotaId);
-            }
-            
-            if (recibo == null) {
-                throw new RuntimeException("Recibo no encontrado para esta cuota");
-            }
-
-            byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
-            Resource resource = new ByteArrayResource(pdfBytes);
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + recibo.getNombreArchivo() + "\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(resource);
-
-        } catch (Exception e) {
-            log.error("Error descargando recibo: {}", e.getMessage(), e);
-            return ResponseEntity.notFound().build();
         }
+
+        if (recibo == null) {
+            recibo = pagoService.generarRecibo(cuotaId);
+        }
+
+        if (recibo == null) {
+            throw new ResourceNotFoundException("Recibo no encontrado para esta cuota");
+        }
+
+        byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
+        Resource resource = new ByteArrayResource(pdfBytes);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + recibo.getNombreArchivo() + "\"")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(resource);
     }
 
     @PostMapping("/cuota/{cuotaId}/enviar-recibo-correo")
     public ResponseEntity<Map<String, Object>> enviarReciboPorCorreo(
             @PathVariable Long cuotaId,
-            @RequestBody(required = false) Map<String, Object> requestBody) {
+            @RequestBody(required = false) Map<String, Object> requestBody) throws java.io.IOException {
         log.info("Enviando recibo por correo para cuota ID: {}", cuotaId);
-        try {
-            CuotaPago cuota = cuotaPagoRepository.findById(cuotaId)
-                .orElseThrow(() -> new RuntimeException("Cuota no encontrada"));
-            Cliente cliente = clienteRepository.findById(
-                cuota.getPago().getClienteId()
-            ).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+        CuotaPago cuota = cuotaPagoRepository.findById(cuotaId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cuota no encontrada"));
+        Cliente cliente = clienteRepository.findById(
+            cuota.getPago().getClienteId()
+        ).orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
 
-            // Construir lista de correos: cliente + correos configurados en sistema
-            List<String> emails = new ArrayList<>();
-            
-            // Agregar correo del cliente si existe
-            if (cliente.getEmail() != null && !cliente.getEmail().trim().isEmpty()) {
-                emails.add(cliente.getEmail().trim());
-                log.info("Correo del cliente agregado: {}", cliente.getEmail());
-            }
-            
-            // Obtener correos configurados desde configuracion_sistema
-            List<String> correosRecibo = configuracionSistemaService.getCorreosRecibo();
-            if (!correosRecibo.isEmpty()) {
-                emails.addAll(correosRecibo);
-                log.info("{} correo(s) de recibo agregado(s) desde configuracion", correosRecibo.size());
-            }
-            
-            // Si el requestBody tiene emails adicionales (opcional, para compatibilidad)
-            if (requestBody != null && requestBody.containsKey("emails")) {
-                @SuppressWarnings("unchecked")
-                List<String> emailsAdicionales = (List<String>) requestBody.get("emails");
-                if (emailsAdicionales != null) {
-                    for (String email : emailsAdicionales) {
-                        if (email != null && !email.trim().isEmpty() && !emails.contains(email.trim())) {
-                            emails.add(email.trim());
-                        }
+        // Construir lista de correos: cliente + correos configurados en sistema
+        List<String> emails = new ArrayList<>();
+
+        // Agregar correo del cliente si existe
+        if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
+            emails.add(cliente.getEmail().trim());
+            log.info("Correo del cliente agregado: {}", cliente.getEmail());
+        }
+
+        // Obtener correos configurados desde configuracion_sistema
+        List<String> correosRecibo = configuracionSistemaService.getCorreosRecibo();
+        if (!correosRecibo.isEmpty()) {
+            emails.addAll(correosRecibo);
+            log.info("{} correo(s) de recibo agregado(s) desde configuracion", correosRecibo.size());
+        }
+
+        // Si el requestBody tiene emails adicionales (opcional, para compatibilidad)
+        if (requestBody != null && requestBody.containsKey("emails")) {
+            @SuppressWarnings("unchecked")
+            List<String> emailsAdicionales = (List<String>) requestBody.get("emails");
+            if (emailsAdicionales != null) {
+                for (String email : emailsAdicionales) {
+                    if (email != null && !email.isBlank() && !emails.contains(email.trim())) {
+                        emails.add(email.trim());
                     }
                 }
             }
-            
-            if (emails.isEmpty()) {
-                return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", "No hay correos configurados para enviar el recibo. Configure CORREOS_RECIBO en el sistema o asegúrese de que el cliente tenga un correo válido."));
-            }
-            
-            log.info("Total de correos destinatarios: {}", emails.size());
-
-            // Generar recibo si no existe
-            DocumentoGenerado recibo;
-            List<DocumentoGenerado> recibosExistentes = documentoGeneradoRepository.findByClienteId(cliente.getId());
-            recibo = recibosExistentes.stream()
-                .filter(doc -> doc.getTipoDocumento() == TipoDocumentoGenerado.RECIBO)
-                .filter(doc -> doc.getNombreArchivo().contains("REC-" + cuotaId) || 
-                              doc.getNombreArchivo().contains("recibo_"))
-                .findFirst()
-                .orElse(null);
-
-            if (recibo == null) {
-                recibo = pagoService.generarRecibo(cuotaId);
-            }
-
-            // Leer archivo PDF
-            byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
-
-            // Enviar por correo
-            emailService.enviarReciboPorCorreo(
-                emails,
-                cliente.getNombres() + " " + cliente.getApellidos(),
-                pdfBytes,
-                recibo.getNombreArchivo(),
-                cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId(),
-                cuota.getMonto()
-            );
-
-            return ResponseEntity.ok(Map.of("success", true, "message", "Recibo enviado por correo exitosamente"));
-
-        } catch (Exception e) {
-            log.error("Error enviando recibo por correo: {}", e.getMessage(), e);
-            return ResponseEntity.status(500)
-                .body(Map.of("success", false, "error", "Error al enviar recibo: " + e.getMessage()));
         }
+
+        if (emails.isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("success", false, "error", "No hay correos configurados para enviar el recibo. Configure CORREOS_RECIBO en el sistema o asegúrese de que el cliente tenga un correo válido."));
+        }
+
+        log.info("Total de correos destinatarios: {}", emails.size());
+
+        // Generar recibo si no existe
+        DocumentoGenerado recibo;
+        List<DocumentoGenerado> recibosExistentes = documentoGeneradoRepository.findByClienteId(cliente.getId());
+        recibo = recibosExistentes.stream()
+            .filter(doc -> doc.getTipoDocumento() == TipoDocumentoGenerado.RECIBO)
+            .filter(doc -> doc.getNombreArchivo().contains("REC-" + cuotaId) ||
+                          doc.getNombreArchivo().contains("recibo_"))
+            .findFirst()
+            .orElse(null);
+
+        if (recibo == null) {
+            recibo = pagoService.generarRecibo(cuotaId);
+        }
+
+        // Leer archivo PDF
+        byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
+
+        // Enviar por correo
+        emailService.enviarReciboPorCorreo(
+            emails,
+            cliente.getNombres() + " " + cliente.getApellidos(),
+            pdfBytes,
+            recibo.getNombreArchivo(),
+            cuota.getNumeroRecibo() != null ? cuota.getNumeroRecibo() : "REC-" + cuota.getId(),
+            cuota.getMonto()
+        );
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Recibo enviado por correo exitosamente"));
     }
 } 

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import com.armasimportacion.exception.DocumentGenerationException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -60,7 +61,7 @@ public class ReciboPDFGenerator {
 
         } catch (Exception e) {
             log.error("Error generando recibo para cuota ID: {}: {}", cuota.getId(), e.getMessage(), e);
-            throw new RuntimeException("Error generando recibo", e);
+            throw new DocumentGenerationException("Error generando recibo", e);
         }
     }
 
@@ -113,14 +114,14 @@ public class ReciboPDFGenerator {
             variables.put("clienteEmail", cliente.getEmail() != null ? cliente.getEmail() : "");
 
             boolean esUniformado = cliente.getTipoCliente() != null && cliente.getTipoCliente().esUniformado();
-            String clienteRango = cliente.getRango() != null && !cliente.getRango().trim().isEmpty()
+            String clienteRango = cliente.getRango() != null && !cliente.getRango().isBlank()
                 ? cliente.getRango().toUpperCase()
                 : "";
             variables.put("esUniformado", esUniformado);
             variables.put("clienteRango", clienteRango);
 
             Licencia licencia = utils.obtenerLicenciaActiva(cliente);
-            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().trim().isEmpty()
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().isBlank()
                 ? licencia.getTitulo() : "";
             String licenciaNombre = licencia != null && licencia.getNombre() != null ? licencia.getNombre() : "CZ ECUADOR";
             variables.put("licenciaTitulo", licenciaTitulo);

@@ -95,7 +95,7 @@ public class ClienteService {
     }
 
     public boolean existsByRuc(String ruc) {
-        return clienteRepository.findByRuc(ruc).size() > 0;
+        return !clienteRepository.findByRuc(ruc).isEmpty();
     }
 
     public boolean validateEdadMinima(LocalDate fechaNacimiento) {
@@ -115,17 +115,17 @@ public class ClienteService {
     }
 
     public boolean validateCedula(String cedula) {
-        if (cedula == null || cedula.trim().isEmpty()) return false;
+        if (cedula == null || cedula.isBlank()) return false;
         return cedula.matches("^[0-9]{10}$");
     }
 
     public boolean validateRuc(String ruc) {
-        if (ruc == null || ruc.trim().isEmpty()) return false;
+        if (ruc == null || ruc.isBlank()) return false;
         return ruc.matches("^[0-9]{13}$");
     }
 
     public boolean validateTelefono(String telefono) {
-        if (telefono == null || telefono.trim().isEmpty()) return false;
+        if (telefono == null || telefono.isBlank()) return false;
         return telefono.matches("^[0-9]{10}$");
     }
 
@@ -203,10 +203,10 @@ public class ClienteService {
         mapDtoToCliente(dto, cliente);
 
         // Establecer relaciones
-        if (dto.getTipoIdentificacionCodigo() == null || dto.getTipoIdentificacionCodigo().trim().isEmpty()) {
+        if (dto.getTipoIdentificacionCodigo() == null || dto.getTipoIdentificacionCodigo().isBlank()) {
             throw new BadRequestException("tipoIdentificacionCodigo es obligatorio y debe enviarse desde el frontend");
         }
-        if (dto.getTipoClienteCodigo() == null || dto.getTipoClienteCodigo().trim().isEmpty()) {
+        if (dto.getTipoClienteCodigo() == null || dto.getTipoClienteCodigo().isBlank()) {
             throw new BadRequestException("tipoClienteCodigo es obligatorio y debe enviarse desde el frontend");
         }
 
@@ -235,7 +235,7 @@ public class ClienteService {
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado")));
         }
 
-        if (dto.getEstado() != null && !dto.getEstado().trim().isEmpty()) {
+        if (dto.getEstado() != null && !dto.getEstado().isBlank()) {
             try {
                 cliente.setEstado(EstadoCliente.valueOf(dto.getEstado().toUpperCase()));
                 log.info("Estado del cliente establecido desde DTO: {}", dto.getEstado());
@@ -366,7 +366,7 @@ public class ClienteService {
             }
         } catch (Exception e) {
             log.error("Error inesperado al buscar/crear cliente fantasma para vendedor ID {}: {}", usuarioId, e.getMessage(), e);
-            throw new RuntimeException("Error al buscar/crear cliente fantasma: " + e.getMessage(), e);
+            throw new BadRequestException("Error al buscar/crear cliente fantasma: " + e.getMessage(), e);
         }
     }
 
@@ -453,7 +453,7 @@ public class ClienteService {
             throw new BadRequestException("No se pudo crear el cliente fantasma después de múltiples intentos: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error inesperado en reintento de creación de cliente fantasma: {}", e.getMessage(), e);
-            throw new RuntimeException("Error al reintentar creación de cliente fantasma: " + e.getMessage(), e);
+            throw new BadRequestException("Error al reintentar creación de cliente fantasma: " + e.getMessage(), e);
         }
     }
 
@@ -509,8 +509,8 @@ public class ClienteService {
             throw new BadRequestException("Ya existe un cliente con este email: " + cliente.getEmail());
         }
 
-        if (cliente.getRuc() != null && !cliente.getRuc().trim().isEmpty()) {
-            if (clienteRepository.findByRuc(cliente.getRuc()).size() > 0) {
+        if (cliente.getRuc() != null && !cliente.getRuc().isBlank()) {
+            if (!clienteRepository.findByRuc(cliente.getRuc()).isEmpty()) {
                 throw new BadRequestException("Ya existe una empresa con este RUC: " + cliente.getRuc());
             }
         }
@@ -550,9 +550,9 @@ public class ClienteService {
             }
         }
 
-        if (clienteUpdate.getRuc() != null && !clienteUpdate.getRuc().trim().isEmpty()) {
+        if (clienteUpdate.getRuc() != null && !clienteUpdate.getRuc().isBlank()) {
             List<Cliente> clientesConRuc = clienteRepository.findByRuc(clienteUpdate.getRuc());
-            if (clientesConRuc.size() > 0 && !clientesConRuc.get(0).getId().equals(id)) {
+            if (!clientesConRuc.isEmpty() && !clientesConRuc.get(0).getId().equals(id)) {
                 throw new BadRequestException("Ya existe una empresa con este RUC: " + clienteUpdate.getRuc());
             }
         }
@@ -567,33 +567,31 @@ public class ClienteService {
     }
 
     private void validateCamposEspecificos(Cliente cliente) {
-        if (cliente.getTipoCliente() != null) {
-            if (cliente.getTipoCliente().esMilitar()) {
-                if (cliente.getCodigoIssfa() == null || cliente.getCodigoIssfa().trim().isEmpty()) {
-                    throw new BadRequestException("El código ISSFA es obligatorio para militares");
-                }
+        if (cliente.getTipoCliente() == null) return;
 
-                String codigoIssfa = cliente.getCodigoIssfa().trim();
-                if (codigoIssfa.length() != 10) {
-                    throw new BadRequestException("El código ISSFA debe tener exactamente 10 dígitos");
-                }
-                if (!codigoIssfa.matches("\\d{10}")) {
-                    throw new BadRequestException("El código ISSFA debe contener solo números (10 dígitos)");
-                }
+        if (cliente.getTipoCliente().esMilitar()) {
+            if (cliente.getCodigoIssfa() == null || cliente.getCodigoIssfa().isBlank()) {
+                throw new BadRequestException("El código ISSFA es obligatorio para militares");
             }
+            String codigoIssfa = cliente.getCodigoIssfa().trim();
+            if (codigoIssfa.length() != 10) {
+                throw new BadRequestException("El código ISSFA debe tener exactamente 10 dígitos");
+            }
+            if (!codigoIssfa.matches("\\d{10}")) {
+                throw new BadRequestException("El código ISSFA debe contener solo números (10 dígitos)");
+            }
+        }
 
-            if (cliente.getTipoCliente().esPolicia()) {
-                if (cliente.getCodigoIsspol() == null || cliente.getCodigoIsspol().trim().isEmpty()) {
-                    throw new BadRequestException("El código ISSPOL es obligatorio para policías");
-                }
-
-                String codigoIsspol = cliente.getCodigoIsspol().trim();
-                if (codigoIsspol.length() != 10) {
-                    throw new BadRequestException("El código ISSPOL debe tener exactamente 10 dígitos");
-                }
-                if (!codigoIsspol.matches("\\d{10}")) {
-                    throw new BadRequestException("El código ISSPOL debe contener solo números (10 dígitos)");
-                }
+        if (cliente.getTipoCliente().esPolicia()) {
+            if (cliente.getCodigoIsspol() == null || cliente.getCodigoIsspol().isBlank()) {
+                throw new BadRequestException("El código ISSPOL es obligatorio para policías");
+            }
+            String codigoIsspol = cliente.getCodigoIsspol().trim();
+            if (codigoIsspol.length() != 10) {
+                throw new BadRequestException("El código ISSPOL debe tener exactamente 10 dígitos");
+            }
+            if (!codigoIsspol.matches("\\d{10}")) {
+                throw new BadRequestException("El código ISSPOL debe contener solo números (10 dígitos)");
             }
         }
     }
