@@ -82,6 +82,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/pagos/**").permitAll() // TEMPORAL: Para debugging
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/api-docs/**").permitAll()
                 .requestMatchers("/swagger-resources/**").permitAll()
                 .requestMatchers("/webjars/**").permitAll()
                 .requestMatchers("/favicon.ico").permitAll()
