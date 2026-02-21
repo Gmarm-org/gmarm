@@ -18,7 +18,9 @@ import java.util.List;
 public interface PagoRepository extends JpaRepository<Pago, Long> {
 
     List<Pago> findByClienteId(Long clienteId);
-    
+
+    List<Pago> findByClienteIdOrderByIdDesc(Long clienteId);
+
     List<Pago> findByEstado(EstadoPago estado);
     
     List<Pago> findByClienteIdAndEstado(Long clienteId, EstadoPago estado);

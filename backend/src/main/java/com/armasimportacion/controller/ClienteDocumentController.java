@@ -67,7 +67,7 @@ public class ClienteDocumentController {
         log.info("Obteniendo datos del contrato para cliente ID: {}", id);
 
         Cliente cliente = clienteService.findById(id);
-        List<Pago> pagos = pagoRepository.findByClienteId(id);
+        List<Pago> pagos = pagoRepository.findByClienteIdOrderByIdDesc(id);
         Pago pago = pagos != null && !pagos.isEmpty() ? pagos.get(0) : null;
 
         List<ClienteArma> armas = cliente.getAsignacionesArma() != null ? cliente.getAsignacionesArma() : new ArrayList<>();
@@ -152,7 +152,7 @@ public class ClienteDocumentController {
                 .body(Map.of("error", "El cliente debe tener todos sus documentos obligatorios cargados antes de generar el contrato."));
         }
 
-        List<Pago> pagos = pagoRepository.findByClienteId(id);
+        List<Pago> pagos = pagoRepository.findByClienteIdOrderByIdDesc(id);
         Pago pago = pagos != null && !pagos.isEmpty() ? pagos.get(0) : null;
 
         List<DocumentoGenerado> documentos = gestionDocumentosServiceHelper.generarYGuardarDocumentos(cliente, pago);
