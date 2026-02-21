@@ -248,32 +248,32 @@
         </div>
         <div class="payment-schedule">
             <!-- PAGO A CONTADO: Solo item a) + b) -->
-            <div class="payment-item" th:if="${pago.tipoPago == 'CONTADO'}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CONTADO'}">
                 <span class="text-bold">a).-</span> A 24 horas después de suscrito el presente contrato la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(pago.montoTotal, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoTotal) + ' DOLARES DE LOS ESTADOS UNIDOS'}">MIL TRESCIENTOS OCHENTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             
             <!-- PAGO A CRÉDITO: Cuotas con fechas dinámicas -->
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO'}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CREDITO'}">
                 <span class="text-bold">CUOTA 1.-</span> A 24 horas después de suscrito el presente contrato la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(pago.montoCuota, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(pago.montoCuota) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 2}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 2}">
                 <span class="text-bold">CUOTA 2.-</span> Hasta el <span th:text="${#temporals.format(cuotas[1].fechaVencimiento, 'dd')}">X</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[1].fechaVencimiento).toUpperCase()}">MES 2025</span> la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[1].monto, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[1].monto) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 3}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 3}">
                 <span class="text-bold">CUOTA 3.-</span> Hasta el <span th:text="${#temporals.format(cuotas[2].fechaVencimiento, 'dd')}">X</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[2].fechaVencimiento).toUpperCase()}">MES 2025</span> la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[2].monto, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[2].monto) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 4}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 4}">
                 <span class="text-bold">CUOTA 4.-</span> Hasta el <span th:text="${#temporals.format(cuotas[3].fechaVencimiento, 'dd')}">X</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[3].fechaVencimiento).toUpperCase()}">MES 2025</span> la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[3].monto, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[3].monto) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 5}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 5}">
                 <span class="text-bold">CUOTA 5.-</span> Hasta el <span th:text="${#temporals.format(cuotas[4].fechaVencimiento, 'dd')}">X</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[4].fechaVencimiento).toUpperCase()}">MES 2025</span> la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[4].monto, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[4].monto) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             
-            <div class="payment-item" th:if="${pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 6}">
+            <div class="payment-item" th:if="${pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 6}">
                 <span class="text-bold">CUOTA 6.-</span> Hasta el <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}">X</span>° de <span th:text="${T(java.time.format.DateTimeFormatter).ofPattern('MMMM yyyy', new java.util.Locale('es', 'ES')).format(cuotas[5].fechaVencimiento).toUpperCase()}">MES 2025</span> la cantidad de USD <span class="number-format" th:text="${#numbers.formatDecimal(cuotas[5].monto, 1, 2)}">XXXX.00</span> (<span th:text="${numberToTextService.convertToText(cuotas[5].monto) + ' DOLARES DE LOS ESTADOS UNIDOS'}">DOSCIENTOS TREINTA con 00/100 DOLARES DE LOS ESTADOS UNIDOS</span>)
             </div>
             

@@ -170,7 +170,7 @@
         <!-- Pago de contado -->
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CONTADO'}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CONTADO'}"
         >
           <span class="text-bold">a). - </span>A las 24 horas después de la
           suscripción del presente documento la cantidad de USD
@@ -181,7 +181,7 @@
         <!-- Pago a crédito -->
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CREDITO'}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CREDITO'}"
         >
           <span class="text-bold">a). - </span>A las 24 horas después de la
           suscripción del presente documento la cantidad de USD
@@ -191,7 +191,7 @@
 
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 2}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 2}"
         >
           <span class="text-bold">b). -</span>Hasta el
           <span th:text="${#temporals.format(cuotas[1].fechaVencimiento, 'dd')}">5</span>° de
@@ -202,7 +202,7 @@
 
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 3}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 3}"
         >
           <span class="text-bold">c). -</span>Hasta el
           <span th:text="${#temporals.format(cuotas[2].fechaVencimiento, 'dd')}">5</span>° de
@@ -213,7 +213,7 @@
 
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 4}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 4}"
         >
           <span class="text-bold">d). -</span>Hasta el
           <span th:text="${#temporals.format(cuotas[3].fechaVencimiento, 'dd')}">5</span>° de
@@ -224,7 +224,7 @@
 
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 5}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 5}"
         >
           <span class="text-bold">e). -</span>Hasta el
           <span th:text="${#temporals.format(cuotas[4].fechaVencimiento, 'dd')}">5</span>° de
@@ -235,7 +235,7 @@
 
         <div
           class="payment-item"
-          th:if="${pago != null and pago.tipoPago == 'CREDITO' and cuotas != null and cuotas.size() >= 6}"
+          th:if="${pago != null and pago.tipoPago.name() == 'CREDITO' and cuotas != null and cuotas.size() >= 6}"
         >
           <span class="text-bold">f). -</span>Hasta el
           <span th:text="${#temporals.format(cuotas[5].fechaVencimiento, 'dd')}">05</span> de
