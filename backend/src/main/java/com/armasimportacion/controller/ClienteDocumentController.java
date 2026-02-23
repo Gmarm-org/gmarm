@@ -21,6 +21,7 @@ import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.enums.EstadoClienteGrupo;
+import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoDocumentoGenerado;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -150,6 +151,40 @@ public class ClienteDocumentController {
         if (!documentosCompletos) {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "El cliente debe tener todos sus documentos obligatorios cargados antes de generar el contrato."));
+        }
+
+        // Verificar estado del grupo: solo bloquear regeneración después de SOLICITAR_PROFORMA_FABRICA
+        List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository.findByClienteId(id);
+        boolean grupoPermiteRegenerar = true;
+        for (ClienteGrupoImportacion cgi : gruposCliente) {
+            EstadoGrupoImportacion eg = cgi.getGrupoImportacion().getEstado();
+            if (eg != EstadoGrupoImportacion.BORRADOR
+                && eg != EstadoGrupoImportacion.EN_PREPARACION
+                && eg != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES
+                && eg != EstadoGrupoImportacion.SOLICITAR_PROFORMA_FABRICA) {
+                grupoPermiteRegenerar = false;
+                break;
+            }
+        }
+
+        if (!grupoPermiteRegenerar) {
+            List<DocumentoGenerado> docsExistentes = documentoGeneradoRepository.findByClienteId(id);
+            boolean esCivil = cliente.esCivil() || cliente.esDeportista();
+            boolean solicitudExiste = docsExistentes.stream()
+                .anyMatch(d -> d.getTipoDocumento() == TipoDocumentoGenerado.SOLICITUD_COMPRA);
+            boolean contratoExiste = docsExistentes.stream()
+                .anyMatch(d -> d.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO);
+            boolean cotizacionExiste = docsExistentes.stream()
+                .anyMatch(d -> d.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION);
+
+            if (esCivil && solicitudExiste) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "La solicitud de compra ya fue generada y el grupo ya pasó de 'Definir pedido'."));
+            }
+            if (!esCivil && solicitudExiste && contratoExiste && cotizacionExiste) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Los documentos ya fueron generados y el grupo ya pasó de 'Definir pedido'."));
+            }
         }
 
         List<Pago> pagos = pagoRepository.findByClienteIdOrderByIdDesc(id);

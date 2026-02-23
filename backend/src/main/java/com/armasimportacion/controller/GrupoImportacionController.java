@@ -30,6 +30,7 @@ import com.armasimportacion.service.GrupoImportacionProcesoService;
 import com.armasimportacion.service.UsuarioService;
 import com.armasimportacion.service.DocumentoClienteService;
 import com.armasimportacion.repository.ClienteArmaRepository;
+import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.repository.TipoClienteRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -65,6 +66,7 @@ public class GrupoImportacionController {
     private final DocumentoClienteService documentoClienteService;
     private final CategoriaArmaService categoriaArmaService;
     private final ClienteArmaRepository clienteArmaRepository;
+    private final DocumentoGeneradoRepository documentoGeneradoRepository;
     private final TipoClienteRepository tipoClienteRepository;
     private final com.armasimportacion.service.ClienteArmaService clienteArmaService;
 
@@ -462,6 +464,21 @@ public class GrupoImportacionController {
             // Incluir estado de documentos para referencia
             boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(cg.getCliente().getId());
             clienteMap.put("documentosCompletos", documentosCompletos);
+
+            // Determinar tipo de documentos requeridos según tipo de cliente
+            // CIVIL y DEPORTISTA solo necesitan Solicitud de Compra
+            // UNIFORMADO y EMPRESA necesitan Contrato + Solicitud + Cotización
+            boolean esCivilODeportista = cg.getCliente().esCivil() || cg.getCliente().esDeportista();
+            clienteMap.put("requiereSoloSolicitud", esCivilODeportista);
+
+            // Incluir estado de documentos generados
+            List<DocumentoGenerado> docsGenerados = documentoGeneradoRepository.findByClienteId(cg.getCliente().getId());
+            clienteMap.put("tieneContrato", docsGenerados.stream()
+                .anyMatch(d -> d.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO));
+            clienteMap.put("tieneSolicitud", docsGenerados.stream()
+                .anyMatch(d -> d.getTipoDocumento() == TipoDocumentoGenerado.SOLICITUD_COMPRA));
+            clienteMap.put("tieneCotizacion", docsGenerados.stream()
+                .anyMatch(d -> d.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION));
 
             return clienteMap;
         }).toList();

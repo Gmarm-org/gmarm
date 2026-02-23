@@ -117,7 +117,7 @@ export const ClientDocumentsSection: React.FC<ClientDocumentsSectionProps> = ({
                   {loadedDocuments[document.nombre]?.id ? (
                     <>
                       <iframe
-                        src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
+                        src={`${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
                         className="w-full h-64 border border-gray-300 rounded-lg"
                         title={`Previsualización de ${document.nombre}`}
                         onError={() => {
@@ -144,7 +144,7 @@ export const ClientDocumentsSection: React.FC<ClientDocumentsSectionProps> = ({
                 {/* Botones de acción */}
                 <div className="flex gap-2">
                   <a 
-                    href={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
+                    href={`${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve/${loadedDocuments[document.nombre].id}`}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"

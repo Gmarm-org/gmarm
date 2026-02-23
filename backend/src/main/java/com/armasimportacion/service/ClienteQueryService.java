@@ -11,10 +11,13 @@ import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
 import com.armasimportacion.model.Pago;
+import com.armasimportacion.enums.TipoDocumentoGenerado;
+import com.armasimportacion.model.DocumentoGenerado;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import com.armasimportacion.repository.DocumentoClienteRepository;
+import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.repository.PagoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +53,7 @@ public class ClienteQueryService {
     private final ClienteArmaService clienteArmaService;
     private final ClienteArmaRepository clienteArmaRepository;
     private final DocumentoClienteRepository documentoClienteRepository;
+    private final DocumentoGeneradoRepository documentoGeneradoRepository;
 
     // ===== BÚSQUEDAS POR ENTIDAD =====
 
@@ -342,9 +346,10 @@ public class ClienteQueryService {
         Set<Long> clientesConArmasAsignadas = new HashSet<>();
         Set<Long> clientesConDocumentos = new HashSet<>();
         if (!clientesQueNecesitanVerificacion.isEmpty()) {
-            // Verificar armas asignadas en batch
+            // Verificar armas asignadas en batch (RESERVADA o ASIGNADA)
             List<ClienteArma> armasAsignadas = clienteArmaRepository
-                .findByClienteIdInAndEstado(clientesQueNecesitanVerificacion, ClienteArma.EstadoClienteArma.ASIGNADA);
+                .findByClienteIdInAndEstadoIn(clientesQueNecesitanVerificacion,
+                    List.of(ClienteArma.EstadoClienteArma.RESERVADA, ClienteArma.EstadoClienteArma.ASIGNADA));
             for (ClienteArma ca : armasAsignadas) {
                 clientesConArmasAsignadas.add(ca.getCliente().getId());
             }
@@ -359,7 +364,18 @@ public class ClienteQueryService {
             }
         }
 
-        // 4. Aplicar enriquecimiento a cada DTO
+        // 4. Batch: documentos generados (contrato, solicitud, cotización) por cliente (1 query)
+        Map<Long, Set<TipoDocumentoGenerado>> docsGeneradosPorCliente = new HashMap<>();
+        if (!clienteIds.isEmpty()) {
+            List<DocumentoGenerado> todosDocsGenerados = documentoGeneradoRepository.findByClienteIdIn(clienteIds);
+            for (DocumentoGenerado dg : todosDocsGenerados) {
+                docsGeneradosPorCliente
+                    .computeIfAbsent(dg.getCliente().getId(), k -> new HashSet<>())
+                    .add(dg.getTipoDocumento());
+            }
+        }
+
+        // 5. Aplicar enriquecimiento a cada DTO
         for (ClienteDTO dto : dtos) {
             // Estado de pago
             dto.setEstadoPago(estadosPago.getOrDefault(dto.getId(), "IMPAGO"));
@@ -375,12 +391,19 @@ public class ClienteQueryService {
                 }
             }
 
+            // Documentos generados
+            Set<TipoDocumentoGenerado> docsCliente = docsGeneradosPorCliente.getOrDefault(dto.getId(), Set.of());
+            dto.setTieneContrato(docsCliente.contains(TipoDocumentoGenerado.CONTRATO));
+            dto.setTieneSolicitud(docsCliente.contains(TipoDocumentoGenerado.SOLICITUD_COMPRA));
+            dto.setTieneCotizacion(docsCliente.contains(TipoDocumentoGenerado.COTIZACION));
+
             // Estado del cliente (optimizado)
             Cliente cliente = clienteMap.get(dto.getId());
             if (cliente != null) {
                 dto.setEstado(calcularEstadoClienteBatch(cliente,
                     clientesConDocumentos.contains(dto.getId()),
-                    clientesConArmasAsignadas.contains(dto.getId())));
+                    clientesConArmasAsignadas.contains(dto.getId()),
+                    cgi != null));
             }
         }
     }
@@ -418,7 +441,8 @@ public class ClienteQueryService {
     /** Versión batch de calcularEstadoCliente — usa datos pre-cargados */
     private EstadoCliente calcularEstadoClienteBatch(Cliente cliente,
                                                       boolean tieneDocumentos,
-                                                      boolean tieneArmasAsignadas) {
+                                                      boolean tieneArmasAsignadas,
+                                                      boolean tieneGrupoImportacion) {
         EstadoCliente estado = cliente.getEstado();
         if (estado == EstadoCliente.BLOQUEADO || estado == EstadoCliente.INHABILITADO_COMPRA
             || estado == EstadoCliente.RECHAZADO || estado == EstadoCliente.CANCELADO
@@ -432,6 +456,11 @@ public class ClienteQueryService {
 
         if (!documentosCompletos) {
             return EstadoCliente.PENDIENTE_DOCUMENTOS;
+        }
+
+        // Si el cliente está en un grupo de importación, mostrar EN_CURSO_IMPORTACION
+        if (tieneGrupoImportacion && tieneArmasAsignadas) {
+            return EstadoCliente.EN_CURSO_IMPORTACION;
         }
 
         if (tieneArmasAsignadas) {

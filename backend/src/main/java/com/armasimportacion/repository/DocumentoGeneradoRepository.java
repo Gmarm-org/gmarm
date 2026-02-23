@@ -69,4 +69,8 @@ public interface DocumentoGeneradoRepository extends JpaRepository<DocumentoGene
            "AND nombre LIKE CONCAT('%-', CAST(:anio AS VARCHAR))",
            nativeQuery = true)
     Optional<Integer> findMaxSecuenciaCotizacion(@Param("prefijo") String prefijo, @Param("anio") int anio);
+
+    // Batch: documentos generados por múltiples clientes (para enriquecimiento eficiente)
+    @Query("SELECT dg FROM DocumentoGenerado dg WHERE dg.cliente.id IN :clienteIds")
+    List<DocumentoGenerado> findByClienteIdIn(@Param("clienteIds") List<Long> clienteIds);
 }

@@ -10,6 +10,7 @@ import com.armasimportacion.repository.ArmaRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoClienteGrupo;
+import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
@@ -45,14 +46,15 @@ public class ClienteArmaService {
     private final NotificacionService notificacionService;
 
     /**
-     * Verifica si un cliente tiene armas asignadas (en estado ASIGNADA)
-     * @param clienteId ID del cliente
-     * @return true si tiene al menos una arma asignada, false en caso contrario
+     * Verifica si un cliente tiene armas asignadas (RESERVADA o ASIGNADA).
+     * RESERVADA = arma seleccionada pero sin número de serie.
+     * ASIGNADA = arma confirmada con número de serie.
      */
     public boolean tieneArmasAsignadas(Long clienteId) {
-        List<ClienteArma> armasAsignadas = clienteArmaRepository.findByClienteIdAndEstado(
-            clienteId, ClienteArma.EstadoClienteArma.ASIGNADA);
-        return armasAsignadas != null && !armasAsignadas.isEmpty();
+        List<ClienteArma> armas = clienteArmaRepository.findByClienteIdInAndEstadoIn(
+            List.of(clienteId),
+            List.of(ClienteArma.EstadoClienteArma.RESERVADA, ClienteArma.EstadoClienteArma.ASIGNADA));
+        return armas != null && !armas.isEmpty();
     }
     
     /**
@@ -500,9 +502,24 @@ public class ClienteArmaService {
         Arma nuevaArma = armaRepository.findById(nuevaArmaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + nuevaArmaId));
         
-        // Validar que no esté ya asignada o completada (no se puede cambiar si ya fue entregada)
-        if (clienteArma.estaAsignada() || clienteArma.estaCompletada()) {
-            throw new BadRequestException("No se puede cambiar el arma de una reserva que ya fue asignada o completada");
+        // Validar que no esté completada (ya entregada, no se puede cambiar)
+        if (clienteArma.estaCompletada()) {
+            throw new BadRequestException("No se puede cambiar el arma de una reserva que ya fue completada/entregada");
+        }
+
+        // Validar que el grupo de importación no haya pasado la etapa de definir pedido
+        List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository
+            .findByClienteId(clienteArma.getCliente().getId());
+        for (ClienteGrupoImportacion cg : gruposCliente) {
+            if (cg.getGrupoImportacion() != null) {
+                EstadoGrupoImportacion estadoGrupo = cg.getGrupoImportacion().getEstado();
+                if (estadoGrupo != EstadoGrupoImportacion.BORRADOR
+                    && estadoGrupo != EstadoGrupoImportacion.EN_PREPARACION
+                    && estadoGrupo != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES) {
+                    throw new BadRequestException(
+                        "No se puede cambiar el arma después de que se definió el pedido del grupo de importación");
+                }
+            }
         }
         
         // Guardar referencia al arma anterior para logging

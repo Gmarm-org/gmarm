@@ -37,9 +37,14 @@ export default defineConfig(({ mode }) => {
         protocol: 'ws'
       },
       // Proxy para desarrollo local (solo activo con 'npm run dev')
-      // Redirige peticiones a /images y /uploads al backend
+      // Redirige peticiones a /api, /images y /uploads al backend
       // En producción, estas rutas se sirven directamente desde el backend
       proxy: {
+        '/api': {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
         '/images': {
           target: proxyTarget,
           changeOrigin: true,

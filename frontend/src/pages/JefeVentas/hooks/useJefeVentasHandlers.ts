@@ -18,7 +18,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     clienteSeleccionado, setClienteSeleccionado,
     clientWeaponAssignments, setClientWeaponAssignments,
     setArmasCliente, setDocumentosCliente, setContratosCliente, setPagosCliente,
-    setLoadingDetalleCliente,
+    setLoadingDetalleCliente, setGrupoEstadoCliente,
     setModalGenerarContrato,
     currentPage, setCurrentPage,
     selectedClient, setSelectedClient,
@@ -41,15 +41,25 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
   const handleVerDetalleCliente = async (cliente: ClienteConVendedor) => {
     setClienteSeleccionado(cliente);
     setLoadingDetalleCliente(true);
+    setGrupoEstadoCliente(undefined);
 
     try {
-      // Cargar armas, documentos, contratos y pagos en paralelo
-      const [armas, documentos, contratos, pagos] = await Promise.all([
+      // Cargar armas, documentos, contratos, pagos y estado del grupo en paralelo
+      const grupoPromise = cliente.grupoImportacionId
+        ? apiService.getGrupoImportacion(cliente.grupoImportacionId).catch(() => null)
+        : Promise.resolve(null);
+
+      const [armas, documentos, contratos, pagos, grupoData] = await Promise.all([
         apiService.getArmasCliente(Number(cliente.id)),
         apiService.getDocumentosCliente(Number(cliente.id)),
         apiService.getContratosCliente(Number(cliente.id)),
         apiService.getPagosCliente(Number(cliente.id)),
+        grupoPromise,
       ]);
+
+      if (grupoData?.estado) {
+        setGrupoEstadoCliente(grupoData.estado);
+      }
 
       setArmasCliente(armas);
       setDocumentosCliente(documentos);
@@ -85,6 +95,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
 
   const handleCerrarDetalle = () => {
     setClienteSeleccionado(null);
+    setGrupoEstadoCliente(undefined);
     setArmasCliente([]);
     setDocumentosCliente([]);
     setContratosCliente([]);
@@ -399,6 +410,8 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         const contratos = await apiService.getContratosCliente(Number(clienteSeleccionado.id));
         setContratosCliente(contratos);
         setModalGenerarContrato({ isOpen: false, datosContrato: null, isLoading: false });
+        // Refrescar lista de clientes para actualizar indicadores de documentos generados
+        dataActions.cargarClientes();
       } else {
         alert('Error al generar documento: ' + (response.message || 'Error desconocido'));
         setModalGenerarContrato(prev => ({ ...prev, isLoading: false }));

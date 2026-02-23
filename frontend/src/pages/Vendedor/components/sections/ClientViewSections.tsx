@@ -143,7 +143,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                   {loadedDoc?.id && (
                     <div className="mb-3">
                       <iframe
-                        src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDoc.id}`}
+                        src={`${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve/${loadedDoc.id}`}
                         className="w-full h-64 border border-gray-300 rounded-lg"
                         title={`Previsualización de ${document.nombre}`}
                         onError={() => {
@@ -152,7 +152,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                       />
                       <div className="mt-2 flex justify-end">
                         <a
-                          href={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve/${loadedDoc.id}`}
+                          href={`${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve/${loadedDoc.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
@@ -210,7 +210,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                 <div className="mb-4">
                   <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                     <iframe
-                      src={`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve-generated/${contrato.id}`}
+                      src={`${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve-generated/${contrato.id}`}
                       className="w-full h-96 rounded-lg border-0"
                       title={`Previsualización de ${contrato.nombreArchivo}`}
                     />
@@ -221,7 +221,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                 <div className="flex justify-center space-x-3">
                   <button
                     type="button"
-                    onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
+                    onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve-generated/${contrato.id}`, '_blank')}
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 flex items-center space-x-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,7 +235,7 @@ export const ClientViewSections: React.FC<ClientViewSectionsProps> = ({
                     type="button"
                     onClick={() => {
                       const link = document.createElement('a');
-                      link.href = `${import.meta.env.VITE_API_BASE_URL}/api/documentos/serve-generated/${contrato.id}`;
+                      link.href = `${import.meta.env.VITE_API_BASE_URL || ''}/api/documentos/serve-generated/${contrato.id}`;
                       link.download = contrato.nombreArchivo;
                       link.click();
                     }}

@@ -74,6 +74,11 @@ public class ClienteDTO {
     // Licencia del grupo de importación
     private String licenciaNombre; // Nombre de la licencia del grupo de importación
     private String licenciaNumero; // Número de la licencia del grupo de importación
+
+    // Estado de documentos generados (contrato, solicitud, cotización)
+    private Boolean tieneContrato;
+    private Boolean tieneSolicitud;
+    private Boolean tieneCotizacion;
     
     // Información de catálogos (solo IDs y nombres)
     private Long tipoIdentificacionId;

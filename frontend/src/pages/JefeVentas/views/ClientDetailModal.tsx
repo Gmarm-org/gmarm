@@ -14,6 +14,7 @@ interface ClientDetailModalProps {
   pagosCliente: any[];
   vistaActual: string;
   user: any;
+  grupoEstado?: string;
   onAbrirModalGenerarContrato: () => void;
   onAbrirModalEditarArma: (arma: any) => void;
 }
@@ -29,6 +30,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
   pagosCliente,
   vistaActual,
   user,
+  grupoEstado,
   onAbrirModalGenerarContrato,
   onAbrirModalEditarArma,
 }) => {
@@ -183,17 +185,25 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                             <p className="font-medium">${arma.precioUnitario?.toFixed(2) || '0.00'}</p>
                           </div>
                           <div className="flex items-end">
-                            {arma.estado !== 'ASIGNADA' && arma.estado !== 'COMPLETADA' ? (
-                              <button
-                                onClick={() => onAbrirModalEditarArma(arma)}
-                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
-                                title="Editar arma asignada"
-                              >
-                                Editar Arma
-                              </button>
-                            ) : (
-                              <span className="text-xs text-gray-500">No editable</span>
-                            )}
+                            {(() => {
+                              const grupoPermiteEdicion = !grupoEstado ||
+                                ['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES'].includes(grupoEstado);
+                              const puedeEditarArma = arma.estado !== 'COMPLETADA' && grupoPermiteEdicion;
+
+                              return puedeEditarArma ? (
+                                <button
+                                  onClick={() => onAbrirModalEditarArma(arma)}
+                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                                  title="Editar arma asignada"
+                                >
+                                  Editar Arma
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-500">
+                                  {!grupoPermiteEdicion ? 'Pedido definido' : 'No editable'}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -480,18 +490,28 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
 
               const esCivil = (cliente as any)?.tipoClienteEsCivil ?? false;
               const esUniformado = ((cliente as any)?.tipoClienteEsMilitar ?? false) || ((cliente as any)?.tipoClienteEsPolicia ?? false);
-              const solicitudFirmada = contratosCliente.some(doc => doc.tipoDocumento === 'SOLICITUD_COMPRA' && doc.estado === 'FIRMADO');
-              const contratoFirmado = contratosCliente.some(doc => doc.tipoDocumento === 'CONTRATO' && doc.estado === 'FIRMADO');
-              const cotizacionFirmada = contratosCliente.some(doc => doc.tipoDocumento === 'COTIZACION' && doc.estado === 'FIRMADO');
+              const solicitudExiste = contratosCliente.some(doc => doc.tipoDocumento === 'SOLICITUD_COMPRA');
+              const contratoExiste = contratosCliente.some(doc => doc.tipoDocumento === 'CONTRATO');
+              const cotizacionExiste = contratosCliente.some(doc => doc.tipoDocumento === 'COTIZACION');
 
-              if (esCivil && solicitudFirmada) {
-                return null;
-              }
-              if (esUniformado && solicitudFirmada && contratoFirmado && cotizacionFirmada) {
-                return null;
+              // Estados del grupo que aún permiten regenerar documentos
+              const estadosPermiteRegenerar = ['BORRADOR', 'EN_PREPARACION', 'EN_PROCESO_ASIGNACION_CLIENTES', 'SOLICITAR_PROFORMA_FABRICA'];
+              const grupoPermiteRegenerar = !grupoEstado || estadosPermiteRegenerar.includes(grupoEstado);
+
+              // Si el grupo ya pasó de "Definir pedido" y los documentos existen, ocultar botón
+              if (!grupoPermiteRegenerar) {
+                if (esCivil && solicitudExiste) {
+                  return null;
+                }
+                if (esUniformado && solicitudExiste && contratoExiste && cotizacionExiste) {
+                  return null;
+                }
               }
 
-              const textoBoton = esCivil ? "Generar Solicitud de Compra" : "Generar Documentos";
+              const docsYaGenerados = esCivil ? solicitudExiste : (solicitudExiste && contratoExiste && cotizacionExiste);
+              const textoBoton = docsYaGenerados
+                ? (esCivil ? "Regenerar Solicitud de Compra" : "Regenerar Documentos")
+                : (esCivil ? "Generar Solicitud de Compra" : "Generar Documentos");
 
               return (
                 <button

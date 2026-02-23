@@ -154,14 +154,18 @@ export const useVendedorPaymentHandler = (
       const clienteId = (resultado as any).clienteId || resultado.id;
       
       // Subir documentos (si hay) - estos errores no deben fallar todo el proceso
+      // NOTA: uploadedDocuments almacena archivos con 2 claves: ID numérico y nombre del documento
+      // Solo procesar las claves numéricas para evitar subidas duplicadas/fallidas
       let erroresDocumentos = [];
       if (documentosUsuario && Object.keys(documentosUsuario).length > 0) {
-        for (const [tipoDocumentoId, file] of Object.entries(documentosUsuario)) {
+        for (const [key, file] of Object.entries(documentosUsuario)) {
+          const parsedId = parseInt(key);
+          if (isNaN(parsedId)) continue; // Saltar claves de nombre, solo procesar IDs numéricos
           try {
-            await apiService.cargarDocumentoCliente(clienteId, parseInt(tipoDocumentoId), file as File);
+            await apiService.cargarDocumentoCliente(clienteId, parsedId, file as File);
           } catch (error) {
-            console.error(`Error subiendo documento ${tipoDocumentoId}:`, error instanceof Error ? error.message : 'Error desconocido');
-            erroresDocumentos.push(`documento ${tipoDocumentoId}`);
+            console.error(`Error subiendo documento ID ${parsedId}:`, error instanceof Error ? error.message : 'Error desconocido');
+            erroresDocumentos.push(`documento ${key}`);
           }
         }
       }

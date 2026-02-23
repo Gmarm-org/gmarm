@@ -96,7 +96,7 @@ export const useVendedorUtils = (
       case 'LISTO_IMPORTACION':
         return 'Listo para importación';
       case 'EN_CURSO_IMPORTACION':
-        return 'En curso de importación';
+        return 'Pedido en proceso de importación';
       case 'SERIE_ASIGNADA':
         return 'Serie asignada';
       case 'INACTIVO':

@@ -26,6 +26,7 @@ export function useJefeVentasState() {
   const [contratosCliente, setContratosCliente] = useState<any[]>([]);
   const [pagosCliente, setPagosCliente] = useState<any[]>([]);
   const [loadingDetalleCliente, setLoadingDetalleCliente] = useState(false);
+  const [grupoEstadoCliente, setGrupoEstadoCliente] = useState<string | undefined>(undefined);
 
   // Modal de generar contrato
   const [modalGenerarContrato, setModalGenerarContrato] = useState<{ isOpen: boolean; datosContrato: any | null; isLoading: boolean }>({
@@ -101,6 +102,7 @@ export function useJefeVentasState() {
     contratosCliente, setContratosCliente,
     pagosCliente, setPagosCliente,
     loadingDetalleCliente, setLoadingDetalleCliente,
+    grupoEstadoCliente, setGrupoEstadoCliente,
     modalGenerarContrato, setModalGenerarContrato,
     currentPage, setCurrentPage,
     selectedClient, setSelectedClient,

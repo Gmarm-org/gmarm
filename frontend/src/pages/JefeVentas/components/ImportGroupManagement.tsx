@@ -206,8 +206,13 @@ const ImportGroupManagement: React.FC = () => {
     return gruposCompletos.find(g => g.id === grupoId);
   };
 
+  // Estados donde los cupos ya no son relevantes (pedido definido o posterior)
+  const estadosCupoNoRelevante = ['SOLICITAR_PROFORMA_FABRICA', 'EN_PROCESO_OPERACIONES', 'NOTIFICAR_AGENTE_ADUANERO', 'EN_ESPERA_DOCUMENTOS_CLIENTE', 'COMPLETADO', 'CANCELADO', 'SUSPENDIDO'];
+
   const getAlertaCupo = (grupo: GrupoImportacion): 'rojo' | 'amarillo' | null => {
     if (grupo.tipoGrupo !== 'CUPO' || !grupo.limitesCategoria || !grupo.cuposDisponiblesPorCategoria) return null;
+    // No mostrar alerta si el grupo ya definió pedido o posterior
+    if (estadosCupoNoRelevante.includes(grupo.estado)) return null;
     let peor: 'rojo' | 'amarillo' | null = null;
     for (const limite of grupo.limitesCategoria) {
       const disponible = grupo.cuposDisponiblesPorCategoria[limite.categoriaArmaId] ?? limite.limiteMaximo;

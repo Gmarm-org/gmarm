@@ -41,9 +41,9 @@ interface GrupoImportacionDetalleModalProps {
   onRefresh: () => void;
 }
 
-const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> = ({ 
-  grupoId, 
-  onClose 
+const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> = ({
+  grupoId,
+  onClose
 }) => {
   const [grupo, setGrupo] = useState<GrupoImportacion | null>(null);
   const [resumen, setResumen] = useState<GrupoImportacionResumen | null>(null);
@@ -74,7 +74,7 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
       setGrupo(grupoData);
       setResumen(resumenData);
       setClientes(clientesData || []);
-      
+
       // Solo mostrar alert si realmente falló algo crítico
       if (!grupoData && !resumenData) {
         alert('No se pudieron cargar los datos del grupo. Por favor, intenta nuevamente.');
@@ -101,21 +101,21 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800">
-            📦 Detalle del Grupo de Importación
+            Detalle del Grupo de Importacion
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
           >
-            ×
+            x
           </button>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Información General */}
+          {/* Informacion General */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-500">ID del Grupo</label>
@@ -130,8 +130,8 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
               <p className="text-lg font-semibold">
                 {grupo?.tipoGrupo ? (
                   <span className={`px-2 py-1 rounded text-sm font-medium ${
-                    grupo.tipoGrupo === 'CUPO' 
-                      ? 'bg-blue-100 text-blue-800' 
+                    grupo.tipoGrupo === 'CUPO'
+                      ? 'bg-blue-100 text-blue-800'
                       : 'bg-purple-100 text-purple-800'
                   }`}>
                     {grupo.tipoGrupo}
@@ -154,10 +154,10 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
             </div>
           </div>
 
-          {/* Resumen de Clientes - Varía según tipo de grupo */}
+          {/* Resumen de Clientes - Varia segun tipo de grupo */}
           {resumen && (
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-3">📊 Resumen de Clientes</h3>
+              <h3 className="text-lg font-semibold mb-3">Resumen de Clientes</h3>
               {grupo?.tipoGrupo === 'CUPO' ? (
                 // Para CUPO: Solo Civiles y Deportistas
                 <div className="grid grid-cols-2 gap-4">
@@ -171,34 +171,34 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
                   </div>
                 </div>
               ) : grupo?.tipoGrupo === 'JUSTIFICATIVO' ? (
-                // Para JUSTIFICATIVO: Uniformados por categoría y Empresas
+                // Para JUSTIFICATIVO: Uniformados por categoria y Empresas
                 <div>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">{resumen.clientesUniformados}</div>
                       <div className="text-sm text-gray-600">Uniformados</div>
-                      <p className="text-xs text-gray-500 mt-1">(Por categoría de arma)</p>
+                      <p className="text-xs text-gray-500 mt-1">(Por categoria de arma)</p>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-purple-600">{resumen.clientesEmpresas}</div>
-                      <div className="text-sm text-gray-600">Compañías de Seguridad</div>
+                      <div className="text-sm text-gray-600">Companias de Seguridad</div>
                     </div>
                   </div>
                   {grupo?.limitesCategoria && grupo.limitesCategoria.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-300">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Uniformados por Categoría:</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Uniformados por Categoria:</p>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {grupo.limitesCategoria.map((limite: any) => {
-                          const categoria = (grupo as any).categorias?.find((c: any) => c.id === limite.categoriaArmaId) 
+                          const categoria = (grupo as any).categorias?.find((c: any) => c.id === limite.categoriaArmaId)
                                           || limite.categoria; // Fallback
                           return categoria ? (
                             <div key={limite.categoriaArmaId} className="text-center p-2 bg-white rounded border">
-                              <div className="text-lg font-semibold text-gray-800">{categoria.nombre || `Categoría ${limite.categoriaArmaId}`}</div>
+                              <div className="text-lg font-semibold text-gray-800">{categoria.nombre || `Categoria ${limite.categoriaArmaId}`}</div>
                               <div className="text-xs text-gray-600">{limite.limiteMaximo} disponibles</div>
                             </div>
                           ) : (
                             <div key={limite.categoriaArmaId} className="text-center p-2 bg-white rounded border">
-                              <div className="text-lg font-semibold text-gray-800">Categoría {limite.categoriaArmaId}</div>
+                              <div className="text-lg font-semibold text-gray-800">Categoria {limite.categoriaArmaId}</div>
                               <div className="text-xs text-gray-600">{limite.limiteMaximo} disponibles</div>
                             </div>
                           );
@@ -235,18 +235,18 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
             </div>
           )}
 
-          {/* Alertas de Cupos por Categoría (solo para tipo CUPO) */}
+          {/* Alertas de Cupos por Categoria (solo para tipo CUPO) */}
           {grupo?.tipoGrupo === 'CUPO' && grupo.limitesCategoria && grupo.limitesCategoria.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-3 text-blue-900">📊 Cupos Disponibles por Categoría</h3>
+              <h3 className="text-lg font-semibold mb-3 text-blue-900">Cupos Disponibles por Categoria</h3>
               <div className="space-y-2">
                 {grupo.limitesCategoria.map((limite) => {
                   const cuposDisponibles = grupo.cuposDisponiblesPorCategoria?.[limite.categoriaArmaId] ?? limite.limiteMaximo;
                   const quedanPocos = cuposDisponibles <= 5 && cuposDisponibles > 0;
                   const sinCupo = cuposDisponibles === 0;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={limite.categoriaArmaId}
                       className={`p-3 rounded-lg border ${
                         sinCupo
@@ -271,21 +271,6 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
                           {cuposDisponibles}/{limite.limiteMaximo} disponibles
                         </div>
                       </div>
-                      {sinCupo && (
-                        <div className="mt-2 text-xs text-red-700 font-medium">
-                          ⚠️ Cupo completo - No se pueden asignar más clientes de esta categoría
-                        </div>
-                      )}
-                      {quedanPocos && !sinCupo && (
-                        <div className="mt-2 text-xs text-yellow-700 font-medium">
-                          ⚠️ Quedan pocos cupos disponibles - {cuposDisponibles} restantes
-                        </div>
-                      )}
-                      {!quedanPocos && !sinCupo && (
-                        <div className="mt-1 text-xs text-green-700">
-                          ✅ Cupo disponible: {cuposDisponibles} de {limite.limiteMaximo}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -295,13 +280,14 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
 
           {/* Lista de Clientes */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">👥 Clientes Asignados</h3>
+            <h3 className="text-lg font-semibold mb-3">Clientes Asignados</h3>
+
             {clientes.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No hay clientes asignados a este grupo</p>
             ) : (
               <div className="overflow-x-auto">
                 {(() => {
-                  const clientesExpandido = clientes.flatMap((cliente) => {
+                  const clientesExpandido = clientes.flatMap((cliente: any) => {
                     const totalArmas = Math.max(1, Number(cliente.totalArmas) || 1);
                     return Array.from({ length: totalArmas }, (_, index) => ({
                       ...cliente,
@@ -313,36 +299,39 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cédula</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cedula</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombres</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Apellidos</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arma</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Documentos</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Docs. Cargados</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {clientesExpandido.map((cliente) => (
-                          <tr key={`${cliente.id}-${cliente._armaIndex}`}>
-                            <td className="px-4 py-2 text-sm">{cliente.clienteCedula}</td>
-                            <td className="px-4 py-2 text-sm">{cliente.clienteNombres}</td>
-                            <td className="px-4 py-2 text-sm">{cliente.clienteApellidos}</td>
-                            <td className="px-4 py-2 text-sm">
-                              {cliente._armaTotal > 1 ? `${cliente._armaIndex}/${cliente._armaTotal}` : '1'}
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                {cliente.estado}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              {cliente.documentosCompletos ? (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completos</span>
-                              ) : (
-                                <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Incompletos</span>
-                              )}
-                            </td>
-                          </tr>
+                      <tbody className="divide-y divide-gray-200">
+                        {clientesExpandido.map((cliente: any) => (
+                            <tr
+                              key={`${cliente.id}-${cliente._armaIndex}`}
+                              className="hover:bg-gray-50"
+                            >
+                              <td className="px-4 py-2 text-sm">{cliente.clienteCedula}</td>
+                              <td className="px-4 py-2 text-sm">{cliente.clienteNombres}</td>
+                              <td className="px-4 py-2 text-sm">{cliente.clienteApellidos}</td>
+                              <td className="px-4 py-2 text-sm">
+                                {cliente._armaTotal > 1 ? `${cliente._armaIndex}/${cliente._armaTotal}` : '1'}
+                              </td>
+                              <td className="px-4 py-2 text-sm">
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                  {cliente.estado}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-sm">
+                                {cliente.documentosCompletos ? (
+                                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completos</span>
+                                ) : (
+                                  <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Incompletos</span>
+                                )}
+                              </td>
+                            </tr>
                         ))}
                       </tbody>
                     </table>
@@ -367,4 +356,3 @@ const GrupoImportacionDetalleModal: React.FC<GrupoImportacionDetalleModalProps> 
 };
 
 export default GrupoImportacionDetalleModal;
-

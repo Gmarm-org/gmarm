@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { TableHeaderWithFilters } from '../../../components/TableHeaderWithFilters';
 import { formatNombreCompleto } from '../../../utils/formatUtils';
 import type { SortConfig } from '../../../hooks/useTableFilters';
 import type { ClienteConVendedor } from '../types';
+
+type FiltroDocGen = 'todos' | 'civilesSinSolicitud' | 'militaresSinDocs';
 
 interface ClientesListViewProps {
   clientesFiltrados: ClienteConVendedor[];
@@ -35,6 +37,44 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
   onReasignarArma,
   onDesistimiento,
 }) => {
+  const [filtroDocGen, setFiltroDocGen] = useState<FiltroDocGen>('todos');
+
+  // Contadores para los filtros de documentos generados
+  const civilesSinSolicitud = useMemo(() =>
+    clientesFiltrados.filter(c =>
+      (c.tipoClienteEsCivil || c.tipoClienteEsDeportista) && !c.tieneSolicitud
+    ).length, [clientesFiltrados]);
+
+  const militaresSinDocs = useMemo(() =>
+    clientesFiltrados.filter(c =>
+      !c.tipoClienteEsCivil && !c.tipoClienteEsDeportista &&
+      (!c.tieneContrato || !c.tieneSolicitud || !c.tieneCotizacion)
+    ).length, [clientesFiltrados]);
+
+  // Aplicar filtro de documentos generados
+  const clientesMostrados = useMemo(() => {
+    if (filtroDocGen === 'civilesSinSolicitud') {
+      return clientesFiltrados.filter(c =>
+        (c.tipoClienteEsCivil || c.tipoClienteEsDeportista) && !c.tieneSolicitud
+      );
+    }
+    if (filtroDocGen === 'militaresSinDocs') {
+      return clientesFiltrados.filter(c =>
+        !c.tipoClienteEsCivil && !c.tipoClienteEsDeportista &&
+        (!c.tieneContrato || !c.tieneSolicitud || !c.tieneCotizacion)
+      );
+    }
+    return clientesFiltrados;
+  }, [clientesFiltrados, filtroDocGen]);
+
+  // Determinar si a un cliente le faltan documentos generados
+  const faltaDocGenerado = (cliente: ClienteConVendedor) => {
+    if (cliente.tipoClienteEsCivil || cliente.tipoClienteEsDeportista) {
+      return !cliente.tieneSolicitud;
+    }
+    return !cliente.tieneContrato || !cliente.tieneSolicitud || !cliente.tieneCotizacion;
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-8">
       <div className="flex justify-between items-center mb-6">
@@ -73,6 +113,46 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Filtros de documentos generados */}
+      {(civilesSinSolicitud > 0 || militaresSinDocs > 0) && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setFiltroDocGen('todos')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+              filtroDocGen === 'todos'
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Todos ({clientesFiltrados.length})
+          </button>
+          {civilesSinSolicitud > 0 && (
+            <button
+              onClick={() => setFiltroDocGen(filtroDocGen === 'civilesSinSolicitud' ? 'todos' : 'civilesSinSolicitud')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                filtroDocGen === 'civilesSinSolicitud'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              Civiles sin solicitud generada ({civilesSinSolicitud})
+            </button>
+          )}
+          {militaresSinDocs > 0 && (
+            <button
+              onClick={() => setFiltroDocGen(filtroDocGen === 'militaresSinDocs' ? 'todos' : 'militaresSinDocs')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                filtroDocGen === 'militaresSinDocs'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              Militares sin documentos generados ({militaresSinDocs})
+            </button>
+          )}
+        </div>
+      )}
 
       {loadingClientes ? (
         <div className="text-center py-12">
@@ -193,15 +273,15 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
               </tr>
             </thead>
             <tbody>
-              {clientesFiltrados.length === 0 ? (
+              {clientesMostrados.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="px-4 py-12 text-center text-gray-500">
-                    No hay clientes registrados
+                    {filtroDocGen !== 'todos' ? 'No hay clientes que coincidan con el filtro' : 'No hay clientes registrados'}
                   </td>
                 </tr>
               ) : (
-                clientesFiltrados.map((cliente) => (
-                  <tr key={cliente.id} className="border-b hover:bg-gray-50">
+                clientesMostrados.map((cliente) => (
+                  <tr key={cliente.id} className={`border-b ${faltaDocGenerado(cliente) ? 'bg-orange-50 hover:bg-orange-100' : 'hover:bg-gray-50'}`}>
                     <td className="px-4 py-3 text-sm font-mono">{cliente.numeroIdentificacion}</td>
                     <td className="px-4 py-3 text-sm font-medium">
                       {formatNombreCompleto(cliente.nombres, cliente.apellidos)}
@@ -280,7 +360,7 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
                     <td className="px-4 py-3 text-center text-sm text-gray-600">
                       {cliente.fechaCreacion ? new Date(cliente.fechaCreacion).toLocaleDateString('es-ES') : 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">
+                    <td className={`px-4 py-3 text-center sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10 ${faltaDocGenerado(cliente) ? 'bg-orange-50' : 'bg-white'}`}>
                       <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => onVerDetalle(cliente)}
