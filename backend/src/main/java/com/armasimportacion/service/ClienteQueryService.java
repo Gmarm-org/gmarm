@@ -3,6 +3,7 @@ package com.armasimportacion.service;
 import com.armasimportacion.dto.ClienteDTO;
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoClienteGrupo;
+import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoMilitar;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.mapper.ClienteMapper;
@@ -400,10 +401,12 @@ public class ClienteQueryService {
             // Estado del cliente (optimizado)
             Cliente cliente = clienteMap.get(dto.getId());
             if (cliente != null) {
+                EstadoGrupoImportacion estadoGrupo = (cgi != null) ? cgi.getGrupoImportacion().getEstado() : null;
                 dto.setEstado(calcularEstadoClienteBatch(cliente,
                     clientesConDocumentos.contains(dto.getId()),
                     clientesConArmasAsignadas.contains(dto.getId()),
-                    cgi != null));
+                    cgi != null,
+                    estadoGrupo));
             }
         }
     }
@@ -442,7 +445,8 @@ public class ClienteQueryService {
     private EstadoCliente calcularEstadoClienteBatch(Cliente cliente,
                                                       boolean tieneDocumentos,
                                                       boolean tieneArmasAsignadas,
-                                                      boolean tieneGrupoImportacion) {
+                                                      boolean tieneGrupoImportacion,
+                                                      EstadoGrupoImportacion estadoGrupo) {
         EstadoCliente estado = cliente.getEstado();
         if (estado == EstadoCliente.BLOQUEADO || estado == EstadoCliente.INHABILITADO_COMPRA
             || estado == EstadoCliente.RECHAZADO || estado == EstadoCliente.CANCELADO
@@ -450,17 +454,19 @@ public class ClienteQueryService {
             return estado;
         }
 
-        // Para verificación de documentos completos usamos el servicio individual
-        // solo si el cliente realmente necesita verificación (ya filtrado en batch)
         boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(cliente.getId());
 
         if (!documentosCompletos) {
             return EstadoCliente.PENDIENTE_DOCUMENTOS;
         }
 
-        // Si el cliente está en un grupo de importación, mostrar EN_CURSO_IMPORTACION
         if (tieneGrupoImportacion && tieneArmasAsignadas) {
-            return EstadoCliente.EN_CURSO_IMPORTACION;
+            // Solo EN_CURSO_IMPORTACION si el grupo ya llegó a "Definir Pedido" o posterior
+            boolean grupoDefinido = estadoGrupo != null
+                && estadoGrupo != EstadoGrupoImportacion.BORRADOR
+                && estadoGrupo != EstadoGrupoImportacion.EN_PREPARACION
+                && estadoGrupo != EstadoGrupoImportacion.EN_PROCESO_ASIGNACION_CLIENTES;
+            return grupoDefinido ? EstadoCliente.EN_CURSO_IMPORTACION : EstadoCliente.EN_PROCESO_VALIDACION;
         }
 
         if (tieneArmasAsignadas) {

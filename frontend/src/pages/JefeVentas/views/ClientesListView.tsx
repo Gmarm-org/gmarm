@@ -304,6 +304,7 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
                         cliente.estado === 'BLOQUEADO' ? 'bg-red-100 text-red-800' :
                         cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'bg-yellow-100 text-yellow-800' :
                         cliente.estado === 'EN_PROCESO' ? 'bg-blue-100 text-blue-800' :
+                        cliente.estado === 'EN_PROCESO_VALIDACION' ? 'bg-indigo-100 text-indigo-800' :
                         cliente.estado === 'EN_CURSO_IMPORTACION' ? 'bg-purple-100 text-purple-800' :
                         cliente.estado === 'SERIE_ASIGNADA' ? 'bg-green-100 text-green-800' :
                         cliente.estado?.includes('INHABILITADO') ? 'bg-orange-100 text-orange-800' :
@@ -311,6 +312,7 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
                       }`}>
                         {cliente.estado === 'PENDIENTE_DOCUMENTOS' ? 'Faltan documentos' :
                          cliente.estado === 'LISTO_IMPORTACION' ? 'Listo para importación' :
+                         cliente.estado === 'EN_PROCESO_VALIDACION' ? 'En proceso de validación' :
                          cliente.estado === 'EN_CURSO_IMPORTACION' ? 'En curso de importación' :
                          cliente.estado === 'SERIE_ASIGNADA' ? 'Serie asignada' :
                          cliente.estado === 'EN_PROCESO' ? 'En proceso' :

@@ -67,6 +67,8 @@ export const useVendedorUtils = (
       case 'CONTRATO_FIRMADO':
       case 'SERIE_ASIGNADA':
         return 'bg-green-100 text-green-800';
+      case 'EN_PROCESO_VALIDACION':
+        return 'bg-indigo-100 text-indigo-800';
       case 'EN_CURSO_IMPORTACION':
         return 'bg-purple-100 text-purple-800';
       case 'INACTIVO':
@@ -95,6 +97,8 @@ export const useVendedorUtils = (
         return 'Proceso completado';
       case 'LISTO_IMPORTACION':
         return 'Listo para importación';
+      case 'EN_PROCESO_VALIDACION':
+        return 'En proceso de validación';
       case 'EN_CURSO_IMPORTACION':
         return 'Pedido en proceso de importación';
       case 'SERIE_ASIGNADA':

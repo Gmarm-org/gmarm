@@ -15,6 +15,7 @@ public enum EstadoCliente {
     PENDIENTE_DOCUMENTOS("Pendiente de documentos"),
     PENDIENTE_ASIGNACION_CLIENTE("Pendiente asignación cliente"),
     LISTO_IMPORTACION("Listo para importación"),
+    EN_PROCESO_VALIDACION("En proceso de validación"),
     EN_CURSO_IMPORTACION("En curso de importación"),
     SERIE_ASIGNADA("Serie asignada"),
     CONTRATO_ENVIADO("Contrato enviado"),
