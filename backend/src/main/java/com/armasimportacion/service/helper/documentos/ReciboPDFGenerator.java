@@ -69,7 +69,7 @@ public class ReciboPDFGenerator {
         log.info("Generando PDF de recibo con Flying Saucer para cuota: {}", cuota.getNumeroCuota());
 
         try {
-            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            List<ClienteArma> armasCliente = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(cliente.getId());
             ClienteArma clienteArma = armasCliente != null && !armasCliente.isEmpty() ? armasCliente.get(0) : null;
 
             String ivaValor = configuracionService.getValorConfiguracion("IVA");

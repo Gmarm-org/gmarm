@@ -68,7 +68,7 @@ public class ContratoPDFGenerator {
         log.info("Generando PDF con Flying Saucer para cliente: {}", cliente.getNombres());
 
         try {
-            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            List<ClienteArma> armasCliente = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(cliente.getId());
             ClienteArma clienteArma = armasCliente.stream().findFirst().orElse(null);
             if (clienteArma == null) {
                 log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());

@@ -4,23 +4,35 @@ import com.armasimportacion.dto.ClienteArmaDTO;
 import com.armasimportacion.model.ClienteArma;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.Arma;
+import com.armasimportacion.model.CuotaPago;
+import com.armasimportacion.model.Pago;
 import com.armasimportacion.repository.ClienteArmaRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.ArmaRepository;
+import com.armasimportacion.repository.CuotaPagoRepository;
+import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.exception.ResourceNotFoundException;
 import com.armasimportacion.enums.EstadoCliente;
 import com.armasimportacion.enums.EstadoClienteGrupo;
+import com.armasimportacion.enums.EstadoCuotaPago;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
+import com.armasimportacion.enums.EstadoPago;
+import com.armasimportacion.enums.TipoDocumentoGenerado;
+import com.armasimportacion.enums.TipoPago;
 import com.armasimportacion.exception.BadRequestException;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.GrupoImportacion;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
+import com.armasimportacion.service.helper.documentos.DocumentoPDFUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +56,10 @@ public class ClienteArmaService {
     private final GrupoImportacionMatchingService grupoImportacionMatchingService;
     private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
     private final NotificacionService notificacionService;
+    private final PagoRepository pagoRepository;
+    private final CuotaPagoRepository cuotaPagoRepository;
+    private final ConfiguracionSistemaService configuracionSistemaService;
+    private final DocumentoPDFUtils documentoPDFUtils;
 
     /**
      * Verifica si un cliente tiene armas asignadas (RESERVADA o ASIGNADA).
@@ -73,8 +89,7 @@ public class ClienteArmaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + armaId));
         
         // Obtener reservas activas del cliente (no canceladas ni completadas)
-        List<ClienteArma> reservasActivas = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId).stream()
-            .filter(ca -> !ca.estaCancelada()) // Solo las que no estén canceladas
+        List<ClienteArma> reservasActivas = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(clienteId).stream()
             .filter(ca -> !ca.estaCompletada()) // No las completadas (ya entregadas)
             .collect(java.util.stream.Collectors.toList());
         
@@ -280,7 +295,7 @@ public class ClienteArmaService {
     public List<ClienteArmaDTO> obtenerReservasPorCliente(Long clienteId) {
         log.info("Obteniendo reservas para cliente: {}", clienteId);
         
-        List<ClienteArma> reservas = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId);
+        List<ClienteArma> reservas = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(clienteId);
         return reservas.stream()
                 .map(this::convertirADTO)
                 .collect(Collectors.toList());
@@ -469,8 +484,8 @@ public class ClienteArmaService {
         // Obtener todas las armas asignadas a estos clientes fantasma
         // Solo armas en estado RESERVADA (no canceladas ni completadas)
         List<ClienteArma> armasEnStock = clientesFantasma.stream()
-            .flatMap(cliente -> clienteArmaRepository.findByClienteIdWithArmaAndCategoria(cliente.getId()).stream())
-            .filter(ca -> ca.getEstado() == ClienteArma.EstadoClienteArma.RESERVADA 
+            .flatMap(cliente -> clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(cliente.getId()).stream())
+            .filter(ca -> ca.getEstado() == ClienteArma.EstadoClienteArma.RESERVADA
                        || ca.getEstado() == ClienteArma.EstadoClienteArma.ASIGNADA)
             .collect(Collectors.toList());
         
@@ -492,24 +507,24 @@ public class ClienteArmaService {
      */
     @Transactional
     public ClienteArmaDTO actualizarArmaReserva(Long clienteArmaId, Long nuevaArmaId, BigDecimal nuevoPrecioUnitario) {
-        log.info("Actualizando arma en reserva ID: {}, nueva arma ID: {}", clienteArmaId, nuevaArmaId);
-        
-        // Obtener la reserva existente
-        ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
+        log.info("Cambio de arma solicitado - reserva ID: {}, nueva arma ID: {}", clienteArmaId, nuevaArmaId);
+
+        // 1. Obtener la reserva existente
+        ClienteArma clienteArmaAnterior = clienteArmaRepository.findById(clienteArmaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con ID: " + clienteArmaId));
-        
-        // Validar que el arma existe
+
+        // 2. Validar que la nueva arma existe
         Arma nuevaArma = armaRepository.findById(nuevaArmaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + nuevaArmaId));
-        
-        // Validar que no esté completada (ya entregada, no se puede cambiar)
-        if (clienteArma.estaCompletada()) {
+
+        // 3. Validar que no esté completada
+        if (clienteArmaAnterior.estaCompletada()) {
             throw new BadRequestException("No se puede cambiar el arma de una reserva que ya fue completada/entregada");
         }
 
-        // Validar que el grupo de importación no haya pasado la etapa de definir pedido
-        List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository
-            .findByClienteId(clienteArma.getCliente().getId());
+        // 4. Validar estado del grupo de importación
+        Long clienteId = clienteArmaAnterior.getCliente().getId();
+        List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository.findByClienteId(clienteId);
         for (ClienteGrupoImportacion cg : gruposCliente) {
             if (cg.getGrupoImportacion() != null) {
                 EstadoGrupoImportacion estadoGrupo = cg.getGrupoImportacion().getEstado();
@@ -521,29 +536,139 @@ public class ClienteArmaService {
                 }
             }
         }
-        
-        // Guardar referencia al arma anterior para logging
-        Long armaAnteriorId = clienteArma.getArma().getId();
-        String nombreArmaAnterior = clienteArma.getArma().getModelo();
-        String nombreNuevaArma = nuevaArma.getModelo();
-        
-        // Actualizar el arma
-        clienteArma.setArma(nuevaArma);
-        
-        // Actualizar precio si se proporciona
-        if (nuevoPrecioUnitario != null) {
-            clienteArma.setPrecioUnitario(nuevoPrecioUnitario);
+
+        // 5. Validar que no haya cuotas ya pagadas
+        List<Pago> pagosCliente = pagoRepository.findByClienteIdOrderByIdDesc(clienteId);
+        Pago pagoAnterior = pagosCliente.stream()
+            .filter(p -> p.getEstado() != EstadoPago.CANCELADO)
+            .findFirst()
+            .orElse(null);
+
+        if (pagoAnterior != null) {
+            List<CuotaPago> cuotasPagadas = cuotaPagoRepository
+                .findByPagoIdAndEstado(pagoAnterior.getId(), EstadoCuotaPago.PAGADA);
+            if (cuotasPagadas != null && !cuotasPagadas.isEmpty()) {
+                throw new BadRequestException(
+                    "No se puede cambiar el arma porque ya existen cuotas pagadas. Contacte al administrador.");
+            }
         }
-        
-        // Actualizar fecha de actualización
-        clienteArma.setFechaActualizacion(java.time.LocalDateTime.now());
-        
-        ClienteArma saved = clienteArmaRepository.save(clienteArma);
-        
-        log.info("Arma actualizada en reserva ID: {} - Anterior: {} (ID: {}), Nueva: {} (ID: {})",
-            clienteArmaId, nombreArmaAnterior, armaAnteriorId, nombreNuevaArma, nuevaArmaId);
-        
+
+        // --- Logging ---
+        String nombreArmaAnterior = clienteArmaAnterior.getArma().getModelo();
+        String nombreNuevaArma = nuevaArma.getModelo();
+        Cliente cliente = clienteArmaAnterior.getCliente();
+        Integer cantidadAnterior = clienteArmaAnterior.getCantidad();
+        log.info("CAMBIO DE ARMA - Cliente ID: {}, Anterior: {} (ID: {}), Nueva: {} (ID: {})",
+            clienteId, nombreArmaAnterior, clienteArmaAnterior.getArma().getId(), nombreNuevaArma, nuevaArmaId);
+
+        // 6. Eliminar ClienteArma anterior
+        clienteArmaRepository.delete(clienteArmaAnterior);
+        log.info("ClienteArma anterior ID: {} eliminado", clienteArmaId);
+
+        // 7. Crear NUEVO ClienteArma con la nueva arma
+        BigDecimal precioNuevo = nuevoPrecioUnitario != null ? nuevoPrecioUnitario : nuevaArma.getPrecioReferencia();
+        ClienteArma nuevoClienteArma = new ClienteArma();
+        nuevoClienteArma.setCliente(cliente);
+        nuevoClienteArma.setArma(nuevaArma);
+        nuevoClienteArma.setCantidad(cantidadAnterior);
+        nuevoClienteArma.setPrecioUnitario(precioNuevo);
+        nuevoClienteArma.setEstado(ClienteArma.EstadoClienteArma.RESERVADA);
+        nuevoClienteArma.setFechaAsignacion(LocalDateTime.now());
+        ClienteArma saved = clienteArmaRepository.save(nuevoClienteArma);
+        log.info("Nuevo ClienteArma creado con ID: {}, arma: {}, precio: {}", saved.getId(), nombreNuevaArma, precioNuevo);
+
+        // 8. Cancelar pago anterior y crear nuevo con montos recalculados
+        if (pagoAnterior != null) {
+            recalcularPago(pagoAnterior, precioNuevo, clienteId);
+        }
+
+        // 9. Eliminar documentos generados anteriores (deben regenerarse)
+        eliminarDocumentosGenerados(clienteId);
+
         return convertirADTO(saved);
+    }
+
+    /**
+     * Recalcula el pago: elimina el anterior con sus cuotas y crea uno nuevo con montos actualizados
+     */
+    private void recalcularPago(Pago pagoAnterior, BigDecimal nuevoPrecioBase, Long clienteId) {
+        // Obtener IVA del sistema
+        double ivaDecimal;
+        try {
+            String ivaValor = configuracionSistemaService.getValorConfiguracion("IVA");
+            ivaDecimal = Double.parseDouble(ivaValor) / 100.0;
+        } catch (Exception e) {
+            log.warn("Error obteniendo IVA del sistema, usando 15%: {}", e.getMessage());
+            ivaDecimal = 0.15;
+        }
+
+        // Eliminar cuotas del pago anterior
+        List<CuotaPago> cuotasAnteriores = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pagoAnterior.getId());
+        cuotaPagoRepository.deleteAll(cuotasAnteriores);
+        log.info("Eliminadas {} cuotas del pago anterior ID: {}", cuotasAnteriores.size(), pagoAnterior.getId());
+
+        // Eliminar pago anterior
+        Long pagoAnteriorId = pagoAnterior.getId();
+        pagoRepository.delete(pagoAnterior);
+        log.info("Pago anterior ID: {} eliminado por cambio de arma", pagoAnteriorId);
+
+        // Calcular nuevos montos
+        BigDecimal subtotal = nuevoPrecioBase;
+        BigDecimal montoIva = subtotal.multiply(BigDecimal.valueOf(ivaDecimal)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal montoTotal = subtotal.add(montoIva);
+
+        // Preservar estructura del pago anterior
+        TipoPago tipoPago = pagoAnterior.getTipoPago();
+        Integer numeroCuotas = pagoAnterior.getNumeroCuotas();
+        BigDecimal montoCuota = montoTotal.divide(BigDecimal.valueOf(numeroCuotas), 2, RoundingMode.HALF_UP);
+
+        // Crear nuevo pago
+        Pago nuevoPago = new Pago();
+        nuevoPago.setClienteId(clienteId);
+        nuevoPago.setSubtotal(subtotal);
+        nuevoPago.setMontoIva(montoIva);
+        nuevoPago.setMontoTotal(montoTotal);
+        nuevoPago.setTipoPago(tipoPago);
+        nuevoPago.setNumeroCuotas(numeroCuotas);
+        nuevoPago.setMontoCuota(montoCuota);
+        nuevoPago.setMontoPagado(BigDecimal.ZERO);
+        nuevoPago.setMontoPendiente(montoTotal);
+        nuevoPago.setEstado(EstadoPago.PENDIENTE);
+        nuevoPago.setCuotaActual(1);
+        nuevoPago.setFechaCreacion(LocalDateTime.now());
+        Pago pagoGuardado = pagoRepository.save(nuevoPago);
+        log.info("Nuevo pago creado ID: {}, total: {}, tipo: {}, cuotas: {}",
+            pagoGuardado.getId(), montoTotal, tipoPago, numeroCuotas);
+
+        // Crear cuotas para el nuevo pago si es CREDITO
+        if (tipoPago == TipoPago.CREDITO && numeroCuotas > 1) {
+            LocalDate fechaVencimiento = LocalDate.now().plusMonths(1);
+            for (int i = 1; i <= numeroCuotas; i++) {
+                CuotaPago cuota = new CuotaPago();
+                cuota.setPago(pagoGuardado);
+                cuota.setNumeroCuota(i);
+                cuota.setMonto(montoCuota);
+                cuota.setFechaVencimiento(fechaVencimiento.plusMonths(i - 1));
+                cuota.setEstado(EstadoCuotaPago.PENDIENTE);
+                cuotaPagoRepository.save(cuota);
+            }
+            log.info("Creadas {} cuotas de {} para pago ID: {}", numeroCuotas, montoCuota, pagoGuardado.getId());
+        }
+    }
+
+    /**
+     * Elimina todos los documentos generados del cliente (contrato, solicitud, cotización)
+     * para que deban regenerarse con los datos actualizados
+     */
+    private void eliminarDocumentosGenerados(Long clienteId) {
+        try {
+            documentoPDFUtils.eliminarDocumentosAnterioresDelTipo(clienteId, TipoDocumentoGenerado.CONTRATO);
+            documentoPDFUtils.eliminarDocumentosAnterioresDelTipo(clienteId, TipoDocumentoGenerado.SOLICITUD_COMPRA);
+            documentoPDFUtils.eliminarDocumentosAnterioresDelTipo(clienteId, TipoDocumentoGenerado.COTIZACION);
+            log.info("Documentos generados eliminados para cliente ID: {} (deben regenerarse)", clienteId);
+        } catch (Exception e) {
+            log.warn("Error eliminando documentos generados para cliente ID: {}: {}", clienteId, e.getMessage());
+        }
     }
     
     /**

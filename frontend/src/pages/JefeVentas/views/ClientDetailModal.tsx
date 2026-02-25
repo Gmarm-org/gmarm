@@ -298,8 +298,8 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
 
                         setCargandoFirmado(true);
                         try {
-                          await apiService.cargarContratoFirmado(Number(cliente.id), archivoFirmado, contrato.id);
-                          alert('Documento firmado cargado exitosamente');
+                          const result = await apiService.cargarContratoFirmado(Number(cliente.id), archivoFirmado, contrato.id);
+                          alert(result.message || 'Documento firmado cargado exitosamente');
                           const contratos = await apiService.getContratosCliente(Number(cliente.id));
                           setContratosCliente(contratos);
                           setMostrarCargarFirmado(null);
@@ -326,7 +326,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                               )}
                               {contrato.estado === 'FIRMADO' && (
                                 <span className="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                  ✅ Firmado
+                                  Firmado
                                 </span>
                               )}
                             </div>
@@ -409,12 +409,10 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                                         <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                         Cargando...
                                       </>
-                                    ) : (
-                                      contrato.nombreArchivo?.toLowerCase().includes('solicitud_compra') ||
-                                      contrato.nombreArchivo?.toLowerCase().includes('solicitud de compra')
-                                        ? 'Cargar Solicitud de Compra Firmada'
-                                        : 'Cargar Contrato Firmado'
-                                    )}
+                                    ) : contrato.tipoDocumento === 'SOLICITUD_COMPRA'
+                                      ? 'Cargar Solicitud Firmada'
+                                      : 'Cargar Documento Firmado'
+                                    }
                                   </button>
                                 </div>
                               )}

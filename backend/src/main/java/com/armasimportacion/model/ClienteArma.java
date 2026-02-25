@@ -68,7 +68,8 @@ public class ClienteArma {
         ASIGNADA,
         CANCELADA,
         COMPLETADA,
-        REASIGNADO
+        REASIGNADO,
+        CAMBIO_ARMA
     }
 
     // Métodos de negocio

@@ -80,7 +80,7 @@ public class AutorizacionController {
             Cliente cliente = clienteOpt.get();
 
             // Buscar ClienteArma asignada al cliente (con JOIN FETCH para cargar Arma y Categoría)
-            List<ClienteArma> armas = clienteArmaRepository.findByClienteIdWithArmaAndCategoria(clienteId);
+            List<ClienteArma> armas = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(clienteId);
             if (armas.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,

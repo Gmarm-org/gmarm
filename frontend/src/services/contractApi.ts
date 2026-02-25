@@ -21,11 +21,11 @@ export async function generarContrato(clienteId: number): Promise<{ success: boo
   });
 }
 
-export async function cargarContratoFirmado(clienteId: number, archivo: File, documentoId?: number): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; tipoDocumento?: string }> {
+export async function cargarContratoFirmado(clienteId: number, archivo: File, documentoId?: number): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; tipoDocumento?: string; estado?: string }> {
   const formData = new FormData();
   formData.append('archivo', archivo);
   if (documentoId) formData.append('documentoId', documentoId.toString());
-  return request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; tipoDocumento?: string }>(`/api/clientes/${clienteId}/cargar-contrato-firmado`, {
+  return request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; tipoDocumento?: string; estado?: string }>(`/api/clientes/${clienteId}/cargar-contrato-firmado`, {
     method: 'POST',
     body: formData,
     headers: {}

@@ -14,6 +14,7 @@ import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.DocumentoClienteService;
 import com.armasimportacion.service.EmailService;
 import com.armasimportacion.service.FileStorageService;
+import com.armasimportacion.service.ConfiguracionSistemaService;
 import com.armasimportacion.service.GrupoImportacionClienteService;
 import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
@@ -23,6 +24,7 @@ import com.armasimportacion.repository.PagoRepository;
 import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoDocumentoGenerado;
+import com.armasimportacion.enums.EstadoPago;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +63,7 @@ public class ClienteDocumentController {
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
     private final ClienteRepository clienteRepository;
+    private final ConfiguracionSistemaService configuracionSistemaService;
 
     @GetMapping("/{id}/datos-contrato")
     @Operation(summary = "Obtener datos del contrato", description = "Obtiene los datos del cliente, pago y armas para mostrar en el popup de generación de contrato")
@@ -69,7 +72,9 @@ public class ClienteDocumentController {
 
         Cliente cliente = clienteService.findById(id);
         List<Pago> pagos = pagoRepository.findByClienteIdOrderByIdDesc(id);
-        Pago pago = pagos != null && !pagos.isEmpty() ? pagos.get(0) : null;
+        Pago pago = pagos != null ? pagos.stream()
+            .filter(p -> p.getEstado() != EstadoPago.CANCELADO)
+            .findFirst().orElse(null) : null;
 
         List<ClienteArma> armas = cliente.getAsignacionesArma() != null ? cliente.getAsignacionesArma() : new ArrayList<>();
 
@@ -188,7 +193,9 @@ public class ClienteDocumentController {
         }
 
         List<Pago> pagos = pagoRepository.findByClienteIdOrderByIdDesc(id);
-        Pago pago = pagos != null && !pagos.isEmpty() ? pagos.get(0) : null;
+        Pago pago = pagos != null ? pagos.stream()
+            .filter(p -> p.getEstado() != EstadoPago.CANCELADO)
+            .findFirst().orElse(null) : null;
 
         List<DocumentoGenerado> documentos = gestionDocumentosServiceHelper.generarYGuardarDocumentos(cliente, pago);
 
@@ -234,7 +241,7 @@ public class ClienteDocumentController {
     }
 
     @PostMapping(value = "/{id}/cargar-contrato-firmado", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Cargar contrato firmado", description = "Carga el contrato firmado del cliente, reemplazando el contrato generado")
+    @Operation(summary = "Cargar contrato firmado", description = "Carga documento firmado. Para CONTRATO/COTIZACION usa flujo de 2 pasos (cliente → importador). Para SOLICITUD_COMPRA firma directa.")
     public ResponseEntity<Map<String, Object>> cargarContratoFirmado(
             @PathVariable Long id,
             @RequestParam("archivo") MultipartFile archivo,
@@ -301,22 +308,92 @@ public class ClienteDocumentController {
         contratoGenerado.setTamanioBytes(archivo.getSize());
         contratoGenerado.setFechaFirma(LocalDateTime.now());
         contratoGenerado.setEstado(EstadoDocumentoGenerado.FIRMADO);
-        contratoGenerado.setDescripcion("Documento firmado por el cliente");
-
+        contratoGenerado.setDescripcion("Documento firmado");
         documentoGeneradoRepository.save(contratoGenerado);
 
-        cliente.setEstado(EstadoCliente.CONTRATO_FIRMADO);
-        clienteRepository.save(cliente);
+        String mensaje;
+
+        // Para CONTRATO/COTIZACION: verificar si ambos están firmados antes de cambiar estado
+        boolean esContratoOCotizacion = contratoGenerado.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO
+            || contratoGenerado.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION;
+
+        if (esContratoOCotizacion) {
+            List<DocumentoGenerado> docsContratoCotizacion = documentoGeneradoRepository.findByClienteId(cliente.getId()).stream()
+                .filter(doc -> doc.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO
+                    || doc.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION)
+                .toList();
+
+            boolean todosFirmados = docsContratoCotizacion.stream()
+                .allMatch(doc -> doc.getEstado() == EstadoDocumentoGenerado.FIRMADO);
+
+            if (todosFirmados) {
+                // Ambos firmados: enviar email al cliente + CC importador + Valeria, cambiar estado
+                enviarEmailContratosFirmadosCompletos(cliente, docsContratoCotizacion);
+                cliente.setEstado(EstadoCliente.CONTRATO_FIRMADO);
+                clienteRepository.save(cliente);
+                mensaje = "Documento firmado cargado. Contrato y cotización firmados — se envió confirmación al cliente.";
+                log.info("Todos los contratos/cotizaciones firmados para cliente {}: estado → CONTRATO_FIRMADO", id);
+            } else {
+                mensaje = "Documento firmado cargado. Falta firmar el otro documento para completar el proceso.";
+                log.info("Documento firmado parcial para cliente {} — faltan documentos por firmar", id);
+            }
+        } else {
+            // SOLICITUD_COMPRA u otros: firma directa, cambiar estado inmediatamente
+            cliente.setEstado(EstadoCliente.CONTRATO_FIRMADO);
+            clienteRepository.save(cliente);
+            mensaje = "Documento firmado cargado exitosamente.";
+            log.info("Firma directa de documento: {}", nombreArchivoFirmado);
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Documento firmado cargado exitosamente");
+        response.put("message", mensaje);
         response.put("documentoId", contratoGenerado.getId());
         response.put("nombreArchivo", nombreArchivoFirmado);
         response.put("tipoDocumento", contratoGenerado.getTipoDocumento());
+        response.put("estado", contratoGenerado.getEstado().name());
 
-        log.info("Documento firmado cargado exitosamente: {}", nombreArchivoFirmado);
         return ResponseEntity.ok(response);
+    }
+
+    private void enviarEmailContratosFirmadosCompletos(Cliente cliente, List<DocumentoGenerado> documentosFirmados) {
+        try {
+            Licencia licencia = obtenerLicenciaActiva(cliente);
+            String importadorEmail = licencia != null && licencia.getEmail() != null ? licencia.getEmail().trim() : null;
+
+            String clienteNombre = (cliente.getNombres() != null ? cliente.getNombres() : "") + " "
+                + (cliente.getApellidos() != null ? cliente.getApellidos() : "");
+
+            // Cargar los archivos firmados como adjuntos
+            List<EmailService.DocumentoAdjunto> adjuntos = documentosFirmados.stream()
+                .map(doc -> {
+                    byte[] bytes = cargarDocumentoAdjunto(doc);
+                    if (bytes == null) return null;
+                    return new EmailService.DocumentoAdjunto(doc.getNombreArchivo(), bytes);
+                })
+                .filter(adj -> adj != null)
+                .collect(Collectors.toList());
+
+            // CC: importador + jefe de ventas
+            List<String> ccList = new ArrayList<>();
+            if (importadorEmail != null && !importadorEmail.isBlank()) {
+                ccList.add(importadorEmail);
+            }
+            String emailJdv = getEmailCcJefeVentas();
+            if (emailJdv != null && !emailJdv.isBlank()) {
+                ccList.add(emailJdv.trim());
+            }
+
+            emailService.enviarContratosFirmadosCompletos(
+                cliente.getEmail() != null ? cliente.getEmail().trim() : null,
+                ccList.toArray(new String[0]),
+                clienteNombre.trim(),
+                licencia,
+                adjuntos
+            );
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de contratos firmados completos: {}", e.getMessage());
+        }
     }
 
     // ===== HELPERS PRIVADOS =====
@@ -349,15 +426,27 @@ public class ClienteDocumentController {
                 .filter(adj -> adj != null)
                 .collect(Collectors.toList());
 
+            // CC: importador + jefe de ventas (en el email al cliente)
+            List<String> ccList = new ArrayList<>();
+            if (licencia != null && licencia.getEmail() != null && !licencia.getEmail().isBlank()) {
+                ccList.add(licencia.getEmail().trim());
+            }
+            String emailJdv = getEmailCcJefeVentas();
+            if (emailJdv != null && !emailJdv.isBlank()) {
+                ccList.add(emailJdv.trim());
+            }
+            String[] ccEmails = ccList.toArray(new String[0]);
+
             if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
                 emailService.enviarDocumentosGenerados(
                     cliente.getEmail().trim(),
                     nombreCliente.isBlank() ? "Cliente" : nombreCliente.trim(),
                     nombreVendedor,
                     licencia,
-                    adjuntos
+                    adjuntos,
+                    ccEmails
                 );
-                log.info("Documentos enviados al cliente: {}", cliente.getEmail());
+                log.info("Documentos enviados al cliente: {} (CC: importador + Valeria)", cliente.getEmail());
             }
 
             if (vendedor != null && vendedor.getEmail() != null && !vendedor.getEmail().isBlank()) {
@@ -372,6 +461,15 @@ public class ClienteDocumentController {
             }
         } catch (Exception e) {
             log.warn("No se pudieron enviar documentos por correo: {}", e.getMessage());
+        }
+    }
+
+    private String getEmailCcJefeVentas() {
+        try {
+            return configuracionSistemaService.getValorConfiguracion("EMAIL_CC_JEFE_VENTAS");
+        } catch (Exception e) {
+            log.warn("No se encontró configuración EMAIL_CC_JEFE_VENTAS: {}", e.getMessage());
+            return null;
         }
     }
 

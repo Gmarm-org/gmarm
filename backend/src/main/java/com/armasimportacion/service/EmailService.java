@@ -284,6 +284,11 @@ public class EmailService {
 
     public void enviarDocumentosGenerados(String email, String nombreCliente, String nombreVendedor, Licencia licencia,
                                           List<DocumentoAdjunto> adjuntos) {
+        enviarDocumentosGenerados(email, nombreCliente, nombreVendedor, licencia, adjuntos, null);
+    }
+
+    public void enviarDocumentosGenerados(String email, String nombreCliente, String nombreVendedor, Licencia licencia,
+                                          List<DocumentoAdjunto> adjuntos, String[] ccEmails) {
         if (email == null || email.isBlank()) {
             log.warn("Email vacío, omitiendo envío de documentos generados");
             return;
@@ -296,6 +301,9 @@ public class EmailService {
 
             helper.setFrom(getFromEmail(), fromName);
             helper.setTo(email.trim());
+            if (ccEmails != null && ccEmails.length > 0) {
+                helper.setCc(ccEmails);
+            }
             helper.setSubject("Documentos generados para adquisición de arma - GMARM");
 
             Context context = new Context();
@@ -499,6 +507,66 @@ public class EmailService {
             } catch (Exception e) {
                 log.error("Error inesperado enviando recibo a {}: {}", email, e.getMessage(), e);
             }
+        }
+    }
+
+
+    /**
+     * Envía contratos/cotizaciones completamente firmados al cliente, con CC al importador y Valeria.
+     * Paso 2 del flujo de firma.
+     */
+    public void enviarContratosFirmadosCompletos(String clienteEmail, String[] ccEmails,
+                                                  String clienteNombre, Licencia licencia,
+                                                  List<DocumentoAdjunto> adjuntos) {
+        if (clienteEmail == null || clienteEmail.isBlank()) {
+            log.warn("Email del cliente vacío, omitiendo envío de contratos firmados completos");
+            return;
+        }
+        log.info("Enviando contratos firmados completos al cliente: {}", clienteEmail);
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(getFromEmail(), fromName);
+            helper.setTo(clienteEmail.trim());
+            if (ccEmails != null && ccEmails.length > 0) {
+                helper.setCc(ccEmails);
+            }
+            helper.setSubject("Contrato y cotización firmados - GMARM");
+
+            Context context = new Context();
+            context.setVariable("clienteNombre", clienteNombre);
+            String licenciaTitulo = licencia != null && licencia.getTitulo() != null && !licencia.getTitulo().isBlank()
+                ? licencia.getTitulo() : "";
+            context.setVariable("licenciaTitulo", licenciaTitulo);
+            context.setVariable("licenciaNombre", licencia != null ? licencia.getNombre() : "N/A");
+            context.setVariable("licenciaBanco", licencia != null ? licencia.getNombreBanco() : "N/A");
+            context.setVariable("licenciaTipoCuenta", licencia != null && licencia.getTipoCuenta() != null ? licencia.getTipoCuenta().name() : "N/A");
+            context.setVariable("licenciaCuenta", licencia != null ? licencia.getCuentaBancaria() : "N/A");
+            context.setVariable("licenciaCedulaCuenta", licencia != null ? licencia.getCedulaCuenta() : "N/A");
+            context.setVariable("licenciaRuc", licencia != null ? licencia.getRuc() : "N/A");
+            context.setVariable("licenciaEmail", licencia != null ? licencia.getEmail() : "N/A");
+            context.setVariable("licenciaTelefono", licencia != null ? licencia.getTelefono() : "N/A");
+
+            String htmlContent = templateEngine.process("email/contratos-firmados-completo", context);
+            helper.setText(htmlContent, true);
+
+            if (adjuntos != null) {
+                for (DocumentoAdjunto adjunto : adjuntos) {
+                    if (adjunto == null || adjunto.getContenido() == null) continue;
+                    helper.addAttachment(adjunto.getNombreArchivo(), () -> new java.io.ByteArrayInputStream(adjunto.getContenido()));
+                }
+            }
+
+            mailSender.send(message);
+            log.info("Contratos firmados completos enviados al cliente: {}", clienteEmail);
+        } catch (MessagingException e) {
+            log.error("Error enviando contratos firmados al cliente {}: {}", clienteEmail, e.getMessage(), e);
+            throw new EmailSendException("Error al enviar contratos firmados: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error inesperado enviando contratos firmados al cliente {}: {}", clienteEmail, e.getMessage(), e);
+            throw new EmailSendException("Error inesperado al enviar contratos firmados: " + e.getMessage(), e);
         }
     }
 

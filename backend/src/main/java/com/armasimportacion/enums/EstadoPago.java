@@ -4,5 +4,6 @@ public enum EstadoPago {
     PENDIENTE,
     EN_CURSO,
     COMPLETADO,
-    CANCELADO
+    CANCELADO,
+    REEMPLAZADO
 } 

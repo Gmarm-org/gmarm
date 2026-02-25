@@ -97,7 +97,7 @@ public class CotizacionPDFGenerator {
         log.info("Generando PDF de Cotización con Flying Saucer para cliente: {}", cliente.getNombres());
 
         try {
-            List<ClienteArma> armasCliente = clienteArmaRepository.findByClienteId(cliente.getId());
+            List<ClienteArma> armasCliente = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(cliente.getId());
             if (armasCliente == null || armasCliente.isEmpty()) {
                 log.error("No se encontró arma asignada al cliente ID: {}", cliente.getId());
                 throw new ResourceNotFoundException("No se encontró arma asignada al cliente");

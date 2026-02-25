@@ -84,4 +84,8 @@ public interface ClienteArmaRepository extends JpaRepository<ClienteArma, Long> 
     // Buscar por múltiples clientes y estados en batch - evita N+1 en PedidoArmasService
     @Query("SELECT ca FROM ClienteArma ca JOIN FETCH ca.arma a LEFT JOIN FETCH a.categoria WHERE ca.cliente.id IN :clienteIds AND ca.estado IN :estados")
     List<ClienteArma> findByClienteIdInAndEstadoIn(@Param("clienteIds") List<Long> clienteIds, @Param("estados") List<ClienteArma.EstadoClienteArma> estados);
+
+    // Buscar armas activas por cliente (excluye CAMBIO_ARMA y CANCELADA) - para generadores PDF
+    @Query("SELECT ca FROM ClienteArma ca JOIN FETCH ca.arma arma JOIN FETCH arma.categoria WHERE ca.cliente.id = :clienteId AND ca.estado NOT IN ('CAMBIO_ARMA', 'CANCELADA')")
+    List<ClienteArma> findActiveByClienteIdWithArmaAndCategoria(@Param("clienteId") Long clienteId);
 }

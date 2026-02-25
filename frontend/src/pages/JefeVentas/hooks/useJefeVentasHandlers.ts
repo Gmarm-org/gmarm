@@ -357,8 +357,6 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         nuevoPrecio
       );
 
-      alert('Arma actualizada exitosamente. Puedes generar un nuevo contrato si lo deseas.');
-
       setModalEditarArma({
         isOpen: false,
         clienteArma: null,
@@ -368,10 +366,40 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         isLoading: false
       });
 
+      // Refrescar armas, pagos y documentos generados
       if (clienteSeleccionado) {
-        const armas = await apiService.getArmasCliente(Number(clienteSeleccionado.id));
+        const [armas, pagos, contratos] = await Promise.all([
+          apiService.getArmasCliente(Number(clienteSeleccionado.id)),
+          apiService.getPagosCliente(Number(clienteSeleccionado.id)),
+          apiService.getContratosCliente(Number(clienteSeleccionado.id)),
+        ]);
         setArmasCliente(armas);
+        setContratosCliente(contratos);
+
+        // Refrescar cuotas de pagos activos
+        const pagosActivos = pagos.filter((p: any) => p.estado !== 'CANCELADO');
+        const cuotasResults = await Promise.all(
+          pagosActivos.map(async (pago: any) => {
+            if (pago.tipoPago === 'CREDITO' || pago.tipoPago === 'CUOTAS') {
+              try {
+                return await apiService.getCuotasPorPago(pago.id);
+              } catch {
+                return [];
+              }
+            }
+            return [{
+              numeroCuota: 1,
+              monto: pago.montoTotal,
+              estado: pago.estado,
+              fechaVencimiento: null,
+              fechaPago: pago.fechaCreacion
+            }];
+          })
+        );
+        setPagosCliente(cuotasResults.flat());
       }
+
+      alert('Arma actualizada. El pago fue recalculado y los documentos eliminados — debes regenerarlos.');
     } catch (error: any) {
       console.error('Error actualizando arma:', error instanceof Error ? error.message : 'Unknown error');
       const errorMessage = error?.response?.data?.error || error?.message || 'Error desconocido';
