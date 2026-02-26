@@ -425,12 +425,17 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     }
   };
 
-  const handleGenerarContrato = async () => {
+  const handleGenerarContrato = async (datosEditados?: { email?: string; telefonoPrincipal?: string; direccion?: string }) => {
     if (!clienteSeleccionado) return;
 
     setModalGenerarContrato(prev => ({ ...prev, isLoading: true }));
 
     try {
+      // Si hay datos editados, actualizar cliente primero
+      if (datosEditados && Object.keys(datosEditados).length > 0) {
+        await apiService.actualizarDatosContrato(Number(clienteSeleccionado.id), datosEditados);
+      }
+
       const response = await apiService.generarContrato(Number(clienteSeleccionado.id));
 
       if (response.success) {

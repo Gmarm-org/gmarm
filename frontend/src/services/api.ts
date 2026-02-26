@@ -237,6 +237,7 @@ export const apiService = {
   generarYEnviarContrato: contracts.generarYEnviarContrato,
   obtenerContratosPorCliente: contracts.obtenerContratosPorCliente,
   obtenerDatosContrato: contracts.obtenerDatosContrato,
+  actualizarDatosContrato: contracts.actualizarDatosContrato,
   generarContrato: contracts.generarContrato,
   cargarContratoFirmado: contracts.cargarContratoFirmado,
   getContratosCliente: contracts.getContratosCliente,

@@ -356,7 +356,9 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                                   </svg>
                                   Descargar
                                 </button>
-                                {contrato.estado !== 'FIRMADO' && (
+                                {contrato.estado !== 'FIRMADO'
+                                  && contrato.tipoDocumento !== 'RECIBO'
+                                  && contrato.tipoDocumento !== 'SOLICITUD_COMPRA' && (
                                   <button
                                     onClick={() => setMostrarCargarFirmado(mostrarCargarFirmado === contrato.id ? null : contrato.id)}
                                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center"

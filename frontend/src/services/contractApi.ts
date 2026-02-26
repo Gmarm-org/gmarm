@@ -15,6 +15,13 @@ export async function obtenerDatosContrato(clienteId: number): Promise<any> {
   return request<any>(`/api/clientes/${clienteId}/datos-contrato`);
 }
 
+export async function actualizarDatosContrato(clienteId: number, datos: { email?: string; telefonoPrincipal?: string; direccion?: string }): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/clientes/${clienteId}/actualizar-datos-contrato`, {
+    method: 'PATCH',
+    body: JSON.stringify(datos),
+  });
+}
+
 export async function generarContrato(clienteId: number): Promise<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; urlArchivo?: string }> {
   return request<{ success: boolean; message: string; documentoId?: number; nombreArchivo?: string; urlArchivo?: string }>(`/api/clientes/${clienteId}/generar-contrato`, {
     method: 'POST',

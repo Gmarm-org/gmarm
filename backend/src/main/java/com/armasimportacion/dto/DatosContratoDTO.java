@@ -47,6 +47,18 @@ public class DatosContratoDTO {
         private BigDecimal montoTotal;
         private String tipoPago;
         private Integer numeroCuotas;
+        private List<CuotaDTO> cuotas;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CuotaDTO {
+        private Integer numeroCuota;
+        private BigDecimal monto;
+        private String fechaVencimiento;
+        private String estado;
     }
     
     @Data

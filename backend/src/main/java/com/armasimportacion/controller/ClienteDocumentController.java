@@ -20,7 +20,9 @@ import com.armasimportacion.service.helper.GestionDocumentosServiceHelper;
 import com.armasimportacion.repository.ClienteGrupoImportacionRepository;
 import com.armasimportacion.repository.ClienteRepository;
 import com.armasimportacion.repository.DocumentoGeneradoRepository;
+import com.armasimportacion.repository.CuotaPagoRepository;
 import com.armasimportacion.repository.PagoRepository;
+import com.armasimportacion.model.CuotaPago;
 import com.armasimportacion.enums.EstadoClienteGrupo;
 import com.armasimportacion.enums.EstadoGrupoImportacion;
 import com.armasimportacion.enums.EstadoDocumentoGenerado;
@@ -64,6 +66,7 @@ public class ClienteDocumentController {
     private final EmailService emailService;
     private final ClienteRepository clienteRepository;
     private final ConfiguracionSistemaService configuracionSistemaService;
+    private final CuotaPagoRepository cuotaPagoRepository;
 
     @GetMapping("/{id}/datos-contrato")
     @Operation(summary = "Obtener datos del contrato", description = "Obtiene los datos del cliente, pago y armas para mostrar en el popup de generación de contrato")
@@ -104,11 +107,22 @@ public class ClienteDocumentController {
 
         DatosContratoDTO.PagoDTO pagoDTO = null;
         if (pago != null) {
+            List<CuotaPago> cuotas = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pago.getId());
+            List<DatosContratoDTO.CuotaDTO> cuotasDTO = cuotas.stream()
+                .map(c -> DatosContratoDTO.CuotaDTO.builder()
+                    .numeroCuota(c.getNumeroCuota())
+                    .monto(c.getMonto())
+                    .fechaVencimiento(c.getFechaVencimiento() != null ? c.getFechaVencimiento().toString() : null)
+                    .estado(c.getEstado() != null ? c.getEstado().name() : null)
+                    .build())
+                .collect(Collectors.toList());
+
             pagoDTO = DatosContratoDTO.PagoDTO.builder()
                 .id(pago.getId())
                 .montoTotal(pago.getMontoTotal())
                 .tipoPago(pago.getTipoPago() != null ? pago.getTipoPago().name() : null)
                 .numeroCuotas(pago.getNumeroCuotas())
+                .cuotas(cuotasDTO)
                 .build();
         }
 
@@ -133,6 +147,32 @@ public class ClienteDocumentController {
             datosContratoDTO.getCliente() != null ? datosContratoDTO.getCliente().getEmailVerificado() : "null");
 
         return ResponseEntity.ok(datosContratoDTO);
+    }
+
+    @PatchMapping("/{id}/actualizar-datos-contrato")
+    @Operation(summary = "Actualizar datos del cliente antes de generar documentos",
+               description = "Actualiza email, teléfono y/o dirección del cliente sin disparar re-verificación. Uso exclusivo del JdV antes de generar documentos.")
+    public ResponseEntity<Map<String, Object>> actualizarDatosContrato(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> datos) {
+        log.info("Actualizando datos de contrato para cliente ID: {}, campos: {}", id, datos.keySet());
+
+        Cliente cliente = clienteService.findById(id);
+
+        if (datos.containsKey("email") && datos.get("email") != null) {
+            cliente.setEmail(datos.get("email").trim());
+        }
+        if (datos.containsKey("telefonoPrincipal") && datos.get("telefonoPrincipal") != null) {
+            cliente.setTelefonoPrincipal(datos.get("telefonoPrincipal").trim());
+        }
+        if (datos.containsKey("direccion") && datos.get("direccion") != null) {
+            cliente.setDireccion(datos.get("direccion").trim());
+        }
+
+        clienteRepository.save(cliente);
+        log.info("Datos actualizados exitosamente para cliente ID: {}", id);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Datos actualizados correctamente"));
     }
 
     @PostMapping("/{id}/generar-contrato")
