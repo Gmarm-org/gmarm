@@ -6,7 +6,7 @@ import PaymentForm from './components/PaymentForm';
 import SeriesAssignment from './components/SeriesAssignment';
 
 import { useVendedorLogic } from './hooks/useVendedorLogic';
-import { useTableFilters } from '../../hooks/useTableFilters';
+import { useTableFilters, type SearchFields } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import { ModalValidarDatos } from './components/ModalValidarDatos';
 import { apiService } from '../../services/api';
@@ -149,6 +149,9 @@ const Vendedor: React.FC = React.memo(() => {
 
   // Hook para filtros y ordenamiento
   const clientsByTab = getClientsByTab();
+  const vendedorSearchFields: SearchFields<any> = React.useMemo(() => ({
+    nombres: ['nombres', 'apellidos'],
+  }), []);
   const {
     filteredAndSortedData: clientsFiltrados,
     sortConfig,
@@ -156,7 +159,7 @@ const Vendedor: React.FC = React.memo(() => {
     filters,
     setFilter,
     clearFilters,
-  } = useTableFilters(clientsByTab);
+  } = useTableFilters(clientsByTab, vendedorSearchFields);
 
   if (isLoading) {
     return <LoadingSpinner />;

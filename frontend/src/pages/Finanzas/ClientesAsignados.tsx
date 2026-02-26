@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import type { Client } from '../Vendedor/types';
-import { useTableFilters } from '../../hooks/useTableFilters';
+import { useTableFilters, type SearchFields } from '../../hooks/useTableFilters';
 import { TableHeaderWithFilters } from '../../components/TableHeaderWithFilters';
 import { formatNombreCompleto } from '../../utils/formatUtils';
 
@@ -47,6 +47,10 @@ const ClientesAsignados: React.FC = () => {
   const [archivoFactura, setArchivoFactura] = useState<File | null>(null);
 
   // Hook para filtros y ordenamiento
+  const clienteSearchFields: SearchFields<ClienteConVendedor> = React.useMemo(() => ({
+    nombres: ['nombres', 'apellidos'],
+    vendedorNombre: ['vendedorNombre', 'vendedorApellidos'],
+  }), []);
   const {
     filteredAndSortedData: clientesFiltrados,
     sortConfig,
@@ -54,7 +58,7 @@ const ClientesAsignados: React.FC = () => {
     filters,
     setFilter,
     clearFilters,
-  } = useTableFilters<ClienteConVendedor>(clientesAsignados);
+  } = useTableFilters<ClienteConVendedor>(clientesAsignados, clienteSearchFields);
 
   // Cargar clientes asignados al montar
   useEffect(() => {

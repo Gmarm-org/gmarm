@@ -3,7 +3,7 @@ import Header from '../../components/Header';
 import AsignacionSeries from '../AsignacionSeries';
 import { useAuth } from '../../contexts/AuthContext';
 import { useJefeVentasExport } from './hooks/useJefeVentasExport';
-import { useTableFilters } from '../../hooks/useTableFilters';
+import { useTableFilters, type SearchFields } from '../../hooks/useTableFilters';
 import { useJefeVentasState } from './hooks/useJefeVentasState';
 import { useJefeVentasData } from './hooks/useJefeVentasData';
 import { useJefeVentasHandlers } from './hooks/useJefeVentasHandlers';
@@ -39,6 +39,11 @@ const JefeVentas: React.FC = () => {
     }
   ) || false;
 
+  const clienteSearchFields: SearchFields<ClienteConVendedor> = React.useMemo(() => ({
+    nombres: ['nombres', 'apellidos'],
+    vendedorNombre: ['vendedorNombre', 'vendedorApellidos'],
+  }), []);
+
   const {
     filteredAndSortedData: clientesFiltrados,
     sortConfig: sortConfigClientes,
@@ -46,7 +51,7 @@ const JefeVentas: React.FC = () => {
     filters: filtersClientes,
     setFilter: setFilterClientes,
     clearFilters: clearFiltersClientes,
-  } = useTableFilters<ClienteConVendedor>(state.clientes);
+  } = useTableFilters<ClienteConVendedor>(state.clientes, clienteSearchFields);
 
   const {
     filteredAndSortedData: clientesAsignadosFiltrados,
@@ -55,7 +60,7 @@ const JefeVentas: React.FC = () => {
     filters: filtersAsignados,
     setFilter: setFilterAsignados,
     clearFilters: clearFiltersAsignados,
-  } = useTableFilters<ClienteConVendedor>(state.clientesAsignados);
+  } = useTableFilters<ClienteConVendedor>(state.clientesAsignados, clienteSearchFields);
 
   return (
     <div className="min-h-screen bg-gray-50">

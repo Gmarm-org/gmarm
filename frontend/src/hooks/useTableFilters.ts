@@ -7,12 +7,17 @@ export type SortConfig<T> = {
 };
 
 /**
+ * Mapeo de columna → campos adicionales donde buscar.
+ * Cuando se filtra por una columna, se concatenan los textos de todos los campos
+ * listados y se busca en el resultado combinado.
+ *
+ * Ejemplo: { nombres: ['nombres', 'apellidos'] }
+ * → filtrar por "nombres" busca en "nombres + apellidos" concatenados
+ */
+export type SearchFields<T> = Partial<Record<keyof T, (keyof T)[]>>;
+
+/**
  * Extrae texto buscable de cualquier tipo de valor.
- * - string/number → se convierten directamente
- * - boolean → mapea a texto legible (validado/datos incorrectos/pendiente)
- * - null/undefined → cadena vacía
- * - objeto → concatena sus propiedades string/number (útil para objetos anidados como cliente)
- * - array → cadena vacía (no se busca en arrays)
  */
 function getSearchableText(value: any): string {
   if (value == null) return '';
@@ -21,7 +26,6 @@ function getSearchableText(value: any): string {
   if (typeof value === 'boolean') return value ? 'validado true sí' : 'datos incorrectos false no';
   if (Array.isArray(value)) return '';
   if (typeof value === 'object') {
-    // Para objetos anidados (ej: PagoCompleto.cliente), buscar en sus propiedades string/number
     return Object.values(value)
       .filter(v => typeof v === 'string' || typeof v === 'number')
       .map(String)
@@ -32,7 +36,8 @@ function getSearchableText(value: any): string {
 
 
 export function useTableFilters<T extends Record<string, any>>(
-  data: T[]
+  data: T[],
+  searchFields?: SearchFields<T>
 ) {
   const [sortConfig, setSortConfig] = useState<SortConfig<T>>({
     key: null,
@@ -60,8 +65,19 @@ export function useTableFilters<T extends Record<string, any>>(
           return true;
         }
 
-        const itemValue = item[key];
         const searchText = filterValue.toLowerCase().trim();
+
+        // Si hay searchFields configurado para esta columna, buscar en todos los campos listados
+        const fieldsToSearch = searchFields?.[key as keyof T];
+        if (fieldsToSearch && fieldsToSearch.length > 0) {
+          const combinedText = fieldsToSearch
+            .map(field => getSearchableText(item[field as string]))
+            .join(' ')
+            .toLowerCase();
+          return combinedText.includes(searchText);
+        }
+
+        const itemValue = item[key];
 
         // Manejar valores booleanos (emailVerificado y otros campos boolean)
         if (key === 'emailVerificado' || typeof itemValue === 'boolean') {
@@ -74,13 +90,12 @@ export function useTableFilters<T extends Record<string, any>>(
           if (searchText === 'pendiente' || searchText === 'null' || searchText === 'undefined') {
             return itemValue == null;
           }
-          // Para búsquedas parciales en booleanos, usar texto buscable
           if (itemValue == null) return 'pendiente'.includes(searchText);
           const boolText = getSearchableText(itemValue).toLowerCase();
           return boolText.includes(searchText);
         }
 
-        // Manejar null/undefined: buscar coincidencia con textos comunes de "vacío"
+        // Manejar null/undefined
         if (itemValue == null) {
           return 'n/a sin asignar pendiente'.includes(searchText);
         }
@@ -88,13 +103,12 @@ export function useTableFilters<T extends Record<string, any>>(
         // Obtener texto buscable y comparar (case-insensitive)
         const itemText = getSearchableText(itemValue).toLowerCase();
 
-        // Si no hay texto buscable (ej: array vacío), no coincide
         if (!itemText) return false;
 
         return itemText.includes(searchText);
       });
     });
-  }, [data, filters]);
+  }, [data, filters, searchFields]);
 
   // Aplicar ordenamiento a los datos filtrados
   const sortedData = useMemo(() => {
@@ -123,7 +137,6 @@ export function useTableFilters<T extends Record<string, any>>(
       } else if (aValue && bValue && typeof (aValue as any).getTime === 'function' && typeof (bValue as any).getTime === 'function') {
         comparison = (aValue as any).getTime() - (bValue as any).getTime();
       } else {
-        // Convertir a string para comparar
         comparison = String(aValue).localeCompare(String(bValue), 'es', { sensitivity: 'base' });
       }
 
@@ -135,14 +148,12 @@ export function useTableFilters<T extends Record<string, any>>(
   const handleSort = (key: keyof T) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        // Si ya está ordenado por esta columna, cambiar dirección
         if (prev.direction === 'asc') {
           return { key, direction: 'desc' };
         } else if (prev.direction === 'desc') {
           return { key: null, direction: null };
         }
       }
-      // Nueva columna, empezar con ascendente
       return { key, direction: 'asc' };
     });
   };
