@@ -305,8 +305,6 @@ const ClientesAsignados: React.FC = () => {
                   sortDirection={sortConfig.direction}
                   onSort={handleSort}
                   align="center"
-                  filterValue={filters.fechaCreacion || ''}
-                  onFilterChange={setFilter}
                 />
                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50 sticky right-0 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)] z-10">Acciones</th>
               </tr>
