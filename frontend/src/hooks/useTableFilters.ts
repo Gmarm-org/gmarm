@@ -6,6 +6,30 @@ export type SortConfig<T> = {
   direction: SortDirection;
 };
 
+/**
+ * Extrae texto buscable de cualquier tipo de valor.
+ * - string/number → se convierten directamente
+ * - boolean → mapea a texto legible (validado/datos incorrectos/pendiente)
+ * - null/undefined → cadena vacía
+ * - objeto → concatena sus propiedades string/number (útil para objetos anidados como cliente)
+ * - array → cadena vacía (no se busca en arrays)
+ */
+function getSearchableText(value: any): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'boolean') return value ? 'validado true sí' : 'datos incorrectos false no';
+  if (Array.isArray(value)) return '';
+  if (typeof value === 'object') {
+    // Para objetos anidados (ej: PagoCompleto.cliente), buscar en sus propiedades string/number
+    return Object.values(value)
+      .filter(v => typeof v === 'string' || typeof v === 'number')
+      .map(String)
+      .join(' ');
+  }
+  return String(value);
+}
+
 
 export function useTableFilters<T extends Record<string, any>>(
   data: T[]
@@ -14,20 +38,20 @@ export function useTableFilters<T extends Record<string, any>>(
     key: null,
     direction: null,
   });
-  
+
   // Filtros por campo
   const [filters, setFilters] = useState<Partial<Record<keyof T, string>>>({});
 
   // Aplicar filtros primero, luego ordenamiento
   const filteredData = useMemo(() => {
     if (!data) return [];
-    
+
     // Si no hay filtros, retornar todos los datos
     const hasFilters = Object.values(filters).some(value => value && value.trim() !== '');
     if (!hasFilters) {
       return data;
     }
-    
+
     // Aplicar filtros
     return data.filter(item => {
       return Object.entries(filters).every(([key, filterValue]) => {
@@ -35,35 +59,38 @@ export function useTableFilters<T extends Record<string, any>>(
         if (!filterValue || filterValue.trim() === '') {
           return true;
         }
-        
+
         const itemValue = item[key];
-        
-        // Manejar valores booleanos y null (para emailVerificado)
-        if (key === 'emailVerificado') {
-          const filterLower = filterValue.toLowerCase().trim();
-          if (filterLower === 'ok' || filterLower === 'true' || filterLower === 'validado') {
+        const searchText = filterValue.toLowerCase().trim();
+
+        // Manejar valores booleanos (emailVerificado y otros campos boolean)
+        if (key === 'emailVerificado' || typeof itemValue === 'boolean') {
+          if (searchText === 'ok' || searchText === 'true' || searchText === 'validado' || searchText === 'sí' || searchText === 'si') {
             return itemValue === true;
           }
-          if (filterLower === 'error' || filterLower === 'false' || filterLower === 'datos incorrectos' || filterLower === 'datosincorrectos') {
+          if (searchText === 'error' || searchText === 'false' || searchText === 'datos incorrectos' || searchText === 'datosincorrectos' || searchText === 'no') {
             return itemValue === false;
           }
-          if (filterLower === 'pendiente' || filterLower === 'null' || filterLower === 'undefined' || filterLower === '') {
-            return itemValue == null || itemValue === undefined;
+          if (searchText === 'pendiente' || searchText === 'null' || searchText === 'undefined') {
+            return itemValue == null;
           }
-          // Si no coincide con ningún patrón, no filtrar
-          return true;
+          // Para búsquedas parciales en booleanos, usar texto buscable
+          if (itemValue == null) return 'pendiente'.includes(searchText);
+          const boolText = getSearchableText(itemValue).toLowerCase();
+          return boolText.includes(searchText);
         }
-        
+
+        // Manejar null/undefined: buscar coincidencia con textos comunes de "vacío"
         if (itemValue == null) {
-          // Para valores null/undefined, permitir filtrar por "pendiente", "null", etc.
-          const filterLower = filterValue.toLowerCase().trim();
-          return filterLower === 'pendiente' || filterLower === 'null' || filterLower === 'undefined' || filterLower === '';
+          return 'n/a sin asignar pendiente'.includes(searchText);
         }
-        
-        // Convertir a string y buscar (case-insensitive)
-        const searchText = filterValue.toLowerCase().trim();
-        const itemText = String(itemValue).toLowerCase();
-        
+
+        // Obtener texto buscable y comparar (case-insensitive)
+        const itemText = getSearchableText(itemValue).toLowerCase();
+
+        // Si no hay texto buscable (ej: array vacío), no coincide
+        if (!itemText) return false;
+
         return itemText.includes(searchText);
       });
     });
@@ -72,7 +99,7 @@ export function useTableFilters<T extends Record<string, any>>(
   // Aplicar ordenamiento a los datos filtrados
   const sortedData = useMemo(() => {
     if (!filteredData) return [];
-    
+
     if (!sortConfig.key || !sortConfig.direction) {
       return filteredData;
     }
@@ -88,7 +115,7 @@ export function useTableFilters<T extends Record<string, any>>(
 
       // Comparar valores
       let comparison = 0;
-      
+
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         comparison = aValue.localeCompare(bValue, 'es', { sensitivity: 'base' });
       } else if (typeof aValue === 'number' && typeof bValue === 'number') {
@@ -131,7 +158,7 @@ export function useTableFilters<T extends Record<string, any>>(
       return { ...prev, [key]: value };
     });
   };
-  
+
   // Función para limpiar todos los filtros
   const clearFilters = () => {
     setFilters({});
@@ -146,4 +173,3 @@ export function useTableFilters<T extends Record<string, any>>(
     clearFilters,
   };
 }
-
