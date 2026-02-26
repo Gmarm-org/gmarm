@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
-    <title>Contrato y cotización firmados - GMARM</title>
+    <title>Documentos firmados - GMARM</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -48,18 +48,24 @@
 </head>
 <body>
     <div class="container">
-        <h1>Contrato y cotización firmados</h1>
+        <h1>Documentos firmados</h1>
 
         <p>Estimado/a <strong th:text="${clienteNombre}">Cliente</strong>,</p>
 
         <p>
-            Sus documentos (contrato y cotización) han sido firmados por ambas partes.
+            Sus documentos han sido firmados por ambas partes.
             Se adjuntan los documentos firmados para su registro.
         </p>
 
         <p>
             <strong>Quedamos pendientes del pago de su primera cuota.</strong>
         </p>
+
+        <div style="background-color: #dbeafe; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #1e40af; font-size: 13px; line-height: 1.6;">
+                <strong>Los comprobantes de pago deben ser reenviados respondiendo a este correo</strong> para mantener la información de manera ordenada y facilitar el seguimiento de su proceso de compra.
+            </p>
+        </div>
 
         <p class="label">Los pagos se deben realizar a esta cuenta:</p>
         <div class="bank-box">

@@ -59,6 +59,7 @@ export function useJefeVentasState() {
   });
 
   // Editar arma
+  const [loadingEditarArma, setLoadingEditarArma] = useState(false);
   const [modalEditarArma, setModalEditarArma] = useState<{ isOpen: boolean; clienteArma: any | null; armasDisponibles: any[]; armaSeleccionada: any | null; nuevoPrecio: string; isLoading: boolean }>({
     isOpen: false,
     clienteArma: null,
@@ -112,6 +113,7 @@ export function useJefeVentasState() {
     cantidad, setCantidad,
     modalReasignarArma, setModalReasignarArma,
     modalDesistimiento, setModalDesistimiento,
+    loadingEditarArma, setLoadingEditarArma,
     modalEditarArma, setModalEditarArma,
     armasReasignadas, setArmasReasignadas,
     loadingArmasReasignadas, setLoadingArmasReasignadas,

@@ -353,36 +353,27 @@ public class ClienteDocumentController {
 
         String mensaje;
 
-        // Para CONTRATO/COTIZACION: verificar si ambos están firmados antes de cambiar estado
-        boolean esContratoOCotizacion = contratoGenerado.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO
-            || contratoGenerado.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION;
+        // Verificar si TODOS los documentos (CONTRATO + COTIZACION + SOLICITUD_COMPRA) están firmados
+        List<DocumentoGenerado> todosDocumentos = documentoGeneradoRepository.findByClienteId(cliente.getId()).stream()
+            .filter(doc -> doc.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO
+                || doc.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION
+                || doc.getTipoDocumento() == TipoDocumentoGenerado.SOLICITUD_COMPRA)
+            .toList();
 
-        if (esContratoOCotizacion) {
-            List<DocumentoGenerado> docsContratoCotizacion = documentoGeneradoRepository.findByClienteId(cliente.getId()).stream()
-                .filter(doc -> doc.getTipoDocumento() == TipoDocumentoGenerado.CONTRATO
-                    || doc.getTipoDocumento() == TipoDocumentoGenerado.COTIZACION)
-                .toList();
+        boolean todosFirmados = !todosDocumentos.isEmpty() && todosDocumentos.stream()
+            .allMatch(doc -> doc.getEstado() == EstadoDocumentoGenerado.FIRMADO);
 
-            boolean todosFirmados = docsContratoCotizacion.stream()
-                .allMatch(doc -> doc.getEstado() == EstadoDocumentoGenerado.FIRMADO);
-
-            if (todosFirmados) {
-                // Ambos firmados: enviar email al cliente + CC importador + Valeria, cambiar estado
-                enviarEmailContratosFirmadosCompletos(cliente, docsContratoCotizacion);
-                cliente.setEstado(EstadoCliente.CONTRATO_FIRMADO);
-                clienteRepository.save(cliente);
-                mensaje = "Documento firmado cargado. Contrato y cotización firmados — se envió confirmación al cliente.";
-                log.info("Todos los contratos/cotizaciones firmados para cliente {}: estado → CONTRATO_FIRMADO", id);
-            } else {
-                mensaje = "Documento firmado cargado. Falta firmar el otro documento para completar el proceso.";
-                log.info("Documento firmado parcial para cliente {} — faltan documentos por firmar", id);
-            }
-        } else {
-            // SOLICITUD_COMPRA u otros: firma directa, cambiar estado inmediatamente
+        if (todosFirmados) {
+            enviarEmailContratosFirmadosCompletos(cliente, todosDocumentos);
             cliente.setEstado(EstadoCliente.CONTRATO_FIRMADO);
             clienteRepository.save(cliente);
-            mensaje = "Documento firmado cargado exitosamente.";
-            log.info("Firma directa de documento: {}", nombreArchivoFirmado);
+            mensaje = "Documento firmado cargado. Todos los documentos firmados — se envió confirmación al cliente.";
+            log.info("Todos los documentos firmados para cliente {}: estado → CONTRATO_FIRMADO", id);
+        } else {
+            long firmados = todosDocumentos.stream()
+                .filter(d -> d.getEstado() == EstadoDocumentoGenerado.FIRMADO).count();
+            mensaje = "Documento firmado cargado. " + firmados + " de " + todosDocumentos.size() + " documentos firmados.";
+            log.info("Firma parcial para cliente {} — {}/{} documentos firmados", id, firmados, todosDocumentos.size());
         }
 
         Map<String, Object> response = new HashMap<>();

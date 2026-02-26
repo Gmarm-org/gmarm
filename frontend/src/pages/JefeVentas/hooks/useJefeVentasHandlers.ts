@@ -28,6 +28,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     cantidad, setCantidad,
     setModalReasignarArma,
     modalDesistimiento, setModalDesistimiento,
+    setLoadingEditarArma,
     modalEditarArma, setModalEditarArma,
     modalClienteReasignado, setModalClienteReasignado,
     setMostrarModalAutorizacion,
@@ -324,6 +325,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
   const handleAbrirModalEditarArma = async (clienteArma: any) => {
     if (!clienteArma) return;
 
+    setLoadingEditarArma(true);
     try {
       const armas = await apiService.getArmas();
       setModalEditarArma({
@@ -337,6 +339,8 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     } catch (error) {
       console.error('Error cargando armas:', error instanceof Error ? error.message : 'Unknown error');
       alert('Error al cargar armas disponibles');
+    } finally {
+      setLoadingEditarArma(false);
     }
   };
 

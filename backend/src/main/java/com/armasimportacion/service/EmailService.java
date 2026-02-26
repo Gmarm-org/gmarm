@@ -533,7 +533,7 @@ public class EmailService {
             if (ccEmails != null && ccEmails.length > 0) {
                 helper.setCc(ccEmails);
             }
-            helper.setSubject("Contrato y cotización firmados - GMARM");
+            helper.setSubject("Documentos firmados - GMARM");
 
             Context context = new Context();
             context.setVariable("clienteNombre", clienteNombre);

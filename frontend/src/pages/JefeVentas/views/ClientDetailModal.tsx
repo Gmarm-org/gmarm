@@ -17,6 +17,7 @@ interface ClientDetailModalProps {
   grupoEstado?: string;
   onAbrirModalGenerarContrato: () => void;
   onAbrirModalEditarArma: (arma: any) => void;
+  loadingEditarArma?: boolean;
 }
 
 const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
@@ -33,6 +34,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
   grupoEstado,
   onAbrirModalGenerarContrato,
   onAbrirModalEditarArma,
+  loadingEditarArma,
 }) => {
   const [mostrarCargarFirmado, setMostrarCargarFirmado] = useState<number | null>(null);
   const [archivoFirmado, setArchivoFirmado] = useState<File | null>(null);
@@ -193,10 +195,11 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                               return puedeEditarArma ? (
                                 <button
                                   onClick={() => onAbrirModalEditarArma(arma)}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                                  disabled={loadingEditarArma}
+                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                                   title="Editar arma asignada"
                                 >
-                                  Editar Arma
+                                  {loadingEditarArma ? 'Cargando...' : 'Editar Arma'}
                                 </button>
                               ) : (
                                 <span className="text-xs text-gray-500">
@@ -357,8 +360,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                                   Descargar
                                 </button>
                                 {contrato.estado !== 'FIRMADO'
-                                  && contrato.tipoDocumento !== 'RECIBO'
-                                  && contrato.tipoDocumento !== 'SOLICITUD_COMPRA' && (
+                                  && contrato.tipoDocumento !== 'RECIBO' && (
                                   <button
                                     onClick={() => setMostrarCargarFirmado(mostrarCargarFirmado === contrato.id ? null : contrato.id)}
                                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center"

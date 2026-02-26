@@ -43,6 +43,7 @@ public class PagoService {
     private final ClienteGrupoImportacionRepository clienteGrupoImportacionRepository;
     private final LicenciaService licenciaService;
     private final FileStorageService fileStorageService;
+    private final ConfiguracionSistemaService configuracionSistemaService;
 
     public Pago crearPago(Pago pago) {
         log.info("Creando pago para cliente: {}", pago.getClienteId());
@@ -452,8 +453,15 @@ public class PagoService {
             // Leer archivo PDF
             byte[] pdfBytes = fileStorageService.loadFile(recibo.getRutaArchivo());
             
-            // Enviar recibo por correo
-            List<String> emails = java.util.Arrays.asList(cliente.getEmail());
+            // Enviar recibo por correo: cliente + CORREOS_RECIBO (joseluis, valeria)
+            List<String> emails = new java.util.ArrayList<>();
+            emails.add(cliente.getEmail().trim());
+            List<String> correosRecibo = configuracionSistemaService.getCorreosRecibo();
+            for (String correo : correosRecibo) {
+                if (!emails.contains(correo.trim())) {
+                    emails.add(correo.trim());
+                }
+            }
             String numeroRecibo = cuota.getNumeroRecibo() != null
                 ? cuota.getNumeroRecibo()
                 : String.format("RC-%s-%d-%06d", obtenerInicialesImportador(cliente), java.time.LocalDate.now().getYear(), cuota.getId());

@@ -256,6 +256,7 @@ const JefeVentas: React.FC = () => {
             grupoEstado={state.grupoEstadoCliente}
             onAbrirModalGenerarContrato={handlers.handleAbrirModalGenerarContrato}
             onAbrirModalEditarArma={handlers.handleAbrirModalEditarArma}
+            loadingEditarArma={state.loadingEditarArma}
           />
         )}
 
