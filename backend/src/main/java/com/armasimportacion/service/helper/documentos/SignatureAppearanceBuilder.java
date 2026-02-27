@@ -20,10 +20,10 @@ import java.util.Map;
 public class SignatureAppearanceBuilder {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final int QR_SIZE = 80;
+    private static final int QR_SIZE = 140;
     private static final int PADDING = 8;
 
-    public byte[] buildAppearanceImage(String signerName, String signerTitle,
+    public byte[] buildAppearanceImage(String signerName,
                                        LocalDateTime signDate, String certificateSerial,
                                        String qrContent, int width, int height) {
         try {
@@ -32,14 +32,11 @@ public class SignatureAppearanceBuilder {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-            // White background with thin border
+            // White background (no border)
             g2d.setColor(Color.WHITE);
             g2d.fillRect(0, 0, width, height);
-            g2d.setColor(new Color(100, 100, 100));
-            g2d.setStroke(new BasicStroke(1.0f));
-            g2d.drawRect(0, 0, width - 1, height - 1);
 
-            // QR code on the left
+            // QR code on the left, vertically centered
             int qrX = PADDING;
             int qrY = (height - QR_SIZE) / 2;
             BufferedImage qrImage = generateQrCode(qrContent, QR_SIZE);
@@ -69,18 +66,11 @@ public class SignatureAppearanceBuilder {
             g2d.drawString(displayName, textX, textY);
             textY += 13;
 
-            // Line 3: Title
-            if (signerTitle != null && !signerTitle.isBlank()) {
-                g2d.setFont(fontSmall);
-                g2d.drawString(signerTitle, textX, textY);
-                textY += 12;
-            }
-
-            // Line 4: Date
+            // Line 3: Date
             g2d.setFont(fontSmall);
             String dateStr = signDate != null ? signDate.format(DATE_FMT) : "";
             g2d.drawString("Fecha: " + dateStr, textX, textY);
-            textY += 12;
+            textY += 13;
 
             // Line 5: Certificate serial (truncated)
             if (certificateSerial != null && !certificateSerial.isBlank()) {

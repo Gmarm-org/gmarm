@@ -31,10 +31,15 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.springframework.stereotype.Service;
 
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.TextPosition;
+
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Security;
@@ -42,11 +47,13 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -57,11 +64,11 @@ public class PDFSignatureService {
     private final SignatureAppearanceBuilder appearanceBuilder;
 
     private static final float SIG_X = 55f;
-    private static final float SIG_Y = 95f;
+    private static final float SIG_Y = 155f;
     private static final float SIG_WIDTH = 200f;
     private static final float SIG_HEIGHT = 80f;
-    private static final int APPEARANCE_IMG_WIDTH = 380;
-    private static final int APPEARANCE_IMG_HEIGHT = 100;
+    private static final int APPEARANCE_IMG_WIDTH = 400;
+    private static final int APPEARANCE_IMG_HEIGHT = 160;
 
     @PostConstruct
     public void init() {
@@ -118,14 +125,20 @@ public class PDFSignatureService {
 
             String serialNumber = signerCert.getSerialNumber().toString(16).toUpperCase();
             LocalDateTime signDate = LocalDateTime.now(ZoneId.of("America/Guayaquil"));
-            String signerName = licencia.getNombre() != null ? licencia.getNombre() : "Importador";
-            String signerTitle = licencia.getTitulo() != null ? licencia.getTitulo() : "Distribuidor Autorizado";
 
-            String qrContent = String.format("Firmado por: %s | Fecha: %s | Cert: %s",
-                    signerName, signDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), serialNumber);
+            String subjectDN = signerCert.getSubjectX500Principal().getName();
+            String issuerDN = signerCert.getIssuerX500Principal().getName();
+
+            String signerName = extractDNField(subjectDN, "CN");
+            if (signerName == null) {
+                signerName = licencia.getNombre() != null ? licencia.getNombre() : "Importador";
+            }
+            String cedula = extractCedulaFromDN(subjectDN);
+            String issuerName = extractDNField(issuerDN, "CN");
+            String qrContent = resolveIssuerUrl(issuerDN);
 
             byte[] appearanceImage = appearanceBuilder.buildAppearanceImage(
-                    signerName, signerTitle, signDate, serialNumber, qrContent,
+                    signerName, signDate, serialNumber, qrContent,
                     APPEARANCE_IMG_WIDTH, APPEARANCE_IMG_HEIGHT);
 
             PDSignature signature = new PDSignature();
@@ -139,7 +152,8 @@ public class PDFSignatureService {
             signature.setSignDate(cal);
 
             int lastPageIndex = document.getNumberOfPages() - 1;
-            PDRectangle sigRect = new PDRectangle(SIG_X, SIG_Y, SIG_WIDTH, SIG_HEIGHT);
+            float dynamicSigY = calculateSignatureY(document, lastPageIndex);
+            PDRectangle sigRect = new PDRectangle(SIG_X, dynamicSigY, SIG_WIDTH, SIG_HEIGHT);
 
             SignatureOptions sigOptions = new SignatureOptions();
             sigOptions.setPreferredSignatureSize(16384);
@@ -168,6 +182,80 @@ public class PDFSignatureService {
             log.error("Error firmando PDF: {}", e.getMessage(), e);
             throw new RuntimeException("Error al firmar el documento PDF: " + e.getMessage(), e);
         }
+    }
+
+    private float calculateSignatureY(PDDocument document, int pageIndex) {
+        try {
+            PDPage page = document.getPage(pageIndex);
+            float pageHeight = page.getMediaBox().getHeight();
+            float[] lowestY = {pageHeight};
+
+            PDFTextStripper stripper = new PDFTextStripper() {
+                @Override
+                protected void writeString(String text, List<TextPosition> textPositions) throws IOException {
+                    for (TextPosition tp : textPositions) {
+                        float pdfY = pageHeight - tp.getY();
+                        if (pdfY < lowestY[0]) {
+                            lowestY[0] = pdfY;
+                        }
+                    }
+                }
+            };
+            stripper.setStartPage(pageIndex + 1);
+            stripper.setEndPage(pageIndex + 1);
+            stripper.writeText(document, Writer.nullWriter());
+
+            if (lowestY[0] < pageHeight) {
+                float targetY = lowestY[0] + 80f;
+                log.info("Firma dinámica: texto más bajo Y={}, stamp Y={}", lowestY[0], targetY);
+                return targetY;
+            }
+
+            return SIG_Y;
+        } catch (Exception e) {
+            log.warn("Error calculando posición dinámica de firma: {}", e.getMessage());
+            return SIG_Y;
+        }
+    }
+
+    private String extractDNField(String dn, String field) {
+        Matcher m = Pattern.compile(field + "=([^,]+)").matcher(dn);
+        return m.find() ? m.group(1).trim() : null;
+    }
+
+    private String extractCedulaFromDN(String dn) {
+        Matcher m = Pattern.compile("2\\.5\\.4\\.5=#([0-9a-fA-F]+)").matcher(dn);
+        if (m.find()) {
+            String hex = m.group(1);
+            if (hex.length() > 4) {
+                String hexValue = hex.substring(4);
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i + 1 < hexValue.length(); i += 2) {
+                    sb.append((char) Integer.parseInt(hexValue.substring(i, i + 2), 16));
+                }
+                return sb.toString();
+            }
+        }
+        Matcher m2 = Pattern.compile("SERIALNUMBER=([^,]+)").matcher(dn);
+        return m2.find() ? m2.group(1).trim() : "";
+    }
+
+    private String resolveIssuerUrl(String issuerDN) {
+        String issuerUpper = issuerDN.toUpperCase();
+        if (issuerUpper.contains("BANCO CENTRAL")) return "https://www.firmadigital.gob.ec";
+        if (issuerUpper.contains("SECURITY DATA")) return "https://www.securitydata.net.ec";
+        if (issuerUpper.contains("ANF")) return "https://www.anf.es";
+        if (issuerUpper.contains("CONSEJO DE LA JUDICATURA") || issuerUpper.contains("FUNCION JUDICIAL"))
+            return "https://www.funcionjudicial.gob.ec";
+        if (issuerUpper.contains("UANATACA")) return "https://www.uanataca.com";
+        if (issuerUpper.contains("REGISTRO CIVIL")) return "https://www.registrocivil.gob.ec";
+        if (issuerUpper.contains("ECLIPSOFT")) return "https://www.eclipsoft.com";
+        if (issuerUpper.contains("DATILMEDIA")) return "https://www.datilmedia.com";
+        if (issuerUpper.contains("LAZZATE")) return "https://www.lazzate.com";
+        if (issuerUpper.contains("ALPHA TECHNOLOGIES")) return "https://www.alphatechnologies.ec";
+        if (issuerUpper.contains("CORPNEWBEST")) return "https://www.corpnewbest.com";
+        if (issuerUpper.contains("FIRMASEGURA")) return "https://www.firmasegura.ec";
+        return "https://www.firmadigital.gob.ec";
     }
 
     private InputStream buildVisualSignatureTemplate(PDDocument srcDoc, int pageIndex,
