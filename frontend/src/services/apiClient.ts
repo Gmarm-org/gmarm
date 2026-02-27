@@ -80,7 +80,7 @@ export async function request<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const error = new Error(errorData.message || `Error ${response.status}`) as any;
+      const error = new Error(errorData.error || errorData.message || `Error ${response.status}`) as any;
       error.response = response;
       error.responseData = errorData;
       error.status = response.status;

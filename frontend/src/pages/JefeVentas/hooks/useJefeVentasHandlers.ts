@@ -265,9 +265,33 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     }
   }, [selectedClient, selectedWeapon, precioModificado]);
 
-  const handleNavigateToWeaponSelection = useCallback(() => {
-    // No aplicable en modo edición
-  }, []);
+  const handleNavigateToWeaponSelection = useCallback(async () => {
+    if (!selectedClient) return;
+
+    setLoadingEditarArma(true);
+    try {
+      const armasCliente = await apiService.getArmasCliente(Number(selectedClient.id));
+      if (armasCliente && armasCliente.length > 0) {
+        const clienteArma = armasCliente[0];
+        const armas = await apiService.getArmas();
+        setModalEditarArma({
+          isOpen: true,
+          clienteArma,
+          armasDisponibles: armas || [],
+          armaSeleccionada: null,
+          nuevoPrecio: clienteArma.precioUnitario?.toString() || '',
+          isLoading: false
+        });
+      } else {
+        alert('El cliente no tiene arma asignada');
+      }
+    } catch (error) {
+      console.error('Error cargando armas:', error instanceof Error ? error.message : 'Unknown error');
+      alert('Error al cargar armas disponibles');
+    } finally {
+      setLoadingEditarArma(false);
+    }
+  }, [selectedClient]);
 
   const handleClientDataConfirm = useCallback((_formData: any) => {
     // No aplicable en modo edición
@@ -370,7 +394,22 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
         isLoading: false
       });
 
-      // Refrescar armas, pagos y documentos generados
+      // Si estamos en ClientForm (editando), recargar datos del cliente
+      if (selectedClient && currentPage === 'clientForm') {
+        try {
+          const armasActualizadas = await apiService.getArmasCliente(Number(selectedClient.id));
+          if (armasActualizadas && armasActualizadas.length > 0) {
+            const arma = armasActualizadas[0];
+            setSelectedWeapon(arma.arma || arma);
+            setPrecioModificado(arma.precioUnitario || 0);
+            setCantidad(arma.cantidad || 1);
+          }
+        } catch (error) {
+          console.error('Error recargando arma del cliente:', error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+
+      // Refrescar armas, pagos y documentos generados (flujo Ver Detalle)
       if (clienteSeleccionado) {
         const [armas, pagos, contratos] = await Promise.all([
           apiService.getArmasCliente(Number(clienteSeleccionado.id)),
@@ -406,7 +445,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
       alert('Arma actualizada. El pago fue recalculado y los documentos eliminados — debes regenerarlos.');
     } catch (error: any) {
       console.error('Error actualizando arma:', error instanceof Error ? error.message : 'Unknown error');
-      const errorMessage = error?.response?.data?.error || error?.message || 'Error desconocido';
+      const errorMessage = error?.responseData?.error || error?.message || 'Error desconocido';
       alert(`Error al actualizar arma: ${errorMessage}`);
     } finally {
       setModalEditarArma(prev => ({ ...prev, isLoading: false }));
