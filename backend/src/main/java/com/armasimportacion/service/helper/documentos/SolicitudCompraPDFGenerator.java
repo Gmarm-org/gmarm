@@ -38,8 +38,9 @@ public class SolicitudCompraPDFGenerator {
 
             String nombreArchivo = generarNombreArchivo(cliente);
 
+            Licencia licencia = utils.obtenerLicenciaActiva(cliente);
             String rutaArchivo = utils.guardarArchivo(
-                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo, licencia);
 
             DocumentoGenerado documento = utils.crearDocumentoGenerado(cliente, pago, nombreArchivo, rutaArchivo, pdfBytes, TipoDocumentoGenerado.SOLICITUD_COMPRA);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);

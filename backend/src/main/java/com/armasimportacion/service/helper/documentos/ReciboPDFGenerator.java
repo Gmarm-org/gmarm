@@ -48,8 +48,9 @@ public class ReciboPDFGenerator {
 
             String nombreArchivo = generarNombreArchivo(cliente, cuota);
 
+            Licencia licencia = utils.obtenerLicenciaActiva(cliente);
             String rutaArchivo = utils.guardarArchivo(
-                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo, licencia);
 
             DocumentoGenerado documento = crearDocumentoRecibo(cliente, pago, cuota, nombreArchivo, rutaArchivo, pdfBytes);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);

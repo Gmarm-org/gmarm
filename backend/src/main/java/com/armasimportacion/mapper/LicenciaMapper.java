@@ -48,6 +48,9 @@ public class LicenciaMapper {
                 .fechaEmision(licencia.getFechaEmision())
                 .fechaCreacion(licencia.getFechaCreacion())
                 .fechaActualizacion(licencia.getFechaActualizacion())
+                .firmaHabilitada(licencia.getFirmaHabilitada())
+                .certificadoHuella(licencia.getCertificadoHuella())
+                .tieneCertificado(licencia.getCertificadoP12() != null && licencia.getCertificadoP12().length > 0)
                 .build();
     }
 

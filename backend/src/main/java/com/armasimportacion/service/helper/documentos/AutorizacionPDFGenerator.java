@@ -36,8 +36,9 @@ public class AutorizacionPDFGenerator {
             log.info("DEBUG: PDF autorización generado, tamaño: {} bytes", pdfBytes.length);
 
             String nombreArchivo = generarNombreArchivo(cliente);
+            Licencia licencia = utils.obtenerLicenciaActiva(cliente);
             String rutaArchivo = utils.guardarArchivo(
-                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo);
+                cliente.getNumeroIdentificacion(), pdfBytes, nombreArchivo, licencia);
 
             DocumentoGenerado documento = crearDocumentoAutorizacion(cliente, nombreArchivo, rutaArchivo, pdfBytes);
             DocumentoGenerado documentoGuardado = utils.guardarDocumento(documento);

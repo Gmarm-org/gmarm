@@ -122,6 +122,19 @@ public class Licencia {
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
+    // Firma electrónica
+    @Column(name = "certificado_p12", columnDefinition = "BYTEA")
+    private byte[] certificadoP12;
+
+    @Column(name = "certificado_password_cifrado", length = 512)
+    private String certificadoPasswordCifrado;
+
+    @Column(name = "certificado_huella", length = 128)
+    private String certificadoHuella;
+
+    @Column(name = "firma_habilitada")
+    private Boolean firmaHabilitada = false;
+
     // Relaciones
     @OneToMany(mappedBy = "licencia", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<GrupoImportacion> gruposImportacion = new ArrayList<>();

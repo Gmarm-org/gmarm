@@ -12,8 +12,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -192,6 +194,36 @@ public class LicenciaController {
                     log.warn("Licencia no encontrada con ID: {}", id);
                     return ResponseEntity.notFound().build();
                 });
+    }
+
+    // ======================== Firma Electrónica ========================
+
+    @PostMapping(value = "/{id}/certificado", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Subir certificado digital", description = "Sube un archivo .p12 y su contraseña para firma electrónica")
+    public ResponseEntity<?> uploadCertificado(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam("password") String password) {
+        log.info("POST /api/licencia/{}/certificado - Subiendo certificado digital", id);
+        try {
+            byte[] p12Bytes = archivo.getBytes();
+            Licencia updated = licenciaService.guardarCertificado(id, p12Bytes, password);
+            return ResponseEntity.ok(java.util.Map.of(
+                    "message", "Certificado guardado exitosamente",
+                    "huella", updated.getCertificadoHuella(),
+                    "firmaHabilitada", true));
+        } catch (Exception e) {
+            log.error("Error al subir certificado: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}/certificado")
+    @Operation(summary = "Eliminar certificado digital")
+    public ResponseEntity<?> deleteCertificado(@PathVariable Long id) {
+        log.info("DELETE /api/licencia/{}/certificado - Eliminando certificado", id);
+        licenciaService.eliminarCertificado(id);
+        return ResponseEntity.ok(java.util.Map.of("message", "Certificado eliminado"));
     }
 
     @DeleteMapping("/{id}")

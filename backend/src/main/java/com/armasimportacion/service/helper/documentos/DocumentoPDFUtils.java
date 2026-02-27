@@ -9,6 +9,7 @@ import com.armasimportacion.service.FlyingSaucerPdfService;
 import com.armasimportacion.service.FileStorageService;
 import com.armasimportacion.service.LicenciaService;
 import com.armasimportacion.service.NumberToTextService;
+import com.armasimportacion.service.PDFSignatureService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class DocumentoPDFUtils {
     private final FlyingSaucerPdfService flyingSaucerPdfService;
     private final FileStorageService fileStorageService;
     private final LicenciaService licenciaService;
+    private final PDFSignatureService pdfSignatureService;
     @Getter
     private final NumberToTextService numberToTextService;
 
@@ -360,7 +362,21 @@ public class DocumentoPDFUtils {
     }
 
     public String guardarArchivo(String cedula, byte[] pdfBytes, String nombreArchivo) throws java.io.IOException {
-        return fileStorageService.guardarDocumentoGeneradoCliente(cedula, pdfBytes, nombreArchivo);
+        return guardarArchivo(cedula, pdfBytes, nombreArchivo, null);
+    }
+
+    public String guardarArchivo(String cedula, byte[] pdfBytes, String nombreArchivo, Licencia licencia) throws java.io.IOException {
+        byte[] bytesFinales = pdfBytes;
+        if (licencia != null && Boolean.TRUE.equals(licencia.getFirmaHabilitada())
+                && licencia.getCertificadoP12() != null) {
+            try {
+                bytesFinales = pdfSignatureService.firmarPdfAutomatico(pdfBytes, licencia);
+                log.info("Documento firmado automáticamente con certificado de licencia {}", licencia.getNumero());
+            } catch (Exception e) {
+                log.warn("No se pudo firmar automáticamente, guardando sin firma: {}", e.getMessage());
+            }
+        }
+        return fileStorageService.guardarDocumentoGeneradoCliente(cedula, bytesFinales, nombreArchivo);
     }
 
     public DocumentoGenerado guardarDocumento(DocumentoGenerado documento) {

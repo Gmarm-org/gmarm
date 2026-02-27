@@ -65,7 +65,17 @@ public class LicenciaDTO {
     
     @JsonProperty("fecha_creacion")
     private LocalDateTime fechaCreacion;
-    
+
     @JsonProperty("fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
+
+    // Firma electrónica (solo lectura, nunca se expone el .p12 ni password)
+    @JsonProperty("firma_habilitada")
+    private Boolean firmaHabilitada;
+
+    @JsonProperty("certificado_huella")
+    private String certificadoHuella;
+
+    @JsonProperty("tiene_certificado")
+    private Boolean tieneCertificado;
 }

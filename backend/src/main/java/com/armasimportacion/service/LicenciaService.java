@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayInputStream;
+import java.security.KeyStore;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -27,6 +30,7 @@ public class LicenciaService {
 
     private final LicenciaRepository licenciaRepository;
     private final ConfiguracionSistemaService configuracionSistemaService;
+    private final CertificateEncryptionService certificateEncryptionService;
 
     // Métodos CRUD básicos
     public Licencia crearLicencia(Licencia licencia, Long usuarioId) {
@@ -223,5 +227,63 @@ public class LicenciaService {
 
         log.info("Licencia {} ahora está DISPONIBLE", licencia.getNumero());
         return licenciaActualizada;
+    }
+
+    // ======================== Firma Electrónica ========================
+
+    @Transactional
+    public Licencia guardarCertificado(Long id, byte[] p12Bytes, String password) {
+        Licencia licencia = obtenerLicencia(id);
+
+        char[] passwordChars = password.toCharArray();
+        try {
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(new ByteArrayInputStream(p12Bytes), passwordChars);
+            if (!keyStore.aliases().hasMoreElements()) {
+                throw new BadRequestException("El archivo .p12 no contiene certificados");
+            }
+            log.info("Certificado .p12 validado para licencia {}", licencia.getNumero());
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException("Archivo .p12 inválido o contraseña incorrecta: " + e.getMessage());
+        } finally {
+            Arrays.fill(passwordChars, '\0');
+        }
+
+        byte[] encryptedP12 = certificateEncryptionService.encryptBytes(p12Bytes);
+        String encryptedPassword = certificateEncryptionService.encryptText(password);
+        String fingerprint = certificateEncryptionService.calculateFingerprint(p12Bytes);
+
+        licencia.setCertificadoP12(encryptedP12);
+        licencia.setCertificadoPasswordCifrado(encryptedPassword);
+        licencia.setCertificadoHuella(fingerprint);
+        licencia.setFirmaHabilitada(true);
+
+        log.info("Certificado guardado para licencia {} (huella: {})", licencia.getNumero(), fingerprint);
+        return licenciaRepository.save(licencia);
+    }
+
+    @Transactional
+    public Licencia eliminarCertificado(Long id) {
+        Licencia licencia = obtenerLicencia(id);
+        licencia.setCertificadoP12(null);
+        licencia.setCertificadoPasswordCifrado(null);
+        licencia.setCertificadoHuella(null);
+        licencia.setFirmaHabilitada(false);
+        log.info("Certificado eliminado de licencia {}", licencia.getNumero());
+        return licenciaRepository.save(licencia);
+    }
+
+    public record CertificadoDescifrado(byte[] p12Bytes, char[] password) {}
+
+    public CertificadoDescifrado obtenerCertificadoDescifrado(Long id) {
+        Licencia licencia = obtenerLicencia(id);
+        if (licencia.getCertificadoP12() == null) {
+            throw new BadRequestException("La licencia " + licencia.getNumero() + " no tiene certificado configurado");
+        }
+        byte[] p12 = certificateEncryptionService.decryptBytes(licencia.getCertificadoP12());
+        String pwd = certificateEncryptionService.decryptText(licencia.getCertificadoPasswordCifrado());
+        return new CertificadoDescifrado(p12, pwd.toCharArray());
     }
 }

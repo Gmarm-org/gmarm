@@ -107,6 +107,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/tipo-documento/**").permitAll()
                 .requestMatchers("/api/arma-imagen/**").permitAll()
                 .requestMatchers("/api/autorizaciones/**").permitAll()
+                .requestMatchers("/api/documentos/*/firmar").permitAll()
+                .requestMatchers("/api/documentos/*/verificar-firma").permitAll()
                 .requestMatchers("/api/contratos/**").permitAll()
                 .requestMatchers("/api/operaciones/**").permitAll() // TEMPORAL: Para desarrollo
                 // Endpoints de grupos de importación - algunos requieren autenticación
