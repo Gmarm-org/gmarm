@@ -43,6 +43,8 @@ export const licenseApi = {
   create: async (license: any) => licenseFns.createLicense(license),
   update: async (id: number, license: any) => licenseFns.updateLicense(id, license),
   delete: async (id: number) => licenseFns.deleteLicense(id),
+  uploadCertificate: async (id: number, file: File, password: string) => licenseFns.uploadCertificate(id, file, password),
+  deleteCertificate: async (id: number) => licenseFns.deleteCertificate(id),
 };
 
 // Role CRUD

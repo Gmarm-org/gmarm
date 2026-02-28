@@ -1,4 +1,4 @@
-import { request } from './apiClient';
+import { request, getToken } from './apiClient';
 import type { Licencia, LicenciaCreateRequest, LicenciaSearchParams, Page } from './types';
 
 // Endpoints /licencias (legacy)
@@ -83,4 +83,20 @@ export async function updateLicense(id: number, license: any): Promise<any> {
 
 export async function deleteLicense(id: number): Promise<void> {
   return request<void>(`/api/licencia/${id}`, { method: 'DELETE' });
+}
+
+export async function uploadCertificate(id: number, file: File, password: string): Promise<any> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('archivo', file);
+  formData.append('password', password);
+  return request<any>(`/api/licencia/${id}/certificado`, {
+    method: 'POST',
+    body: formData,
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+}
+
+export async function deleteCertificate(id: number): Promise<void> {
+  return request<void>(`/api/licencia/${id}/certificado`, { method: 'DELETE' });
 }

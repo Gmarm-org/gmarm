@@ -24,13 +24,25 @@ const LicenseList: React.FC = () => {
   });
   const modal = useModalState<License>();
 
-  const handleSave = async (data: Partial<License>) => {
+  const handleSave = async (data: Partial<License>, certData?: { file: File | null; password: string }) => {
     try {
+      let savedLicense: any;
       if (modal.mode === 'create') {
-        await licenseApi.create(data);
+        savedLicense = await licenseApi.create(data);
       } else if (modal.mode === 'edit' && modal.selectedItem) {
-        await licenseApi.update(modal.selectedItem.id, data);
+        savedLicense = await licenseApi.update(modal.selectedItem.id, data);
       }
+
+      // Upload certificate if provided (create mode — edit mode uploads inline)
+      if (modal.mode === 'create' && certData?.file && certData.password && savedLicense?.id) {
+        try {
+          await licenseApi.uploadCertificate(savedLicense.id, certData.file, certData.password);
+        } catch (certError: any) {
+          const msg = certError?.responseData?.error || certError?.message || 'Error al subir certificado';
+          alert(`Licencia creada, pero error al subir certificado: ${msg}`);
+        }
+      }
+
       await reload();
       modal.close();
       alert(modal.mode === 'create' ? 'Licencia creada exitosamente' : 'Licencia actualizada exitosamente');
@@ -43,7 +55,7 @@ const LicenseList: React.FC = () => {
   };
 
   const handleDelete = async (license: License) => {
-    if (window.confirm(`¿Desactivar la licencia "${license.numero}"? No se eliminará de la base de datos, solo cambiará su estado a inactivo para mantener auditoría.`)) {
+    if (window.confirm(`Desactivar la licencia "${license.numero}"? No se eliminara de la base de datos, solo cambiara su estado a inactivo para mantener auditoria.`)) {
       try {
         await licenseApi.update(license.id, { ...license, estado: false });
         await reload();
@@ -58,14 +70,14 @@ const LicenseList: React.FC = () => {
   const columns: AdminTableColumn[] = [
     {
       key: 'numero',
-      label: 'Número',
+      label: 'Numero',
       render: (value) => (
         <div className="text-sm font-medium text-gray-900 font-mono">{value}</div>
       )
     },
     {
       key: 'nombre',
-      label: 'Nombre/Razón Social',
+      label: 'Nombre/Razon Social',
       render: (value) => (
         <div className="text-sm text-gray-900">{value || 'N/A'}</div>
       )
@@ -82,6 +94,15 @@ const LicenseList: React.FC = () => {
       label: 'Estado',
       render: (value) => (
         <StatusBadge label={value ? 'Activo' : 'Inactivo'} variant={estadoVariant(value)} />
+      )
+    },
+    {
+      key: 'tiene_certificado',
+      label: 'Firma',
+      render: (value) => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+          {value ? 'Activa' : 'Sin firma'}
+        </span>
       )
     }
   ];
@@ -113,8 +134,8 @@ const LicenseList: React.FC = () => {
   return (
     <>
       <AdminDataTable
-        title="Gestión de Licencias"
-        description="Administra las licencias de importación del sistema"
+        title="Gestion de Licencias"
+        description="Administra las licencias de importacion del sistema"
         columns={columns}
         data={filteredLicenses}
         isLoading={isLoading}
@@ -134,6 +155,7 @@ const LicenseList: React.FC = () => {
         onSave={handleSave}
         license={modal.selectedItem}
         mode={modal.mode}
+        onReload={reload}
       />
     </>
   );

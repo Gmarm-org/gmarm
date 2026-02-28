@@ -218,6 +218,9 @@ export interface License {
   fecha_vencimiento?: string;
   fecha_creacion?: string;
   fecha_actualizacion?: string;
+  firma_habilitada?: boolean;
+  certificado_huella?: string;
+  tiene_certificado?: boolean;
 }
 
 export interface Role {
