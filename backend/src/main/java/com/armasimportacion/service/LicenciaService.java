@@ -245,8 +245,14 @@ public class LicenciaService {
             log.info("Certificado .p12 validado para licencia {}", licencia.getNumero());
         } catch (BadRequestException e) {
             throw e;
+        } catch (java.io.IOException e) {
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (msg.contains("password") || msg.contains("mac check")) {
+                throw new BadRequestException("La contraseña del certificado es incorrecta");
+            }
+            throw new BadRequestException("El archivo .p12 está dañado o no es válido");
         } catch (Exception e) {
-            throw new BadRequestException("Archivo .p12 inválido o contraseña incorrecta: " + e.getMessage());
+            throw new BadRequestException("El archivo no es un certificado .p12 válido");
         } finally {
             Arrays.fill(passwordChars, '\0');
         }
