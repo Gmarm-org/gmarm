@@ -25,6 +25,7 @@ export interface ClienteConVendedor extends VendedorClient {
   licenciaNombre?: string;
   licenciaNumero?: string;
   emailVerificado?: boolean | null;
+  tieneDocumentosGenerados?: boolean;
   // Estado de documentos generados
   tieneContrato?: boolean;
   tieneSolicitud?: boolean;

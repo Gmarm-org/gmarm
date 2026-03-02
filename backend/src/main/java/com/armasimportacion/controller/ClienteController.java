@@ -8,6 +8,7 @@ import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.ClienteGrupoImportacion;
 import com.armasimportacion.model.Usuario;
 import com.armasimportacion.repository.ClienteRepository;
+import com.armasimportacion.repository.DocumentoGeneradoRepository;
 import com.armasimportacion.security.JwtTokenProvider;
 import com.armasimportacion.service.ClienteService;
 import com.armasimportacion.service.ClienteQueryService;
@@ -43,6 +44,7 @@ public class ClienteController {
     private final UsuarioService usuarioService;
     private final JwtTokenProvider jwtTokenProvider;
     private final ClienteRepository clienteRepository;
+    private final DocumentoGeneradoRepository documentoGeneradoRepository;
     private final GrupoImportacionClienteService grupoImportacionClienteService;
 
     // ==================== MÉTODOS AUXILIARES ====================
@@ -213,15 +215,15 @@ public class ClienteController {
         boolean esAdmin = usuario.getRoles().stream()
             .anyMatch(rol -> "ADMIN".equals(rol.getCodigo()));
 
-        // Si es vendedor (no jefe ni admin) y el cliente ya confirmó datos, rechazar edición
+        // Si es vendedor (no jefe ni admin) y ya se generaron documentos, rechazar edición
         if (esVendedor && !esJefeVentas && !esAdmin) {
-            Boolean emailVerificado = cliente.getEmailVerificado();
-            if (Boolean.TRUE.equals(emailVerificado)) {
-                log.warn("Vendedor {} intento editar cliente {} que ya confirmo sus datos",
+            boolean tieneDocumentos = documentoGeneradoRepository.existsByClienteId(id);
+            if (tieneDocumentos) {
+                log.warn("Vendedor {} intento editar cliente {} que ya tiene documentos generados",
                     usuarioId, id);
                 throw new BadRequestException(
-                    "No puede editar este cliente: El cliente ya confirmó sus datos. " +
-                    "Solo el Jefe de Ventas puede editar clientes que confirmaron sus datos.");
+                    "No puede editar este cliente: Ya se generaron los documentos legales. " +
+                    "Solo el Jefe de Ventas puede editar clientes con documentos generados.");
             }
         }
 
@@ -267,15 +269,15 @@ public class ClienteController {
         boolean esAdmin = usuario.getRoles().stream()
             .anyMatch(rol -> "ADMIN".equals(rol.getCodigo()));
 
-        // Si es vendedor (no jefe ni admin) y el cliente ya confirmó datos, rechazar edición
+        // Si es vendedor (no jefe ni admin) y ya se generaron documentos, rechazar edición
         if (esVendedor && !esJefeVentas && !esAdmin) {
-            Boolean emailVerificado = cliente.getEmailVerificado();
-            if (Boolean.TRUE.equals(emailVerificado)) {
-                log.warn("Vendedor {} intento editar cliente {} que ya confirmo sus datos",
+            boolean tieneDocumentos = documentoGeneradoRepository.existsByClienteId(id);
+            if (tieneDocumentos) {
+                log.warn("Vendedor {} intento editar cliente {} que ya tiene documentos generados",
                     usuarioId, id);
                 throw new BadRequestException(
-                    "No puede editar este cliente: El cliente ya confirmó sus datos. " +
-                    "Solo el Jefe de Ventas puede editar clientes que confirmaron sus datos.");
+                    "No puede editar este cliente: Ya se generaron los documentos legales. " +
+                    "Solo el Jefe de Ventas puede editar clientes con documentos generados.");
             }
         }
 

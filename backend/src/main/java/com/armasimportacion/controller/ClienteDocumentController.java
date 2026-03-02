@@ -189,7 +189,7 @@ public class ClienteDocumentController {
 
         if (cliente.getEmailVerificado() == null || !cliente.getEmailVerificado()) {
             return ResponseEntity.badRequest()
-                .body(Map.of("error", "El cliente debe tener su email validado antes de generar el contrato. Por favor, valide los datos personales del cliente primero."));
+                .body(Map.of("error", "El cliente debe tener sus datos validados antes de generar el contrato. Por favor, valide los datos personales del cliente primero."));
         }
 
         boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(id);

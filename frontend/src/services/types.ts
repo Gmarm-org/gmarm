@@ -62,6 +62,7 @@ export interface Client {
   apellidos: string;
   email: string;
   emailVerificado?: boolean | null;
+  tieneDocumentosGenerados?: boolean;
   estadoPago?: string;
   grupoImportacionId?: number;
   grupoImportacionNombre?: string;

@@ -79,6 +79,7 @@ public class ClienteDTO {
     private Boolean tieneContrato;
     private Boolean tieneSolicitud;
     private Boolean tieneCotizacion;
+    private Boolean tieneDocumentosGenerados;
     
     // Información de catálogos (solo IDs y nombres)
     private Long tipoIdentificacionId;

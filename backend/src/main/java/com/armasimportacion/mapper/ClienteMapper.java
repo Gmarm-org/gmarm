@@ -4,13 +4,18 @@ import com.armasimportacion.dto.ClienteDTO;
 import com.armasimportacion.dto.RespuestaClienteDTO;
 import com.armasimportacion.model.Cliente;
 import com.armasimportacion.model.RespuestaCliente;
+import com.armasimportacion.repository.DocumentoGeneradoRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class ClienteMapper {
+
+    private final DocumentoGeneradoRepository documentoGeneradoRepository;
     
     public ClienteDTO toDTO(Cliente cliente) {
         if (cliente == null) {
@@ -78,7 +83,10 @@ public class ClienteMapper {
         
         // Establecer el rango usando el setter
         dto.setRango(cliente.getRango());
-        
+
+        // Calcular si tiene documentos generados (para restricción de edición)
+        dto.setTieneDocumentosGenerados(documentoGeneradoRepository.existsByClienteId(cliente.getId()));
+
         return dto;
     }
     

@@ -44,6 +44,7 @@ public interface DocumentoGeneradoRepository extends JpaRepository<DocumentoGene
     
     // Verificar existencia
     boolean existsByClienteAndTipoDocumento(Cliente cliente, TipoDocumentoGenerado tipoDocumento);
+    boolean existsByClienteId(Long clienteId);
     
     // Documentos por tipo, cliente y nombre exacto (útil para encontrar recibos de una cuota específica)
     @Query("SELECT dg FROM DocumentoGenerado dg WHERE dg.cliente.id = :clienteId AND dg.tipoDocumento = :tipoDocumento AND dg.nombre = :nombre")

@@ -62,7 +62,8 @@ export interface Client {
   licenciaNombre?: string; // Nombre de la licencia del grupo de importación
   licenciaNumero?: string; // Número de la licencia del grupo de importación
   emailVerificado?: boolean | null; // true = Validado, false = Datos incorrectos, null/undefined = Pendiente
-  
+  tieneDocumentosGenerados?: boolean; // true = ya se generaron documentos legales
+
   // Documentos y preguntas
   documentos?: Documento[];
   respuestas?: Respuesta[];
