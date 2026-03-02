@@ -886,8 +886,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
                     }`}
                     title={
-                      isClientConfirmed && !canEditAllInEditMode
-                        ? 'El cliente confirmó sus datos: solo puede actualizar documentos.'
+                      hasDocumentosGenerados && !canEditAllInEditMode
+                        ? 'Ya se generaron documentos: solo puede actualizar documentos.'
                         : 'Editar cliente'
                     }
                   >
