@@ -29,11 +29,8 @@ const ModalEliminar: React.FC<ModalEliminarProps> = ({ state, onMotivoChange, on
             </svg>
           </button>
         </div>
-        <p className="text-gray-600 mb-2">
-          Cliente: <strong>{formatNombreCompleto(state.cliente.nombres, state.cliente.apellidos)}</strong>
-        </p>
-        <p className="text-red-600 text-sm mb-4">
-          Este registro quedara como auditoría y no será visible en ninguna vista. La cédula quedará disponible para crear un nuevo cliente.
+        <p className="text-gray-600 mb-4">
+          ¿Está seguro de eliminar al cliente <strong>{formatNombreCompleto(state.cliente.nombres, state.cliente.apellidos)}</strong>?
         </p>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
