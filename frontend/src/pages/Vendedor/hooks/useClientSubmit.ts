@@ -31,6 +31,7 @@ interface UseClientSubmitProps {
   setClienteArmaIdDelStock: (id: number | null) => void;
   setLoadedDocuments: (docs: Record<string, any>) => void;
   onSave: (client: Client) => void;
+  setFormData?: (data: any) => void;
   onConfirmData?: (formData: any) => void;
   onNavigateToWeaponSelection?: () => void;
   onClienteBloqueado?: (clientId: string, bloqueado: boolean, motivo: string) => void;
@@ -44,6 +45,7 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     documentStatus, clienteBloqueado, motivoBloqueo, edadValida,
     isMilitaryType, isPoliceType,
     clienteArmaIdDelStock, setClienteArmaIdDelStock, setLoadedDocuments,
+    setFormData,
     onSave, onConfirmData, onNavigateToWeaponSelection, onClienteBloqueado
   } = props;
 
@@ -474,6 +476,44 @@ export function useClientSubmit(props: UseClientSubmitProps) {
             setIsSubmitting(false);
             alert(`${validacion.mensaje}\n\nSi desea ver o editar este cliente, búsquelo en la lista de clientes.`);
             return;
+          }
+
+          // Pre-fill from PROCESO_COMPLETADO client
+          if (validacion.clienteFinalizadoExiste && validacion.datosPersonales && setFormData) {
+            const aceptar = window.confirm(
+              'Se encontraron datos de un proceso anterior completado con esta cédula.\n\n' +
+              '¿Desea rellenar automáticamente los datos personales del cliente?'
+            );
+            if (aceptar) {
+              const datos = validacion.datosPersonales;
+              setFormData((prev: any) => ({
+                ...prev,
+                nombres: datos.nombres || prev.nombres,
+                apellidos: datos.apellidos || prev.apellidos,
+                fechaNacimiento: datos.fechaNacimiento || prev.fechaNacimiento,
+                direccion: datos.direccion || prev.direccion,
+                provincia: datos.provincia || prev.provincia,
+                canton: datos.canton || prev.canton,
+                email: datos.email || prev.email,
+                telefonoPrincipal: datos.telefonoPrincipal || prev.telefonoPrincipal,
+                telefonoSecundario: datos.telefonoSecundario || prev.telefonoSecundario,
+                estadoMilitar: datos.estadoMilitar || prev.estadoMilitar,
+                codigoIssfa: datos.codigoIssfa || prev.codigoIssfa,
+                codigoIsspol: datos.codigoIsspol || prev.codigoIsspol,
+                rango: datos.rango || prev.rango,
+                representanteLegal: datos.representanteLegal || prev.representanteLegal,
+                ruc: datos.ruc || prev.ruc,
+                nombreEmpresa: datos.nombreEmpresa || prev.nombreEmpresa,
+                direccionFiscal: datos.direccionFiscal || prev.direccionFiscal,
+                telefonoReferencia: datos.telefonoReferencia || prev.telefonoReferencia,
+                correoEmpresa: datos.correoEmpresa || prev.correoEmpresa,
+                provinciaEmpresa: datos.provinciaEmpresa || prev.provinciaEmpresa,
+                cantonEmpresa: datos.cantonEmpresa || prev.cantonEmpresa,
+              }));
+              setIsSubmitting(false);
+              alert('Datos personales rellenados. Por favor revise la información y continúe con el proceso.');
+              return;
+            }
           }
         } catch (_validacionError) {
           // No se pudo validar la identificacion, continuando

@@ -22,7 +22,8 @@ public enum EstadoCliente {
     CONTRATO_FIRMADO("Contrato firmado recibido"),
     PROCESO_COMPLETADO("Proceso completado"),
     CANCELADO("Cancelado"),
-    DESISTIMIENTO("Desistimiento");
+    DESISTIMIENTO("Desistimiento"),
+    ELIMINADO("Eliminado");
     
     private final String descripcion;
     

@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -174,8 +175,12 @@ public class ClienteQueryService {
 
     // ===== DTO QUERIES =====
 
+    private static final List<EstadoCliente> ESTADOS_FINALES = List.of(
+        EstadoCliente.ELIMINADO, EstadoCliente.PROCESO_COMPLETADO
+    );
+
     public List<ClienteDTO> findAllAsDTO() {
-        List<Cliente> clientes = clienteRepository.findAll();
+        List<Cliente> clientes = clienteRepository.findByEstadoNotIn(ESTADOS_FINALES);
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
         enrichDTOs(dtos, clientes);
         return dtos;
@@ -197,7 +202,7 @@ public class ClienteQueryService {
     }
 
     public List<ClienteDTO> findByUsuarioCreadorAsDTO(Long usuarioId) {
-        List<Cliente> clientes = findByUsuarioCreador(usuarioId);
+        List<Cliente> clientes = clienteRepository.findByUsuarioCreadorIdAndEstadoNotIn(usuarioId, ESTADOS_FINALES);
         List<ClienteDTO> dtos = clienteMapper.toDTOList(clientes);
         enrichDTOs(dtos, clientes);
         return dtos;
@@ -242,11 +247,16 @@ public class ClienteQueryService {
     }
 
     public boolean existsByNumeroIdentificacion(String numeroIdentificacion) {
-        if (clienteRepository.existsByNumeroIdentificacion(numeroIdentificacion)) {
+        // Solo considerar clientes activos (excluir ELIMINADO y PROCESO_COMPLETADO)
+        Optional<Cliente> clienteActivo = clienteRepository.findByNumeroIdentificacionAndEstadoNotIn(
+            numeroIdentificacion, ESTADOS_FINALES);
+        if (clienteActivo.isPresent()) {
             return true;
         }
         List<Cliente> clientesRuc = clienteRepository.findByRuc(numeroIdentificacion);
-        return !clientesRuc.isEmpty();
+        // Filtrar RUCs de clientes eliminados/finalizados
+        return clientesRuc.stream()
+            .anyMatch(c -> !ESTADOS_FINALES.contains(c.getEstado()));
     }
 
     public Page<ClienteDTO> findByFiltrosAsDTO(String nombres, EstadoCliente estado, Long vendedorId,
@@ -418,6 +428,7 @@ public class ClienteQueryService {
             && estado != EstadoCliente.INHABILITADO_COMPRA
             && estado != EstadoCliente.RECHAZADO
             && estado != EstadoCliente.CANCELADO
+            && estado != EstadoCliente.ELIMINADO
             && estado != EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE;
     }
 
@@ -450,6 +461,7 @@ public class ClienteQueryService {
         EstadoCliente estado = cliente.getEstado();
         if (estado == EstadoCliente.BLOQUEADO || estado == EstadoCliente.INHABILITADO_COMPRA
             || estado == EstadoCliente.RECHAZADO || estado == EstadoCliente.CANCELADO
+            || estado == EstadoCliente.ELIMINADO
             || estado == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             return estado;
         }
@@ -493,6 +505,10 @@ public class ClienteQueryService {
 
         if (cliente.getEstado() == EstadoCliente.CANCELADO) {
             return EstadoCliente.CANCELADO;
+        }
+
+        if (cliente.getEstado() == EstadoCliente.ELIMINADO) {
+            return EstadoCliente.ELIMINADO;
         }
 
         if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {

@@ -20,6 +20,7 @@ interface ClientesListViewProps {
   onEditar: (cliente: ClienteConVendedor) => void;
   onReasignarArma: (cliente: ClienteConVendedor) => void;
   onDesistimiento: (cliente: ClienteConVendedor) => void;
+  onEliminar: (cliente: ClienteConVendedor) => void;
 }
 
 const ClientesListView: React.FC<ClientesListViewProps> = ({
@@ -36,6 +37,7 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
   onEditar,
   onReasignarArma,
   onDesistimiento,
+  onEliminar,
 }) => {
   const [filtroDocGen, setFiltroDocGen] = useState<FiltroDocGen>('todos');
 
@@ -395,6 +397,12 @@ const ClientesListView: React.FC<ClientesListViewProps> = ({
                           className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
                         >
                           Desistimiento
+                        </button>
+                        <button
+                          onClick={() => onEliminar(cliente)}
+                          className="px-3 py-1 bg-gray-700 text-white text-xs rounded-lg hover:bg-gray-800 transition-colors"
+                        >
+                          Eliminar
                         </button>
                       </div>
                     </td>

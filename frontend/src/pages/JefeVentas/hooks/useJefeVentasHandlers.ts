@@ -28,6 +28,7 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     cantidad, setCantidad,
     setModalReasignarArma,
     modalDesistimiento, setModalDesistimiento,
+    modalEliminar, setModalEliminar,
     setLoadingEditarArma,
     modalEditarArma, setModalEditarArma,
     modalClienteReasignado, setModalClienteReasignado,
@@ -345,6 +346,43 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     }
   };
 
+  // Eliminar cliente (soft-delete)
+  const handleAbrirModalEliminar = (cliente: ClienteConVendedor) => {
+    setModalEliminar({ isOpen: true, cliente, motivo: '', isLoading: false });
+  };
+
+  const handleConfirmarEliminar = async () => {
+    if (!modalEliminar.cliente) return;
+
+    setModalEliminar(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await apiService.eliminarCliente(
+        Number(modalEliminar.cliente!.id),
+        modalEliminar.motivo || ''
+      );
+
+      alert('Cliente eliminado exitosamente');
+      setModalEliminar({ isOpen: false, cliente: null, motivo: '', isLoading: false });
+      dataActions.cargarClientes();
+    } catch (error: any) {
+      console.error('Error eliminando cliente:', error instanceof Error ? error.message : 'Unknown error');
+
+      let errorMessage = 'Error desconocido al eliminar cliente';
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      alert(`Error al eliminar cliente: ${errorMessage}`);
+    } finally {
+      setModalEliminar(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   // Editar arma
   const handleAbrirModalEditarArma = async (clienteArma: any) => {
     if (!clienteArma) return;
@@ -544,6 +582,8 @@ export function useJefeVentasHandlers(state: State, dataActions: DataActions) {
     handleAbrirModalReasignarArma,
     handleAbrirModalDesistimiento,
     handleConfirmarDesistimiento,
+    handleAbrirModalEliminar,
+    handleConfirmarEliminar,
     handleAbrirModalEditarArma,
     handleConfirmarEditarArma,
     handleAbrirModalGenerarContrato,

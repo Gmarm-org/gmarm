@@ -153,26 +153,57 @@ public class ClienteController {
     }
     
     @GetMapping("/validar-identificacion/{numero}")
-    @Operation(summary = "Validar identificación", description = "Verifica si un número de identificación ya existe")
+    @Operation(summary = "Validar identificación", description = "Verifica si un número de identificación ya existe (excluye clientes ELIMINADO y PROCESO_COMPLETADO)")
     public ResponseEntity<Map<String, Object>> validarIdentificacion(@PathVariable String numero) {
-        boolean existe = clienteQueryService.existsByNumeroIdentificacion(numero);
         Map<String, Object> response = new HashMap<>();
         response.put("numeroIdentificacion", numero);
-        response.put("existe", existe);
 
-        if (existe) {
-            // Obtener información del cliente existente
-            Optional<Cliente> clienteOpt = clienteRepository.findByNumeroIdentificacion(numero);
-            if (clienteOpt.isPresent()) {
-                Cliente cliente = clienteOpt.get();
-                response.put("mensaje", "El número de cédula/RUC " + numero + " ya está registrado a nombre de " + cliente.getNombres() + " " + cliente.getApellidos() + ". No es posible crear un nuevo cliente con este número.");
-                response.put("clienteId", cliente.getId());
-                response.put("clienteNombre", cliente.getNombres() + " " + cliente.getApellidos());
-            } else {
-                response.put("mensaje", "El número de cédula/RUC " + numero + " ya está registrado en el sistema.");
-            }
+        // Buscar cliente activo con esa cédula (excluye ELIMINADO y PROCESO_COMPLETADO)
+        List<EstadoCliente> estadosExcluidos = List.of(EstadoCliente.ELIMINADO, EstadoCliente.PROCESO_COMPLETADO);
+        Optional<Cliente> clienteActivoOpt = clienteRepository.findByNumeroIdentificacionAndEstadoNotIn(numero, estadosExcluidos);
+
+        if (clienteActivoOpt.isPresent()) {
+            Cliente cliente = clienteActivoOpt.get();
+            response.put("existe", true);
+            response.put("mensaje", "El número de cédula/RUC " + numero + " ya está registrado a nombre de " + cliente.getNombres() + " " + cliente.getApellidos() + ". No es posible crear un nuevo cliente con este número.");
+            response.put("clienteId", cliente.getId());
+            response.put("clienteNombre", cliente.getNombres() + " " + cliente.getApellidos());
         } else {
+            response.put("existe", false);
             response.put("mensaje", "El número de identificación está disponible");
+
+            // Si existe un cliente PROCESO_COMPLETADO con esa cédula, devolver datos para prellenar
+            Optional<Cliente> finalizadoOpt = clienteRepository.findByNumeroIdentificacionAndEstado(numero, EstadoCliente.PROCESO_COMPLETADO);
+            if (finalizadoOpt.isPresent()) {
+                Cliente finalizado = finalizadoOpt.get();
+                response.put("clienteFinalizadoExiste", true);
+                Map<String, Object> datosPersonales = new HashMap<>();
+                datosPersonales.put("nombres", finalizado.getNombres());
+                datosPersonales.put("apellidos", finalizado.getApellidos());
+                datosPersonales.put("fechaNacimiento", finalizado.getFechaNacimiento());
+                datosPersonales.put("direccion", finalizado.getDireccion());
+                datosPersonales.put("provincia", finalizado.getProvincia());
+                datosPersonales.put("canton", finalizado.getCanton());
+                datosPersonales.put("email", finalizado.getEmail());
+                datosPersonales.put("telefonoPrincipal", finalizado.getTelefonoPrincipal());
+                datosPersonales.put("telefonoSecundario", finalizado.getTelefonoSecundario());
+                datosPersonales.put("tipoClienteId", finalizado.getTipoCliente() != null ? finalizado.getTipoCliente().getId() : null);
+                datosPersonales.put("tipoClienteNombre", finalizado.getTipoCliente() != null ? finalizado.getTipoCliente().getNombre() : null);
+                datosPersonales.put("estadoMilitar", finalizado.getEstadoMilitar());
+                datosPersonales.put("codigoIssfa", finalizado.getCodigoIssfa());
+                datosPersonales.put("codigoIsspol", finalizado.getCodigoIsspol());
+                datosPersonales.put("rango", finalizado.getRango());
+                datosPersonales.put("tipoIdentificacionId", finalizado.getTipoIdentificacion() != null ? finalizado.getTipoIdentificacion().getId() : null);
+                datosPersonales.put("representanteLegal", finalizado.getRepresentanteLegal());
+                datosPersonales.put("ruc", finalizado.getRuc());
+                datosPersonales.put("nombreEmpresa", finalizado.getNombreEmpresa());
+                datosPersonales.put("direccionFiscal", finalizado.getDireccionFiscal());
+                datosPersonales.put("telefonoReferencia", finalizado.getTelefonoReferencia());
+                datosPersonales.put("correoEmpresa", finalizado.getCorreoEmpresa());
+                datosPersonales.put("provinciaEmpresa", finalizado.getProvinciaEmpresa());
+                datosPersonales.put("cantonEmpresa", finalizado.getCantonEmpresa());
+                response.put("datosPersonales", datosPersonales);
+            }
         }
 
         return ResponseEntity.ok(response);
@@ -364,11 +395,34 @@ public class ClienteController {
         ));
     }
     
-    
-    
-    
-    
-    
+    @PatchMapping("/{id}/eliminar")
+    @Operation(summary = "Eliminar cliente (soft-delete)", description = "Cambia el estado del cliente a ELIMINADO. El registro queda como auditoría y la cédula queda libre para reutilizar.")
+    public ResponseEntity<?> eliminarCliente(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+        log.info("ClienteController: Eliminando (soft-delete) cliente ID {}", id);
+
+        Cliente cliente = clienteService.findById(id);
+
+        cliente.setEstado(EstadoCliente.ELIMINADO);
+
+        Object motivoObj = request.get("motivo");
+        String motivo = motivoObj != null ? motivoObj.toString() : null;
+        if (motivo != null && !motivo.isBlank()) {
+            cliente.setMotivoRechazo(motivo.trim());
+        }
+        cliente.setFechaRechazo(LocalDateTime.now());
+
+        clienteRepository.save(cliente);
+        log.info("Cliente ID {} eliminado (estado ELIMINADO) con motivo: {}",
+            id, motivo != null ? motivo : "sin motivo");
+
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Cliente eliminado exitosamente"
+        ));
+    }
+
     // Excepciones manejadas por GlobalExceptionHandler
 
     /**

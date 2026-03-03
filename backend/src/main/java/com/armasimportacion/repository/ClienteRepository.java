@@ -92,6 +92,20 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
     Optional<Cliente> findByNumeroIdentificacion(String numeroIdentificacion);
 
+    // Excluir estados finales (ELIMINADO, PROCESO_COMPLETADO) de vistas normales
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
+    @Query("SELECT c FROM Cliente c WHERE c.estado NOT IN :estadosExcluidos")
+    List<Cliente> findByEstadoNotIn(@Param("estadosExcluidos") List<EstadoCliente> estadosExcluidos);
+
+    // Buscar cliente activo por cédula (excluye ELIMINADO y PROCESO_COMPLETADO)
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
+    @Query("SELECT c FROM Cliente c WHERE c.numeroIdentificacion = :numero AND c.estado NOT IN :estadosExcluidos")
+    Optional<Cliente> findByNumeroIdentificacionAndEstadoNotIn(@Param("numero") String numero, @Param("estadosExcluidos") List<EstadoCliente> estadosExcluidos);
+
+    // Buscar cliente finalizado por cédula (para prellenar datos)
+    @EntityGraph(attributePaths = {"tipoCliente", "tipoIdentificacion"})
+    Optional<Cliente> findByNumeroIdentificacionAndEstado(String numeroIdentificacion, EstadoCliente estado);
+
     // Estadísticas
     @Query("SELECT COUNT(c) FROM Cliente c WHERE c.estado = :estado")
     Long countByEstado(@Param("estado") EstadoCliente estado);
@@ -171,6 +185,10 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
     List<Cliente> findWithRelationsByUsuarioCreadorId(Long usuarioCreadorId);
+
+    @EntityGraph(attributePaths = {"usuarioCreador", "tipoCliente", "tipoIdentificacion"})
+    @Query("SELECT c FROM Cliente c WHERE c.usuarioCreador.id = :usuarioId AND c.estado NOT IN :estadosExcluidos")
+    List<Cliente> findByUsuarioCreadorIdAndEstadoNotIn(@Param("usuarioId") Long usuarioId, @Param("estadosExcluidos") List<EstadoCliente> estadosExcluidos);
 
     @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.tipoCliente LEFT JOIN FETCH c.tipoIdentificacion " +
            "WHERE c.id NOT IN (SELECT cgi.cliente.id FROM ClienteGrupoImportacion cgi WHERE cgi.estado NOT IN ('COMPLETADO','CANCELADO')) " +

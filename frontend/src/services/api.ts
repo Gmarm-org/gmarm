@@ -76,6 +76,7 @@ export const apiService = {
   getTodosClientes: clients.getTodosClientes,
   getClientesDisponibles: clients.getClientesDisponibles,
   cambiarEstadoDesistimiento: clients.cambiarEstadoDesistimiento,
+  eliminarCliente: clients.eliminarCliente,
   getFormularioCliente: clients.getFormularioCliente,
   getFormularioClienteConEstadoMilitar: clients.getFormularioClienteConEstadoMilitar,
   getTiposClienteConfig: clients.getTiposClienteConfig,

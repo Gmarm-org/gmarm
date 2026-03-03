@@ -101,8 +101,13 @@ export async function buscarClientePorIdentificacion(numero: string): Promise<Cl
   return request<Client>(`/api/clientes/por-identificacion/${numero}`);
 }
 
-export async function validarIdentificacion(numero: string): Promise<{ existe: boolean; mensaje: string }> {
-  return request<{ existe: boolean; mensaje: string }>(`/api/clientes/validar-identificacion/${numero}`);
+export async function validarIdentificacion(numero: string): Promise<{
+  existe: boolean;
+  mensaje: string;
+  clienteFinalizadoExiste?: boolean;
+  datosPersonales?: Record<string, any>;
+}> {
+  return request(`/api/clientes/validar-identificacion/${numero}`);
 }
 
 export async function cambiarEstadoCliente(id: number, estado: string): Promise<void> {
@@ -124,6 +129,13 @@ export async function cambiarEstadoDesistimiento(clienteId: number, observacion:
   return request<{ success: boolean; message: string }>(`/api/clientes/${clienteId}/estado-desistimiento`, {
     method: 'PATCH',
     body: JSON.stringify({ observacion })
+  });
+}
+
+export async function eliminarCliente(clienteId: number, motivo: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/clientes/${clienteId}/eliminar`, {
+    method: 'PATCH',
+    body: JSON.stringify({ motivo })
   });
 }
 

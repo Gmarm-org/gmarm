@@ -58,6 +58,14 @@ export function useJefeVentasState() {
     isLoading: false
   });
 
+  // Eliminar cliente
+  const [modalEliminar, setModalEliminar] = useState<{ isOpen: boolean; cliente: ClienteConVendedor | null; motivo: string; isLoading: boolean }>({
+    isOpen: false,
+    cliente: null,
+    motivo: '',
+    isLoading: false
+  });
+
   // Editar arma
   const [loadingEditarArma, setLoadingEditarArma] = useState(false);
   const [modalEditarArma, setModalEditarArma] = useState<{ isOpen: boolean; clienteArma: any | null; armasDisponibles: any[]; armaSeleccionada: any | null; nuevoPrecio: string; isLoading: boolean }>({
@@ -113,6 +121,7 @@ export function useJefeVentasState() {
     cantidad, setCantidad,
     modalReasignarArma, setModalReasignarArma,
     modalDesistimiento, setModalDesistimiento,
+    modalEliminar, setModalEliminar,
     loadingEditarArma, setLoadingEditarArma,
     modalEditarArma, setModalEditarArma,
     armasReasignadas, setArmasReasignadas,

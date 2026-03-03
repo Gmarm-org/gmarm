@@ -16,6 +16,7 @@ import ModalGenerarContrato from './components/ModalGenerarContrato';
 import ModalReasignarArma from './components/ModalReasignarArma';
 import ModalEditarArma from './components/ModalEditarArma';
 import ModalDesistimiento from './components/ModalDesistimiento';
+import ModalEliminar from './components/ModalEliminar';
 import ModalClienteReasignado from './components/ModalClienteReasignado';
 import ModalAutorizacion from './components/ModalAutorizacion';
 import type { ClienteConVendedor } from './types';
@@ -219,6 +220,7 @@ const JefeVentas: React.FC = () => {
             onEditar={handlers.handleEditarCliente}
             onReasignarArma={handlers.handleAbrirModalReasignarArma}
             onDesistimiento={handlers.handleAbrirModalDesistimiento}
+            onEliminar={handlers.handleAbrirModalEliminar}
           />
         )}
 
@@ -330,6 +332,14 @@ const JefeVentas: React.FC = () => {
           onObservacionChange={(obs) => state.setModalDesistimiento(prev => ({ ...prev, observacion: obs }))}
           onConfirm={handlers.handleConfirmarDesistimiento}
           onClose={() => state.setModalDesistimiento({ isOpen: false, cliente: null, observacion: '', isLoading: false })}
+        />
+
+        {/* Modal de Eliminar Cliente */}
+        <ModalEliminar
+          state={state.modalEliminar}
+          onMotivoChange={(motivo) => state.setModalEliminar(prev => ({ ...prev, motivo }))}
+          onConfirm={handlers.handleConfirmarEliminar}
+          onClose={() => state.setModalEliminar({ isOpen: false, cliente: null, motivo: '', isLoading: false })}
         />
 
         {/* Modal de Cliente Reasignado */}

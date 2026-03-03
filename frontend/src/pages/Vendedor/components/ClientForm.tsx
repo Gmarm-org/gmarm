@@ -704,6 +704,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     clienteArmaIdDelStock,
     setClienteArmaIdDelStock,
     setLoadedDocuments,
+    setFormData,
     onSave,
     onConfirmData,
     onNavigateToWeaponSelection,

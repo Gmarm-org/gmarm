@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS tipo_cliente_importacion (
 -- Tabla de clientes
 CREATE TABLE IF NOT EXISTS cliente (
     id BIGSERIAL PRIMARY KEY,
-    numero_identificacion VARCHAR(50) NOT NULL UNIQUE,
+    numero_identificacion VARCHAR(50) NOT NULL,
     tipo_identificacion_id BIGINT NOT NULL REFERENCES tipo_identificacion(id),
     nombres VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
@@ -187,8 +187,13 @@ CREATE TABLE IF NOT EXISTS cliente (
     email_verificado BOOLEAN DEFAULT NULL
 );
 
-COMMENT ON COLUMN cliente.email_verificado IS 
+COMMENT ON COLUMN cliente.email_verificado IS
     'Indica si el correo electrónico del cliente ha sido verificado mediante el enlace enviado por email';
+
+-- Índice parcial: solo un cliente activo por cédula (excluye ELIMINADO y PROCESO_COMPLETADO)
+CREATE UNIQUE INDEX uq_cliente_numero_identificacion_activo
+ON cliente (numero_identificacion)
+WHERE estado NOT IN ('ELIMINADO', 'PROCESO_COMPLETADO');
 
 -- Tabla de preguntas del sistema
 CREATE TABLE IF NOT EXISTS preguntas (
