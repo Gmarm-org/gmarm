@@ -26,10 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Servicio principal para la creación de clientes completos
- * Coordina todos los servicios especializados para crear un cliente con todos sus datos relacionados
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -47,66 +43,43 @@ public class ClienteCompletoService {
     private final ClienteArmaRepository clienteArmaRepository;
     private final GrupoImportacionClienteService grupoImportacionClienteService;
 
-    /**
-     * Actualiza un cliente de forma parcial - solo los campos modificados
-     * Este método es más eficiente que actualizarClienteCompleto porque solo procesa lo que cambió
-     * 
-     * @param clienteId ID del cliente a actualizar
-     * @param requestData Solo los campos que cambiaron (cliente, respuestas, etc.)
-     * @return Resultado de la operación
-     */
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> actualizarClienteParcial(Long clienteId, Map<String, Object> requestData) {
         log.info("ClienteCompletoService.actualizarClienteParcial EJECUTÁNDOSE (OPTIMIZADO)");
         log.info("Actualizando cliente parcial ID: {}, campos recibidos: {}", clienteId, requestData.keySet());
         
-        // Verificar que el cliente existe
         Cliente cliente = clienteService.findById(clienteId);
         log.info("Cliente encontrado: ID={}, nombres={}", cliente.getId(), cliente.getNombres());
 
         ClienteDTO clienteDTOActualizado = null;
 
-        // 1. Actualizar cliente básico SOLO si viene en requestData
         if (requestData.containsKey("cliente") && requestData.get("cliente") != null) {
             @SuppressWarnings("unchecked")
             Map<String, Object> clientData = (Map<String, Object>) requestData.get("cliente");
             if (clientData != null && !clientData.isEmpty()) {
-                log.info("Actualizando datos básicos del cliente (solo campos enviados)");
                 clienteDTOActualizado = actualizarClienteBasicoParcial(clientData, cliente);
             } else {
-                log.info("No hay datos de cliente para actualizar, usando cliente actual");
                 clienteDTOActualizado = clienteQueryService.findByIdAsDTO(cliente.getId());
             }
         } else {
-            log.info("No se envió objeto 'cliente' en requestData, manteniendo datos actuales");
             clienteDTOActualizado = clienteQueryService.findByIdAsDTO(cliente.getId());
         }
         
-        // 2. Actualizar respuestas SOLO si vienen en requestData
         if (requestData.containsKey("respuestas") && requestData.get("respuestas") != null) {
-            log.info("Actualizando respuestas del formulario (solo si cambiaron)");
             actualizarRespuestasDelCliente(requestData, cliente);
-        } else {
-            log.info("No se enviaron respuestas, manteniendo respuestas actuales");
         }
-        
-        // 3. Actualizar arma del cliente SOLO si viene en requestData (PATCH - actualizar relación existente)
+
         Map<String, Object> armaData = extraerDatosArma(requestData);
         if (armaData != null && !armaData.isEmpty()) {
-            log.info("Actualizando precio de arma del cliente (PATCH)");
             actualizarArmaDelCliente(armaData, cliente);
-        } else {
-            log.info("No se envió arma, manteniendo arma actual");
         }
         
-        // 4. Si se actualizaron datos PERSONALES del cliente, reenviar correo de verificación
-        // Solo reenviar si se modificaron campos de datos personales (no documentos, preguntas, armas, etc.)
+        // Reenviar correo de verificación solo si se modificaron datos personales
         boolean datosPersonalesActualizados = false;
         if (requestData.containsKey("cliente") && requestData.get("cliente") != null) {
             @SuppressWarnings("unchecked")
             Map<String, Object> clientData = (Map<String, Object>) requestData.get("cliente");
             
-            // Lista de campos que se consideran "datos personales" y requieren reenvío de correo
             java.util.Set<String> camposDatosPersonales = java.util.Set.of(
                 "nombres",
                 "apellidos",
@@ -123,7 +96,6 @@ public class ClienteCompletoService {
                 "tipoClienteCodigo"
             );
             
-            // Verificar si alguno de los campos de datos personales fue actualizado
             for (String campo : camposDatosPersonales) {
                 if (clientData.containsKey(campo)) {
                     datosPersonalesActualizados = true;
@@ -135,14 +107,10 @@ public class ClienteCompletoService {
         
         if (datosPersonalesActualizados) {
             log.info("Datos personales del cliente actualizados, reenviando correo de verificación");
-            // Recargar el cliente actualizado para enviar el correo con los datos más recientes
             Cliente clienteActualizado = clienteService.findById(clienteId);
-            // Invalidar verificación anterior y reenviar correo
-            clienteActualizado.setEmailVerificado(null); // Resetear a pendiente
+            clienteActualizado.setEmailVerificado(null);
             clienteRepository.save(clienteActualizado);
             enviarCorreoVerificacion(clienteActualizado);
-        } else {
-            log.info("No se actualizaron datos personales, no se reenviará correo de verificación");
         }
         
         log.info("Cliente actualizado parcialmente: ID={}", clienteId);
@@ -157,14 +125,9 @@ public class ClienteCompletoService {
         return response;
     }
     
-    /**
-     * Actualiza solo los campos del cliente que vienen en clientData
-     * No reescribe campos que no están presentes
-     */
     private ClienteDTO actualizarClienteBasicoParcial(Map<String, Object> clientData, Cliente cliente) {
         log.info("Actualizando cliente parcial - campos recibidos: {}", clientData.keySet());
         
-        // Actualizar solo los campos que están presentes en clientData
         if (clientData.containsKey("nombres")) {
             cliente.setNombres((String) clientData.get("nombres"));
         }
@@ -246,7 +209,6 @@ public class ClienteCompletoService {
             }
         }
         
-        // Parsear fecha de nacimiento si viene
         if (clientData.containsKey("fechaNacimiento")) {
             Object fechaObj = clientData.get("fechaNacimiento");
             if (fechaObj != null) {
@@ -263,7 +225,6 @@ public class ClienteCompletoService {
             }
         }
         
-        // Actualizar relaciones solo si vienen los códigos
         if (clientData.containsKey("tipoIdentificacionCodigo")) {
             String codigo = (String) clientData.get("tipoIdentificacionCodigo");
             if (codigo != null && !codigo.isEmpty()) {
@@ -286,7 +247,6 @@ public class ClienteCompletoService {
             }
         }
         
-        // Guardar cambios
         Cliente clienteActualizado = clienteRepository.save(cliente);
         ClienteDTO clienteDTO = clienteQueryService.findByIdAsDTO(clienteActualizado.getId());
         
@@ -296,32 +256,18 @@ public class ClienteCompletoService {
         return clienteDTO;
     }
 
-    /**
-     * Actualiza un cliente completo con todos sus datos relacionados
-     * Este método se ejecuta en una transacción - Si cualquier paso falla, se revierte todo
-     * 
-     * @param clienteId ID del cliente a actualizar
-     * @param requestData Datos actualizados del cliente desde el frontend
-     * @return Resultado de la operación
-     */
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> actualizarClienteCompleto(Long clienteId, Map<String, Object> requestData) {
         log.info("ClienteCompletoService.actualizarClienteCompleto EJECUTÁNDOSE");
         log.info("Actualizando cliente completo ID: {}", clienteId);
         logDatosRecibidos(requestData);
         
-        // Verificar que el cliente existe
         Cliente cliente = clienteService.findById(clienteId);
         log.info("Cliente encontrado: ID={}, nombres={}", cliente.getId(), cliente.getNombres());
 
-        // 1. Actualizar cliente básico
         ClienteDTO clienteDTOActualizado = actualizarClienteBasico(requestData, cliente);
-
-        // 2. Actualizar respuestas del formulario (eliminar las existentes y crear las nuevas)
         actualizarRespuestasDelCliente(requestData, cliente);
 
-        // 3. Actualizar arma del cliente (solo si viene en requestData)
-        // NOTA: La actualización de arma generalmente no se hace aquí, pero si viene en requestData, se procesa
         Map<String, Object> armaData = extraerDatosArma(requestData);
         if (armaData != null) {
             log.warn("Actualización de arma en actualizarClienteCompleto no está implementada. " +
@@ -329,60 +275,38 @@ public class ClienteCompletoService {
         }
         
         log.info("Cliente actualizado exitosamente: ID={}", cliente.getId());
-        
-        // Retornar el ClienteDTO completo para que el frontend pueda usarlo
-        // Convertir ClienteDTO a Map para mantener compatibilidad con el formato actual
+
         Map<String, Object> response = new java.util.HashMap<>();
         response.put("success", true);
         response.put("message", "Cliente actualizado exitosamente");
         response.put("clienteId", clienteId);
-        response.put("cliente", clienteDTOActualizado); // Incluir el cliente completo
+        response.put("cliente", clienteDTOActualizado);
         response.put("timestamp", LocalDateTime.now());
         
         return response;
     }
 
-    /**
-     * Crea un cliente completo con todos sus datos relacionados
-     * Este método se ejecuta en una transacción - Si cualquier paso falla, se revierte todo
-     * 
-     * @param requestData Datos completos del cliente desde el frontend
-     * @param usuarioId ID del usuario que está creando el cliente (vendedor)
-     * @return Resultado de la operación con IDs de las entidades creadas
-     */
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> crearClienteCompleto(Map<String, Object> requestData, Long usuarioId) {
         log.info("ClienteCompletoService.crearClienteCompleto EJECUTÁNDOSE");
         log.info("Iniciando creación de cliente completo con usuarioId={}", usuarioId);
         logDatosRecibidos(requestData);
         
-        // 1. Crear cliente básico
         Cliente cliente = crearClienteBasico(requestData, usuarioId);
-        
-        // 2. Guardar respuestas del formulario
         guardarRespuestasDelCliente(requestData, cliente);
-        
-        // 3. Asignar arma al cliente (si hay)
         asignarArmaAlCliente(requestData, cliente);
-        
-        // 4. Crear pago del cliente (opcional - solo si viene en requestData)
+
         Pago pago = null;
         Map<String, Object> pagoData = extraerDatosPago(requestData);
         if (pagoData != null && !pagoData.isEmpty()) {
             pago = crearPagoDelCliente(requestData, cliente.getId());
-            
-            // 5. Generar contrato (solo si hay pago)
-            // NOTA: El contrato es secundario, si falla no debe revertir la transacción completa
-            // Contrato se genera en paso posterior del flujo
         } else {
             log.info("No hay datos de pago, se creará más adelante en el flujo");
         }
         
-        // 6. Asignar automáticamente a grupo de importación disponible (provisional)
-        // Solo si el cliente no es fantasma (PENDIENTE_ASIGNACION_CLIENTE)
+        // No asignar clientes fantasma (PENDIENTE_ASIGNACION_CLIENTE) a grupos
         if (cliente.getEstado() != EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
-            // VALIDACIÓN OBLIGATORIA: Debe existir un grupo de importación disponible
-            ClienteGrupoImportacion asignacion = 
+            ClienteGrupoImportacion asignacion =
                 grupoImportacionClienteService.asignarClienteAGrupoDisponible(cliente, usuarioId);
             
             if (asignacion == null) {
@@ -395,16 +319,12 @@ public class ClienteCompletoService {
             log.info("Cliente ID {} asignado automáticamente a grupo disponible (estado: PENDIENTE)", cliente.getId());
         }
         
-        // 7. Enviar correo de verificación (si el cliente tiene email)
-        // IMPORTANTE: Se envía DESPUÉS de guardar las respuestas para poder verificar si respondió NO a Sicoar
+        // Se envía DESPUÉS de guardar las respuestas para poder verificar si respondió NO a Sicoar
         enviarCorreoVerificacion(cliente);
         
         return crearRespuestaExitoso(cliente, pago);
     }
 
-    /**
-     * Crea el cliente básico usando ClienteService
-     */
     private Cliente crearClienteBasico(Map<String, Object> requestData, Long usuarioId) {
         log.info("Paso 1: Creando cliente basico con usuarioId={}", usuarioId);
 
@@ -419,9 +339,6 @@ public class ClienteCompletoService {
         return cliente;
     }
 
-    /**
-     * Guarda las respuestas del formulario del cliente
-     */
     private void guardarRespuestasDelCliente(Map<String, Object> requestData, Cliente cliente) {
         log.info("Paso 2: Guardando respuestas del formulario");
         
@@ -434,17 +351,11 @@ public class ClienteCompletoService {
         }
     }
 
-    /**
-     * Actualiza el cliente básico usando ClienteService
-     * @return ClienteDTO actualizado
-     */
     private ClienteDTO actualizarClienteBasico(Map<String, Object> requestData, Cliente cliente) {
         log.info("Actualizando cliente básico ID: {}", cliente.getId());
         
         Map<String, Object> clientData = extraerDatosCliente(requestData);
         if (clientData == null || clientData.isEmpty()) {
-            log.warn("No hay datos de cliente para actualizar, retornando cliente actual");
-            // Si no hay datos para actualizar, retornar el DTO actual del cliente
             return clienteQueryService.findByIdAsDTO(cliente.getId());
         }
         
@@ -457,17 +368,11 @@ public class ClienteCompletoService {
         return clienteDTO;
     }
 
-    /**
-     * Actualiza las respuestas del formulario del cliente
-     * Elimina las respuestas existentes y crea las nuevas
-     */
     private void actualizarRespuestasDelCliente(Map<String, Object> requestData, Cliente cliente) {
         log.info("Actualizando respuestas del formulario para cliente ID: {}", cliente.getId());
         
         List<Map<String, Object>> respuestasData = extraerDatosRespuestas(requestData);
         if (respuestasData != null && !respuestasData.isEmpty()) {
-            // Eliminar respuestas existentes y guardar las nuevas
-            // El helper ya maneja esto internamente
             int respuestasGuardadas = respuestasHelper.guardarRespuestasCliente(respuestasData, cliente);
             log.info("Respuestas actualizadas: {} respuestas", respuestasGuardadas);
         } else {
@@ -475,9 +380,6 @@ public class ClienteCompletoService {
         }
     }
 
-    /**
-     * Asigna una arma al cliente (usado en POST - creación)
-     */
     private void asignarArmaAlCliente(Map<String, Object> requestData, Cliente cliente) {
         log.info("Paso 3: Asignando arma al cliente (POST - creación)");
         
@@ -508,18 +410,11 @@ public class ClienteCompletoService {
         log.info("No hay datos de arma para asignar");
     }
     
-    /**
-     * Actualiza el precio de la arma del cliente (usado en PATCH - actualización)
-     */
     private void actualizarArmaDelCliente(Map<String, Object> armaData, Cliente cliente) {
-        log.info("Actualizando precio de arma del cliente (PATCH - actualización)");
-        
         if (armaData == null || armaData.isEmpty()) {
-            log.info("No hay datos de arma para actualizar");
             return;
         }
 
-        // Obtener armaId del JSON
         Object armaIdObj = armaData.get("armaId");
         if (armaIdObj == null) {
             log.warn("No se encontró armaId en armaData");
@@ -534,7 +429,6 @@ public class ClienteCompletoService {
             return;
         }
         
-        // Obtener precioUnitario del JSON
         Object precioUnitarioObj = armaData.get("precioUnitario");
         if (precioUnitarioObj == null) {
             log.warn("No se encontró precioUnitario en armaData");
@@ -549,41 +443,33 @@ public class ClienteCompletoService {
             return;
         }
         
-        // Buscar relación cliente_arma existente (reservada o asignada)
-        List<ClienteArma> reservasActivas = 
+        List<ClienteArma> reservasActivas =
             clienteArmaRepository.findReservasActivasByClienteId(cliente.getId());
         
-        // Buscar la reserva que corresponde al armaId
         ClienteArma reservaExistente = reservasActivas.stream()
             .filter(ca -> ca.getArma().getId().equals(armaId))
             .findFirst()
             .orElse(null);
         
         if (reservaExistente != null) {
-            // Actualizar precio de la reserva existente
             reservaExistente.setPrecioUnitario(precioUnitario);
             reservaExistente.setFechaActualizacion(java.time.LocalDateTime.now());
             clienteArmaRepository.save(reservaExistente);
             log.info("Precio de arma actualizado: cliente={}, arma={}, precio={}",
                 cliente.getId(), armaId, precioUnitario);
         } else {
-            log.warn("No se encontró reserva activa para cliente {} y arma {}", cliente.getId(), armaId);
-            // Si no existe, crear nueva relación (fallback - aunque no debería pasar en PATCH)
-            log.info("Creando nueva relación cliente_arma como fallback");
+            log.warn("No se encontró reserva activa para cliente {} y arma {}, creando como fallback", cliente.getId(), armaId);
             java.util.Map<String, Object> requestData = new java.util.HashMap<>();
             requestData.put("arma", armaData);
             asignarArmaAlCliente(requestData, cliente);
         }
     }
 
-    /**
-     * Crea el pago del cliente
-     */
     private Pago crearPagoDelCliente(Map<String, Object> requestData, Long clienteId) {
         log.info("Paso 4: Creando pago del cliente");
         
         Map<String, Object> pagoData = extraerDatosPago(requestData);
-        // Agregar cuotas al pagoData si existen (vienen en requestData.cuotas, no en pago.cuotas)
+        // Cuotas vienen en requestData.cuotas, no en pago.cuotas
         if (requestData.containsKey("cuotas")) {
             pagoData.put("cuotas", requestData.get("cuotas"));
         }
@@ -595,8 +481,6 @@ public class ClienteCompletoService {
         return pago;
     }
 
-
-    // Métodos auxiliares para extraer datos
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> extraerDatosCliente(Map<String, Object> requestData) {
@@ -649,12 +533,10 @@ public class ClienteCompletoService {
         dto.setTipoIdentificacionCodigo((String) clientData.get("tipoIdentificacionCodigo"));
         dto.setTipoClienteCodigo((String) clientData.get("tipoClienteCodigo"));
         
-        // Campos de dirección
         dto.setDireccion((String) clientData.get("direccion"));
         dto.setProvincia((String) clientData.get("provincia"));
         dto.setCanton((String) clientData.get("canton"));
         
-        // Campos de empresa
         dto.setRepresentanteLegal((String) clientData.get("representanteLegal"));
         dto.setRuc((String) clientData.get("ruc"));
         dto.setNombreEmpresa((String) clientData.get("nombreEmpresa"));
@@ -664,18 +546,15 @@ public class ClienteCompletoService {
         dto.setProvinciaEmpresa((String) clientData.get("provinciaEmpresa"));
         dto.setCantonEmpresa((String) clientData.get("cantonEmpresa"));
         
-        // Campo militar/policial
         dto.setEstadoMilitar((String) clientData.get("estadoMilitar"));
         dto.setCodigoIssfa((String) clientData.get("codigoIssfa"));
         dto.setCodigoIsspol((String) clientData.get("codigoIsspol"));
         dto.setRango((String) clientData.get("rango"));
         
-        // Campo estado (si viene, se establecerá en el cliente)
         if (clientData.containsKey("estado")) {
             dto.setEstado((String) clientData.get("estado"));
         }
         
-        // Parsear fecha de nacimiento
         parsearFechaNacimiento(clientData, dto);
         
         return dto;
@@ -699,9 +578,6 @@ public class ClienteCompletoService {
             );
     }
 
-    /**
-     * Parsea fecha usando múltiples formatos compatibles
-     */
     private java.time.LocalDate parsearFechaCompleta(String fechaStr) {
         log.info("Parseando fecha: '{}'", fechaStr);
         
@@ -711,22 +587,17 @@ public class ClienteCompletoService {
         
         fechaStr = fechaStr.trim();
         
-        // Si la fecha viene con hora (ISO DateTime con 'T'), extraer solo la parte de la fecha
         if (fechaStr.contains("T")) {
-            String fechaSola = fechaStr.split("T")[0]; // Tomar solo YYYY-MM-DD
+            String fechaSola = fechaStr.split("T")[0];
             log.info("Detectado formato ISO DateTime, extrayendo fecha: {}", fechaSola);
             return java.time.LocalDate.parse(fechaSola);
         }
         
-        // Formato ISO: YYYY-MM-DD
         if (fechaStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            log.info("Detectado formato ISO: {}", fechaStr);
             return java.time.LocalDate.parse(fechaStr);
         }
-        
-        // Formato DD/MM/YYYY
+
         if (fechaStr.matches("\\d{1,2}/\\d{1,2}/\\d{4}")) {
-            log.info("Detectado formato DD/MM/YYYY: {}", fechaStr);
             String[] partes = fechaStr.split("/");
             int dia = Integer.parseInt(partes[0]);
             int mes = Integer.parseInt(partes[1]);
@@ -734,9 +605,7 @@ public class ClienteCompletoService {
             return java.time.LocalDate.of(año, mes, dia);
         }
         
-        // Formato DD-MM-YYYY
         if (fechaStr.matches("\\d{1,2}-\\d{1,2}-\\d{4}")) {
-            log.info("Detectado formato DD-MM-YYYY: {}", fechaStr);
             String[] partes = fechaStr.split("-");
             int dia = Integer.parseInt(partes[0]);
             int mes = Integer.parseInt(partes[1]);
@@ -744,9 +613,7 @@ public class ClienteCompletoService {
             return java.time.LocalDate.of(año, mes, dia);
         }
         
-        // Formato YYYYMMDD (8 dígitos)
         if (fechaStr.matches("\\d{8}")) {
-            log.info("Detectado formato YYYYMMDD: {}", fechaStr);
             int año = Integer.parseInt(fechaStr.substring(0, 4));
             int mes = Integer.parseInt(fechaStr.substring(4, 6));
             int dia = Integer.parseInt(fechaStr.substring(6, 8));
@@ -765,7 +632,7 @@ public class ClienteCompletoService {
         response.put("success", true);
         response.put("message", "Cliente creado exitosamente");
         response.put("clienteId", cliente.getId());
-        response.put("id", cliente.getId()); // También incluir 'id' para compatibilidad
+        response.put("id", cliente.getId());
         if (pago != null) {
             response.put("pagoId", pago.getId());
         }
@@ -774,18 +641,14 @@ public class ClienteCompletoService {
     }
 
 
-    /**
-     * Envía correo de verificación al cliente después de crearlo
-     * Solo se envía si el cliente tiene email
-     */
     private void enviarCorreoVerificacion(Cliente cliente) {
-        // NO enviar correo a clientes fantasma (vendedores)
+        // Clientes fantasma (vendedores) no reciben correo
         if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             log.info("Cliente ID {} es cliente fantasma (vendedor), no se enviará correo de verificación", cliente.getId());
             return;
         }
         
-        // NO enviar correo a compañías de seguridad - auto-validar datos
+        // Compañías de seguridad se auto-validan sin correo
         if (cliente.esEmpresa()) {
             log.info("Cliente ID {} es compañía de seguridad, auto-validando datos sin enviar correo", cliente.getId());
             cliente.setEmailVerificado(true);

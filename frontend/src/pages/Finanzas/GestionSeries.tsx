@@ -8,7 +8,7 @@ interface Arma {
   id: number;
   codigo: string;
   modelo?: string;
-  nombre?: string; // Deprecated - usar modelo
+  nombre?: string;
   calibre: string;
   categoria: string;
 }
@@ -21,7 +21,7 @@ interface ClienteArmaReserva {
   clienteIdentificacion: string;
   armaId: number;
   armaModelo?: string;
-  armaNombre?: string; // Deprecated - usar armaModelo
+  armaNombre?: string;
   armaCodigo: string;
   estado: string;
   numeroSerie?: string;
@@ -31,26 +31,22 @@ interface ClienteArmaReserva {
 const GestionSeries: React.FC = () => {
   const { user } = useAuth();
   
-  // Estados principales
   const [vistaActual, setVistaActual] = useState<'cargar' | 'asignar' | 'estadisticas'>('cargar');
   const [armas, setArmas] = useState<Arma[]>([]);
   const [estadisticas, setEstadisticas] = useState<EstadisticaSeries[]>([]);
   
-  // Estados para carga de series
   const [armaSeleccionadaCarga, setArmaSeleccionadaCarga] = useState<number | null>(null);
   const [lote, setLote] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
   const [cargando, setCargando] = useState(false);
   const [resultadoCarga, setResultadoCarga] = useState<ResultadoCarga | null>(null);
   
-  // Estados para asignación de series
   const [reservasPendientes, setReservasPendientes] = useState<ClienteArmaReserva[]>([]);
   const [reservaSeleccionada, setReservaSeleccionada] = useState<ClienteArmaReserva | null>(null);
   const [seriesDisponibles, setSeriesDisponibles] = useState<ArmaSerie[]>([]);
   const [serieSeleccionada, setSerieSeleccionada] = useState<string>('');
   const [asignando, setAsignando] = useState(false);
 
-  // Cargar datos iniciales
   useEffect(() => {
     cargarArmas();
     cargarEstadisticas();
@@ -85,7 +81,6 @@ const GestionSeries: React.FC = () => {
     }
   };
 
-  // Handlers para carga de series
   const handleArchivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setArchivo(e.target.files[0]);
@@ -116,11 +111,8 @@ const GestionSeries: React.FC = () => {
               `Total cargadas: ${resultado.totalCargadas}\n` +
               `Duplicados: ${resultado.totalDuplicados}`);
         
-        // Limpiar formulario
         setArchivo(null);
         setLote('');
-        
-        // Recargar estadísticas
         cargarEstadisticas();
       } else {
         alert(`❌ Error cargando series: ${resultado.error}`);
@@ -133,7 +125,6 @@ const GestionSeries: React.FC = () => {
     }
   };
 
-  // Handlers para asignación de series
   const handleSeleccionarReserva = async (reserva: ClienteArmaReserva) => {
     setReservaSeleccionada(reserva);
     setSerieSeleccionada('');
@@ -165,11 +156,8 @@ const GestionSeries: React.FC = () => {
       if (resultado.success) {
         alert(`✅ Serie asignada exitosamente!\n\nSe ha enviado un correo al cliente con la información.`);
         
-        // Recargar listas
         cargarReservasPendientes();
         cargarEstadisticas();
-        
-        // Limpiar selección
         setReservaSeleccionada(null);
         setSerieSeleccionada('');
         setSeriesDisponibles([]);
@@ -185,13 +173,11 @@ const GestionSeries: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
       <div className="w-full">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Gestión de Números de Serie</h1>
           <p className="text-gray-600">Carga y asignación de números de serie de armas</p>
         </div>
 
-        {/* Navegación de pestañas */}
         <div className="flex space-x-2 mb-6">
           <button
             onClick={() => setVistaActual('cargar')}
@@ -225,13 +211,11 @@ const GestionSeries: React.FC = () => {
           </button>
         </div>
 
-        {/* Contenido según vista actual */}
         {vistaActual === 'cargar' && (
           <div className="bg-white rounded-xl shadow-lg p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Cargar Números de Serie desde Archivo</h2>
             
             <div className="space-y-6">
-              {/* Selección de arma */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Arma <span className="text-red-500">*</span>
@@ -251,7 +235,6 @@ const GestionSeries: React.FC = () => {
                 </select>
               </div>
 
-              {/* Lote */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Lote / Grupo de Importación (Opcional)
@@ -265,7 +248,6 @@ const GestionSeries: React.FC = () => {
                 />
               </div>
 
-              {/* Archivo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Archivo CSV/TXT <span className="text-red-500">*</span>
@@ -282,7 +264,6 @@ const GestionSeries: React.FC = () => {
                 </p>
               </div>
 
-              {/* Botón de carga */}
               <button
                 onClick={handleCargarSeries}
                 disabled={cargando || !archivo || !armaSeleccionadaCarga}
@@ -291,7 +272,6 @@ const GestionSeries: React.FC = () => {
                 {cargando ? 'Cargando...' : '📂 Cargar Números de Serie'}
               </button>
 
-              {/* Resultado de carga */}
               {resultadoCarga && (
                 <div className={`p-4 rounded-lg ${resultadoCarga.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                   <h3 className="font-bold mb-2">{resultadoCarga.success ? '✅ Carga Exitosa' : '❌ Error en la Carga'}</h3>
@@ -323,7 +303,6 @@ const GestionSeries: React.FC = () => {
 
         {vistaActual === 'asignar' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Lista de reservas pendientes */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Reservas Pendientes de Asignación</h2>
               
@@ -362,7 +341,6 @@ const GestionSeries: React.FC = () => {
               </div>
             </div>
 
-            {/* Asignación de serie */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Asignar Número de Serie</h2>
               
@@ -372,7 +350,6 @@ const GestionSeries: React.FC = () => {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {/* Información del cliente */}
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-bold text-gray-800 mb-2">Cliente</h3>
                     <p><strong>Nombre:</strong> {reservaSeleccionada.clienteNombre} {reservaSeleccionada.clienteApellidos}</p>
@@ -380,7 +357,6 @@ const GestionSeries: React.FC = () => {
                     <p><strong>Arma:</strong> {reservaSeleccionada.armaModelo || reservaSeleccionada.armaNombre || 'N/A'}</p>
                   </div>
 
-                  {/* Selección de número de serie */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Número de Serie <span className="text-red-500">*</span>
@@ -403,7 +379,6 @@ const GestionSeries: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Botón de asignación */}
                   <button
                     onClick={handleAsignarSerie}
                     disabled={asignando || !serieSeleccionada}

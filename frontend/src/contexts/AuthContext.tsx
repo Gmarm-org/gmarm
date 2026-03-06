@@ -34,36 +34,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [activeRole, setActiveRoleState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
-  // const [isInitialized, setIsInitialized] = useState(false); // No usado actualmente
-  
-  // Configuración de inactividad (en milisegundos)
-  const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutos
-  const WARNING_TIMEOUT = 9 * 60 * 1000; // 9 minutos (advertencia 1 min antes)
+  const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
+  const WARNING_TIMEOUT = 9 * 60 * 1000;
 
-  // Función para obtener el servicio API apropiado
   const getApiService = useCallback(async () => {
-    // Usar la API real del backend
     return apiService;
   }, []);
 
   const login = useCallback(async (credentials: LoginRequest) => {
     try {
-      // Limpiar rol activo anterior
       setActiveRoleState(null);
       localStorage.removeItem('activeRole');
-      
-      // Usar directamente la API real del backend
+
       const response: LoginResponse = await apiService.login(credentials);
-      
-      // Guardar token
+
       localStorage.setItem('token', response.token);
       apiService.setToken(response.token);
       
-      // Obtener usuario completo con roles
       const fullUser = await apiService.getCurrentUser();
       setUser(fullUser as any);
       
-      // Establecer rol activo automáticamente si solo tiene un rol
       if (fullUser?.roles && Array.isArray(fullUser.roles) && fullUser.roles.length === 1) {
         const firstRole: any = fullUser.roles[0];
         const rolCodigo = firstRole?.rol?.codigo || firstRole?.codigo;
@@ -76,9 +66,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         await revisarAlertasProcesosImportacion();
       } catch (alertError) {
-        // Alertas no son críticas, continuar silenciosamente
+        // Non-critical: import process alerts should not block login
       }
-      
+
     } catch (error: unknown) {
       console.error('Error en login:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
@@ -146,10 +136,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (isMounted) {
               setUser(currentUser as any);
               
-                  // Cargar rol activo desde localStorage
                   const savedRole = localStorage.getItem('activeRole');
                   if (savedRole) {
-                    // Validar que el rol guardado sea un código válido
                     const validRoleCodes = ['VENDOR', 'SALES_CHIEF', 'FINANCE', 'ADMIN', 'OPERATIONS'];
                     if (validRoleCodes.includes(savedRole)) {
                       setActiveRoleState(savedRole);
@@ -160,12 +148,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   try {
                     await revisarAlertasProcesosImportacion();
                   } catch (alertError) {
-                    // Alertas no son críticas, continuar silenciosamente
+                    // Non-critical: import process alerts should not block auth init
                   }
             }
           } catch (authError) {
             console.error('Token inválido o expirado:', authError instanceof Error ? authError.message : 'Unknown error');
-            // Limpiar token inválido
             if (isMounted) {
               localStorage.removeItem('token');
               setUser(null);
@@ -181,7 +168,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } finally {
         if (isMounted) {
           setIsLoading(false);
-          // setIsInitialized(true); // No usado actualmente
         }
       }
     };
@@ -191,44 +177,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [getApiService, revisarAlertasProcesosImportacion]); // Inicialización de auth y alertas
+  }, [getApiService, revisarAlertasProcesosImportacion]);
 
-  // Manejo de inactividad - cerrar sesión después de 10 minutos sin actividad
   useEffect(() => {
-    if (!user) return; // Solo activar si hay usuario logueado
+    if (!user) return;
 
     let inactivityTimer: NodeJS.Timeout;
     let warningTimer: NodeJS.Timeout;
 
     const resetTimers = () => {
-      // Limpiar timers existentes
       if (inactivityTimer) clearTimeout(inactivityTimer);
       if (warningTimer) clearTimeout(warningTimer);
       setShowInactivityWarning(false);
 
-      // Timer de advertencia (9 minutos)
       warningTimer = setTimeout(() => {
         setShowInactivityWarning(true);
       }, WARNING_TIMEOUT);
 
-      // Timer de cierre de sesión (10 minutos)
       inactivityTimer = setTimeout(() => {
         logout();
       }, INACTIVITY_TIMEOUT);
     };
 
-    // Eventos que indican actividad del usuario
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
 
-    // Agregar listeners
     events.forEach(event => {
       document.addEventListener(event, resetTimers);
     });
 
-    // Iniciar timers
     resetTimers();
 
-    // Cleanup
     return () => {
       events.forEach(event => {
         document.removeEventListener(event, resetTimers);
@@ -238,7 +216,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [user, logout, INACTIVITY_TIMEOUT, WARNING_TIMEOUT]);
 
-  // Memoizar el valor del contexto para evitar re-renders innecesarios
   const value: AuthContextType = useMemo(() => {
     return {
       user,
@@ -256,7 +233,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     <AuthContext.Provider value={value}>
       {children}
       
-      {/* Advertencia de inactividad */}
       {showInactivityWarning && user && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">

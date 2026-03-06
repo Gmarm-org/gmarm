@@ -395,7 +395,6 @@ public class ClienteDocumentController {
             String clienteNombre = (cliente.getNombres() != null ? cliente.getNombres() : "") + " "
                 + (cliente.getApellidos() != null ? cliente.getApellidos() : "");
 
-            // Cargar los archivos firmados como adjuntos
             List<EmailService.DocumentoAdjunto> adjuntos = documentosFirmados.stream()
                 .map(doc -> {
                     byte[] bytes = cargarDocumentoAdjunto(doc);
@@ -405,7 +404,6 @@ public class ClienteDocumentController {
                 .filter(adj -> adj != null)
                 .collect(Collectors.toList());
 
-            // CC: importador + jefe de ventas
             List<String> ccList = new ArrayList<>();
             if (importadorEmail != null && !importadorEmail.isBlank()) {
                 ccList.add(importadorEmail);
@@ -426,8 +424,6 @@ public class ClienteDocumentController {
             log.warn("No se pudo enviar email de contratos firmados completos: {}", e.getMessage());
         }
     }
-
-    // ===== HELPERS PRIVADOS =====
 
     private void enviarDocumentosPorCorreo(Cliente cliente, List<DocumentoGenerado> documentos) {
         try {
@@ -457,7 +453,6 @@ public class ClienteDocumentController {
                 .filter(adj -> adj != null)
                 .collect(Collectors.toList());
 
-            // CC: importador + jefe de ventas (en el email al cliente)
             List<String> ccList = new ArrayList<>();
             if (licencia != null && licencia.getEmail() != null && !licencia.getEmail().isBlank()) {
                 ccList.add(licencia.getEmail().trim());

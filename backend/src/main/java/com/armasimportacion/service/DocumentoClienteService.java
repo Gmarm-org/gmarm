@@ -36,23 +36,19 @@ public class DocumentoClienteService {
 
     public DocumentoClienteDTO cargarDocumento(Long clienteId, Long tipoDocumentoId, 
                                              MultipartFile archivo, String descripcion, Long usuarioId) throws IOException {
-        
-        // Validar que el cliente existe
+
         Cliente cliente = clienteRepository.findById(clienteId)
             .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
-        
-        // Validar que el tipo de documento existe
+
         TipoDocumento tipoDocumento = tipoDocumentoRepository.findById(tipoDocumentoId)
             .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
-        
-        // Validar que el usuario existe
+
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
-        // TRAZABILIDAD: Marcar documentos anteriores del mismo tipo como REEMPLAZADOS
-        // Esto mantiene el historial completo en la BD sin perder información
-        // IMPORTANTE: Buscar TODOS los documentos del mismo tipo, incluso los que ya están REEMPLAZADOS
-        // para asegurar que solo quede UN documento activo del mismo tipo
+
+        // Marcar documentos anteriores del mismo tipo como REEMPLAZADOS para mantener
+        // el historial completo en la BD. Buscar todos los activos para asegurar que
+        // solo quede UN documento activo del mismo tipo.
         List<DocumentoCliente> documentosAnteriores = repository.findByClienteId(clienteId).stream()
             .filter(doc -> doc.getTipoDocumento().getId().equals(tipoDocumentoId))
             .filter(doc -> doc.getEstado() != DocumentoCliente.EstadoDocumento.REEMPLAZADO) // No reemplazar los ya reemplazados
@@ -66,11 +62,8 @@ public class DocumentoClienteService {
             int eliminadosFallidos = 0;
             
             for (DocumentoCliente docAnterior : documentosAnteriores) {
-                // Eliminar archivo físico para liberar espacio en disco
                 if (docAnterior.getRutaArchivo() != null && !docAnterior.getRutaArchivo().isBlank()) {
                     try {
-                        // La ruta en BD es relativa (ej: "documentos_clientes/{cedula}/documentos_cargados/archivo.pdf")
-                        // FileStorageService.deleteFile ya maneja la construcción de la ruta completa
                         fileStorageService.deleteFile(docAnterior.getRutaArchivo());
                         log.info("Archivo físico eliminado exitosamente: {}", docAnterior.getRutaArchivo());
                         eliminadosExitosos++;
@@ -78,17 +71,14 @@ public class DocumentoClienteService {
                         log.error("ERROR CRÍTICO: No se pudo eliminar el archivo físico {}: {}", 
                                 docAnterior.getRutaArchivo(), e.getMessage(), e);
                         eliminadosFallidos++;
-                        // Continuar aunque falle la eliminación del archivo (puede que ya no exista)
                     }
                 } else {
                     log.warn("Documento ID {} no tiene ruta de archivo, solo se marcará como REEMPLAZADO en BD", docAnterior.getId());
                 }
-                
-                // Marcar como REEMPLAZADO en BD (mantener registro para trazabilidad)
+
                 docAnterior.setEstado(DocumentoCliente.EstadoDocumento.REEMPLAZADO);
                 docAnterior.setFechaActualizacion(LocalDateTime.now());
                 docAnterior.setUsuarioRevision(usuario);
-                // Limpiar ruta del archivo ya que fue eliminado (o no tenía)
                 docAnterior.setRutaArchivo(null);
                 docAnterior.setNombreArchivo(null);
                 repository.save(docAnterior);
@@ -100,72 +90,63 @@ public class DocumentoClienteService {
         } else {
             log.info("No hay documentos anteriores del tipo '{}' para reemplazar. Se creará un nuevo documento.", tipoDocumento.getNombre());
         }
-        
-        // Crear nuevo documento (siempre crear uno nuevo para mantener historial)
+
         DocumentoCliente documento = new DocumentoCliente();
         documento.setCliente(cliente);
         documento.setTipoDocumento(tipoDocumento);
         documento.setUsuarioCarga(usuario);
         documento.setFechaCarga(LocalDateTime.now());
         log.info("Creando nuevo documento del tipo: {} (ID: {})", tipoDocumento.getNombre(), tipoDocumentoId);
-        
-        // Guardar archivo físico usando numeroIdentificacion y nombre del tipo de documento
+
         String rutaArchivo = fileStorageService.storeClientDocument(
             cliente.getNumeroIdentificacion(), 
             tipoDocumentoId, 
             archivo, 
             tipoDocumento.getNombre()
         );
-        
-        // Extraer el nombre del archivo de la ruta (que ya incluye el nombre único generado)
+
         String nombreArchivoGenerado = Paths.get(rutaArchivo).getFileName().toString();
-        
-        // Actualizar entidad
+
         documento.setRutaArchivo(rutaArchivo);
         documento.setNombreArchivo(nombreArchivoGenerado);
         documento.setTipoArchivo(archivo.getContentType());
         documento.setTamanioArchivo(archivo.getSize());
         documento.setDescripcion(descripcion);
-        documento.setEstado(DocumentoCliente.EstadoDocumento.CARGADO); // Documento cargado por el vendedor
+        documento.setEstado(DocumentoCliente.EstadoDocumento.CARGADO);
         documento.setFechaActualizacion(LocalDateTime.now());
-        
+
         DocumentoCliente saved = repository.save(documento);
         return mapper.toDTO(saved);
     }
 
-    public DocumentoClienteDTO actualizarDocumento(Long documentoId, MultipartFile archivo, 
+    public DocumentoClienteDTO actualizarDocumento(Long documentoId, MultipartFile archivo,
                                                  String descripcion, Long usuarioId) throws IOException {
-        
+
         DocumentoCliente documento = repository.findById(documentoId)
             .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
-        
-        // Validar que el usuario existe
+
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
-        // Eliminar archivo anterior
+
         if (documento.getRutaArchivo() != null) {
             fileStorageService.deleteFile(documento.getRutaArchivo());
         }
-        
-        // Guardar nuevo archivo usando numeroIdentificacion y nombre del tipo de documento
+
         String rutaArchivo = fileStorageService.storeClientDocument(
-            documento.getCliente().getNumeroIdentificacion(), 
-            documento.getTipoDocumento().getId(), 
+            documento.getCliente().getNumeroIdentificacion(),
+            documento.getTipoDocumento().getId(),
             archivo,
             documento.getTipoDocumento().getNombre()
         );
-        
-        // Extraer el nombre del archivo de la ruta (que ya incluye el nombre único generado)
+
         String nombreArchivoGenerado = Paths.get(rutaArchivo).getFileName().toString();
-        
-        // Actualizar entidad
+
         documento.setRutaArchivo(rutaArchivo);
         documento.setNombreArchivo(nombreArchivoGenerado);
         documento.setTipoArchivo(archivo.getContentType());
         documento.setTamanioArchivo(archivo.getSize());
         documento.setDescripcion(descripcion);
-        documento.setEstado(DocumentoCliente.EstadoDocumento.CARGADO); // Documento cargado por el vendedor
+        documento.setEstado(DocumentoCliente.EstadoDocumento.CARGADO);
         documento.setUsuarioRevision(usuario);
         documento.setFechaActualizacion(LocalDateTime.now());
         
@@ -187,8 +168,7 @@ public class DocumentoClienteService {
     public void deleteDocumento(Long documentoId) {
         DocumentoCliente documento = repository.findById(documentoId)
             .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
-        
-        // Eliminar archivo físico
+
         if (documento.getRutaArchivo() != null) {
             fileStorageService.deleteFile(documento.getRutaArchivo());
         }
@@ -211,21 +191,17 @@ public class DocumentoClienteService {
         Cliente cliente = clienteRepository.findById(clienteId)
             .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
         
-        // Si el cliente es fantasma, no requiere documentos obligatorios (es temporal)
-        // Los clientes fantasma son para almacenar armas del vendedor sin cliente específico
+        // Clientes fantasma son temporales para almacenar armas sin cliente específico
         if (cliente.getEstado() == EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
             log.debug("Cliente fantasma detectado - no requiere documentos obligatorios");
             return true;
         }
-        
-        // Si no tiene tipoProcesoId, no hay documentos obligatorios
+
         if (cliente.getTipoProcesoId() == null) {
             log.debug("Cliente sin tipoProcesoId - no hay documentos obligatorios");
             return true;
         }
-        
-        // Obtener todos los tipos de documento obligatorios para el tipo de proceso del cliente
-        // Usar el servicio que excluye documentos de grupos de importación
+
         List<TipoDocumento> tiposObligatorios = tipoDocumentoService.findByTipoProcesoId(
             cliente.getTipoProcesoId()
         ).stream()
@@ -233,22 +209,17 @@ public class DocumentoClienteService {
         .collect(java.util.stream.Collectors.toList());
         
         if (tiposObligatorios.isEmpty()) {
-            return true; // No hay documentos obligatorios
+            return true;
         }
-        
-        // Obtener documentos cargados del cliente
+
         List<DocumentoCliente> documentosCargados = repository.findByClienteId(clienteId);
-        
-        // Verificar que todos los tipos obligatorios tengan documentos CARGADOS o APROBADOS (excluyendo los reemplazados)
-        // CARGADO = documento subido por el vendedor, listo para verificar completitud
-        // APROBADO = documento validado y aprobado
-        // PENDIENTE = documento NO cargado (falta subirlo)
+
+        // Solo CARGADO y APROBADO cuentan como cumplidos; PENDIENTE significa no subido aún
         for (TipoDocumento tipoObligatorio : tiposObligatorios) {
             boolean tieneDocumentoCargado = documentosCargados.stream()
-                .filter(doc -> doc.getEstado() != DocumentoCliente.EstadoDocumento.REEMPLAZADO) // Excluir reemplazados
+                .filter(doc -> doc.getEstado() != DocumentoCliente.EstadoDocumento.REEMPLAZADO)
                 .anyMatch(doc -> {
                     boolean mismoTipo = doc.getTipoDocumento().getId().equals(tipoObligatorio.getId());
-                    // Aceptar tanto CARGADO como APROBADO. PENDIENTE significa que no está cargado.
                     boolean estadoValido = doc.getEstado() == DocumentoCliente.EstadoDocumento.CARGADO ||
                                           doc.getEstado() == DocumentoCliente.EstadoDocumento.APROBADO;
                     return mismoTipo && estadoValido;
@@ -266,22 +237,18 @@ public class DocumentoClienteService {
     public DocumentoResumenDTO getResumenDocumentos(Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
             .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
-        
-        // Obtener tipos de documento para el tipo de proceso del cliente (excluye documentos de grupos de importación)
+
         List<TipoDocumento> tiposDocumento = tipoDocumentoService.findByTipoProcesoId(
             cliente.getTipoProcesoId()
         );
-        
-        // Obtener documentos cargados del cliente
+
         List<DocumentoCliente> documentosCargados = repository.findByClienteId(clienteId);
-        
-        // Crear resumen
+
         DocumentoResumenDTO resumen = new DocumentoResumenDTO();
         resumen.setClienteId(clienteId);
         resumen.setTotalTiposDocumento(tiposDocumento.size());
         resumen.setTotalDocumentosCargados(documentosCargados.size());
-        
-        // Contar por estado
+
         long pendientes = documentosCargados.stream()
             .filter(doc -> doc.getEstado() == DocumentoCliente.EstadoDocumento.PENDIENTE)
             .count();
@@ -299,14 +266,12 @@ public class DocumentoClienteService {
         resumen.setAprobados((int) aprobados);
         resumen.setRechazados((int) rechazados);
         resumen.setObservados((int) observados);
-        
-        // Verificar completitud
+
         resumen.setCompleto(verificarDocumentosCompletos(clienteId));
         
         return resumen;
     }
 
-    // DTO interno para resumen
     public static class DocumentoResumenDTO {
         private Long clienteId;
         private int totalTiposDocumento;
@@ -316,8 +281,7 @@ public class DocumentoClienteService {
         private int rechazados;
         private int observados;
         private boolean completo;
-        
-        // Getters y setters
+
         public Long getClienteId() { return clienteId; }
         public void setClienteId(Long clienteId) { this.clienteId = clienteId; }
         

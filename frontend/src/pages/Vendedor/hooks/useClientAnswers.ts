@@ -2,11 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { apiService } from '../../../services/api';
 import type { RespuestaFormulario } from './useClientFormData';
 
-/**
- * Hook para manejar respuestas a preguntas del cliente
- * Extraído de ClientForm para mejorar mantenibilidad
- * OPTIMIZADO: Usa cache para evitar recargas innecesarias
- */
 export const useClientAnswers = (
   tipoClienteId: number | undefined,
   tipoCliente: string | undefined,
@@ -24,28 +19,22 @@ export const useClientAnswers = (
   }, [setFormData]);
   const [clientQuestions, setClientQuestions] = useState<any[]>([]);
 
-  // OPTIMIZACIÓN: Cache para preguntas usando clave compuesta
   const preguntasCacheRef = useRef<Map<string, any[]>>(new Map());
   const ultimaClavePreguntasRef = useRef<string>('');
 
-  // OPTIMIZACIÓN: Crear clave de cache estable basada en valores relevantes
   const cacheKeyPreguntas = useMemo(() => {
     if (!tipoClienteId || !tipoCliente) return '';
     const esMilitar = esTipoMilitar(tipoCliente);
     return `${tipoClienteId}-${tipoCliente}-${esMilitar ? estadoMilitar || '' : ''}`;
   }, [tipoClienteId, tipoCliente, estadoMilitar, esTipoMilitar]);
 
-  // Cargar preguntas según el tipo de cliente
-  // OPTIMIZACIÓN: Solo cargar si la clave de cache cambió realmente
   useEffect(() => {
     const loadQuestions = async () => {
       if (!tipoClienteId || !tipoCliente) {
-        // Si no hay tipoCliente, limpiar preguntas
         setClientQuestions([]);
         return;
       }
 
-      // OPTIMIZACIÓN: Verificar cache antes de cargar - solo si la clave cambió
       if (cacheKeyPreguntas && cacheKeyPreguntas === ultimaClavePreguntasRef.current && preguntasCacheRef.current.has(cacheKeyPreguntas)) {
         const preguntasCacheadas = preguntasCacheRef.current.get(cacheKeyPreguntas);
         if (preguntasCacheadas && preguntasCacheadas.length > 0) {
@@ -54,9 +43,8 @@ export const useClientAnswers = (
         }
       }
 
-      // Solo cargar si la clave de cache realmente cambió
       if (cacheKeyPreguntas && cacheKeyPreguntas === ultimaClavePreguntasRef.current) {
-        return; // Ya está cargado para esta clave
+        return;
       }
 
       try {
@@ -71,7 +59,6 @@ export const useClientAnswers = (
           const preguntas = formulario.preguntas || [];
           setClientQuestions(preguntas);
           
-          // OPTIMIZACIÓN: Guardar en cache y actualizar última clave
           if (cacheKeyPreguntas) {
             preguntasCacheRef.current.set(cacheKeyPreguntas, preguntas);
             ultimaClavePreguntasRef.current = cacheKeyPreguntas;
@@ -83,36 +70,27 @@ export const useClientAnswers = (
     };
 
     loadQuestions();
-  }, [cacheKeyPreguntas, tipoClienteId, tipoCliente, estadoMilitar, esTipoMilitar]); // cacheKeyPreguntas ya está optimizado con useMemo
+  }, [cacheKeyPreguntas, tipoClienteId, tipoCliente, estadoMilitar, esTipoMilitar]);
 
-  // OPTIMIZACIÓN: Cache para respuestas del cliente
   const respuestasCacheRef = useRef<Map<string, RespuestaFormulario[]>>(new Map());
   const ultimoClientIdCargadoRef = useRef<string>('');
 
-  // Cargar respuestas existentes del cliente
-  // OPTIMIZACIÓN: Solo cargar si no hay respuestas ya cargadas y el clientId es válido
   useEffect(() => {
     const loadExistingAnswers = async () => {
-      // clientId puede ser string o number, convertir a string y validar
       const clientIdStr = clientId?.toString()?.trim();
       if (!clientIdStr) return;
 
-      // Si el clientId cambió, limpiar el cache y cargar nuevas respuestas
       if (clientIdStr !== ultimoClientIdCargadoRef.current) {
-        ultimoClientIdCargadoRef.current = ''; // Resetear para forzar carga
+        ultimoClientIdCargadoRef.current = '';
       }
       
-      // OPTIMIZACIÓN: Si ya hay respuestas cargadas para este cliente Y son válidas, no volver a cargar
-      // PERO: Si formDataRespuestas está vacío o solo tiene datos iniciales, sí cargar
       if (clientIdStr === ultimoClientIdCargadoRef.current && formDataRespuestas && formDataRespuestas.length > 0) {
-        // Verificar que las respuestas sean válidas (tengan pregunta y respuesta)
         const respuestasValidas = formDataRespuestas.filter(r => r.pregunta && r.respuesta);
         if (respuestasValidas.length > 0) {
           return;
         }
       }
 
-      // OPTIMIZACIÓN: Verificar cache antes de cargar
       if (respuestasCacheRef.current.has(clientIdStr)) {
         const respuestasCacheadas = respuestasCacheRef.current.get(clientIdStr);
         if (respuestasCacheadas && respuestasCacheadas.length > 0) {
@@ -125,14 +103,11 @@ export const useClientAnswers = (
       try {
         const respuestas = await apiService.getRespuestasCliente(parseInt(clientIdStr));
         if (respuestas && Array.isArray(respuestas)) {
-          // OPTIMIZACIÓN: Validar que las respuestas sean del cliente correcto
-          // Filtrar respuestas inválidas o duplicadas
           const respuestasValidas = respuestas.filter(r => {
-            // Verificar que tenga los campos mínimos necesarios
             return r && (r.pregunta || r.preguntaTexto || r.pregunta?.pregunta) && r.respuesta;
           });
           
-          // OPTIMIZACIÓN: Limitar a máximo 100 respuestas para evitar procesar miles
+          // Limitar para evitar procesamiento excesivo
           const respuestasLimitadas = respuestasValidas.slice(0, 100);
           
           const respuestasFormateadas: RespuestaFormulario[] = respuestasLimitadas.map(r => ({
@@ -143,7 +118,6 @@ export const useClientAnswers = (
             questionId: r.preguntaId || r.pregunta?.id
           }));
           
-          // OPTIMIZACIÓN: Guardar en cache
           respuestasCacheRef.current.set(clientIdStr, respuestasFormateadas);
           ultimoClientIdCargadoRef.current = clientIdStr;
           
@@ -158,7 +132,6 @@ export const useClientAnswers = (
     loadExistingAnswers();
   }, [clientId, setFormDataRespuestas]);
 
-  // Función helper para obtener la respuesta de una pregunta
   const getAnswerForQuestion = useMemo(() => {
     return (question: string) => {
       const respuesta = formDataRespuestas.find(r => r.pregunta === question);
@@ -166,7 +139,6 @@ export const useClientAnswers = (
     };
   }, [formDataRespuestas]);
 
-  // Función para manejar cambios en las respuestas
   const handleAnswerChange = useCallback((
     question: string, 
     answer: string, 
@@ -175,15 +147,10 @@ export const useClientAnswers = (
     setClienteBloqueado?: (bloqueado: boolean) => void,
     setMotivoBloqueo?: (motivo: string) => void
   ) => {
-    // Validar respuesta a la pregunta de armas registradas
-    // NOTA: Los deportistas (DEP) NO tienen límite de armas, por lo que no se valida cantidad para ellos
+    // Deportistas (DEP) no tienen límite de armas, así que solo se valida si la respuesta incluye cantidad
     if (question.toLowerCase().includes('armas registradas')) {
-      // Solo validar cantidad si NO es deportista (DEP)
-      // El tipoClienteCodigo se pasa desde ClientForm, pero aquí no lo tenemos directamente
-      // Por ahora, validamos solo si la respuesta incluye cantidad (lo cual no debería pasar para DEP)
       const tieneDosMasArmas = answer.includes('2 armas') || answer.includes('más armas');
-      
-      // Solo bloquear si tiene 2 o más armas Y la respuesta incluye cantidad (no es DEP)
+
       if (tieneDosMasArmas && (answer.includes('2 armas') || answer.includes('más armas'))) {
         alert('⚠️ ATENCIÓN: El cliente ya tiene 2 o más armas registradas.\n\n' +
               'Por ley ecuatoriana, no se permite tener más de 2 armas.\n\n' +
@@ -196,7 +163,6 @@ export const useClientAnswers = (
           onClienteBloqueado('temp-id', true, 'Cliente ya tiene 2 o más armas registradas. Máximo legal: 2 armas.');
         }
       } else if (answer === 'NO' || answer.includes('1 arma') || answer === 'SI') {
-        // Para deportistas, la respuesta será solo "SI" sin cantidad
         if (setClienteBloqueado) setClienteBloqueado(false);
         if (setMotivoBloqueo) setMotivoBloqueo('');
         

@@ -1,6 +1,3 @@
-// ===== JSON SCHEMAS PARA VALIDACIÓN DE DATOS =====
-
-// Schema base para respuestas de API
 export const ApiResponseSchema = {
   type: 'object',
   properties: {
@@ -14,8 +11,6 @@ export const ApiResponseSchema = {
   },
   required: ['success', 'data']
 };
-
-// ===== AUTENTICACIÓN =====
 
 export const LoginRequestSchema = {
   type: 'object',
@@ -35,8 +30,6 @@ export const LoginRequestSchema = {
   required: ['email', 'password'],
   additionalProperties: false
 };
-
-// ===== USUARIOS =====
 
 export const UpdateProfileRequestSchema = {
   type: 'object',
@@ -61,8 +54,6 @@ export const UpdateProfileRequestSchema = {
   },
   additionalProperties: false
 };
-
-// ===== CLIENTES =====
 
 export const CreateClientRequestSchema = {
   type: 'object',
@@ -287,8 +278,6 @@ export const CheckCedulaRequestSchema = {
   additionalProperties: false
 };
 
-// ===== ARMAS =====
-
 export const AssignWeaponRequestSchema = {
   type: 'object',
   properties: {
@@ -326,8 +315,6 @@ export const UpdateWeaponPriceRequestSchema = {
   required: ['price'],
   additionalProperties: false
 };
-
-// ===== CATÁLOGOS =====
 
 export const ClientTypeSchema = {
   type: 'object',
@@ -373,8 +360,6 @@ export const CantonSchema = {
   required: ['id', 'name', 'provinceId', 'code']
 };
 
-// ===== DOCUMENTOS =====
-
 export const UploadDocumentRequestSchema = {
   type: 'object',
   properties: {
@@ -398,8 +383,6 @@ export const UploadDocumentRequestSchema = {
   required: ['file', 'documentTypeId'],
   additionalProperties: false
 };
-
-// ===== PREGUNTAS =====
 
 export const SaveAnswersRequestSchema = {
   type: 'object',
@@ -425,8 +408,6 @@ export const SaveAnswersRequestSchema = {
   additionalProperties: false
 };
 
-// ===== REPORTES =====
-
 export const SalesReportRequestSchema = {
   type: 'object',
   properties: {
@@ -444,8 +425,6 @@ export const SalesReportRequestSchema = {
   required: ['startDate', 'endDate'],
   additionalProperties: false
 };
-
-// ===== SCHEMAS DE RESPUESTA =====
 
 export const ClientResponseSchema = {
   type: 'object',
@@ -609,8 +588,6 @@ export const ChangePasswordRequestSchema = {
   additionalProperties: false
 };
 
-// ===== SCHEMAS PARA VALIDACIÓN DE FORMULARIOS =====
-
 export const ClientFormSchema = {
   type: 'object',
   properties: {
@@ -719,53 +696,40 @@ export const ClientFormSchema = {
   ]
 };
 
-// ===== EXPORTACIÓN DE TODOS LOS SCHEMAS =====
-
 export const Schemas = {
-  // Autenticación
   LoginRequest: LoginRequestSchema,
   ChangePasswordRequest: ChangePasswordRequestSchema,
-  
-  // Usuarios
+
   UpdateProfileRequest: UpdateProfileRequestSchema,
   CreateUserRequest: CreateUserRequestSchema,
   UpdateUserRequest: UpdateUserRequestSchema,
   UserResponse: UserResponseSchema,
-  
-  // Roles
+
   Role: RoleSchema,
   CreateRoleRequest: CreateRoleRequestSchema,
   UpdateRoleRequest: UpdateRoleRequestSchema,
-  
-  // Clientes
+
   CreateClientRequest: CreateClientRequestSchema,
   UpdateClientRequest: UpdateClientRequestSchema,
   CheckCedulaRequest: CheckCedulaRequestSchema,
   ClientResponse: ClientResponseSchema,
-  
-  // Armas
+
   AssignWeaponRequest: AssignWeaponRequestSchema,
   UpdateWeaponPriceRequest: UpdateWeaponPriceRequestSchema,
   WeaponResponse: WeaponResponseSchema,
-  
-  // Catálogos
+
   ClientType: ClientTypeSchema,
   IdentificationType: IdentificationTypeSchema,
   Province: ProvinceSchema,
   Canton: CantonSchema,
-  
-  // Documentos
+
   UploadDocumentRequest: UploadDocumentRequestSchema,
-  
-  // Preguntas
+
   SaveAnswersRequest: SaveAnswersRequestSchema,
-  
-  // Reportes
+
   SalesReportRequest: SalesReportRequestSchema,
-  
-  // Respuestas
+
   ApiResponse: ApiResponseSchema,
-  
-  // Formularios
+
   ClientForm: ClientFormSchema
 } as const; 

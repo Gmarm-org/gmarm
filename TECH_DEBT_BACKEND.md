@@ -3,9 +3,9 @@
 ## 📋 Documento de Deuda Técnica y Reglas de Desarrollo
 
 **Proyecto**: GMARM - Sistema de Gestión de Armas  
-**Framework**: Spring Boot 3.x + Java 17+  
+**Framework**: Spring Boot 3.x + Java 21  
 **Fecha de Creación**: 9 de Noviembre, 2025
-**Última Actualización**: 13 de Febrero, 2026
+**Ultima Actualizacion**: 6 de Marzo, 2026
 
 ---
 
@@ -396,18 +396,20 @@ public class ClienteService {
 
 Las clases monolíticas se dividieron en servicios especializados:
 
-| Clase Original | Antes | Después | Acción |
-|---------------|-------|---------|--------|
-| GestionClienteService | 2000+ | Eliminada | → 5 helpers + ClienteCompletoService orquestador |
-| GestionDocumentosServiceHelper | 1623 | 134 | → 5 PDFGenerators en `helper/documentos/` |
-| GrupoImportacionService | 1765 | 817 | → + ClienteService, MatchingService, ProcesoService |
-| ClienteService | 1145 | 612 | → + ClienteQueryService (396 líneas, read-only) |
-| ClienteController | 1038 | 556 | → + ClienteDocumentController (404 líneas) |
+| Clase Original | Antes | Feb 2026 | Mar 2026 | Accion |
+|---------------|-------|---------|----------|--------|
+| GestionClienteService | 2000+ | Eliminada | Eliminada | → 5 helpers + ClienteCompletoService orquestador |
+| GestionDocumentosServiceHelper | 1623 | 134 | 135 | → 6 PDFGenerators en `helper/documentos/` |
+| GrupoImportacionService | 1765 | 817 | 772 | → + ClienteService, MatchingService, ProcesoService |
+| ClienteService | 1145 | 612 | 623 | → + ClienteQueryService (read-only) |
+| ClienteController | 1038 | 556 | 467 | → + ClienteDocumentController |
 
-**Pendiente menor**:
-- `ClienteCompletoService` (834 líneas) — Es un orquestador con helpers bien definidos, no es crítico
-- `GrupoImportacionService` (817 líneas) — Ya dividido en 3 sub-servicios, el principal aún maneja CRUD + consultas
-- `ClienteService` (612 líneas) — Ligeramente por encima del límite de 500
+**Estado actual (Marzo 2026)**:
+- `ClienteCompletoService` (813 lineas) — Orquestador con helpers bien definidos, no es critico
+- `GrupoImportacionService` (772 lineas) — Ya dividido en 3 sub-servicios, mejorado desde 817
+- `ClienteQueryService` (566 lineas) — Crecio desde 396 por soft-delete y nuevas consultas, supera limite de 500
+- `ClienteService` (623 lineas) — Ligeramente por encima del limite de 500
+- `ClienteDocumentController` (547 lineas) — Crecio desde 404 por nuevas funcionalidades
 
 **Prioridad**: 🟢 Baja (mejora incremental)
 
@@ -517,7 +519,7 @@ void deberiaRechazarCedulaInvalida() {
 - ✅ `ClienteService.validateEdadMinima()` lee de config con fallback 25
 - ✅ `GestionPagosServiceHelper` lee max cuotas de config con fallback 12
 - ✅ `Cliente.java` y `ClienteDTO.java` aceptan `edadMinima` como parámetro
-- ✅ Script de migración: `datos/migrations/0001-Script-AgregarConfiguracionesEdadMinimaCuotas.sql`
+- ✅ Configuraciones agregadas al SQL maestro `datos/00_gmarm_completo.sql`
 - ✅ IVA ya tenía fallback aceptable como safety net (no requirió cambio)
 
 **Prioridad**: ✅ Completado
@@ -686,6 +688,7 @@ public class ClienteController {
 | 1.0 | 2025-11-09 | Documento inicial con reglas de Clean Code y deuda técnica identificada |
 | 1.1 | 2026-02-13 | Actualizar estado post-refactorización SRP (clases grandes resueltas, PDF generators, split services) |
 | 1.2 | 2026-02-13 | Marcar hardcoded values y N+1 queries como RESUELTOS, JavaDoc como POSPUESTO |
+| 1.3 | 2026-03-06 | Actualizar line counts reales, identificar regresiones (ClienteQueryService 566, ClienteDocumentController 547) |
 
 ---
 

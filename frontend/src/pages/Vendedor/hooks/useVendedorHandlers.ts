@@ -5,15 +5,7 @@ import type { User } from '../../../types';
 import { useTiposClienteConfig } from '../../../contexts/TiposClienteContext';
 import { mapTipoIdentificacionToCode } from '../../../utils/typeMappers';
 
-/**
- * Hook para todos los handlers de eventos del módulo vendedor
- * Separado para cumplir con límite de 500 líneas por archivo
- * 
- * NOTA: Este archivo es grande debido a la complejidad de los handlers,
- * pero cada handler individual tiene menos de 20 statements
- */
 export const useVendedorHandlers = (
-  // Estados y setters
   setCurrentPage: (page: string) => void,
   setClientFormMode: (mode: 'create' | 'edit' | 'view') => void,
   setSelectedClient: (client: Client | null) => void,
@@ -29,7 +21,6 @@ export const useVendedorHandlers = (
   setSelectedSerieId: (id: number | null) => void,
   setSelectedSerieNumero: (numero: string | null) => void,
   
-  // Estados actuales
   currentPage: string,
   selectedClient: Client | null,
   selectedWeapon: any | null,
@@ -37,22 +28,19 @@ export const useVendedorHandlers = (
   cantidad: number,
   clientFilter: string | null,
   clientFormData: any,
-  _clientesBloqueados: Record<string, { bloqueado: boolean; motivo: string }>, // Prefijo _ porque se usa indirectamente
+  _clientesBloqueados: Record<string, { bloqueado: boolean; motivo: string }>,
   clientWeaponAssignments: Record<string, { weapon: any; precio: number; cantidad: number; numeroSerie?: string; estado?: string }>,
   weaponPrices: Record<number, number>,
-  _clients: Client[], // Prefijo _ para indicar que no se usa directamente pero se necesita para tipos
-  
-  // Funciones externas
+  _clients: Client[],
+
   loadClients: (page?: number) => Promise<void>,
   loadWeapons: () => Promise<void>,
   mapearProvinciaACodigo: (nombre: string, provincias: Array<{codigo: string, nombre: string}>) => string,
   mapearCodigoANombreProvincia: (codigo: string, provincias: Array<{codigo: string, nombre: string}>) => string,
   provinciasCompletas: Array<{codigo: string, nombre: string}>,
-  
-  // Refs
+
   selectedSerieNumeroRef: React.MutableRefObject<string | null>,
-  
-  // User (necesario para crear cliente automático cuando no hay cliente)
+
   user: User | null
 ) => {
   const { getCodigoTipoCliente } = useTiposClienteConfig();
@@ -122,8 +110,7 @@ export const useVendedorHandlers = (
       if (selectedWeapon && selectedWeapon.id === weapon.id) {
         return;
       }
-      // El precio inicial debe ser 0 para que el vendedor lo ingrese
-      // Solo usar precio guardado si ya existe una asignación previa
+      // Precio inicial 0 salvo que ya exista una asignación previa
       let precioAUsar = 0;
       if (weaponPrices[weapon.id]) {
         precioAUsar = weaponPrices[weapon.id];
@@ -234,12 +221,11 @@ export const useVendedorHandlers = (
       setClientFormData(selectedClient);
     }
     
-    // Detectar si viene con múltiples armas
     const armasMultiples = data?.armas && Array.isArray(data.armas) && data.armas.length > 0;
     const armasParaReservar = armasMultiples ? data.armas : (selectedWeapon ? [{ ...selectedWeapon, cantidad }] : []);
     setSelectedWeapons(armasParaReservar);
     
-    // Si no hay cliente ni datos del cliente, usar el cliente fantasma del vendedor
+    // Sin cliente: asignar armas al cliente fantasma del vendedor (stock del vendedor)
     if (!clientFormData && !selectedClient) {
       if (!user) {
         alert('❌ Error: No se pudo obtener la información del vendedor. Por favor, inicia sesión nuevamente.');
@@ -252,10 +238,8 @@ export const useVendedorHandlers = (
       }
       
       try {
-        // Buscar o crear el cliente fantasma del vendedor en el backend
         const clienteFantasma = await apiService.buscarOCrearClienteFantasmaVendedor();
 
-        // Crear reservas para todas las armas seleccionadas
         const todasAdvertencias: string[] = [];
         for (const arma of armasParaReservar) {
           const precioUnitario = arma.precioUnitario !== undefined
@@ -275,27 +259,23 @@ export const useVendedorHandlers = (
           }
         }
 
-        // Refrescar datos y mostrar mensaje
         await loadWeapons();
         await loadClients();
 
-        // Mostrar mensaje y advertencias si existen
         let mensaje = `✅ ${armasParaReservar.length} arma(s) asignada(s) exitosamente. Las armas quedaran en tu stock.`;
         if (todasAdvertencias.length > 0) {
           mensaje += '\n\n⚠️ Advertencias:\n' + todasAdvertencias.map(a => '- ' + a).join('\n');
         }
         alert(mensaje);
         
-        // Limpiar selección y volver al dashboard
         setSelectedWeapon(null);
         setPrecioModificado(0);
         setCantidad(1);
         setCurrentPage('dashboard');
-        return; // No continuar con el flujo de pago para armas sin cliente
+        return;
       } catch (error: any) {
         console.error('Error asignando arma(s) al cliente fantasma:', error instanceof Error ? error.message : 'Unknown error');
-        // Extraer mensaje de error del backend (puede estar en diferentes lugares)
-        const errorMessage = error?.responseData?.error || 
+        const errorMessage = error?.responseData?.error ||
                            error?.responseData?.message || 
                            error?.response?.data?.error ||
                            error?.response?.data?.message || 
@@ -306,12 +286,9 @@ export const useVendedorHandlers = (
       }
     }
     
-    // Si el cliente ya existe (tiene ID) y hay armas seleccionadas, guardar las reservas
     const clienteActual = clientFormData || selectedClient;
     if (clienteActual?.id && armasParaReservar.length > 0) {
       try {
-
-        // Crear reservas para todas las armas seleccionadas
         const todasAdvertenciasCliente: string[] = [];
         for (const arma of armasParaReservar) {
           const precioUnitario = arma.precioUnitario !== undefined
@@ -339,12 +316,11 @@ export const useVendedorHandlers = (
         console.error('Error guardando reserva(s) de arma:', error instanceof Error ? error.message : 'Unknown error');
         const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido al guardar reserva';
         alert(`⚠️ Error al guardar la(s) reserva(s) del arma: ${errorMessage}`);
-        return; // No continuar si falla guardar la reserva
+        return;
       }
     } else {
     }
     
-    // Siempre ir a paymentForm (expoferia eliminada)
     setCurrentPage('paymentForm');
   }, [clientFormData, selectedClient, selectedWeapon, precioModificado, cantidad, user, loadClients, loadWeapons, weaponPrices, setClientFormData, setSelectedClient, setSelectedWeapons, setCurrentPage]);
 
@@ -369,8 +345,6 @@ export const useVendedorHandlers = (
     setSelectedSerieNumero(null);
     setCurrentPage('weaponSelection');
   }, [setSelectedSerieId, setSelectedSerieNumero, setCurrentPage]);
-
-  // handlePaymentComplete movido a useVendedorPaymentHandler.ts
 
   const handleViewClient = useCallback(async (client: Client) => {
     try {
@@ -419,7 +393,6 @@ export const useVendedorHandlers = (
   const handleValidarDatosPersonales = useCallback(async (client: Client) => {
     try {
       await apiService.validarDatosPersonales(Number(client.id));
-      // Recargar clientes para actualizar el estado
       await loadClients();
       alert('✅ Datos personales validados exitosamente');
     } catch (error: any) {
@@ -432,32 +405,23 @@ export const useVendedorHandlers = (
     try {
       const clienteCompleto = await apiService.getCliente(parseInt(client.id));
       
-      // Obtener tipos de cliente para el mapeo
       const tiposClienteCompletos = await apiService.getClientTypes();
-      
-      // Mapear provincia: el backend devuelve código
-      // El select de provincia usa códigos, así que mantenemos el código
+
       let provinciaMapeada = (clienteCompleto as any).provincia || '';
       if (provinciaMapeada) {
-        // Buscar si es código o nombre (por seguridad)
         const provinciaPorCodigo = provinciasCompletas.find(p => p.codigo === provinciaMapeada);
         const provinciaPorNombre = provinciasCompletas.find(p => p.nombre === provinciaMapeada);
-        
+
         if (provinciaPorCodigo) {
-          // Ya es código, mantenerlo
           provinciaMapeada = provinciaPorCodigo.codigo;
         } else if (provinciaPorNombre) {
-          // Es nombre, convertir a código para el select
           provinciaMapeada = provinciaPorNombre.codigo;
-        } else {
-          // No se encontro, usar valor original
         }
       }
       
-      // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+      // tipoCliente debe ser NOMBRE para coincidir con el select (value={tipo.nombre})
       let tipoClienteNombre = (clienteCompleto as any).tipoClienteNombre || '';
       if (!tipoClienteNombre && (clienteCompleto as any).tipoClienteCodigo) {
-        // Si no viene tipoClienteNombre, buscar por código en los tipos de cliente
         const tipoClienteEncontrado = tiposClienteCompletos.find((tc: any) => tc.codigo === (clienteCompleto as any).tipoClienteCodigo);
         if (tipoClienteEncontrado) {
           tipoClienteNombre = tipoClienteEncontrado.nombre;
@@ -466,10 +430,8 @@ export const useVendedorHandlers = (
       
       const clienteParaMostrar = {
         ...clienteCompleto,
-        // tipoCliente debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
         tipoCliente: tipoClienteNombre,
         tipoClienteNombre: tipoClienteNombre,
-        // provincia debe ser el CÓDIGO para que coincida con el select (value={provincia.codigo})
         provincia: provinciaMapeada,
         canton: (clienteCompleto as any).canton || ''
       };
@@ -489,10 +451,8 @@ export const useVendedorHandlers = (
       setCurrentPage('clientForm');
     } catch (error) {
       console.error('Error obteniendo cliente completo:', error instanceof Error ? error.message : 'Unknown error');
-      // En caso de error, intentar usar los datos del cliente que ya tenemos
       let provinciaMapeada = client.provincia || '';
       if (provinciaMapeada) {
-        // Buscar si es código o nombre
         const provinciaPorCodigo = provinciasCompletas.find(p => p.codigo === provinciaMapeada);
         const provinciaPorNombre = provinciasCompletas.find(p => p.nombre === provinciaMapeada);
         
@@ -503,7 +463,6 @@ export const useVendedorHandlers = (
         }
       }
       
-      // Obtener tipos de cliente para el mapeo
       let tiposClienteCompletos: any[] = [];
       try {
         tiposClienteCompletos = await apiService.getClientTypes();
@@ -511,28 +470,23 @@ export const useVendedorHandlers = (
         console.error('Error obteniendo tipos de cliente:', e instanceof Error ? e.message : 'Unknown error');
       }
       
-      // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
+      // tipoCliente debe ser NOMBRE para coincidir con el select (value={tipo.nombre})
       let tipoClienteNombre = (client as any).tipoClienteNombre || client.tipoCliente || '';
       if (tipoClienteNombre && tiposClienteCompletos.length > 0) {
-        // Verificar si el valor actual es código o nombre
         const tipoClientePorCodigo = tiposClienteCompletos.find((tc: any) => tc.codigo === tipoClienteNombre);
         const tipoClientePorNombre = tiposClienteCompletos.find((tc: any) => tc.nombre === tipoClienteNombre);
         
         if (tipoClientePorCodigo) {
-          // Es código, convertir a nombre
           tipoClienteNombre = tipoClientePorCodigo.nombre;
         } else if (tipoClientePorNombre) {
-          // Ya es nombre, mantenerlo
           tipoClienteNombre = tipoClientePorNombre.nombre;
         }
       }
       
       const clienteParaMostrar = {
         ...client,
-        // tipoCliente debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
         tipoCliente: tipoClienteNombre,
         tipoClienteNombre: tipoClienteNombre,
-        // provincia debe ser el CÓDIGO para que coincida con el select (value={provincia.codigo})
         provincia: provinciaMapeada,
         canton: client.canton || ''
       };

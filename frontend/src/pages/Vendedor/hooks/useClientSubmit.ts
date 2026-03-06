@@ -117,7 +117,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     return clientStatus;
   }, [clienteBloqueado, edadValida, documentStatus]);
 
-  /** Upload documents for a given clienteId. Returns array of error strings. */
   const uploadDocuments = useCallback(async (clienteId: number, isEditMode: boolean): Promise<string[]> => {
     const documentErrors: string[] = [];
     if (Object.keys(uploadedDocuments).length === 0) return documentErrors;
@@ -128,7 +127,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
       const { tipoDocumentoId, documentNombre } = resolveDocumentoId(key, file);
 
       if (!tipoDocumentoId) {
-        // No se pudo determinar el ID del documento
         if (requiredDocuments.length > 0) {
           documentErrors.push(`Documento ${documentNombre}`);
         }
@@ -170,7 +168,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     return documentErrors;
   }, [uploadedDocuments, loadedDocuments, requiredDocuments, resolveDocumentoId]);
 
-  /** Handle weapon assignment for edit mode */
   const handleWeaponAssignmentEdit = useCallback(async (clienteId: number): Promise<string | null> => {
     if (!currentSelectedWeapon) return null;
 
@@ -229,7 +226,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     }
   }, [currentSelectedWeapon, precioModificado, cantidad]);
 
-  /** Reload documents into state after successful upload */
   const reloadDocuments = useCallback(async (clienteId: number) => {
     try {
       const documentos = await apiService.getDocumentosCliente(clienteId);
@@ -255,7 +251,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     }
   }, [setLoadedDocuments]);
 
-  /** Submit handler for edit mode */
   const submitEdit = useCallback(async (clientStatus: string, clientDataForBackend: any) => {
     if (!client) throw new Error('No client for edit');
 
@@ -346,16 +341,13 @@ export function useClientSubmit(props: UseClientSubmitProps) {
 
     const clienteId = parseInt(updatedClient.id?.toString() || updateResponse?.clienteId?.toString() || client.id.toString());
 
-    // Upload documents
     const documentErrors = await uploadDocuments(clienteId, true);
 
-    // Handle weapon assignment
     let armaError: string | null = null;
     if (currentSelectedWeapon) {
       armaError = await handleWeaponAssignmentEdit(clienteId);
     }
 
-    // Show result
     if (documentErrors.length > 0 || armaError) {
       const errores = [];
       if (documentErrors.length > 0) errores.push(`documentos: ${documentErrors.join(', ')}`);
@@ -369,7 +361,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     return updatedClient;
   }, [client, formData, getCodigoTipoCliente, currentSelectedWeapon, clienteArmaIdDelStock, precioModificado, cantidad, uploadDocuments, handleWeaponAssignmentEdit, reloadDocuments]);
 
-  /** Submit handler for create mode */
   const submitCreate = useCallback(async (clientStatus: string, clientDataForBackend: any) => {
     const respuestasParaBackend = (formData.respuestas || [])
       .filter((r: any) => r.questionId && r.respuesta)
@@ -395,7 +386,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
 
     const response = await apiService.createCliente(requestData);
 
-    // Reassign weapon from stock if applicable
     if (clienteArmaIdDelStock && currentSelectedWeapon) {
       const clienteId = (response as any).clienteId || (response as any).id;
       if (clienteId) {
@@ -416,7 +406,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     if (response) {
       const clienteId = (response as any).clienteId || (response as any).id;
 
-      // Upload documents
       if (Object.keys(uploadedDocuments).length > 0) {
         const documentErrors = await uploadDocuments(parseInt(clienteId.toString()), false);
 
@@ -455,7 +444,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
     return null;
   }, [formData, currentSelectedWeapon, clienteArmaIdDelStock, precioModificado, cantidad, uploadedDocuments, requiredDocuments, uploadDocuments, setClienteArmaIdDelStock]);
 
-  /** Main submit handler */
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -468,7 +456,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
         return;
       }
 
-      // Validate unique identification (create mode only)
       if (mode === 'create' && formData.numeroIdentificacion) {
         try {
           const validacion = await apiService.validarIdentificacion(formData.numeroIdentificacion);
@@ -478,7 +465,6 @@ export function useClientSubmit(props: UseClientSubmitProps) {
             return;
           }
 
-          // Pre-fill from PROCESO_COMPLETADO client
           if (validacion.clienteFinalizadoExiste && validacion.datosPersonales && setFormData) {
             const aceptar = window.confirm(
               'Se encontraron datos de un proceso anterior completado con esta cédula.\n\n' +
@@ -536,14 +522,12 @@ export function useClientSubmit(props: UseClientSubmitProps) {
         return;
       }
 
-      // Notify parent about block status
       if (clienteBloqueado) {
         onClienteBloqueado?.(updatedClient.id.toString(), true, motivoBloqueo);
       } else if (client && (client as any).estado === 'BLOQUEADO' && !clienteBloqueado) {
         onClienteBloqueado?.(updatedClient.id.toString(), false, '');
       }
 
-      // Navigate or save
       if (mode === 'edit') {
         // En modo edición, siempre volver al dashboard
         onSave(updatedClient as any);

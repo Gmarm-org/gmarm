@@ -38,10 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para la gestión de relaciones cliente-arma
- * Reemplaza a AsignacionArmaService para mantener consistencia
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -73,27 +69,20 @@ public class ClienteArmaService {
         return armas != null && !armas.isEmpty();
     }
     
-    /**
-     * Crear una nueva reserva de arma para un cliente
-     */
     public ClienteArmaDTO crearReserva(Long clienteId, Long armaId, Integer cantidad, BigDecimal precioUnitario) {
         log.info("MÉTODO crearReserva INICIADO - Cliente: {}, Arma: {}", clienteId, armaId);
         log.info("Creando reserva de arma {} para cliente {}", armaId, clienteId);
         
-        // Validar que el cliente existe
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + clienteId));
         
-        // Validar que el arma existe
         Arma arma = armaRepository.findById(armaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + armaId));
         
-        // Obtener reservas activas del cliente (no canceladas ni completadas)
         List<ClienteArma> reservasActivas = clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(clienteId).stream()
             .filter(ca -> !ca.estaCompletada()) // No las completadas (ya entregadas)
             .collect(java.util.stream.Collectors.toList());
         
-        // Validar límites según tipo de cliente
         if (cliente.getTipoCliente() != null) {
             String tipoClienteCodigo = cliente.getTipoCliente().getCodigo();
             String tipoClienteNombre = cliente.getTipoCliente().getNombre();
@@ -102,7 +91,6 @@ public class ClienteArmaService {
                              "Cliente Civil".equalsIgnoreCase(tipoClienteNombre);
             
             if (esCivil) {
-                // Cliente Civil: máximo 2 armas
                 if (reservasActivas.size() >= 2) {
                     throw new BadRequestException(
                         String.format("Cliente Civil puede solicitar máximo 2 armas. " +
@@ -111,18 +99,15 @@ public class ClienteArmaService {
                                     reservasActivas.size()));
                 }
                 
-                // Verificar que no exista ya una reserva de la misma arma
                 boolean existeMismaArma = reservasActivas.stream()
                     .anyMatch(ca -> ca.getArma().getId().equals(armaId));
-                
+
                 if (existeMismaArma) {
                     throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
                 }
-                
+
                 log.info("Cliente Civil detectado. Reservas activas: {}/2", reservasActivas.size());
             } else {
-                // Para otros tipos (Deportista, Militar, etc.): sin límite
-                // Pero verificamos que no exista ya una reserva de la misma arma
                 boolean existeMismaArma = reservasActivas.stream()
                     .anyMatch(ca -> ca.getArma().getId().equals(armaId));
                 
@@ -134,7 +119,7 @@ public class ClienteArmaService {
                         tipoClienteNombre, reservasActivas.size());
             }
         } else {
-            // Si no tiene tipo de cliente definido, comportamiento conservador: máximo 2 armas
+            // Comportamiento conservador si no tiene tipo: máximo 2 armas
             if (reservasActivas.size() >= 2) {
                 throw new BadRequestException(
                     String.format("El cliente puede solicitar máximo 2 armas. " +
@@ -142,16 +127,14 @@ public class ClienteArmaService {
                                 reservasActivas.size()));
             }
             
-            // Verificar que no exista ya una reserva de la misma arma
             boolean existeMismaArma = reservasActivas.stream()
                 .anyMatch(ca -> ca.getArma().getId().equals(armaId));
-            
+
             if (existeMismaArma) {
                 throw new BadRequestException("Ya existe una reserva activa de esta arma para este cliente");
             }
         }
-        
-        // Validar cantidad
+
         if (cantidad == null || cantidad <= 0) {
             cantidad = 1;
         }
@@ -165,7 +148,6 @@ public class ClienteArmaService {
         // y se importarán posteriormente.
         log.info("Reservando arma ID={}, cantidad={} para cliente (proceso de importación - sin validación de stock)", armaId, cantidad);
         
-        // Validar que el cliente tenga todos sus documentos obligatorios completos y aprobados
         // EXCEPCIÓN: Los clientes fantasma (PENDIENTE_ASIGNACION_CLIENTE) no requieren documentos
         // ya que son temporales y solo sirven para almacenar armas del vendedor
         if (cliente.getEstado() != EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE) {
@@ -178,7 +160,6 @@ public class ClienteArmaService {
             log.info("Cliente fantasma detectado - omitiendo validación de documentos obligatorios");
         }
         
-        // Crear la reserva
         ClienteArma clienteArma = new ClienteArma();
         clienteArma.setCliente(cliente);
         clienteArma.setArma(arma);
@@ -213,7 +194,6 @@ public class ClienteArmaService {
                     if (categoriaArmaId != null) {
                         boolean esSegundaArma = reservasActivas.size() >= 1;
 
-                        // Obtener grupo de la primera arma (para detectar split)
                         String grupoPrimeraArmaNombre = null;
                         if (esSegundaArma) {
                             List<ClienteGrupoImportacion> asignacionesExistentes = clienteGrupoImportacionRepository.findByClienteId(clienteId);
@@ -243,7 +223,6 @@ public class ClienteArmaService {
                                     cliente.getId(), grupoDisponible.getId(), categoriaArmaId, esSegundaArma);
                             }
 
-                            // Detectar split de grupos (segunda arma en grupo diferente)
                             if (esSegundaArma && grupoPrimeraArmaNombre != null
                                 && !grupoPrimeraArmaNombre.equals(grupoDisponible.getNombre())) {
                                 String advertenciaSplit = String.format(
@@ -253,11 +232,9 @@ public class ClienteArmaService {
                                 notificarSplitSeguro(cliente.getNombreCompleto(), grupoPrimeraArmaNombre, grupoDisponible.getNombre());
                             }
 
-                            // Verificar cupos restantes y enviar alertas
                             verificarYNotificarCupoBajo(grupoDisponible, categoriaArmaId, categoriaNombre);
 
                         } else {
-                            // No hay grupo disponible → poner en espera
                             saved.ponerEnEspera();
                             saved = clienteArmaRepository.save(saved);
 
@@ -288,9 +265,6 @@ public class ClienteArmaService {
         return resultado;
     }
 
-    /**
-     * Obtener todas las reservas de un cliente
-     */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerReservasPorCliente(Long clienteId) {
         log.info("Obteniendo reservas para cliente: {}", clienteId);
@@ -301,9 +275,6 @@ public class ClienteArmaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener todas las reservas de una arma
-     */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerReservasPorArma(Long armaId) {
         log.info("Obteniendo reservas para arma: {}", armaId);
@@ -314,9 +285,6 @@ public class ClienteArmaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Confirmar una reserva
-     */
     public ClienteArmaDTO confirmarReserva(Long id) {
         log.info("Confirmando reserva: {}", id);
         
@@ -334,9 +302,6 @@ public class ClienteArmaService {
         return convertirADTO(saved);
     }
 
-    /**
-     * Cancelar una reserva
-     */
     public ClienteArmaDTO cancelarReserva(Long id) {
         log.info("Cancelando reserva: {}", id);
         
@@ -357,9 +322,6 @@ public class ClienteArmaService {
         return convertirADTO(saved);
     }
 
-    /**
-     * Completar una reserva
-     */
     public ClienteArmaDTO completarReserva(Long id) {
         log.info("Completando reserva: {}", id);
         
@@ -377,9 +339,6 @@ public class ClienteArmaService {
         return convertirADTO(saved);
     }
 
-    /**
-     * Asignar número de serie a una reserva (pasa a ASIGNADA)
-     */
     public ClienteArmaDTO asignarNumeroSerie(Long id, String numeroSerie) {
         log.info("Asignando número de serie {} a reserva: {}", numeroSerie, id);
         
@@ -390,7 +349,6 @@ public class ClienteArmaService {
             throw new BadRequestException("Solo se pueden asignar números de serie a reservas en estado RESERVADA");
         }
         
-        // Validar que el número de serie no esté ya asignado
         if (clienteArmaRepository.existsByNumeroSerie(numeroSerie)) {
             throw new BadRequestException("El número de serie ya está asignado a otra arma");
         }
@@ -403,9 +361,6 @@ public class ClienteArmaService {
         return convertirADTO(saved);
     }
 
-    /**
-     * Obtener reservas pendientes para asignación de números de serie
-     */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerReservasPendientes() {
         log.info("Obteniendo reservas pendientes para asignación de series");
@@ -416,10 +371,6 @@ public class ClienteArmaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener reservas pendientes de asignación de número de serie (estado RESERVADA)
-     * Con información completa del cliente y arma para el módulo de finanzas
-     */
     public List<ClienteArmaDTO> obtenerReservasPendientesAsignacion() {
         log.info("Obteniendo reservas pendientes de asignación de número de serie");
         
@@ -429,9 +380,6 @@ public class ClienteArmaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Eliminar una reserva
-     */
     public void eliminarReserva(Long id) {
         log.info("Eliminando reserva: {}", id);
         
@@ -445,9 +393,6 @@ public class ClienteArmaService {
         log.info("Reserva eliminada exitosamente: {}", id);
     }
 
-    /**
-     * Obtener estadísticas de reservas
-     */
     @Transactional(readOnly = true)
     public ClienteArmaStatsDTO obtenerEstadisticas() {
         long totalReservas = clienteArmaRepository.count();
@@ -459,18 +404,10 @@ public class ClienteArmaService {
         return new ClienteArmaStatsDTO(totalReservas, reservasPendientes, reservasAsignadas, reservasCanceladas, reservasCompletadas);
     }
 
-    /**
-     * Obtener armas en stock del vendedor (armas asignadas a clientes fantasma del vendedor)
-     * Estas son armas que el vendedor solicitó sin cliente y que pueden ser reasignadas
-     * 
-     * @param usuarioId ID del vendedor
-     * @return Lista de armas en stock del vendedor
-     */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerArmasEnStockVendedor(Long usuarioId) {
         log.info("Obteniendo armas en stock del vendedor ID: {}", usuarioId);
         
-        // Buscar clientes fantasma del vendedor
         List<Cliente> clientesFantasma = clienteRepository.findByUsuarioCreadorIdAndEstado(
             usuarioId,
             EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE
@@ -481,8 +418,6 @@ public class ClienteArmaService {
             return List.of();
         }
         
-        // Obtener todas las armas asignadas a estos clientes fantasma
-        // Solo armas en estado RESERVADA (no canceladas ni completadas)
         List<ClienteArma> armasEnStock = clientesFantasma.stream()
             .flatMap(cliente -> clienteArmaRepository.findActiveByClienteIdWithArmaAndCategoria(cliente.getId()).stream())
             .filter(ca -> ca.getEstado() == ClienteArma.EstadoClienteArma.RESERVADA
@@ -509,20 +444,16 @@ public class ClienteArmaService {
     public ClienteArmaDTO actualizarArmaReserva(Long clienteArmaId, Long nuevaArmaId, BigDecimal nuevoPrecioUnitario) {
         log.info("Cambio de arma solicitado - reserva ID: {}, nueva arma ID: {}", clienteArmaId, nuevaArmaId);
 
-        // 1. Obtener la reserva existente
         ClienteArma clienteArmaAnterior = clienteArmaRepository.findById(clienteArmaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con ID: " + clienteArmaId));
 
-        // 2. Validar que la nueva arma existe
         Arma nuevaArma = armaRepository.findById(nuevaArmaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Arma no encontrada con ID: " + nuevaArmaId));
 
-        // 3. Validar que no esté completada
         if (clienteArmaAnterior.estaCompletada()) {
             throw new BadRequestException("No se puede cambiar el arma de una reserva que ya fue completada/entregada");
         }
 
-        // 4. Validar estado del grupo de importación
         Long clienteId = clienteArmaAnterior.getCliente().getId();
         List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository.findByClienteId(clienteId);
         for (ClienteGrupoImportacion cg : gruposCliente) {
@@ -537,7 +468,6 @@ public class ClienteArmaService {
             }
         }
 
-        // 5. Validar que no haya cuotas ya pagadas
         List<Pago> pagosCliente = pagoRepository.findByClienteIdOrderByIdDesc(clienteId);
         Pago pagoAnterior = pagosCliente.stream()
             .filter(p -> p.getEstado() != EstadoPago.CANCELADO)
@@ -553,7 +483,6 @@ public class ClienteArmaService {
             }
         }
 
-        // --- Logging ---
         String nombreArmaAnterior = clienteArmaAnterior.getArma().getModelo();
         String nombreNuevaArma = nuevaArma.getModelo();
         Cliente cliente = clienteArmaAnterior.getCliente();
@@ -561,11 +490,9 @@ public class ClienteArmaService {
         log.info("CAMBIO DE ARMA - Cliente ID: {}, Anterior: {} (ID: {}), Nueva: {} (ID: {})",
             clienteId, nombreArmaAnterior, clienteArmaAnterior.getArma().getId(), nombreNuevaArma, nuevaArmaId);
 
-        // 6. Eliminar ClienteArma anterior
         clienteArmaRepository.delete(clienteArmaAnterior);
         log.info("ClienteArma anterior ID: {} eliminado", clienteArmaId);
 
-        // 7. Crear NUEVO ClienteArma con la nueva arma
         BigDecimal precioNuevo = nuevoPrecioUnitario != null ? nuevoPrecioUnitario : nuevaArma.getPrecioReferencia();
         ClienteArma nuevoClienteArma = new ClienteArma();
         nuevoClienteArma.setCliente(cliente);
@@ -577,22 +504,16 @@ public class ClienteArmaService {
         ClienteArma saved = clienteArmaRepository.save(nuevoClienteArma);
         log.info("Nuevo ClienteArma creado con ID: {}, arma: {}, precio: {}", saved.getId(), nombreNuevaArma, precioNuevo);
 
-        // 8. Cancelar pago anterior y crear nuevo con montos recalculados
         if (pagoAnterior != null) {
             recalcularPago(pagoAnterior, precioNuevo, clienteId);
         }
 
-        // 9. Eliminar documentos generados anteriores (deben regenerarse)
         eliminarDocumentosGenerados(clienteId);
 
         return convertirADTO(saved);
     }
 
-    /**
-     * Recalcula el pago: elimina el anterior con sus cuotas y crea uno nuevo con montos actualizados
-     */
     private void recalcularPago(Pago pagoAnterior, BigDecimal nuevoPrecioBase, Long clienteId) {
-        // Obtener IVA del sistema
         double ivaDecimal;
         try {
             String ivaValor = configuracionSistemaService.getValorConfiguracion("IVA");
@@ -602,27 +523,22 @@ public class ClienteArmaService {
             ivaDecimal = 0.15;
         }
 
-        // Eliminar cuotas del pago anterior
         List<CuotaPago> cuotasAnteriores = cuotaPagoRepository.findByPagoIdOrderByNumeroCuota(pagoAnterior.getId());
         cuotaPagoRepository.deleteAll(cuotasAnteriores);
         log.info("Eliminadas {} cuotas del pago anterior ID: {}", cuotasAnteriores.size(), pagoAnterior.getId());
 
-        // Eliminar pago anterior
         Long pagoAnteriorId = pagoAnterior.getId();
         pagoRepository.delete(pagoAnterior);
         log.info("Pago anterior ID: {} eliminado por cambio de arma", pagoAnteriorId);
 
-        // Calcular nuevos montos
         BigDecimal subtotal = nuevoPrecioBase;
         BigDecimal montoIva = subtotal.multiply(BigDecimal.valueOf(ivaDecimal)).setScale(2, RoundingMode.HALF_UP);
         BigDecimal montoTotal = subtotal.add(montoIva);
 
-        // Preservar estructura del pago anterior
         TipoPago tipoPago = pagoAnterior.getTipoPago();
         Integer numeroCuotas = pagoAnterior.getNumeroCuotas();
         BigDecimal montoCuota = montoTotal.divide(BigDecimal.valueOf(numeroCuotas), 2, RoundingMode.HALF_UP);
 
-        // Crear nuevo pago
         Pago nuevoPago = new Pago();
         nuevoPago.setClienteId(clienteId);
         nuevoPago.setSubtotal(subtotal);
@@ -640,7 +556,6 @@ public class ClienteArmaService {
         log.info("Nuevo pago creado ID: {}, total: {}, tipo: {}, cuotas: {}",
             pagoGuardado.getId(), montoTotal, tipoPago, numeroCuotas);
 
-        // Crear cuotas para el nuevo pago si es CREDITO
         if (tipoPago == TipoPago.CREDITO && numeroCuotas > 1) {
             LocalDate fechaVencimiento = LocalDate.now().plusMonths(1);
             for (int i = 1; i <= numeroCuotas; i++) {
@@ -656,10 +571,6 @@ public class ClienteArmaService {
         }
     }
 
-    /**
-     * Elimina todos los documentos generados del cliente (contrato, solicitud, cotización)
-     * para que deban regenerarse con los datos actualizados
-     */
     private void eliminarDocumentosGenerados(Long clienteId) {
         try {
             documentoPDFUtils.eliminarDocumentosAnterioresDelTipo(clienteId, TipoDocumentoGenerado.CONTRATO);
@@ -672,30 +583,19 @@ public class ClienteArmaService {
     }
     
     /**
-     * Reasignar un arma de un cliente a otro
-     * Útil para transferir armas del stock del vendedor (cliente fantasma) a un cliente real
-     * 
      * IMPORTANTE: Valida que el nuevo cliente tenga todos sus documentos obligatorios completos
-     * antes de permitir la reasignación. Esto asegura que solo se entreguen armas a clientes
-     * con documentación completa.
-     * 
-     * @param clienteArmaId ID de la relación ClienteArma a reasignar
-     * @param nuevoClienteId ID del nuevo cliente al que se asignará el arma
-     * @return ClienteArmaDTO actualizado
+     * antes de permitir la reasignación. Solo se reasignan armas a clientes con documentación completa.
      */
     @Transactional
     public ClienteArmaDTO reasignarArmaACliente(Long clienteArmaId, Long nuevoClienteId) {
         log.info("Reasignando arma ID {} al cliente ID {}", clienteArmaId, nuevoClienteId);
         
-        // Buscar la relación ClienteArma
         ClienteArma clienteArma = clienteArmaRepository.findById(clienteArmaId)
             .orElseThrow(() -> new ResourceNotFoundException("Relación Cliente-Arma no encontrada con ID: " + clienteArmaId));
         
-        // Verificar que el nuevo cliente existe
         Cliente nuevoCliente = clienteRepository.findById(nuevoClienteId)
             .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + nuevoClienteId));
         
-        // Verificar que la arma esté en un estado válido para reasignación
         if (clienteArma.getEstado() == ClienteArma.EstadoClienteArma.CANCELADA) {
             throw new BadRequestException("No se puede reasignar un arma cancelada");
         }
@@ -704,8 +604,6 @@ public class ClienteArmaService {
             throw new BadRequestException("No se puede reasignar un arma completada");
         }
         
-        // VALIDACIÓN CRÍTICA: Verificar que el nuevo cliente tenga todos sus documentos obligatorios completos
-        // Esto asegura que solo se entreguen armas a clientes con documentación completa
         boolean documentosCompletos = documentoClienteService.verificarDocumentosCompletos(nuevoClienteId);
         if (!documentosCompletos) {
             log.warn("Intento de reasignar arma a cliente ID {} sin documentos completos", nuevoClienteId);
@@ -713,11 +611,9 @@ public class ClienteArmaService {
                     "Debe cargar y aprobar todos los documentos requeridos antes de poder recibir el arma.");
         }
         
-        // Reasignar el arma al nuevo cliente
         Cliente clienteAnterior = clienteArma.getCliente();
         clienteArma.setCliente(nuevoCliente);
         clienteArma.setFechaAsignacion(java.time.LocalDateTime.now());
-        // Cambiar el estado del arma a REASIGNADO cuando se reasigna
         clienteArma.setEstado(ClienteArma.EstadoClienteArma.REASIGNADO);
         
         ClienteArma clienteArmaActualizado = clienteArmaRepository.save(clienteArma);
@@ -728,12 +624,6 @@ public class ClienteArmaService {
         return convertirADTO(clienteArmaActualizado);
     }
 
-    /**
-     * Obtener todas las armas con estado REASIGNADO
-     * Estas son armas que fueron reasignadas y están esperando ser asignadas a un nuevo cliente
-     * 
-     * @return Lista de armas reasignadas con información del cliente anterior
-     */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerArmasReasignadas() {
         log.info("Obteniendo armas con estado REASIGNADO");
@@ -747,16 +637,12 @@ public class ClienteArmaService {
             .collect(Collectors.toList());
     }
     
-    /**
-     * Verifica los cupos restantes en un grupo y envía alertas si están bajos.
-     */
     private void verificarYNotificarCupoBajo(GrupoImportacion grupo, Long categoriaArmaId, String categoriaNombre) {
         try {
             Map<Long, Integer> cupos = grupoImportacionMatchingService.calcularCuposDisponiblesPorCategoria(grupo.getId());
             Integer cuposRestantes = cupos.get(categoriaArmaId);
             if (cuposRestantes == null) return;
 
-            // Obtener límite máximo de la categoría en este grupo
             int limiteMaximo = cuposRestantes; // fallback
             if (grupo.getLimitesCategoria() != null) {
                 limiteMaximo = grupo.getLimitesCategoria().stream()
@@ -791,9 +677,6 @@ public class ClienteArmaService {
         }
     }
 
-    /**
-     * Obtener armas en estado EN_ESPERA (sin grupo disponible).
-     */
     @Transactional(readOnly = true)
     public List<ClienteArmaDTO> obtenerArmasEnEspera() {
         log.info("Obteniendo armas en estado EN_ESPERA");
@@ -804,9 +687,6 @@ public class ClienteArmaService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * Convertir entidad a DTO
-     */
     private ClienteArmaDTO convertirADTO(ClienteArma clienteArma) {
         ClienteArmaDTO dto = new ClienteArmaDTO();
         dto.setId(clienteArma.getId());
@@ -830,9 +710,6 @@ public class ClienteArmaService {
     }
 
 
-    /**
-     * DTO para estadísticas
-     */
     public static class ClienteArmaStatsDTO {
         private final long totalReservas;
         private final long reservasPendientes;
@@ -849,7 +726,6 @@ public class ClienteArmaService {
             this.reservasCompletadas = reservasCompletadas;
         }
 
-        // Getters
         public long getTotalReservas() { return totalReservas; }
         public long getReservasPendientes() { return reservasPendientes; }
         public long getReservasConfirmadas() { return reservasConfirmadas; }

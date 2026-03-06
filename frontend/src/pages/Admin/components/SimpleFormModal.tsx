@@ -7,7 +7,7 @@ interface Field {
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
-  options?: Array<{value: string | number, label: string}>; // Para select
+  options?: Array<{value: string | number, label: string}>;
 }
 
 interface SimpleFormModalProps {
@@ -18,8 +18,8 @@ interface SimpleFormModalProps {
   mode: 'create' | 'edit' | 'view';
   title: string;
   fields: Field[];
-  hideHeader?: boolean; // Opcional: ocultar header (cuando se usa dentro de otro contenedor)
-  customSection?: React.ReactNode | ((formData: any) => React.ReactNode); // Opcional: sección personalizada al final del formulario (puede ser función que recibe formData)
+  hideHeader?: boolean;
+  customSection?: React.ReactNode | ((formData: any) => React.ReactNode);
 }
 
 const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
@@ -42,7 +42,6 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
     } else {
       const initialData: any = {};
       fields.forEach(field => {
-        // Para checkboxes: estado = true por defecto, otros = false
         initialData[field.key] = field.type === 'checkbox' ? (field.key === 'estado' ? true : false) : '';
       });
       setFormData(initialData);
@@ -56,12 +55,10 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
     try {
       setIsSaving(true);
       await onSave(formData);
-      // Solo cerrar modal si onSave fue exitoso (no lanzó error)
       onClose();
     } catch (error) {
       console.error('Error guardando:', error);
       alert('Error al guardar. Por favor revise los datos e intente nuevamente.');
-      // NO cerrar modal aquí - dejar abierto para que usuario corrija datos
     } finally {
       setIsSaving(false);
     }
@@ -71,7 +68,6 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Contenido del formulario (compartido entre ambos modos)
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4">
           {fields.map(field => (
@@ -99,8 +95,7 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
                       const newValue = e.target.checked;
                       const updatedData = { ...formData, [field.key]: newValue };
                       
-                      // Si se marca gruposImportacion, limpiar tipoProcesoId automáticamente
-                      if (field.key === 'gruposImportacion' && newValue) {
+                        if (field.key === 'gruposImportacion' && newValue) {
                         updatedData.tipoProcesoId = undefined;
                       }
                       
@@ -123,7 +118,6 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
                   <select
                     value={formData.gruposImportacion ? '' : (formData[field.key] || '')}
                     onChange={(e) => {
-                      // No permitir cambiar si gruposImportacion está marcado
                       if (!formData.gruposImportacion) {
                         const value = e.target.value;
                         const selectedValue = value === '' ? undefined : (isNaN(Number(value)) ? value : Number(value));
@@ -135,8 +129,8 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
                         ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed' 
                         : 'border-gray-300'
                     }`}
-                    required={field.required && !formData.gruposImportacion} // No requerir si es para grupos
-                    disabled={isReadOnly || field.disabled || formData.gruposImportacion} // Deshabilitar si es para grupos
+                    required={field.required && !formData.gruposImportacion}
+                    disabled={isReadOnly || field.disabled || formData.gruposImportacion}
                     style={formData.gruposImportacion ? { pointerEvents: 'none' } : {}}
                   >
                     <option value="">
@@ -173,10 +167,8 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
             </div>
           ))}
 
-        {/* Sección personalizada (opcional) - puede ser función que recibe formData */}
         {typeof customSection === 'function' ? customSection(formData) : customSection}
 
-        {/* Botones */}
         <div className="flex justify-end space-x-3 pt-4 border-t">
           <button
             type="button"
@@ -198,12 +190,10 @@ const SimpleFormModal: React.FC<SimpleFormModalProps> = ({
       </form>
   );
 
-  // Si se oculta el header, renderizar solo el formulario
   if (hideHeader) {
     return <div className="p-6">{formContent}</div>;
   }
 
-  // Renderizar modal completo con header
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">

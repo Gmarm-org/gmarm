@@ -7,14 +7,12 @@ import { useIVA } from '../../../hooks/useConfiguracion';
 import type { Client } from '../types';
 import type { Weapon } from '../types';
 
-// Hooks refactorizados
 import { useClientFormData } from '../hooks/useClientFormData';
 import { useClientCatalogs } from '../hooks/useClientCatalogs';
 import { useClientDocuments } from '../hooks/useClientDocuments';
 import { useClientAnswers } from '../hooks/useClientAnswers';
 import { useClientSubmit } from '../hooks/useClientSubmit';
 
-// Componentes de secciones
 import { ClientPersonalDataSection } from './sections/ClientPersonalDataSection';
 import { ClientCompanyDataSection } from './sections/ClientCompanyDataSection';
 import { ClientDocumentsSection } from './sections/ClientDocumentsSection';
@@ -59,7 +57,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const { iva: ivaDecimal, ivaPorcentaje } = useIVA();
   const lastGrupoCheckRef = useRef<string | null>(null);
 
-  // Hooks refactorizados
   const {
     formData,
     setFormData,
@@ -84,39 +81,30 @@ const ClientForm: React.FC<ClientFormProps> = ({
     setAvailableCantonsEmpresa
   } = useClientCatalogs();
 
-  // Estados para datos cargados del cliente
   const [loadedArmas, setLoadedArmas] = useState<any[]>([]);
   const [loadedPagos, setLoadedPagos] = useState<any[]>([]);
   const [loadedContratos, setLoadedContratos] = useState<any[]>([]);
   const [localSelectedWeapon, setLocalSelectedWeapon] = useState<Weapon | null>(null);
   
-  // Estado para armas en stock del vendedor
   const [armasEnStock, setArmasEnStock] = useState<any[]>([]);
   
-  // Estado para guardar el ID de la relación ClienteArma del stock (para reasignar después)
   const [clienteArmaIdDelStock, setClienteArmaIdDelStock] = useState<number | null>(null);
-  
-  // Combinar selectedWeapon prop con localSelectedWeapon para mostrar la arma correcta
+
   const currentSelectedWeapon = localSelectedWeapon || selectedWeapon;
-  
-  // Determinar si es empresa
+
   const isEmpresa = formData.tipoCliente === 'Compañía de Seguridad';
   
   const tipoClienteLower = (formData.tipoCliente || '').toLowerCase();
   const isPoliceTypeFallback = tipoClienteLower.includes('polic');
   const isMilitaryTypeFallback = tipoClienteLower.includes('militar');
 
-  // Determinar si es uniformado basado en el tipo de cliente (militar O policía)
   const isUniformadoByType = esUniformado(formData.tipoCliente) || isPoliceTypeFallback || isMilitaryTypeFallback;
-  
-  // Determinar si es tipo militar específico que requiere código ISSFA (usando configuración dinámica)
+
   const isMilitaryType = (esTipoMilitar(formData.tipoCliente) && requiereCodigoIssfa(formData.tipoCliente))
     || isMilitaryTypeFallback;
-  
-  // Determinar si es tipo policía que requiere código ISSPOL
+
   const isPoliceType = esTipoPolicia(formData.tipoCliente) || isPoliceTypeFallback;
-  
-  // Determinar si es uniformado en servicio activo basado en estado militar
+
   const isUniformado = isUniformadoByType && formData.estadoMilitar === 'ACTIVO';
 
   const isCivilByType = formData.tipoCliente === 'Civil' || formData.tipoCliente === 'Cliente Civil';
@@ -125,7 +113,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
   const isCivil = isCivilByType || isUniformadoPasivoTratadoComoCivil;
 
   const hasDocumentosGenerados = client?.tieneDocumentosGenerados === true;
-  // Si el cliente tiene serie asignada, NADIE puede editar datos (solo documentos)
   const hasSerieAsignada = ['SERIE_ASIGNADA', 'CONTRATO_ENVIADO', 'CONTRATO_FIRMADO', 'PROCESO_COMPLETADO'].includes(client?.estado || '');
   const canEditAllInEditMode = Boolean(
     user?.roles?.some((role: any) => {
@@ -133,50 +120,32 @@ const ClientForm: React.FC<ClientFormProps> = ({
       return codigo === 'SALES_CHIEF' || codigo === 'JEFE_VENTAS' || codigo === 'ADMIN';
     })
   );
-  // Restringir a solo documentos si: tiene serie asignada (siempre) O si vendedor y ya se generaron documentos
+  // Restringir a solo documentos si: tiene serie asignada (siempre) O si es vendedor y ya se generaron documentos
   const isRestrictedToDocuments = mode === 'edit' && (hasSerieAsignada || (hasDocumentosGenerados && !canEditAllInEditMode));
   const personalSectionMode = isRestrictedToDocuments ? 'view' : mode;
   const answersSectionMode = isRestrictedToDocuments ? 'view' : mode;
   const documentsSectionMode = mode;
-  // Etiqueta del botón según restricciones
   const editButtonLabel = hasSerieAsignada
     ? 'Editar Documentos'
     : (hasDocumentosGenerados && !canEditAllInEditMode ? 'Editar Documentos' : 'Editar Cliente');
   
-  // El tipo de proceso real se usa internamente en los hooks useClientDocuments y useClientAnswers
-
-  // Obtener tipoClienteId para hooks de documentos y respuestas
   const tipoClienteEncontrado = tiposCliente.find(tc => tc.nombre === formData.tipoCliente);
   const tipoClienteId = tipoClienteEncontrado?.id;
 
-  // Selección automática de ISSFA para militares e ISSPOL para policías
   useEffect(() => {
     if (mode === 'create' || mode === 'edit') {
-      // Si se selecciona un tipo militar, activar campo ISSFA automáticamente
-      if (isMilitaryType && !formData.codigoIssfa) {
-        // No llenar automáticamente, solo asegurar que el campo esté habilitado
-        // El usuario debe ingresar el código manualmente
-      }
-      
-      // Si se selecciona un tipo policía, activar campo ISSPOL automáticamente
-      if (isPoliceType && !formData.codigoIsspol) {
-        // No llenar automáticamente, solo asegurar que el campo esté habilitado
-        // El usuario debe ingresar el código manualmente
-      }
-      
-      // Si cambia el tipo de cliente a uno que NO es militar, limpiar ISSFA
+      // Limpiar ISSFA si el tipo de cliente ya no es militar
       if (!isMilitaryType && formData.codigoIssfa) {
         handleInputChange('codigoIssfa', '');
       }
       
-      // Si cambia el tipo de cliente a uno que NO es policía, limpiar ISSPOL
+      // Limpiar ISSPOL si el tipo de cliente ya no es policía
       if (!isPoliceType && formData.codigoIsspol) {
         handleInputChange('codigoIsspol', '');
       }
     }
   }, [formData.tipoCliente, isMilitaryType, isPoliceType, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Hooks para documentos y respuestas
   const esTipoUniformadoParaForm = useCallback((tipo: string | undefined) => {
     const tipoLower = (tipo || '').toLowerCase();
     return esTipoMilitar(tipo) || esTipoPolicia(tipo) || tipoLower.includes('militar') || tipoLower.includes('polic');
@@ -193,7 +162,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     getDocumentStatusText,
     setLoadedDocuments
   } = useClientDocuments(
-    formData.id?.toString(), // Convertir a string para el hook
+    formData.id?.toString(),
     tipoClienteId,
     formData.tipoCliente,
     formData.estadoMilitar,
@@ -201,7 +170,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
     formData
   );
 
-  // Hook para respuestas
   const {
     clientQuestions,
     getAnswerForQuestion,
@@ -211,17 +179,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
     formData.tipoCliente,
     formData.estadoMilitar,
     esTipoUniformadoParaForm,
-    formData.id?.toString(), // Convertir a string para el hook
+    formData.id?.toString(),
     formData.respuestas,
     setFormData
   );
 
-  // Wrapper para handleAnswerChange que incluye callbacks
   const handleAnswerChange = useCallback((question: string, answer: string, preguntaId?: number) => {
     handleAnswerChangeBase(question, answer, preguntaId, onClienteBloqueado, setClienteBloqueado, setMotivoBloqueo);
   }, [handleAnswerChangeBase, onClienteBloqueado, setClienteBloqueado, setMotivoBloqueo]);
 
-  // Usar handleInputChange directamente del hook (ya incluye toda la lógica necesaria)
   const handleInputChange = handleInputChangeBase;
 
   useEffect(() => {
@@ -278,17 +244,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
     verificarDisponibilidad();
   }, [formData.tipoCliente, formData.estadoMilitar, mode, getCodigoTipoCliente, esUniformado, onCancel, tiposClienteLoading]);
   
-  // Función para cargar datos adicionales del cliente
   const loadClientData = useCallback(async (clienteId: number) => {
     try {
-      // OPTIMIZACIÓN CRÍTICA: NO cargar respuestas aquí
-      // Las respuestas se cargan automáticamente por useClientAnswers hook
-      // Esto evita cargas duplicadas y procesamiento innecesario
-      
-      // Cargar documentos del cliente
+      // Respuestas se cargan automáticamente por useClientAnswers hook para evitar cargas duplicadas
       const documentos = await apiService.getDocumentosCliente(clienteId);
       
-      // Actualizar el estado de documentos cargados
       if (documentos && Array.isArray(documentos)) {
         const documentosMap: Record<string, any> = {};
         documentos.forEach(doc => {
@@ -296,7 +256,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
             documentosMap[doc.tipoDocumentoNombre] = {
               id: doc.id,
               nombre: doc.tipoDocumentoNombre,
-              url: doc.rutaArchivo, // Usar rutaArchivo de la BD
+              url: doc.rutaArchivo,
               tipo: doc.tipoArchivo || 'application/pdf',
               estado: doc.estado,
               nombreArchivo: doc.nombreArchivo
@@ -306,23 +266,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
         setLoadedDocuments(documentosMap);
       }
       
-      // Cargar armas asignadas al cliente (solo para mostrar en el formulario)
       const armasCliente = await apiService.getArmasCliente(clienteId);
       setLoadedArmas(armasCliente || []);
       
-      // Cargar contratos/documentos generados del cliente
       const contratos = await apiService.getContratosCliente(clienteId);
       setLoadedContratos(contratos || []);
 
-      // Cargar pagos del cliente
       const pagos = await apiService.getPagosCliente(clienteId);
       setLoadedPagos(pagos || []);
       
-      // Si hay armas asignadas, actualizar el precio modificado y selectedWeapon
       if (armasCliente && armasCliente.length > 0) {
-        const armaAsignada = armasCliente[0]; // Tomar la primera arma
-        
-        // Establecer selectedWeapon para que se muestre en modo edit
+        const armaAsignada = armasCliente[0];
         const weaponData = {
           id: armaAsignada.armaId,
           modelo: armaAsignada.armaModelo || 'N/A',
@@ -336,7 +290,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
         } as Weapon;
         setLocalSelectedWeapon(weaponData);
         
-        // Notificar al padre sobre el precio de la arma asignada
         if (onPriceChange && armaAsignada.precioUnitario) {
           onPriceChange(parseFloat(armaAsignada.precioUnitario.toString()));
         }
@@ -347,17 +300,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [onPriceChange]);
   
-  // Los catálogos se cargan automáticamente en useClientCatalogs
-  // Los documentos y preguntas se cargan automáticamente en useClientDocuments y useClientAnswers
-  
-  // Cargar datos del cliente cuando se edite
   useEffect(() => {
     if (client && mode !== 'create') {
       loadClientData(parseInt(client.id.toString()));
     }
   }, [client, mode, loadClientData]);
   
-  // Cargar armas en stock del vendedor cuando se está creando un cliente nuevo
   useEffect(() => {
     if (mode === 'create' && user?.id) {
       const cargarArmasEnStock = async () => {
@@ -374,9 +322,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [mode, user?.id]);
   
- // Función para asignar un arma del stock al nuevo cliente
   const handleAsignarArmaDelStock = useCallback((armaEnStock: any) => {
-    // Convertir el arma del stock al formato Weapon
     const weapon: Weapon = {
       id: armaEnStock.armaId.toString(),
       modelo: armaEnStock.armaModelo || 'N/A',
@@ -388,13 +334,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
       disponible: true
     };
     
-    // Establecer el arma seleccionada
     setLocalSelectedWeapon(weapon);
-    
-    // Guardar el ID de la relación ClienteArma para reasignarla después
     setClienteArmaIdDelStock(armaEnStock.id);
-    
-    // Establecer precio y cantidad desde el stock
+
     if (onPriceChange) {
       onPriceChange(parseFloat(armaEnStock.precioUnitario.toString()));
     }
@@ -402,7 +344,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
       onQuantityChange(armaEnStock.cantidad);
     }
     
-    // Mostrar mensaje informativo sobre documentos requeridos
     alert(`✅ Arma "${armaEnStock.armaModelo || 'N/A'}" seleccionada del stock.\n\n` +
           `⚠️ IMPORTANTE: Para poder entregar el arma al cliente, debes:\n` +
           `1. Completar todos los datos del cliente\n` +
@@ -411,7 +352,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
           `El arma se reasignará automáticamente cuando el cliente tenga toda su documentación completa.`);
   }, [onPriceChange, onQuantityChange]);
   
-  // NUEVO: Restaurar datos del formulario cuando se regresa en el flujo de creación
+  // Restaurar datos del formulario cuando se regresa en el flujo de creación
   useEffect(() => {
     if (client && mode === 'create' && client.nombres) {
       setFormData({
@@ -437,16 +378,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
         provinciaEmpresa: client.provinciaEmpresa || '',
         cantonEmpresa: client.cantonEmpresa || '',
         estadoMilitar: client.estadoMilitar,
-        codigoIssfa: client.codigoIssfa || '', // Para militares
-        codigoIsspol: (client as any).codigoIsspol || '', // Para policías (nuevo campo)
+        codigoIssfa: client.codigoIssfa || '',
+        codigoIsspol: (client as any).codigoIsspol || '',
         rango: client.rango || '',
         documentos: client.documentos || [],
-        respuestas: [] // Inicializar vacío - se cargarán por useClientAnswers cuando detecte el clientId
+        respuestas: []
       });
     }
   }, [client, mode, setFormData]);
-  
-  // Mostrar advertencia para uniformado pasivo
+
   useEffect(() => {
     if (isUniformado && formData.estadoMilitar === 'PASIVO') {
       setShowMilitaryWarning(true);
@@ -455,63 +395,42 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [isUniformado, formData.estadoMilitar]);
 
-  // La validación de documentos se hace automáticamente en useClientDocuments
-  // Las funciones handleDocumentUpload, getBorderColor, getDocumentStatusColor, getDocumentStatusText
-  // y getAnswerForQuestion están en los hooks correspondientes
-
 
 
   useEffect(() => {
     if (client && mode !== 'create') {
       
-      // Solo establecer formData si los catálogos están disponibles
       if (tiposCliente.length > 0 && tiposIdentificacion.length > 0) {
-        // Mapear las claves foráneas a nombres descriptivos para los dropdowns
         const mappedClient = { ...client };
-        
-        // Mapear tipoCliente: debe ser el NOMBRE para que coincida con el select (value={tipo.nombre})
-        // Priorizar tipoClienteNombre del backend, luego tipoCliente si es nombre, luego mapear desde código
         if (client.tipoClienteNombre) {
-          // El backend ya devuelve el nombre, usar directamente
           mappedClient.tipoCliente = client.tipoClienteNombre;
         } else if (client.tipoCliente) {
-          // Verificar si tipoCliente es nombre o código
           const tipoClientePorNombre = tiposCliente.find(tc => tc.nombre === client.tipoCliente);
           const tipoClientePorCodigo = tiposCliente.find(tc => tc.codigo === client.tipoCliente);
           
           if (tipoClientePorNombre) {
-            // Ya es nombre, mantenerlo
             mappedClient.tipoCliente = tipoClientePorNombre.nombre;
           } else if (tipoClientePorCodigo) {
-            // Es código, convertir a nombre
             mappedClient.tipoCliente = tipoClientePorCodigo.nombre;
           } else {
-            // Si no se encuentra, asumir que es nombre (fallback)
             mappedClient.tipoCliente = client.tipoCliente;
           }
         }
         
-        // Mapear tipoIdentificacion: el select usa códigos (value={tipo.codigo}), así que necesitamos el código
-        // El backend puede devolver tipoIdentificacionNombre o tipoIdentificacion (código)
+        // tipoIdentificacion: el select usa códigos (value={tipo.codigo})
         if (client.tipoIdentificacion) {
-          // Si ya viene como código, mantenerlo
           const tipoIdentificacionPorCodigo = tiposIdentificacion.find(ti => ti.codigo === client.tipoIdentificacion);
           if (tipoIdentificacionPorCodigo) {
-            // Ya es código, mantenerlo
             mappedClient.tipoIdentificacion = tipoIdentificacionPorCodigo.codigo;
           } else {
-            // No se encontró por código, puede ser nombre, intentar buscar por nombre
             const tipoIdentificacionPorNombre = tiposIdentificacion.find(ti => ti.nombre === client.tipoIdentificacion);
             if (tipoIdentificacionPorNombre) {
-              // Es nombre, convertir a código
               mappedClient.tipoIdentificacion = tipoIdentificacionPorNombre.codigo;
             } else {
-              // Si no se encuentra, usar el valor original (fallback)
               mappedClient.tipoIdentificacion = client.tipoIdentificacion;
             }
           }
         } else if (client.tipoIdentificacionNombre) {
-          // Si solo tenemos el nombre del backend, buscar el código correspondiente
           const tipoIdentificacionPorNombre = tiposIdentificacion.find(ti => ti.nombre === client.tipoIdentificacionNombre);
           if (tipoIdentificacionPorNombre) {
             mappedClient.tipoIdentificacion = tipoIdentificacionPorNombre.codigo;
@@ -520,75 +439,54 @@ const ClientForm: React.FC<ClientFormProps> = ({
           }
         }
         
-        // Mapear código ISSFA si está disponible (para militares)
         if ((client as any).codigoIssfa) {
           (mappedClient as any).codigoIssfa = (client as any).codigoIssfa;
         }
         
-        // Mapear código ISSPOL si está disponible (para policías)
         if ((client as any).codigoIsspol) {
           (mappedClient as any).codigoIsspol = (client as any).codigoIsspol;
         }
         
-        // Mapear rango si está disponible
         if ((client as any).rango) {
           (mappedClient as any).rango = (client as any).rango;
         }
         
-        // CRÍTICO: Mapear provincia correctamente
-        // El backend puede devolver provincia como código o como nombre
-        // El select de provincia usa códigos (value={provincia.codigo}), así que necesitamos el código
+        // provincia: el select usa códigos (value={provincia.codigo})
         if (client.provincia) {
-          // Buscar si el valor es código o nombre
           const provinciaPorCodigo = provincias.find(p => p.codigo === client.provincia);
           const provinciaPorNombre = provincias.find(p => p.nombre === client.provincia);
           
           if (provinciaPorCodigo) {
-            // Ya es código, mantenerlo
             mappedClient.provincia = provinciaPorCodigo.codigo;
           } else if (provinciaPorNombre) {
-            // Es nombre, convertir a código
             mappedClient.provincia = provinciaPorNombre.codigo;
           } else {
-            // Si no se encuentra, usar el valor original (puede ser código válido que no está en el catálogo)
             mappedClient.provincia = client.provincia;
           }
         }
         
-        // Asegurar que tipoCliente esté establecido (verificación final)
         if (!mappedClient.tipoCliente && client.tipoClienteNombre) {
           mappedClient.tipoCliente = client.tipoClienteNombre;
         }
         
-        // OPTIMIZACIÓN CRÍTICA: NO cargar respuestas desde client.respuestas
-        // El objeto client puede venir con TODAS las respuestas de TODOS los clientes (276k+)
-        // Las respuestas se cargarán solo a través de useClientAnswers hook que usa el endpoint específico
-        // Esto evita procesar cientos de miles de respuestas innecesarias
-        
+        // Respuestas se cargan via useClientAnswers hook (endpoint específico) para evitar procesar datos masivos
         setFormData({
           ...mappedClient,
-          // Asegurar que tipoCliente y provincia estén presentes
           tipoCliente: mappedClient.tipoCliente || client.tipoClienteNombre || client.tipoCliente || '',
           provincia: mappedClient.provincia || client.provincia || '',
-          // Inicializar respuestas vacías - se cargarán por useClientAnswers
           respuestas: []
         });
         
-        // Reset bloqueo state first
         setClienteBloqueado(false);
         setMotivoBloqueo('');
         
-        // La validación de bloqueo se hará cuando useClientAnswers cargue las respuestas
       } else {
-        // Establecer el formData básico del cliente mientras se cargan los catálogos
-        // OPTIMIZACIÓN: NO incluir respuestas aquí - se cargarán por useClientAnswers
         setFormData({
           ...client,
-          respuestas: [] // Inicializar vacío - se cargarán por useClientAnswers
+          respuestas: []
         });
       }
     } else if (mode === 'create' && (!client || !client.nombres)) {
-      // Solo resetear el formulario si NO hay datos de cliente para restaurar
       setFormData({
         id: '',
         nombres: '',
@@ -618,16 +516,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
       setClienteBloqueado(false);
       setMotivoBloqueo('');
     }
-  }, [client, mode, tiposCliente, tiposIdentificacion, provincias]); // Agregar provincias como dependencia para mapeo correcto
-
-  // OPTIMIZACIÓN: Logs de debug removidos para evitar ruido en cada keystroke
-  // Si necesitas debug, usar React DevTools Profiler en lugar de console.log en useEffect
-
-  // Re-validar todas las respuestas cuando cambien (solo en modo edit, no en view)
-  // OPTIMIZACIÓN: Usar find en lugar de forEach para detener en la primera coincidencia
+  }, [client, mode, tiposCliente, tiposIdentificacion, provincias]);
   useEffect(() => {
     if (formData.respuestas && formData.respuestas.length > 0 && mode !== 'view') {
-      // Limitar búsqueda a las primeras 100 respuestas para evitar procesar miles
       const respuestasLimitadas = formData.respuestas.slice(0, 100);
       const violenciaRespuesta = respuestasLimitadas.find(respuesta => 
         respuesta.pregunta && respuesta.pregunta.toLowerCase().includes('denuncias de violencia')
@@ -645,11 +536,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [formData.respuestas, mode, setClienteBloqueado, setMotivoBloqueo]);
 
-  // Cargar cantones cuando cambia la provincia
   useEffect(() => {
     if (formData.provincia) {
       loadCantones(formData.provincia, false);
-      // Si no hay provincia pero hay cantón (modo edición), mantener el cantón
       if (!formData.provincia && formData.canton && mode !== 'create') {
         setAvailableCantons([formData.canton]);
       }
@@ -658,11 +547,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [formData.provincia, mode, formData.canton, loadCantones, setAvailableCantons]);
 
-  // Cargar cantones de empresa cuando cambia la provincia empresa
   useEffect(() => {
     if (formData.provinciaEmpresa) {
       loadCantones(formData.provinciaEmpresa, true);
-      // Si no hay provincia pero hay cantón (modo edición), mantener el cantón
       if (!formData.provinciaEmpresa && formData.cantonEmpresa && mode !== 'create') {
         setAvailableCantonsEmpresa([formData.cantonEmpresa]);
       }
@@ -671,12 +558,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [formData.provinciaEmpresa, mode, formData.cantonEmpresa, loadCantones, setAvailableCantonsEmpresa]);
 
-  // handleInputChange ya está manejado por useClientFormData hook
-
-  // Validación de edad
   const edadValida = formData.fechaNacimiento ? validarEdadMinima(formData.fechaNacimiento) : false;
-
-  // Hook para submit (handleSubmit, validaciones, buildClientDataForBackend)
   const {
     handleSubmit,
     isSubmitting,
@@ -716,7 +598,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-          {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 px-8 py-12 text-center text-white">
             <h1 className="text-4xl font-bold mb-3">
               {mode === 'create' ? 'Crear Nuevo Cliente' : mode === 'edit' ? 'Editar Cliente' : 'Ver Cliente'}
@@ -726,25 +607,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
             </p>
           </div>
 
-          {/* Content */}
           <div className="p-8">
-            {/* error && ( // This line was removed */}
-            {/*   <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-lg"> // This line was removed */}
-            {/*     <div className="flex"> // This line was removed */}
-            {/*       <div className="flex-shrink-0"> // This line was removed */}
-            {/*         <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"> // This line was removed */}
-            {/*           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /> // This line was removed */}
-            {/*         </svg> // This line was removed */}
-            {/*       </div> // This line was removed */}
-            {/*       <div className="ml-3"> // This line was removed */}
-            {/*         <p className="text-sm text-red-700 font-medium">Error: {error}</p> // This line was removed */}
-            {/*       </div> // This line was removed */}
-            {/*     </div> // This line was removed */}
-            {/*   </div> // This line was removed */}
-            {/* ) // This line was removed */}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Datos Personales - Componente Extraído */}
               <ClientPersonalDataSection
                 mode={personalSectionMode}
                 formData={formData}
@@ -760,7 +625,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 getBorderColor={getBorderColor}
               />
 
-              {/* Datos de Empresa - Componente Extraído */}
               {isEmpresa && (
                 <ClientCompanyDataSection
                   mode={personalSectionMode}
@@ -773,7 +637,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 />
               )}
 
-              {/* Advertencia para Uniformado Pasivo */}
               {showMilitaryWarning && (
                 <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
                   <div className="flex items-start">
@@ -793,7 +656,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 </div>
               )}
 
-              {/* Documentos del Cliente - Componente Extraído (solo en modo create/edit) */}
               {formData.tipoCliente && requiredDocuments.length > 0 && documentsSectionMode !== 'view' && (
                 <ClientDocumentsSection
                   mode={documentsSectionMode}
@@ -806,7 +668,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 />
               )}
 
-              {/* Preguntas de Seguridad - Componente Extraído */}
               {formData.tipoCliente && clientQuestions.length > 0 && (
                 <ClientAnswersSection
                   mode={answersSectionMode}
@@ -819,7 +680,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 />
               )}
 
-              {/* Sección de Armas en Stock del Vendedor - Solo en modo create */}
               {mode === 'create' && (
                 <VendedorStockWeaponsSection
                   armasEnStock={armasEnStock}
@@ -828,7 +688,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 />
               )}
 
-              {/* Sección de Arma Reservada - Componente Extraído */}
               <ClientReservedWeaponSection
                 mode={mode}
                 currentSelectedWeapon={currentSelectedWeapon || null}
@@ -843,7 +702,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 ivaPorcentaje={ivaPorcentaje}
               />
 
-              {/* Secciones de View - Componente Extraído */}
               {mode === 'view' && (
                 <ClientViewSections
                   loadedContratos={loadedContratos}
@@ -860,7 +718,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 />
               )}
 
-              {/* Botones - Al final después de todas las secciones */}
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-6">
                 <button
                   type="button"
@@ -877,7 +734,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       if (onEdit) {
                         onEdit();
                       } else {
-                        // Fallback: Cambiar a modo edit con evento
                         const event = new Event('edit-mode');
                         window.dispatchEvent(event);
                       }
@@ -898,7 +754,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 
                 {mode !== 'view' && (
                   <>
-                    {/* Alerta de cliente inhabilitado */}
                     {mode === 'create' && (!edadValida || clienteBloqueado) && (
                       <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
                         <div className="flex items-start">
@@ -923,7 +778,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       </div>
                     )}
                     
-                    {/* Botón para continuar con selección de armas (solo en modo create) */}
                     {!clienteBloqueado && edadValida && mode === 'create' && (
                       <button
                         type="button"
@@ -935,7 +789,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       </button>
                     )}
                     
-                    {/* Botón para guardar cliente bloqueado (cuando hay restricciones de edad o violencia) */}
                     {(clienteBloqueado || !edadValida) && mode === 'create' && (
                       <button
                         type="button"
@@ -950,7 +803,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
                       </button>
                     )}
                     
-                    {/* Botón para actualizar cliente existente */}
                     {mode === 'edit' && !clienteBloqueado && (
                       <button
                         type="submit"

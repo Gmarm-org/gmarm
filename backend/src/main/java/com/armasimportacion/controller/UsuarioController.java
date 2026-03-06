@@ -42,8 +42,6 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
     private final UsuarioMapper usuarioMapper;
 
-    // ===== OPERACIONES CRUD =====
-
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllUsuarios(
             @RequestParam(defaultValue = "0") int page,
@@ -120,8 +118,6 @@ public class UsuarioController {
         }
     }
 
-    // ===== GESTIÓN DE ROLES =====
-
     @GetMapping("/{id}/roles")
     public ResponseEntity<Set<Rol>> getUserRoles(@PathVariable Long id) {
         log.info("GET /api/usuarios/{}/roles - Obteniendo roles del usuario", id);
@@ -159,8 +155,6 @@ public class UsuarioController {
         }
     }
 
-    // ===== GESTIÓN DE ESTADO =====
-
     @PatchMapping("/{id}/status")
     public ResponseEntity<Usuario> changeStatus(@PathVariable Long id, @RequestParam Boolean estado) {
         log.info("Cambiando estado del usuario {} a {}", id, estado);
@@ -185,8 +179,6 @@ public class UsuarioController {
         }
     }
 
-    // ===== BÚSQUEDAS ESPECÍFICAS =====
-
     @GetMapping("/vendedores")
     public ResponseEntity<List<Usuario>> getVendedoresActivos() {
         log.info("Obteniendo vendedores activos");
@@ -207,8 +199,6 @@ public class UsuarioController {
         List<Usuario> usuarios = usuarioService.findByRol(rolNombre);
         return ResponseEntity.ok(usuarios);
     }
-
-    // ===== ESTADÍSTICAS =====
 
     @GetMapping("/stats/estado/{estado}")
     public ResponseEntity<Long> countByEstado(@PathVariable Boolean estado) {
@@ -231,5 +221,4 @@ public class UsuarioController {
         return ResponseEntity.ok(count);
     }
 
-    // Excepciones manejadas por GlobalExceptionHandler
 }

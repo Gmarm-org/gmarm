@@ -31,16 +31,16 @@ Este archivo contiene las mejores prácticas y convenciones específicas del pro
 ### Estructura Principal
 ```
 gmarm/
-├── backend/          # Spring Boot API (Java 17+)
-├── frontend/         # React + TypeScript + Vite
-├── datos/           # Base de datos y scripts SQL
-├── deploy/          # Scripts de despliegue
-└── docker-compose.*.yml  # Configuraciones Docker
+├── backend/          # Spring Boot API (Java 21)
+├── frontend/         # React 19 + TypeScript + Vite 7
+├── datos/           # Base de datos (SQL maestro)
+├── scripts/         # Scripts operativos (backup, reset, validación)
+└── docker-compose.*.yml  # local, prod, monitoring
 ```
 
 ### Tecnologías
-- **Backend**: Spring Boot 3.x, Java 17+, Maven, PostgreSQL
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
+- **Backend**: Spring Boot 3.4.5, Java 21, Maven, PostgreSQL
+- **Frontend**: React 19, TypeScript, Vite 7, Tailwind CSS
 - **Base de Datos**: PostgreSQL con script maestro
 - **Contenedores**: Docker + Docker Compose
 - **CI/CD**: GitHub Actions con workflows automatizados
@@ -543,9 +543,8 @@ CREATE TABLE IF NOT EXISTS cliente (
 
 | Ambiente | Docker Compose | Env Backend | Env Frontend | URLs |
 |----------|---------------|-------------|--------------|------|
-| **LOCAL** | `docker-compose.local.yml` | `backend/src/main/resources/application-local.properties` | `frontend/env.local` | `localhost` |
-| **DEV** | `docker-compose.dev.yml` | `backend/src/main/resources/application-docker.properties` | `frontend/env.development` | Variables de entorno |
-| **PROD** | `docker-compose.prod.yml` | `backend/src/main/resources/application-prod.properties` | `frontend/.env.prod` | Producción |
+| **LOCAL** | `docker-compose.local.yml` | `application-local.properties` | `env.local` | `localhost` |
+| **PROD** | `docker-compose.prod.yml` | `application-prod.properties` | `env.prod` | Produccion |
 
 #### **🎯 Coherencia Entre Archivos:**
 
@@ -657,9 +656,9 @@ npm run lint
 ```
 
 ### 3. Archivos Docker Compose
-- `docker-compose.dev.yml` - Desarrollo (usa variables de entorno)
-- `docker-compose.local.yml` - Local
-- `docker-compose.prod.yml` - Producción
+- `docker-compose.local.yml` - Desarrollo local
+- `docker-compose.prod.yml` - Produccion
+- `docker-compose.monitoring.yml` - Stack de monitoreo
 
 ### 4. Configuración de Entornos
 ```powershell
@@ -671,7 +670,7 @@ $env:BACKEND_URL="http://localhost:8080"
 $env:FRONTEND_URL="http://localhost:5173"
 $env:WS_HOST="localhost"
 $env:WS_PORT="5173"
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.local.yml up -d
 
 # PRODUCCIÓN - Usar .env.prod (crear desde env.prod.example)
 docker-compose -f docker-compose.prod.yml up -d
@@ -689,8 +688,8 @@ docker-compose -f docker-compose.prod.yml up -d
 **Solución**:
 ```powershell
 # Opción 1: Reinicio completo con volumen limpio (RECOMENDADO)
-docker-compose -f docker-compose.dev.yml down -v
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.local.yml down -v
+docker-compose -f docker-compose.local.yml up -d
 
 # Opción 2: Ejecutar script maestro manualmente
 Get-Content datos/00_gmarm_completo.sql | docker exec -i gmarm-postgres-dev psql -U postgres -d gmarm_dev
@@ -715,8 +714,8 @@ $env:WS_HOST="localhost"
 $env:WS_PORT="5173"
 
 # Reiniciar servicios
-docker-compose -f docker-compose.dev.yml down
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.local.yml down
+docker-compose -f docker-compose.local.yml up -d
 ```
 
 #### Base de Datos Vacía - Hibernate DDL Auto
@@ -732,8 +731,8 @@ spring.jpa.hibernate.hbm2ddl.auto=validate
 **Si la base ya está vacía**:
 ```powershell
 # Opción 1: Eliminar volumen y recrear (recomendado)
-docker-compose -f docker-compose.dev.yml down -v
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.local.yml down -v
+docker-compose -f docker-compose.local.yml up -d
 
 # Opción 2: Ejecutar script maestro manualmente (si Opción 1 no funciona)
 # PowerShell NO soporta redirección <, usar Get-Content
@@ -755,8 +754,8 @@ docker-compose -f docker-compose.local.yml down -v
 docker-compose -f docker-compose.local.yml up -d --build
 
 # Para DEV
-docker-compose -f docker-compose.dev.yml down -v
-docker-compose -f docker-compose.dev.yml up -d --build
+docker-compose -f docker-compose.local.yml down -v
+docker-compose -f docker-compose.local.yml up -d --build
 ```
 
 **⚠️ IMPORTANTE**: El flag `-v` elimina los volúmenes, lo que fuerza la recreación de la base de datos con el script maestro actualizado.
@@ -948,13 +947,13 @@ npm run dev
 ### 2. Docker Development
 ```powershell
 # Desarrollo
-docker-compose -f docker-compose.dev.yml up --build
+docker-compose -f docker-compose.local.yml up --build
 
 # Local
 docker-compose -f docker-compose.local.yml up --build
 
 # Limpiar
-docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.local.yml down -v
 docker system prune -f
 ```
 
@@ -1248,31 +1247,18 @@ console.error('❌ Error cargando datos:', error);
 ## 📚 Recursos Útiles
 
 ### 1. Documentación Principal
-- **`README.md`** - Documentación principal del proyecto (754 líneas)
-  - Estado actual, características, arquitectura
-  - Inicio rápido, configuración de entornos
-  - Base de datos, usuarios, documentos generados
-  - CI/CD, testing, build y deploy
-- **`backend/README.md`** - Documentación técnica del backend (1,066 líneas)
-  - Estructura de paquetes completa
-  - Entidades, DTOs, Mappers, Servicios
-  - Controllers y endpoints documentados
-  - Generación de documentos PDF
-  - Configuración, seguridad, testing
-- **`frontend/README.md`** - Documentación técnica del frontend (947 líneas)
-  - Estructura de carpetas detallada
-  - Componentes, custom hooks, servicios
-  - Routing, state management, estilos
-  - Testing, build y deploy
-- **`AGENTS.md`** - Este archivo (guía para IAs)
-- **`MONITORING.md`** - Configuración de monitoreo
+- **`README.md`** - Documentacion principal del proyecto
+- **`CLAUDE.md`** - Guia principal para IAs (punto de entrada)
+- **`AGENTS.md`** - Este archivo (convenciones y workflows)
+- **`TECH_DEBT_BACKEND.md`** - Deuda tecnica backend
+- **`TECH_DEBT_FRONTEND.md`** - Deuda tecnica frontend
 - **`.github/README.md`** - Workflows de CI/CD
 
 ### 2. Archivos Críticos
 - `datos/00_gmarm_completo.sql` - Script maestro de BD (fuente única de verdad)
-- `docker-compose.local.yml` - Configuración LOCAL (localhost)
-- `docker-compose.dev.yml` - Configuración DEV (servidor remoto)
-- `docker-compose.prod.yml` - Configuración PRODUCCIÓN
+- `docker-compose.local.yml` - Configuracion LOCAL (localhost)
+- `docker-compose.prod.yml` - Configuracion PRODUCCION
+- `docker-compose.monitoring.yml` - Stack de monitoreo
 - `backend/src/main/resources/templates/contratos/` - Templates de documentos
 
 ### 3. Templates de Documentos
@@ -1300,7 +1286,7 @@ console.error('❌ Error cargando datos:', error);
 - **Mappers** para conversión entre entidades y DTOs
 - **Validaciones** con esquemas JSON
 - **Logging** con SLF4J
-- **Generación de PDFs** con Thymeleaf + OpenPDF
+- **Generacion de PDFs** con Thymeleaf + Flying Saucer
 
 ---
 
@@ -1451,18 +1437,14 @@ BD (configuracion_sistema) → Backend API → useIVA() hook → Componentes
 5. **Verificar build antes de commit**
 6. **Usar imports específicos, NO wildcards**
 7. **Mantener clean code y nombres descriptivos**
-8. **🚨 CRÍTICO: Usar el docker-compose correcto para cada ambiente:**
-   - **LOCAL**: `docker-compose.local.yml` con `frontend/env.local` → localhost
-   - **DEV**: `docker-compose.dev.yml` con `frontend/env.development` → servidor remoto
-   - **PROD**: `docker-compose.prod.yml` con `frontend/.env.prod` → producción
-9. **🚨 TODOS los archivos de configuración de un ambiente DEBEN coincidir (URLs, IPs, puertos)**
-10. **Configurar variables de entorno ANTES de levantar servicios dev**
-11. **docker-compose.dev.yml usa variables de entorno, NO URLs fijas**
-12. **Hibernate DDL debe ser 'validate' en Docker, NO 'create-drop'**
-13. **NO hardcodear valores de negocio - usar `configuracion_sistema`**
-14. **NO hardcodear comparaciones de tipos - usar banderas dinámicas**
-15. **🚨 Si cambias el esquema de BD (agregar columna), SIEMPRE usar `down -v` para recrear volumen**
-16. **El archivo `env.development` del frontend se usa en DEV (servidor remoto), NO en local**
+8. **Usar el docker-compose correcto para cada ambiente:**
+   - **LOCAL**: `docker-compose.local.yml` → localhost
+   - **PROD**: `docker-compose.prod.yml` → produccion
+9. **TODOS los archivos de configuracion de un ambiente DEBEN coincidir (URLs, IPs, puertos)**
+10. **Hibernate DDL debe ser 'validate' en Docker, NO 'create-drop'**
+11. **NO hardcodear valores de negocio - usar `configuracion_sistema`**
+12. **NO hardcodear comparaciones de tipos - usar banderas dinamicas**
+13. **Si cambias el esquema de BD (agregar columna), SIEMPRE usar `down -v` para recrear volumen**
 
 ---
 

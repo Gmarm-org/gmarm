@@ -37,10 +37,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Servicio de consultas de clientes.
- * Centraliza todas las búsquedas, filtros, estadísticas y conversiones a DTO.
- */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -56,8 +52,6 @@ public class ClienteQueryService {
     private final ClienteArmaRepository clienteArmaRepository;
     private final DocumentoClienteRepository documentoClienteRepository;
     private final DocumentoGeneradoRepository documentoGeneradoRepository;
-
-    // ===== BÚSQUEDAS POR ENTIDAD =====
 
     public List<Cliente> findByUsuarioCreador(Long usuarioId) {
         return clienteRepository.findWithRelationsByUsuarioCreadorId(usuarioId);
@@ -94,8 +88,6 @@ public class ClienteQueryService {
                                                provincia, email, nombres, pageable);
     }
 
-    // ===== MÉTODOS PARA JEFE DE VENTAS =====
-
     public Page<Cliente> findAllForJefeVentas(EstadoCliente estado, String vendedor, Pageable pageable) {
         if (estado != null && vendedor != null && !vendedor.isBlank()) {
             return clienteRepository.findByEstadoAndUsuarioCreadorNombreContainingIgnoreCase(estado, vendedor, pageable);
@@ -129,8 +121,6 @@ public class ClienteQueryService {
 
         return detalle;
     }
-
-    // ===== ESTADÍSTICAS =====
 
     public Long countByEstado(EstadoCliente estado) {
         return clienteRepository.countByEstado(estado);
@@ -172,8 +162,6 @@ public class ClienteQueryService {
 
         return estadisticas;
     }
-
-    // ===== DTO QUERIES =====
 
     private static final List<EstadoCliente> ESTADOS_FINALES = List.of(
         EstadoCliente.ELIMINADO, EstadoCliente.PROCESO_COMPLETADO
@@ -247,14 +235,13 @@ public class ClienteQueryService {
     }
 
     public boolean existsByNumeroIdentificacion(String numeroIdentificacion) {
-        // Solo considerar clientes activos (excluir ELIMINADO y PROCESO_COMPLETADO)
+        // Excluir clientes en estados finales (ELIMINADO, PROCESO_COMPLETADO)
         Optional<Cliente> clienteActivo = clienteRepository.findByNumeroIdentificacionAndEstadoNotIn(
             numeroIdentificacion, ESTADOS_FINALES);
         if (clienteActivo.isPresent()) {
             return true;
         }
         List<Cliente> clientesRuc = clienteRepository.findByRuc(numeroIdentificacion);
-        // Filtrar RUCs de clientes eliminados/finalizados
         return clientesRuc.stream()
             .anyMatch(c -> !ESTADOS_FINALES.contains(c.getEstado()));
     }
@@ -266,8 +253,6 @@ public class ClienteQueryService {
         enrichDTOs(dtos.getContent(), clientes.getContent());
         return dtos;
     }
-
-    // ===== GRUPO DE IMPORTACIÓN =====
 
     public String obtenerGrupoImportacionActivo(Long clienteId) {
         List<ClienteGrupoImportacion> gruposCliente = clienteGrupoImportacionRepository.findByClienteId(clienteId);
@@ -309,24 +294,10 @@ public class ClienteQueryService {
         return null;
     }
 
-    // ===== ENRICHMENT DE DTOs =====
-
-    /**
-     * Enrich para un solo DTO (usado en findByIdAsDTO).
-     * Para listas usar enrichDTOs() que usa batch queries.
-     */
     public void enrichDTO(ClienteDTO dto, Cliente cliente) {
         enrichDTOs(List.of(dto), cliente != null ? List.of(cliente) : List.of());
     }
 
-    /**
-     * Enrich batch optimizado: ejecuta 3 queries totales en vez de 5×N.
-     * - 1 query para estados de pago (SUM agrupado)
-     * - 1 query para grupos de importación activos (JOIN FETCH)
-     * - 1 query para armas asignadas (batch por IDs)
-     * El cálculo de estado de cliente usa los datos ya en memoria (cliente.estado)
-     * y solo hace queries adicionales para clientes ACTIVO que necesitan verificación.
-     */
     public void enrichDTOs(List<ClienteDTO> dtos, List<Cliente> clientes) {
         if (dtos.isEmpty()) return;
 
@@ -334,19 +305,15 @@ public class ClienteQueryService {
         Map<Long, Cliente> clienteMap = clientes.stream()
             .collect(Collectors.toMap(Cliente::getId, c -> c, (a, b) -> a));
 
-        // 1. Batch: estados de pago (1 query con SUM + GROUP BY)
         Map<Long, String> estadosPago = calcularEstadosPagoBatch(clienteIds);
 
-        // 2. Batch: grupos de importación activos con licencia (1 query JOIN FETCH)
         Map<Long, ClienteGrupoImportacion> gruposActivos = new HashMap<>();
         List<ClienteGrupoImportacion> todosGrupos = clienteGrupoImportacionRepository
             .findActivosByClienteIdInWithGrupoAndLicencia(clienteIds);
         for (ClienteGrupoImportacion cgi : todosGrupos) {
-            // Quedarse con el primero por cliente (mismo comportamiento que antes)
             gruposActivos.putIfAbsent(cgi.getCliente().getId(), cgi);
         }
 
-        // 3. Batch: armas asignadas (1 query) — solo para clientes que necesitan verificación de estado
         List<Long> clientesQueNecesitanVerificacion = new ArrayList<>();
         for (ClienteDTO dto : dtos) {
             Cliente cliente = clienteMap.get(dto.getId());
@@ -357,14 +324,12 @@ public class ClienteQueryService {
         Set<Long> clientesConArmasAsignadas = new HashSet<>();
         Set<Long> clientesConDocumentos = new HashSet<>();
         if (!clientesQueNecesitanVerificacion.isEmpty()) {
-            // Verificar armas asignadas en batch (RESERVADA o ASIGNADA)
             List<ClienteArma> armasAsignadas = clienteArmaRepository
                 .findByClienteIdInAndEstadoIn(clientesQueNecesitanVerificacion,
                     List.of(ClienteArma.EstadoClienteArma.RESERVADA, ClienteArma.EstadoClienteArma.ASIGNADA));
             for (ClienteArma ca : armasAsignadas) {
                 clientesConArmasAsignadas.add(ca.getCliente().getId());
             }
-            // Verificar documentos en batch
             List<Object[]> docCounts = documentoClienteRepository.countByClienteIdIn(clientesQueNecesitanVerificacion);
             for (Object[] row : docCounts) {
                 Long cId = (Long) row[0];
@@ -375,7 +340,6 @@ public class ClienteQueryService {
             }
         }
 
-        // 4. Batch: documentos generados (contrato, solicitud, cotización) por cliente (1 query)
         Map<Long, Set<TipoDocumentoGenerado>> docsGeneradosPorCliente = new HashMap<>();
         if (!clienteIds.isEmpty()) {
             List<DocumentoGenerado> todosDocsGenerados = documentoGeneradoRepository.findByClienteIdIn(clienteIds);
@@ -386,12 +350,9 @@ public class ClienteQueryService {
             }
         }
 
-        // 5. Aplicar enriquecimiento a cada DTO
         for (ClienteDTO dto : dtos) {
-            // Estado de pago
             dto.setEstadoPago(estadosPago.getOrDefault(dto.getId(), "IMPAGO"));
 
-            // Grupo de importación y licencia
             ClienteGrupoImportacion cgi = gruposActivos.get(dto.getId());
             if (cgi != null) {
                 dto.setGrupoImportacionNombre(cgi.getGrupoImportacion().getNombre());
@@ -402,13 +363,11 @@ public class ClienteQueryService {
                 }
             }
 
-            // Documentos generados
             Set<TipoDocumentoGenerado> docsCliente = docsGeneradosPorCliente.getOrDefault(dto.getId(), Set.of());
             dto.setTieneContrato(docsCliente.contains(TipoDocumentoGenerado.CONTRATO));
             dto.setTieneSolicitud(docsCliente.contains(TipoDocumentoGenerado.SOLICITUD_COMPRA));
             dto.setTieneCotizacion(docsCliente.contains(TipoDocumentoGenerado.COTIZACION));
 
-            // Estado del cliente (optimizado)
             Cliente cliente = clienteMap.get(dto.getId());
             if (cliente != null) {
                 EstadoGrupoImportacion estadoGrupo = (cgi != null) ? cgi.getGrupoImportacion().getEstado() : null;
@@ -421,7 +380,6 @@ public class ClienteQueryService {
         }
     }
 
-    /** Determina si el cliente necesita verificación de documentos/armas */
     private boolean necesitaVerificacionCompleta(Cliente cliente) {
         EstadoCliente estado = cliente.getEstado();
         return estado != EstadoCliente.BLOQUEADO
@@ -432,7 +390,6 @@ public class ClienteQueryService {
             && estado != EstadoCliente.PENDIENTE_ASIGNACION_CLIENTE;
     }
 
-    /** Calcula estado de pago para múltiples clientes en 1 query */
     private Map<Long, String> calcularEstadosPagoBatch(List<Long> clienteIds) {
         Map<Long, String> resultado = new HashMap<>();
         List<Object[]> rows = pagoRepository.findEstadoPagoBatchByClienteIds(clienteIds);
@@ -452,7 +409,6 @@ public class ClienteQueryService {
         return resultado;
     }
 
-    /** Versión batch de calcularEstadoCliente — usa datos pre-cargados */
     private EstadoCliente calcularEstadoClienteBatch(Cliente cliente,
                                                       boolean tieneDocumentos,
                                                       boolean tieneArmasAsignadas,
@@ -487,8 +443,6 @@ public class ClienteQueryService {
 
         return EstadoCliente.EN_PROCESO;
     }
-
-    // ===== CÁLCULOS DE ESTADO =====
 
     public EstadoCliente calcularEstadoCliente(Cliente cliente) {
         if (cliente.getEstado() == EstadoCliente.BLOQUEADO) {

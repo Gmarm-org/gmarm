@@ -47,10 +47,8 @@ public class ClienteController {
     private final DocumentoGeneradoRepository documentoGeneradoRepository;
     private final GrupoImportacionClienteService grupoImportacionClienteService;
 
-    // ==================== MÉTODOS AUXILIARES ====================
-    
     // TODO: Implementar obtención del usuario desde el token JWT cuando se implemente la autenticación completa
-    
+
     @PostMapping
     @Operation(summary = "Crear nuevo cliente", description = "Crea un nuevo cliente en el sistema")
     public ResponseEntity<?> crearCliente(
@@ -58,7 +56,6 @@ public class ClienteController {
             @RequestHeader("Authorization") String authHeader) {
         log.info("ClienteController: Recibiendo solicitud completa, keys: {}", requestData.keySet());
 
-        // Obtener usuario actual desde JWT
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new BadRequestException("Token JWT requerido");
         }
@@ -74,8 +71,6 @@ public class ClienteController {
         log.info("Usuario actual obtenido desde JWT: ID={}, Email={}, Nombre={}",
             usuarioId, email, usuario.getNombreCompleto());
 
-        // Usar el nuevo ClienteCompletoService para el flujo completo
-        // El frontend siempre envía: cliente, pago, arma, respuestas, cuotas, documento
         log.info("ClienteController: Usando ClienteCompletoService para flujo completo con usuarioId={}", usuarioId);
         Map<String, Object> response = clienteCompletoService.crearClienteCompleto(requestData, usuarioId);
         log.info("ClienteController: Respuesta del ClienteCompletoService: {}", response);
@@ -97,7 +92,6 @@ public class ClienteController {
             @RequestHeader("Authorization") String authHeader,
             @RequestHeader(value = "X-Active-Role", required = false) String activeRole) {
 
-        // Extraer token JWT
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new BadRequestException("Token JWT requerido para obtener clientes");
         }
@@ -109,7 +103,6 @@ public class ClienteController {
             throw new BadRequestException("Token JWT inválido");
         }
 
-        // Obtener usuario y verificar roles
         Usuario usuario = usuarioService.findByEmail(email);
 
         // Usar el rol activo si se proporciona, sino verificar todos los roles
@@ -218,7 +211,6 @@ public class ClienteController {
         log.info("ClienteController: Actualizando cliente completo ID: {}", id);
         log.info("ClienteController: requestData keys: {}", requestData.keySet());
 
-        // Obtener usuario actual desde JWT
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new BadRequestException("Token JWT requerido");
         }
@@ -258,7 +250,6 @@ public class ClienteController {
             }
         }
 
-        // Usar ClienteCompletoService para actualización completa
         Map<String, Object> response = clienteCompletoService.actualizarClienteCompleto(id, requestData);
         return ResponseEntity.ok(response);
     }
@@ -272,7 +263,6 @@ public class ClienteController {
         log.info("ClienteController: Actualizando cliente parcial ID: {}", id);
         log.info("ClienteController: Campos recibidos: {}", requestData.keySet());
 
-        // Obtener usuario actual desde JWT
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new BadRequestException("Token JWT requerido");
         }
@@ -312,7 +302,6 @@ public class ClienteController {
             }
         }
 
-        // Usar ClienteCompletoService para actualización parcial optimizada
         Map<String, Object> response = clienteCompletoService.actualizarClienteParcial(id, requestData);
         return ResponseEntity.ok(response);
     }
@@ -368,10 +357,7 @@ public class ClienteController {
             @RequestBody Map<String, Object> request) {
         log.info("ClienteController: Cambiando estado del cliente ID {} a DESISTIMIENTO", id);
 
-        // Validar que el cliente existe
         Cliente cliente = clienteService.findById(id);
-
-        // Cambiar estado a DESISTIMIENTO
         cliente.setEstado(EstadoCliente.DESISTIMIENTO);
 
         // Usar motivoRechazo para almacenar la observación del desistimiento
@@ -423,11 +409,6 @@ public class ClienteController {
         ));
     }
 
-    // Excepciones manejadas por GlobalExceptionHandler
-
-    /**
-     * Obtener todos los clientes del sistema (para jefe de ventas)
-     */
     @GetMapping("/todos")
     @Operation(summary = "Obtener todos los clientes", description = "Obtiene todos los clientes con información del vendedor")
     public ResponseEntity<List<ClienteDTO>> obtenerTodosClientes() {
@@ -438,16 +419,14 @@ public class ClienteController {
     }
     
     /**
-     * Buscar o crear el cliente fantasma del vendedor para armas sin cliente
-     * Este endpoint permite obtener el cliente fantasma que se usa para almacenar armas
-     * que el vendedor solicita sin tener un cliente específico
+     * El cliente fantasma se usa para almacenar armas que el vendedor
+     * solicita sin tener un cliente específico.
      */
     @PostMapping("/fantasma-vendedor")
     @Operation(summary = "Buscar o crear cliente fantasma del vendedor",
                description = "Busca o crea un cliente fantasma para el vendedor actual para almacenar armas sin cliente")
     public ResponseEntity<?> buscarOCrearClienteFantasmaVendedor(
             @RequestHeader("Authorization") String authHeader) {
-        // Obtener usuario actual desde JWT
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new BadRequestException("Token JWT requerido");
         }

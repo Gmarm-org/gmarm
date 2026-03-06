@@ -16,7 +16,7 @@ Este directorio contiene los workflows de GitHub Actions configurados para GMARM
 **Jobs:**
 
 #### 🔨 Build & Test
-- ☕ Compilación de backend (Java 17 + Maven)
+- ☕ Compilación de backend (Java 21 + Maven)
 - 📦 Compilación de frontend (Node 18 + Vite)
 - 🧪 Tests automáticos
 - 🔍 Lint y verificación de tipos TypeScript
@@ -105,13 +105,6 @@ cat ~/.ssh/gmarm_deploy
 ---
 
 ## 🌍 Entornos
-
-### Development (`dev` branch)
-- **URL Backend**: `http://72.167.52.14:8080`
-- **URL Frontend**: `http://72.167.52.14:5173`
-- **Deploy Dir**: `/home/{SERVER_USER}/deploy/dev`
-- **Compose File**: `docker-compose.dev.yml`
-- **Auto-deploy**: ✅ Sí (en cada push)
 
 ### Production (`main` branch)
 - **URL Backend**: `https://gmarm.com`
@@ -255,7 +248,7 @@ gh run list --workflow=deploy.yml
 3. Revisa logs del servidor:
    ```bash
    cd /home/{SERVER_USER}/deploy/dev
-   docker-compose -f docker-compose.dev.yml logs
+   docker-compose -f docker-compose.prod.yml logs
    ```
 4. Re-ejecuta el workflow manualmente
 
@@ -270,11 +263,11 @@ gh run list --workflow=deploy.yml
 2. SSH al servidor y verifica servicios:
    ```bash
    docker ps
-   docker-compose -f docker-compose.dev.yml ps
+   docker-compose -f docker-compose.prod.yml ps
    ```
 3. Reinicia servicios si es necesario:
    ```bash
-   docker-compose -f docker-compose.dev.yml restart
+   docker-compose -f docker-compose.prod.yml restart
    ```
 
 ---
@@ -338,7 +331,6 @@ Agrega step al job `notify`:
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [GMARM Monitoring Guide](../MONITORING.md)
 - [Deployment Server Script](../deploy-server.sh)
 
 ---
@@ -354,4 +346,4 @@ Para problemas con los workflows:
 
 ---
 
-*Última actualización: Octubre 2024*
+*Ultima actualizacion: Marzo 2026*

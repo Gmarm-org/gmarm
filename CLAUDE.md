@@ -14,13 +14,11 @@ Este archivo te dará el contexto inicial y te indicará qué otros documentos l
 ### **Paso 2: Lee la Documentación Principal**
 1. **`README.md`** - Vista general del proyecto, tecnologías, inicio rápido
 2. **`AGENTS.md`** - Convenciones específicas, workflows, patrones
-3. **`backend/README.md`** - Arquitectura backend, servicios, endpoints
-4. **`frontend/README.md`** - Arquitectura frontend, componentes, hooks
 
 ### **Paso 3: Familiarízate con la Estructura**
 ```
 gmarm/
-├── backend/          # Spring Boot API (Java 17+)
+├── backend/          # Spring Boot API (Java 21)
 │   ├── src/main/java/com/armasimportacion/
 │   │   ├── controller/    # REST Controllers
 │   │   │   ├── ClienteController.java          # CRUD, búsquedas, estado
@@ -53,23 +51,12 @@ gmarm/
 │   ├── src/
 │   │   ├── components/    # Componentes reutilizables
 │   │   ├── pages/         # Páginas principales
-│   │   ├── services/      # API modules por dominio
-│   │   │   ├── apiClient.ts      # Instancia axios + interceptors
-│   │   │   ├── api.ts            # Barrel re-export (compatibilidad)
-│   │   │   ├── authApi.ts        # Login, logout, refresh
-│   │   │   ├── clientApi.ts      # CRUD clientes
-│   │   │   ├── weaponApi.ts      # Armas, categorías, stock
-│   │   │   ├── paymentApi.ts     # Pagos, cuotas
-│   │   │   ├── licenseApi.ts     # Licencias
-│   │   │   ├── importGroupApi.ts # Grupos importación
-│   │   │   ├── documentApi.ts    # Upload/download documentos
-│   │   │   ├── contractApi.ts    # Contratos
-│   │   │   ├── catalogApi.ts     # Catálogos (provincias, tipos)
-│   │   │   ├── configApi.ts      # Configuración sistema
-│   │   │   └── userApi.ts        # Usuarios
-│   │   ├── hooks/         # Custom hooks
-│   │   └── types/         # TypeScript types
-│   └── env.*              # Variables de entorno
+│   │   ├── services/      # 17 API modules por dominio
+│   │   ├── contexts/      # AuthContext, TiposClienteContext
+│   │   ├── hooks/         # Hooks globales
+│   │   ├── types/         # TypeScript types
+│   │   ├── schemas/       # Validación
+│   │   └── config/        # Configuración por entorno
 │
 ├── datos/
 │   └── 00_gmarm_completo.sql  # SQL MAESTRO (fuente única de verdad)
@@ -130,7 +117,7 @@ double iva = configuracionService.getIVA();
   - Fuerza Terrestre → `contrato_compra_fuerza_terrestre.html` (usa **ISSFA**)
   - Fuerza Naval → `contrato_compra_fuerza_naval.html` (usa **ISSFA**)
   - Fuerza Aérea → `contrato_compra_fuerza_aerea.html` (usa **ISSFA**)
-  - Civiles → `contrato_compra.html`
+  - Compañías de seguridad → `contrato_compania_seguridad.html`
 
 ### **6. CONFIGURACIÓN DE ENTORNOS**
 Cada entorno tiene su propia configuración. **TODOS los archivos de un entorno DEBEN coincidir**:
@@ -138,8 +125,7 @@ Cada entorno tiene su propia configuración. **TODOS los archivos de un entorno 
 | Entorno | Docker Compose | Backend Properties | Frontend Env |
 |---------|---------------|-------------------|--------------|
 | **LOCAL** | `docker-compose.local.yml` | `application-local.properties` | `env.local` |
-| **DEV** | `docker-compose.dev.yml` | `application-docker.properties` | `env.development` |
-| **PROD** | `docker-compose.prod.yml` | `application-prod.properties` | `.env.prod` |
+| **PROD** | `docker-compose.prod.yml` | `application-prod.properties` | `env.prod` |
 
 ---
 
@@ -159,8 +145,8 @@ Sistema de **Gestión de Importación de Armas y Municiones** para un comerciant
    - Cotizaciones
 
 ### **Tecnologías**
-- **Backend**: Spring Boot 3.4.5, Java 17, PostgreSQL, Thymeleaf, OpenPDF
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, React Query
+- **Backend**: Spring Boot 3.4.5, Java 21, PostgreSQL, Thymeleaf, Flying Saucer (PDF)
+- **Frontend**: React 19, TypeScript, Vite 7, Tailwind CSS, Context API
 - **DevOps**: Docker, Docker Compose, GitHub Actions
 
 ---
@@ -319,36 +305,14 @@ public class ClienteQueryService {
 ### **Frontend - Component-Hook-Service**
 
 ```
-Component (UI) → Custom Hook (useQuery/useMutation) → API Service (axios)
-                                                            ↓
-                                                       Backend API
+Component (UI) → Custom Hook (estado/lógica) → API Service (fetch)
+                                                       ↓
+                                                  Backend API
 ```
 
-**Ejemplo:**
-```tsx
-// Hook
-export const useClients = () => {
-  return useQuery({
-    queryKey: ['clients'],
-    queryFn: clientApi.getAll,
-  });
-};
-
-// Component
-const ClientList: React.FC = () => {
-  const { data: clients, isLoading } = useClients();
-  
-  if (isLoading) return <LoadingSpinner />;
-  
-  return (
-    <div>
-      {clients?.map(client => (
-        <ClientCard key={client.id} client={client} />
-      ))}
-    </div>
-  );
-};
-```
+- Hooks organizados por página/dominio (ej: `pages/Vendedor/hooks/`)
+- Estado global con Context API (AuthContext, TiposClienteContext)
+- Services en `src/services/` (17 módulos por dominio)
 
 ---
 
@@ -489,13 +453,11 @@ chore: tareas de mantenimiento
 - [ ] Login con usuario de prueba: `vendedor@test.com` / `admin123`
 
 ### **Día 2: Backend**
-- [ ] Leer `backend/README.md`
 - [ ] Revisar entidades principales en `backend/.../model/`
 - [ ] Ver servicios en `backend/.../service/`
 - [ ] Probar endpoints con Postman o similar
 
 ### **Día 3: Frontend**
-- [ ] Leer `frontend/README.md`
 - [ ] Revisar componentes principales en `frontend/src/components/`
 - [ ] Ver custom hooks en `frontend/src/hooks/`
 - [ ] Explorar páginas en `frontend/src/pages/`
@@ -516,11 +478,9 @@ chore: tareas de mantenimiento
 ## 🆘 **¿NECESITAS AYUDA?**
 
 ### **Documentación**
-1. **`README.md`** - Inicio rápido
-2. **`backend/README.md`** - Arquitectura backend
-3. **`frontend/README.md`** - Arquitectura frontend
-4. **`AGENTS.md`** - Convenciones y workflows
-5. **Este archivo** - Guía para IAs
+1. **`README.md`** - Vista general, tecnologías, inicio rápido
+2. **`AGENTS.md`** - Convenciones y workflows
+3. **Este archivo** - Guía para IAs
 
 ### **Preguntas Frecuentes**
 
@@ -588,4 +548,4 @@ Si eres una IA trabajando en GMARM y has leído este documento:
 
 ---
 
-**Última actualización**: Febrero 2026
+**Última actualización**: Marzo 2026

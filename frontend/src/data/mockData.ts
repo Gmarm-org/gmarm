@@ -1,11 +1,7 @@
-// ========================================
-// DATOS MOCK PARA QA - SISTEMA COMPLETO
-// ========================================
 // ⚠️ DESHABILITADO PARA FASE PILOTO - Solo usar autenticación real del backend
 
 import type { User, Client, Pago, SaldoCliente } from '../types';
 
-// Usuarios mock para diferentes roles - DESHABILITADOS PARA FASE PILOTO
 export const mockUsers: User[] = [
   {
     id: 1,
@@ -169,7 +165,6 @@ export const mockUsers: User[] = [
   }
 ];
 
-// Clientes mock
 export const mockClients: Client[] = [
   {
     id: '1',
@@ -327,7 +322,6 @@ export const mockClients: Client[] = [
   }
 ];
 
-// Pagos mock
 export const mockPagos: Pago[] = [
   {
     id: 1,
@@ -373,7 +367,6 @@ export const mockPagos: Pago[] = [
   }
 ];
 
-// Saldos mock
 export const mockSaldos: SaldoCliente[] = [
   {
     clienteId: 1,
@@ -392,7 +385,6 @@ export const mockSaldos: SaldoCliente[] = [
   }
 ];
 
-// Armas mock
 export const mockWeapons = [
   {
     id: '1',
@@ -461,20 +453,17 @@ export const mockWeapons = [
   }
 ];
 
-// Tipos de cliente mock
 export const mockClientTypes = [
   { id: '1', nombre: 'Civil', codigo: 'CIV' },
   { id: '2', nombre: 'Uniformado', codigo: 'UNI' },
   { id: '3', nombre: 'Compañía de Seguridad', codigo: 'EMP' }
 ];
 
-// Tipos de identificación mock
 export const mockIdentificationTypes = [
   { id: '1', nombre: 'Cédula', codigo: 'CED' },
   { id: '2', nombre: 'RUC', codigo: 'RUC' }
 ];
 
-// Provincias mock
 export const mockProvinces = [
   { id: '1', nombre: 'Guayas' },
   { id: '2', nombre: 'Pichincha' },
@@ -482,7 +471,6 @@ export const mockProvinces = [
   { id: '4', nombre: 'Manabí' }
 ];
 
-// Cantones mock
 export const mockCantons = {
   '1': [ // Guayas
     { id: '1', nombre: 'Guayaquil' },
@@ -504,21 +492,14 @@ export const mockCantons = {
   ]
 };
 
-// Función para simular delay de API
 export const simulateApiDelay = (ms: number = 500): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-// Función para simular error aleatorio (10% de probabilidad)
 export const simulateRandomError = (): boolean => {
   return Math.random() < 0.1;
 };
 
-// ========================================
-// DOCUMENTOS Y PREGUNTAS DINÁMICAS
-// ========================================
-
-// Documentos con links externos (para todos excepto Compañía de Seguridad)
 export const mockRequiredDocuments = [
   {
     id: 1,
@@ -554,7 +535,6 @@ export const mockRequiredDocuments = [
   }
 ];
 
-// Documentos adicionales por tipo de cliente
 export const mockAdditionalDocuments = [
   // Civil (tipo_proceso_id: 1)
   {
@@ -619,7 +599,6 @@ export const mockAdditionalDocuments = [
   }
 ];
 
-// Preguntas por tipo de cliente
 export const mockClientQuestions = [
   // Civil (tipo_proceso_id: 1)
   {
@@ -769,7 +748,6 @@ export const mockClientQuestions = [
   }
 ];
 
-// Mapeo de tipos de cliente a IDs de proceso
 export const clientTypeToProcessId = {
   'Civil': 1,
   'Uniformado': 2,
@@ -777,15 +755,6 @@ export const clientTypeToProcessId = {
   'Deportista': 4
 };
 
-// ========================================
-// UTILIDADES
-// ======================================== 
-
-// ========================================
-// DATOS MOCK PARA LICENCIAS
-// ========================================
-
-// Licencias mock con datos reales
 export const mockLicencias: any[] = [
   {
     id: 1,

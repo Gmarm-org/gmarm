@@ -7,25 +7,12 @@ import { useVendedorHandlers } from './useVendedorHandlers';
 import { useVendedorPaymentHandler } from './useVendedorPaymentHandler';
 import { useVendedorExport } from './useVendedorExport';
 
-/**
- * Hook principal del módulo vendedor
- * Refactorizado para cumplir con límite de 500 líneas por archivo
- * 
- * Este hook combina todos los hooks especializados:
- * - useVendedorState: Estados y refs
- * - useVendedorData: Carga de datos (clientes y armas)
- * - useVendedorUtils: Funciones utilitarias
- * - useVendedorHandlers: Handlers de eventos
- * - useVendedorExport: Exportación a Excel
- */
 export const useVendedorLogic = () => {
   const { user } = useAuth();
   const hasInitializedRef = useRef(false);
   
-  // Estados
   const state = useVendedorState();
   
-  // Carga de datos
   const { loadClients, loadWeapons } = useVendedorData(
     user,
     state.currentPageNumber,
@@ -41,13 +28,11 @@ export const useVendedorLogic = () => {
     state.setProvinciasCompletas
   );
   
-  // Utilidades
   const utils = useVendedorUtils(
     state.clientesBloqueados,
     state.clientWeaponAssignments
   );
   
-  // Handlers
   const handlers = useVendedorHandlers(
     state.setCurrentPage,
     state.setClientFormMode,
@@ -83,7 +68,6 @@ export const useVendedorLogic = () => {
     user
   );
   
-  // Handler de pago (separado por tamaño)
   const { handlePaymentComplete } = useVendedorPaymentHandler(
     state.clientFormData,
     state.selectedWeapon,
@@ -104,10 +88,8 @@ export const useVendedorLogic = () => {
     state.setClientFormData
   );
   
-  // Exportación
   const { exportarClientesAExcel } = useVendedorExport(user);
   
-  // Inicialización
   useEffect(() => {
     if (hasInitializedRef.current) {
       return;
@@ -123,7 +105,6 @@ export const useVendedorLogic = () => {
     }
   }, [state.availableWeapons, state.isInitialized, state.setIsInitialized]);
   
-  // Funciones de paginación
   const handleNextPage = () => {
     if (state.currentPageNumber < state.totalPages - 1) {
       loadClients(state.currentPageNumber + 1);
@@ -142,12 +123,10 @@ export const useVendedorLogic = () => {
     }
   };
   
-  // Función para filtrar clientes (usando utils)
   const getFilteredClients = () => {
     return utils.getFilteredClients(state.clients, state.clientFilter);
   };
   
-  // Función para contar clientes por tipo (usando utils)
   const getClientCountByType = (tipo: string) => {
     return utils.getClientCountByType(state.clients, tipo);
   };
@@ -155,7 +134,6 @@ export const useVendedorLogic = () => {
   const isLoading = state.clientsLoading || state.weaponsLoading || !state.isInitialized;
   
   return {
-    // Estados
     currentPage: state.currentPage,
     selectedClient: state.selectedClient,
     clientFormMode: state.clientFormMode,
@@ -174,13 +152,11 @@ export const useVendedorLogic = () => {
     clientesBloqueados: state.clientesBloqueados,
     isLoading,
     
-    // Paginación
     currentPageNumber: state.currentPageNumber,
     totalPages: state.totalPages,
     totalClients: state.totalClients,
     pageSize: state.pageSize,
     
-    // Setters
     setCurrentPage: state.setCurrentPage,
     setSelectedClient: state.setSelectedClient,
     setClientFormMode: state.setClientFormMode,
@@ -191,13 +167,11 @@ export const useVendedorLogic = () => {
     setClientWeaponAssignments: state.setClientWeaponAssignments,
     setClientesBloqueados: state.setClientesBloqueados,
     
-    // Utilidades
     getClientStatus: utils.getClientStatus,
     getStatusColor: utils.getStatusColor,
     getStatusText: utils.getStatusText,
     getWeaponForClient: utils.getWeaponForClient,
     
-    // Handlers
     handleCreateClient: handlers.handleCreateClient,
     handleAssignWeaponWithoutClient: handlers.handleAssignWeaponWithoutClient,
     handleClientSaved: handlers.handleClientSaved,
@@ -222,22 +196,18 @@ export const useVendedorLogic = () => {
     handleQuantityChangeWrapper: handlers.handleQuantityChangeWrapper,
     handleNavigateToWeaponSelection: handlers.handleNavigateToWeaponSelection,
     
-    // Datos del formulario
     clientFormData: state.clientFormData,
     selectedSerieId: state.selectedSerieId,
     selectedSerieNumero: state.selectedSerieNumero,
     
-    // Funciones de filtrado y conteo
     getFilteredClients,
     getClientCountByType,
     
-    // Funciones de paginación
     handleNextPage,
     handlePrevPage,
     goToPage,
     loadClients,
     
-    // Función de exportación
     exportarClientesAExcel,
   };
 };

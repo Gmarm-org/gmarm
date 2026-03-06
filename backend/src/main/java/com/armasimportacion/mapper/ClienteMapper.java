@@ -61,7 +61,6 @@ public class ClienteMapper {
                 .tipoClienteNombre(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getNombre() : null)
                 .tipoClienteCodigo(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getCodigo() : null)
                 .tipoProcesoNombre(determinarTipoProcesoNombre(cliente))
-                // Banderas dinámicas del tipo de cliente
                 .tipoClienteEsMilitar(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getEsMilitar() : false)
                 .tipoClienteEsPolicia(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getEsPolicia() : false)
                 .tipoClienteEsEmpresa(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getEsEmpresa() : false)
@@ -75,13 +74,8 @@ public class ClienteMapper {
                 .respuestas(null)
                 .build();
         
-        // Establecer el código ISSFA (para militares) usando el setter
         dto.setCodigoIssfa(cliente.getCodigoIssfa());
-        
-        // Establecer el código ISSPOL (para policías) usando el setter
         dto.setCodigoIsspol(cliente.getCodigoIsspol());
-        
-        // Establecer el rango usando el setter
         dto.setRango(cliente.getRango());
 
         // Calcular si tiene documentos generados (para restricción de edición)
@@ -126,9 +120,6 @@ public class ClienteMapper {
                 .build();
     }
     
-    /**
-     * Determina el nombre del tipo de proceso basado en banderas dinámicas del tipo de cliente
-     */
     private String determinarTipoProcesoNombre(Cliente cliente) {
         if (cliente.getTipoCliente() == null) {
             return "Sin tipo";

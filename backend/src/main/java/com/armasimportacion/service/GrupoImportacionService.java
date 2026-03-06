@@ -68,10 +68,6 @@ public class GrupoImportacionService {
     private final GrupoImportacionMatchingService matchingService;
     private final NotificacionService notificacionService;
 
-    // ============================================================
-    // CRUD Operations
-    // ============================================================
-
     public GrupoImportacion crearGrupoDesdeDTO(GrupoImportacionCreateDTO dto, Long usuarioId) {
         log.info("Creando nuevo grupo de importación desde DTO: {}", dto.getNombre());
 
@@ -265,9 +261,6 @@ public class GrupoImportacionService {
         return grupoImportacionRepository.save(grupo);
     }
 
-    /**
-     * Actualiza un grupo de importación desde un DTO (para edición de vendedores y límites)
-     */
     public GrupoImportacion actualizarGrupoDesdeDTO(Long id, GrupoImportacionCreateDTO dto, Long usuarioId) {
         log.info("Actualizando grupo de importación ID {} desde DTO", id);
 
@@ -277,7 +270,6 @@ public class GrupoImportacionService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        // Actualizar licencia si se proporciona
         if (dto.getLicenciaId() != null) {
             Licencia nuevaLicencia = licenciaRepository.findById(dto.getLicenciaId())
                     .orElseThrow(() -> new ResourceNotFoundException("Licencia no encontrada con ID: " + dto.getLicenciaId()));
@@ -305,7 +297,6 @@ public class GrupoImportacionService {
             }
         }
 
-        // Actualizar campos básicos si se proporcionan
         if (dto.getNombre() != null && !dto.getNombre().isBlank()) {
             grupo.setNombre(dto.getNombre());
         }
@@ -340,7 +331,6 @@ public class GrupoImportacionService {
 
         GrupoImportacion grupoGuardado = grupoImportacionRepository.save(grupo);
 
-        // Actualizar vendedores
         if (dto.getVendedores() != null) {
             if (!dto.getVendedores().isEmpty()) {
                 int sumaLimites = 0;
@@ -421,7 +411,6 @@ public class GrupoImportacionService {
             }
         }
 
-        // Actualizar límites por categoría
         if (grupoGuardado.getTipoGrupo() == TipoGrupo.CUPO && dto.getLimitesCategoria() != null) {
             Map<Long, Integer> limitesPorCategoria = new LinkedHashMap<>();
             for (GrupoImportacionCreateDTO.LimiteCategoriaDTO limiteDTO : dto.getLimitesCategoria()) {
@@ -568,10 +557,6 @@ public class GrupoImportacionService {
         grupoImportacionRepository.deleteById(id);
     }
 
-    // ============================================================
-    // Business Queries
-    // ============================================================
-
     public List<GrupoImportacion> obtenerGruposActivos() {
         return grupoImportacionRepository.findByEstadoNotIn(
             List.of(EstadoGrupoImportacion.COMPLETADO, EstadoGrupoImportacion.CANCELADO));
@@ -626,10 +611,6 @@ public class GrupoImportacionService {
         workflowService.cambiarEstado(id, nuevoEstado, null);
     }
 
-    // ============================================================
-    // Búsquedas
-    // ============================================================
-
     public Page<GrupoImportacion> buscarGrupos(String codigo, EstadoGrupoImportacion estado,
                                               Long usuarioCreadorId, LocalDateTime fechaInicio,
                                               LocalDateTime fechaFin, Pageable pageable) {
@@ -645,10 +626,6 @@ public class GrupoImportacionService {
         LocalDateTime fechaFin = fechaInicio.plusDays(dias);
         return grupoImportacionRepository.findGruposProximosALlegar(fechaInicio, fechaFin);
     }
-
-    // ============================================================
-    // Resumen
-    // ============================================================
 
     @Transactional(readOnly = true)
     public GrupoImportacionResumenDTO obtenerResumenGrupo(Long grupoId) {
@@ -750,10 +727,6 @@ public class GrupoImportacionService {
                (tipoCliente.esUniformado() && cliente.getEstadoMilitar() != null &&
                 cliente.getEstadoMilitar() == EstadoMilitar.PASIVO);
     }
-
-    // ============================================================
-    // Utilidades
-    // ============================================================
 
     private String generarCodigoAutomatico() {
         String prefijo = "IMP";

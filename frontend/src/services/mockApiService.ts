@@ -1,7 +1,3 @@
-// ========================================
-// API SERVICE MOCK PARA QA
-// ========================================
-
 import {
   mockUsers,
   mockClients,
@@ -34,16 +30,14 @@ import type {
   Page
 } from './api';
 
-// Funciones de simulación
 const simulateApiDelay = async (): Promise<void> => {
   await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 100));
 };
 
 const simulateRandomError = (): boolean => {
-  return Math.random() < 0.1; // 10% de probabilidad de error
+  return Math.random() < 0.1;
 };
 
-// Interfaces adicionales para mockApiService
 interface ClientQuestion {
   id: number;
   pregunta: string;
@@ -56,7 +50,6 @@ class MockApiService {
   private token: string | null = null;
   private currentUser: User | null = null;
 
-  // Simular login
   async login(_credentials: LoginRequest): Promise<LoginResponse> {
     await simulateApiDelay();
 
@@ -64,19 +57,15 @@ class MockApiService {
       throw new Error('Error de conexión simulado');
     }
 
-    // Credenciales de prueba removidas para fase piloto
-    // El sistema ahora usa solo autenticación real del backend
     throw new Error('Servicio mock deshabilitado para fase piloto');
   }
 
-  // Simular logout
   async logout(): Promise<void> {
     await simulateApiDelay();
     this.token = null;
     this.currentUser = null;
   }
 
-  // Obtener usuario actual
   async getCurrentUser(): Promise<User> {
     await simulateApiDelay();
 
@@ -87,12 +76,10 @@ class MockApiService {
     return this.currentUser;
   }
 
-  // Verificar autenticación
   isAuthenticated(): boolean {
     return this.token !== null;
   }
 
-  // Obtener roles del usuario
   async getUserRoles(): Promise<string[]> {
     await simulateApiDelay();
     if (!this.currentUser || !this.currentUser.roles) return [];
@@ -100,23 +87,17 @@ class MockApiService {
     return this.currentUser.roles.map(role => role.rol?.nombre || '').filter(nombre => nombre !== '');
   }
 
-  // Verificar si tiene un rol específico
   async hasRole(role: string): Promise<boolean> {
     if (!this.currentUser || !this.currentUser.roles) return false;
     return this.currentUser.roles.some(userRole => userRole.rol?.nombre === role);
   }
 
-  // Verificar si tiene alguno de los roles
   async hasAnyRole(roles: string[]): Promise<boolean> {
     if (!this.currentUser || !this.currentUser.roles) return false;
     return this.currentUser.roles.some(userRole =>
       roles.includes(userRole.rol?.nombre || '')
     );
   }
-
-  // ========================================
-  // CLIENTES
-  // ========================================
 
   async getClientes(page: number = 0, size: number = 10): Promise<ApiResponse<Client[]>> {
     await simulateApiDelay();
@@ -136,7 +117,6 @@ class MockApiService {
     };
   }
 
-  // Método específico para vendedores - obtiene solo sus clientes
   async getMisClientes(page: number = 0, size: number = 10): Promise<ApiResponse<Client[]>> {
     await simulateApiDelay();
 
@@ -166,7 +146,6 @@ class MockApiService {
     return cliente;
   }
 
-  // Crear cliente
   async createCliente(clienteData: Partial<Client>): Promise<Client> {
     await simulateApiDelay();
 
@@ -213,7 +192,6 @@ class MockApiService {
     return newCliente;
   }
 
-  // Actualizar cliente
   async updateCliente(id: string, clienteData: Partial<Client>): Promise<Client> {
     await simulateApiDelay();
 
@@ -226,11 +204,10 @@ class MockApiService {
       throw new Error('Cliente no encontrado');
     }
 
-    // Actualizar el cliente existente
     const updatedCliente: Client = {
       ...mockClients[clienteIndex],
       ...clienteData,
-      id: id, // Mantener el ID original
+      id: id,
       estado: clienteData.estado || mockClients[clienteIndex].estado || 'FALTAN_DOCUMENTOS',
       documentos: clienteData.documentos || mockClients[clienteIndex].documentos || [],
       respuestas: clienteData.respuestas || mockClients[clienteIndex].respuestas || []
@@ -239,10 +216,6 @@ class MockApiService {
     mockClients[clienteIndex] = updatedCliente;
     return updatedCliente;
   }
-
-  // ========================================
-  // PAGOS
-  // ========================================
 
   async getPagos(page: number = 0, size: number = 10): Promise<ApiResponse<Pago[]>> {
     await simulateApiDelay();
@@ -321,10 +294,6 @@ class MockApiService {
     return saldo;
   }
 
-  // ========================================
-  // CATÁLOGOS
-  // ========================================
-
   async getClientTypes(): Promise<any[]> {
     await simulateApiDelay();
     return mockClientTypes;
@@ -350,10 +319,6 @@ class MockApiService {
     return mockWeapons;
   }
 
-  // ========================================
-  // USUARIOS
-  // ========================================
-
   async getUsers(page: number = 0, size: number = 10): Promise<ApiResponse<User[]>> {
     await simulateApiDelay();
 
@@ -368,7 +333,6 @@ class MockApiService {
     };
   }
 
-  // Obtener usuario por ID
   async getUser(id: number): Promise<User> {
     await simulateApiDelay();
 
@@ -384,7 +348,6 @@ class MockApiService {
     return user;
   }
 
-  // Actualizar usuario
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
     await simulateApiDelay();
 
@@ -397,10 +360,8 @@ class MockApiService {
       throw new Error('Usuario no encontrado');
     }
 
-    // Actualizar el usuario en el array mock
     mockUsers[userIndex] = { ...mockUsers[userIndex], ...userData };
 
-    // Si es el usuario actual, actualizarlo también
     if (this.currentUser && this.currentUser.id === id) {
       this.currentUser = { ...this.currentUser, ...userData };
     }
@@ -408,19 +369,14 @@ class MockApiService {
     return mockUsers[userIndex];
   }
 
-  // ========================================
-  // DOCUMENTOS Y PREGUNTAS DINÁMICAS
-  // ========================================
-
-  // Obtener preguntas por tipo de cliente
   async getClientQuestions(clientType: string, estadoMilitar?: string): Promise<ClientQuestion[]> {
     await simulateApiDelay();
 
     let processId = clientTypeToProcessId[clientType as keyof typeof clientTypeToProcessId];
 
-    // Si es Uniformado y está en servicio pasivo, usar preguntas de Civil
+    // Uniformado en servicio pasivo usa preguntas de Civil
     if (clientType === 'Uniformado' && estadoMilitar === 'PASIVO') {
-      processId = 1; // Civil
+      processId = 1;
     }
 
     return mockClientQuestions
@@ -428,33 +384,25 @@ class MockApiService {
       .sort((a, b) => a.orden - b.orden);
   }
 
-  // Obtener documentos por tipo de cliente
   async getDocumentsByClientType(clientType: string, estadoMilitar?: string): Promise<any[]> {
     await simulateApiDelay();
 
     let processId = clientTypeToProcessId[clientType as keyof typeof clientTypeToProcessId];
 
-    // Si es Uniformado y está en servicio pasivo, usar documentos de Civil
+    // Uniformado en servicio pasivo usa documentos de Civil
     if (clientType === 'Uniformado' && estadoMilitar === 'PASIVO') {
-      processId = 1; // Civil
+      processId = 1;
     }
 
-    // Documentos con links (para todos excepto Compañía de Seguridad)
     const documentsWithLinks = clientType !== 'Compañía de Seguridad'
       ? mockRequiredDocuments
       : [];
 
-    // Documentos adicionales específicos del tipo de cliente
     const additionalDocuments = mockAdditionalDocuments
       .filter(d => d.tipo_proceso_id === processId);
 
-    // Combinar ambos tipos de documentos
     return [...documentsWithLinks, ...additionalDocuments];
   }
-
-  // ========================================
-  // LICENCIAS
-  // ========================================
 
   async createLicencia(licenciaData: LicenciaCreateRequest, usuarioId: number): Promise<Licencia> {
     await simulateApiDelay();
@@ -478,7 +426,7 @@ class MockApiService {
       tipoLicencia: licenciaData.tipoLicencia,
       descripcion: licenciaData.descripcion,
       fechaEmision: licenciaData.fechaEmision,
-      // NOTA: Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
+      // Los cupos se manejan a nivel de Grupo de Importación, no de Licencia
       observaciones: licenciaData.observaciones,
       estado: (licenciaData.estado as 'ACTIVA' | 'INACTIVA' | 'VENCIDA' | 'SUSPENDIDA') || 'ACTIVA',
       fechaCreacion: new Date().toISOString(),
@@ -509,7 +457,6 @@ class MockApiService {
 
     let filteredLicencias = [...mockLicencias];
 
-    // Aplicar filtros
     if (params.numeroLicencia) {
       filteredLicencias = filteredLicencias.filter(l => 
         l.numero.toLowerCase().includes(params.numeroLicencia!.toLowerCase())
@@ -524,7 +471,6 @@ class MockApiService {
       filteredLicencias = filteredLicencias.filter(l => l.estado === params.estado);
     }
 
-    // Ordenar por fecha de actualización (más reciente primero)
     filteredLicencias.sort((a, b) => 
       new Date(b.fechaActualizacion || b.fechaCreacion).getTime() - 
       new Date(a.fechaActualizacion || a.fechaCreacion).getTime()
@@ -599,17 +545,11 @@ class MockApiService {
     mockLicencias.splice(licenciaIndex, 1);
   }
 
-  // ========================================
-  // UTILIDADES
-  // ========================================
-
   setToken(token: string) {
     this.token = token;
     
-    // Si tenemos un token pero no un usuario, intentar restaurar el usuario
     if (token && !this.currentUser) {
-      // Buscar un usuario con rol de dirección de ventas para simular la restauración
-      const userWithRole = mockUsers.find(u => 
+      const userWithRole = mockUsers.find(u =>
         u.roles?.some(role => role.rol?.codigo === 'SALES_CHIEF')
       );
       if (userWithRole) {

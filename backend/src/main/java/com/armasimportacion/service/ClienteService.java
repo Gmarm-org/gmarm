@@ -44,8 +44,6 @@ public class ClienteService {
     private final ClienteQueryService clienteQueryService;
     private final ConfiguracionSistemaService configuracionSistemaService;
 
-    // ===== OPERACIONES CRUD =====
-
     public List<Cliente> findAll() {
         return clienteRepository.findAll();
     }
@@ -82,8 +80,6 @@ public class ClienteService {
         Cliente cliente = findById(id);
         clienteRepository.delete(cliente);
     }
-
-    // ===== VALIDACIONES PÚBLICAS =====
 
     public boolean existsByIdentificacion(Long tipoIdentificacionId, String numeroIdentificacion) {
         return clienteRepository.existsByTipoIdentificacionIdAndNumeroIdentificacion(
@@ -129,15 +125,11 @@ public class ClienteService {
         return telefono.matches("^[0-9]{10}$");
     }
 
-    // ===== GESTIÓN DE ESTADO =====
-
     public Cliente changeStatus(Long id, EstadoCliente estado) {
         Cliente cliente = findById(id);
         cliente.setEstado(estado);
         return clienteRepository.save(cliente);
     }
-
-    // ===== APROBACIÓN / RECHAZO =====
 
     public Cliente aprobarCliente(Long clienteId) {
         Cliente cliente = findById(clienteId);
@@ -189,8 +181,6 @@ public class ClienteService {
         return clienteMapper.toDTO(clienteActualizado);
     }
 
-    // ===== MÉTODOS DTO (CREATE / UPDATE) =====
-
     public ClienteDTO createFromDTO(ClienteCreateDTO dto, Long usuarioId) {
         log.info("ClienteService.createFromDTO: Recibiendo DTO: {}", dto);
         log.info("ClienteService.createFromDTO: numeroIdentificacion = '{}'", dto.getNumeroIdentificacion());
@@ -202,7 +192,6 @@ public class ClienteService {
         Cliente cliente = new Cliente();
         mapDtoToCliente(dto, cliente);
 
-        // Establecer relaciones
         if (dto.getTipoIdentificacionCodigo() == null || dto.getTipoIdentificacionCodigo().isBlank()) {
             throw new BadRequestException("tipoIdentificacionCodigo es obligatorio y debe enviarse desde el frontend");
         }
@@ -277,8 +266,6 @@ public class ClienteService {
         clienteQueryService.enrichDTO(resultado, clienteActualizado);
         return resultado;
     }
-
-    // ===== CLIENTE FANTASMA =====
 
     @Transactional
     public Cliente buscarOCrearClienteFantasmaVendedor(Long usuarioId) {
@@ -456,8 +443,6 @@ public class ClienteService {
             throw new BadRequestException("Error al reintentar creación de cliente fantasma: " + e.getMessage(), e);
         }
     }
-
-    // ===== MÉTODOS PRIVADOS =====
 
     private void mapDtoToCliente(ClienteCreateDTO dto, Cliente cliente) {
         cliente.setNombres(dto.getNombres());

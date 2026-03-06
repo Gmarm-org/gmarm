@@ -4,7 +4,7 @@
 
 **Proyecto**: GMARM - Sistema de Gestión de Armas  
 **Fecha de Creación**: 9 de Noviembre, 2025
-**Última Actualización**: 13 de Febrero, 2026
+**Ultima Actualizacion**: 6 de Marzo, 2026
 
 ---
 
@@ -286,14 +286,14 @@ frontend/src/pages/Vendedor/components/
 
 ## 📊 Métricas
 
-### Estado Actual (Feb 2026)
-| Métrica | Original | Antes | Ahora | Objetivo |
-|---------|----------|-------|-------|----------|
-| ClientForm.tsx | 2,623 | 1,843 | **1,053** | < 500 |
-| JefeVentas.tsx | 962 | 962 | **357** | < 500 ✅ |
-| PagosFinanzas.tsx | 687 | 687 | **229** | < 500 ✅ |
-| Code Splitting | ❌ | ❌ | ✅ React.lazy | ✅ |
-| Hooks extraídos | 0 | 6 | **13** | Continuo |
+### Estado Actual (Marzo 2026)
+| Metrica | Original | Feb 2026 | Mar 2026 | Objetivo |
+|---------|----------|----------|----------|----------|
+| ClientForm.tsx | 2,623 | 1,053 | **986** | < 500 |
+| JefeVentas.tsx | 962 | 357 | **373** | < 500 ✅ |
+| PagosFinanzas.tsx | 687 | 229 | **228** | < 500 ✅ |
+| Code Splitting | ❌ | ✅ React.lazy | ✅ React.lazy | ✅ |
+| Hooks extraidos | 0 | 13 | **13+** | Continuo |
 
 ---
 
@@ -302,7 +302,7 @@ frontend/src/pages/Vendedor/components/
 ### api.ts Monolítico — RESUELTO
 **Antes**: `api.ts` (2,001 líneas) + `adminApi.ts` (1,014 líneas) — todo en 2 archivos monolíticos.
 
-**Después**: Split en 14 módulos por dominio:
+**Después**: Split en 17 modulos por dominio:
 ```
 services/
 ├── apiClient.ts       (instancia axios + interceptors)
@@ -324,11 +324,9 @@ services/
 
 | Componente | Antes | Ahora | Estado |
 |-----------|-------|-------|--------|
-| ClientForm.tsx | 1,843 | **1,053** | ✅ handleSubmit + validaciones extraídos |
-| JefeVentas.tsx | 962 | **357** | ✅ Split en 3 hooks (State/Data/Handlers) |
-| PagosFinanzas.tsx | 687 | **229** | ✅ Split en 2 hooks (Data/Export) |
-| WeaponReserve.tsx | 927 | 927 | Pendiente — evaluar split |
-| Vendedor.tsx | 920 | 920 | Pendiente — evaluar split |
+| ClientForm.tsx | 1,843 | **986** | ✅ handleSubmit + validaciones extraidos |
+| JefeVentas.tsx | 962 | **373** | ✅ Split en 3 hooks (State/Data/Handlers) |
+| PagosFinanzas.tsx | 687 | **228** | ✅ Split en 2 hooks (Data/Export) |
 
 **Prioridad**: 🟢 Baja (los componentes críticos ya fueron splitteados)
 
@@ -507,6 +505,7 @@ Component/
 | 1.0 | 2025-11-09 | Documento inicial - Identificación de ClientForm.tsx como deuda técnica crítica |
 | 1.1 | 2026-02-13 | Actualizar estado: api.ts split resuelto, ClientForm reducido, agregar componentes grandes pendientes, actualizar archivos afectados por IVA |
 | 1.2 | 2026-02-13 | React.lazy code splitting RESUELTO, JefeVentas (962→357) y PagosFinanzas (687→229) splits RESUELTOS, ClientForm (1843→1053) handleSubmit extraído, estado global POSPUESTO |
+| 1.3 | 2026-03-06 | Actualizar line counts reales, corregir service module count (17, no 14), ClientForm mejorado a 986 |
 
 ---
 
